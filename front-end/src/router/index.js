@@ -1,0 +1,349 @@
+// router/index.js
+import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+// 컴포넌트 import - 레이지 로딩 적용
+const HomePage = () => import('@/views/HomePage.vue')
+const LoginPage = () => import('@/views/LoginPage.vue')
+
+// Security Audit 관련 페이지들
+const SecurityAuditPage = () => import('@/views/SecurityAuditPage.vue')
+const SecurityAuditResultsPage = () => import('@/views/SecurityAuditResultsPage.vue')
+const SecurityAuditSolutionsPage = () => import('@/views/SecurityAuditSolutionsPage.vue')
+const SecurityAuditContactPage = () => import('@/views/SecurityAuditContactPage.vue')
+
+// Solutions 하위 페이지들
+const ScreenSaverSolutionPage = () => import('@/views/solutions/ScreenSaverSolutionPage.vue')
+// const AutoRunSolutionPage = () => import('@/views/solutions/AutoRunSolutionPage.vue')
+// const AntivirusSolutionPage = () => import('@/views/solutions/AntivirusSolutionPage.vue')
+// const PasswordPolicySolutionPage = () => import('@/views/solutions/PasswordPolicySolutionPage.vue')
+// const FirewallSolutionPage = () => import('@/views/solutions/FirewallSolutionPage.vue')
+// const SharedFolderSolutionPage = () => import('@/views/solutions/SharedFolderSolutionPage.vue')
+// const RemoteDesktopSolutionPage = () => import('@/views/solutions/RemoteDesktopSolutionPage.vue')
+
+// // 기타 서비스 페이지들 (추후 구현 예정)
+// const WebsiteAllowPage = () => import('@/views/WebsiteAllowPage.vue')
+// const MailPage = () => import('@/views/MailPage.vue')
+// const UsbRequestPage = () => import('@/views/UsbRequestPage.vue')
+
+// // 에러 페이지
+// const NotFoundPage = () => import('@/views/NotFoundPage.vue')
+
+// 보호된 라우트 목록
+const PROTECTED_ROUTES = ['/security-audit', '/website-allow', '/mail', '/usb-request']
+
+// 라우터 설정
+const routes = [
+  // 홈 페이지
+  {
+    path: '/',
+    name: 'Home',
+    component: HomePage,
+    meta: {
+      title: '나이스디앤비 - 상시보안감사',
+      description: '나이스디앤비 상시보안감사 포털',
+    },
+  },
+
+  // 로그인 페이지
+  {
+    path: '/login',
+    name: 'Login',
+    component: LoginPage,
+    meta: {
+      title: '로그인 - 상시보안감사',
+      requiresGuest: true, // 이미 로그인한 사용자는 접근 제한
+    },
+  },
+
+  // 상시보안감사 관련 라우트
+  {
+    path: '/security-audit',
+    name: 'SecurityAudit',
+    component: SecurityAuditPage,
+    meta: {
+      title: '상시보안감사',
+      requiresAuth: true,
+    },
+  },
+
+  // 검사결과 페이지
+  {
+    path: '/security-audit/results',
+    name: 'SecurityAuditResults',
+    component: SecurityAuditResultsPage,
+    meta: {
+      title: '보안 감사 결과',
+      requiresAuth: true,
+    },
+  },
+
+  // 조치방법 메인 페이지
+  {
+    path: '/security-audit/solutions',
+    name: 'SecurityAuditSolutions',
+    component: SecurityAuditSolutionsPage,
+    meta: {
+      title: '보안 감사 조치방법',
+      requiresAuth: true,
+    },
+  },
+
+  // 조치방법 세부 페이지들
+  {
+    path: '/security-audit/solutions/screen-saver',
+    name: 'ScreenSaverSolution',
+    component: ScreenSaverSolutionPage,
+    meta: {
+      title: '화면보호기 사용 확인',
+      requiresAuth: true,
+    },
+  },
+  // {
+  //   path: '/security-audit/solutions/auto-run',
+  //   name: 'AutoRunSolution',
+  //   component: AutoRunSolutionPage,
+  //   meta: {
+  //     title: '이동매체 자동실행 제한',
+  //     requiresAuth: true,
+  //   },
+  // },
+  // {
+  //   path: '/security-audit/solutions/antivirus',
+  //   name: 'AntivirusSolution',
+  //   component: AntivirusSolutionPage,
+  //   meta: {
+  //     title: '백신 상태 확인',
+  //     requiresAuth: true,
+  //   },
+  // },
+  // {
+  //   path: '/security-audit/solutions/password-policy',
+  //   name: 'PasswordPolicySolution',
+  //   component: PasswordPolicySolutionPage,
+  //   meta: {
+  //     title: '패스워드 정책 점검',
+  //     requiresAuth: true,
+  //   },
+  // },
+  // {
+  //   path: '/security-audit/solutions/firewall',
+  //   name: 'FirewallSolution',
+  //   component: FirewallSolutionPage,
+  //   meta: {
+  //     title: '방화벽 활성화 확인',
+  //     requiresAuth: true,
+  //   },
+  // },
+  // {
+  //   path: '/security-audit/solutions/shared-folder',
+  //   name: 'SharedFolderSolution',
+  //   component: SharedFolderSolutionPage,
+  //   meta: {
+  //     title: '공유폴더 확인',
+  //     requiresAuth: true,
+  //   },
+  // },
+  // {
+  //   path: '/security-audit/solutions/remote-desktop',
+  //   name: 'RemoteDesktopSolution',
+  //   component: RemoteDesktopSolutionPage,
+  //   meta: {
+  //     title: '원격데스크톱 제한',
+  //     requiresAuth: true,
+  //   },
+  // },
+
+  // 문의하기 페이지
+  {
+    path: '/security-audit/contact',
+    name: 'SecurityAuditContact',
+    component: SecurityAuditContactPage,
+    meta: {
+      title: '문의하기 - 상시보안감사',
+      requiresAuth: true,
+    },
+  },
+
+  // // 기타 서비스 페이지들
+  // {
+  //   path: '/website-allow',
+  //   name: 'WebsiteAllow',
+  //   component: WebsiteAllowPage,
+  //   meta: {
+  //     title: '웹사이트 허용 신청',
+  //     requiresAuth: true,
+  //   },
+  // },
+  // {
+  //   path: '/mail',
+  //   name: 'Mail',
+  //   component: MailPage,
+  //   meta: {
+  //     title: '대용량 메일 작성',
+  //     requiresAuth: true,
+  //   },
+  // },
+  // {
+  //   path: '/usb-request',
+  //   name: 'UsbRequest',
+  //   component: UsbRequestPage,
+  //   meta: {
+  //     title: 'USB 반출 신청',
+  //     requiresAuth: true,
+  //   },
+  // },
+
+  // // 404 페이지 - 마지막에 위치해야 함
+  // {
+  //   path: '/:pathMatch(.*)*',
+  //   name: 'NotFound',
+  //   component: NotFoundPage,
+  //   meta: {
+  //     title: '페이지를 찾을 수 없습니다',
+  //   },
+  // },
+]
+
+// 라우터 인스턴스 생성
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    // 브라우저 뒤로가기/앞으로가기 시 스크롤 위치 복원
+    if (savedPosition) {
+      return savedPosition
+    }
+    // 해시가 있으면 해당 요소로 스크롤
+    if (to.hash) {
+      return {
+        el: to.hash,
+        behavior: 'smooth',
+      }
+    }
+    // 기본적으로 페이지 상단으로 스크롤
+    return { top: 0 }
+  },
+})
+
+// 전역 네비게이션 가드
+router.beforeEach(async (to, from, next) => {
+  // 페이지 타이틀 설정
+  if (to.meta.title) {
+    document.title = to.meta.title
+  }
+
+  // 인증 상태 확인
+  const authStore = useAuthStore()
+
+  // 로딩이 완료되지 않았다면 대기
+  if (authStore.loading) {
+    await authStore.initialize()
+  }
+
+  const isAuthenticated = authStore.isAuthenticated
+  const requiresAuth = to.meta.requiresAuth
+  const requiresGuest = to.meta.requiresGuest
+
+  // 인증이 필요한 페이지에 미인증 사용자가 접근하는 경우
+  if (requiresAuth && !isAuthenticated) {
+    console.log('인증이 필요한 페이지에 미인증 사용자 접근:', to.path)
+    next({
+      name: 'Login',
+      query: { redirect: to.fullPath },
+    })
+    return
+  }
+
+  // 게스트 전용 페이지에 인증된 사용자가 접근하는 경우 (예: 로그인 페이지)
+  if (requiresGuest && isAuthenticated) {
+    console.log('로그인한 사용자가 게스트 전용 페이지 접근:', to.path)
+    const redirectPath = to.query.redirect || '/'
+    next(redirectPath)
+    return
+  }
+
+  // 정상적인 경우 계속 진행
+  next()
+})
+
+// 전역 후처리 가드
+router.afterEach((to, from) => {
+  // 페이지 변경 완료 후 처리
+  console.log(`페이지 이동 완료: ${from.path} → ${to.path}`)
+
+  // Google Analytics 등 추적 코드 실행 위치
+  // if (window.gtag) {
+  //   window.gtag('config', 'GA_MEASUREMENT_ID', {
+  //     page_path: to.path
+  //   })
+  // }
+})
+
+// 라우터 에러 핸들링
+router.onError((error, to, from) => {
+  console.error('라우터 에러 발생:', error)
+  console.error('이동하려던 경로:', to.path)
+  console.error('이전 경로:', from.path)
+
+  // 에러 발생 시 홈페이지로 리디렉션
+  if (to.path !== '/') {
+    router.push('/')
+  }
+})
+
+export default router
+
+// 라우터 유틸리티 함수들
+export const routerUtils = {
+  // 현재 라우트가 특정 경로와 일치하는지 확인
+  isCurrentRoute(routeName) {
+    return router.currentRoute.value.name === routeName
+  },
+
+  // 현재 라우트가 특정 경로의 하위인지 확인
+  isChildRoute(parentPath) {
+    const currentPath = router.currentRoute.value.path
+    return currentPath.startsWith(parentPath)
+  },
+
+  // 인증이 필요한 라우트인지 확인
+  isProtectedRoute(path) {
+    return PROTECTED_ROUTES.some((route) => path.startsWith(route))
+  },
+
+  // 브레드크럼 생성
+  generateBreadcrumbs() {
+    const route = router.currentRoute.value
+    const pathArray = route.path.split('/').filter((segment) => segment)
+    const breadcrumbs = []
+
+    let currentPath = ''
+    for (const segment of pathArray) {
+      currentPath += `/${segment}`
+      const matchedRoute = router.getRoutes().find((r) => r.path === currentPath)
+
+      if (matchedRoute && matchedRoute.meta.title) {
+        breadcrumbs.push({
+          name: matchedRoute.meta.title,
+          path: currentPath,
+          active: currentPath === route.path,
+        })
+      }
+    }
+
+    return breadcrumbs
+  },
+
+  // 안전한 네비게이션 (에러 처리 포함)
+  async safeNavigate(to, options = {}) {
+    try {
+      await router.push(to)
+    } catch (error) {
+      console.error('네비게이션 에러:', error)
+      if (options.fallback) {
+        await router.push(options.fallback)
+      }
+    }
+  },
+}
