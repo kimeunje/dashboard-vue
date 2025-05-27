@@ -1,0 +1,121 @@
+# app/utils/decorators.py
+from functools import wraps
+from flask import request, jsonify, current_app
+import jwt
+from app.utils.constants import HTTP_STATUS, MESSAGES
+
+
+def token_required(f):
+    """JWT 토큰 인증 데코레이터"""
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = request.cookies.get("auth_token")
+
+        if not token:
+            return jsonify({"message": MESSAGES['UNAUTHORIZED']
+                            }), HTTP_STATUS['UNAUTHORIZED']
+
+        try:
+            payload = jwt.decode(token, current_app.config['JWT_SECRET'],
+                                 algorithms=["HS256"])
+            request.current_user = {
+                'username': payload.get('username'),
+                'name': payload.get('name'),
+                'dept': payload.get('dept')
+            }
+        except jwt.ExpiredSignatureError:
+            return jsonify({"message": MESSAGES['EXPIRED_TOKEN']
+                            }), HTTP_STATUS['UNAUTHORIZED']
+        except jwt.InvalidTokenError:
+            return jsonify({"message": MESSAGES['INVALID_TOKEN']
+                            }), HTTP_STATUS['UNAUTHORIZED']
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def admin_required(f):
+    """관리자 권한 확인 데코레이터"""
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = request.cookies.get("auth_token")
+
+        if not token:
+            return jsonify({"message": MESSAGES['UNAUTHORIZED']
+                            }), HTTP_STATUS['UNAUTHORIZED']
+
+        try:
+            payload = jwt.decode(token, current_app.config['JWT_SECRET'],
+                                 algorithms=["HS256"])
+            user_name = payload.get("username")
+
+            # 관리자 권한 확인 (admin 계정만 허용)
+            if user_name != 'admin':
+                return jsonify({"message": MESSAGES['ADMIN_REQUIRED']
+                                }), HTTP_STATUS['FORBIDDEN']
+
+            request.current_user = {
+                'username': payload.get('username'),
+                'name': payload.get('name'),
+                'dept': payload.get('dept')
+            }
+
+        except jwt.ExpiredSignatureError:
+            return jsonify({"message": MESSAGES['EXPIRED_TOKEN']
+                            }), HTTP_STATUS['UNAUTHORIZED']
+        except jwt.InvalidTokenError:
+            return jsonify({"message": MESSAGES['INVALID_TOKEN']
+                            }), HTTP_STATUS['UNAUTHORIZED']
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def validate_json(required_fields):
+    """JSON 요청 검증 데코레이터"""
+
+    def decorator(f):
+
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not request.is_json:
+                return jsonify({"error": "Content-Type must be application/json"
+                                }), HTTP_STATUS['BAD_REQUEST']
+
+            data = request.json
+            if not data:
+                return jsonify({"error": "Request body is required"
+                                }), HTTP_STATUS['BAD_REQUEST']
+
+            missing_fields = [field for field in required_fields if field not in data]
+            if missing_fields:
+                return jsonify({
+                    "error": f"Missing required fields: {', '.join(missing_fields)}"
+                }), HTTP_STATUS['BAD_REQUEST']
+
+            return f(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator
+
+
+def handle_exceptions(f):
+    """예외 처리 데코레이터"""
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            current_app.logger.error(f"Error in {f.__name__}: {str(e)}")
+            return jsonify({
+                "error": MESSAGES['SERVER_ERROR'],
+                "details": str(e) if current_app.debug else None
+            }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+
+    return decorated_function

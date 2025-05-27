@@ -1,0 +1,99 @@
+2025-05-27 22:33:56,375 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.30.1.38:5000
+2025-05-27 22:33:56,375 [INFO] [33mPress CTRL+C to quit[0m
+2025-05-27 22:33:56,379 [INFO]  * Restarting with stat
+2025-05-27 22:33:56,865 [WARNING]  * Debugger is active!
+2025-05-27 22:33:56,880 [INFO]  * Debugger PIN: 449-956-913
+2025-05-27 22:33:58,746 [INFO] 127.0.0.1 - - [27/May/2025 22:33:58] "[35m[1mGET / HTTP/1.1[0m" 500 -
+2025-05-27 22:33:59,046 [INFO] 127.0.0.1 - - [27/May/2025 22:33:59] "GET /?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1" 200 -
+2025-05-27 22:33:59,187 [INFO] 127.0.0.1 - - [27/May/2025 22:33:59] "GET /?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1" 200 -
+2025-05-27 22:33:59,543 [INFO] 127.0.0.1 - - [27/May/2025 22:33:59] "GET /?__debugger__=yes&cmd=resource&f=console.png&s=LEVWBZXf9j9kQT7yYATY HTTP/1.1" 200 -
+2025-05-27 22:33:59,806 [INFO] 127.0.0.1 - - [27/May/2025 22:33:59] "GET /?__debugger__=yes&cmd=resource&f=console.png HTTP/1.1" 200 -
+2025-05-27 22:34:02,955 [INFO] 127.0.0.1 - - [27/May/2025 22:34:02] "[35m[1mGET /login HTTP/1.1[0m" 500 -
+2025-05-27 22:34:03,251 [INFO] 127.0.0.1 - - [27/May/2025 22:34:03] "GET /login?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1" 200 -
+2025-05-27 22:34:03,313 [INFO] 127.0.0.1 - - [27/May/2025 22:34:03] "GET /login?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1" 200 -
+2025-05-27 22:34:03,643 [INFO] 127.0.0.1 - - [27/May/2025 22:34:03] "GET /login?__debugger__=yes&cmd=resource&f=console.png&s=LEVWBZXf9j9kQT7yYATY HTTP/1.1" 200 -
+2025-05-27 22:34:03,910 [INFO] 127.0.0.1 - - [27/May/2025 22:34:03] "GET /login?__debugger__=yes&cmd=resource&f=console.png HTTP/1.1" 200 -
+2025-05-27 22:35:06,663 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.30.1.38:5000
+2025-05-27 22:35:06,664 [INFO] [33mPress CTRL+C to quit[0m
+2025-05-27 22:35:06,665 [INFO]  * Restarting with stat
+2025-05-27 22:35:07,183 [WARNING]  * Debugger is active!
+2025-05-27 22:35:07,188 [INFO]  * Debugger PIN: 449-956-913
+2025-05-27 22:35:14,021 [INFO] 127.0.0.1 - - [27/May/2025 22:35:14] "[31m[1mGET /api/auth/me HTTP/1.1[0m" 401 -
+2025-05-27 22:35:14,051 [INFO] 127.0.0.1 - - [27/May/2025 22:35:14] "[31m[1mGET /api/auth/me HTTP/1.1[0m" 401 -
+2025-05-27 22:35:14,127 [INFO] 127.0.0.1 - - [27/May/2025 22:35:14] "[31m[1mGET /api/auth/me HTTP/1.1[0m" 401 -
+2025-05-27 22:35:14,137 [INFO] 127.0.0.1 - - [27/May/2025 22:35:14] "[31m[1mGET /api/auth/me HTTP/1.1[0m" 401 -
+2025-05-27 22:35:36,490 [INFO] 127.0.0.1 - - [27/May/2025 22:35:36] "POST /api/auth/check-credentials HTTP/1.1" 200 -
+2025-05-27 22:35:36,501 [INFO] 127.0.0.1 - - [27/May/2025 22:35:36] "POST /api/auth/email-verification HTTP/1.1" 200 -
+2025-05-27 22:35:38,452 [INFO] 127.0.0.1 - - [27/May/2025 22:35:38] "POST /api/auth/verify-and-login HTTP/1.1" 200 -
+2025-05-27 22:35:38,467 [INFO] 127.0.0.1 - - [27/May/2025 22:35:38] "GET /api/auth/me HTTP/1.1" 200 -
+2025-05-27 22:35:38,522 [INFO] 127.0.0.1 - - [27/May/2025 22:35:38] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -
+2025-05-27 22:35:44,451 [INFO] 127.0.0.1 - - [27/May/2025 22:35:44] "GET /api/auth/me HTTP/1.1" 200 -
+2025-05-27 22:35:44,463 [INFO] 127.0.0.1 - - [27/May/2025 22:35:44] "GET /api/auth/me HTTP/1.1" 200 -
+2025-05-27 22:35:48,768 [ERROR] Error in get_admin_dashboard: (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] 대상 컴퓨터에서 연결을 거부했으므로 연결하지 못했습니다)")
+2025-05-27 22:35:48,769 [INFO] 127.0.0.1 - - [27/May/2025 22:35:48] "[35m[1mGET /api/admin/dashboard HTTP/1.1[0m" 500 -
+2025-05-27 22:35:48,978 [INFO] 127.0.0.1 - - [27/May/2025 22:35:48] "[33mGET /api/admin/education?year=2025 HTTP/1.1[0m" 404 -
+2025-05-27 22:35:49,883 [INFO] 127.0.0.1 - - [27/May/2025 22:35:49] "[33mGET /api/admin/training?year=2025 HTTP/1.1[0m" 404 -
+2025-05-27 22:35:50,566 [INFO] 127.0.0.1 - - [27/May/2025 22:35:50] "[33mGET /api/admin/education?year=2025 HTTP/1.1[0m" 404 -
+2025-05-27 22:35:51,464 [ERROR] Error in get_all_users: (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] 대상 컴퓨터에서 연결을 거부했으므로 연결하지 못했습니다)")
+2025-05-27 22:35:51,465 [INFO] 127.0.0.1 - - [27/May/2025 22:35:51] "[35m[1mGET /api/admin/users HTTP/1.1[0m" 500 -
+2025-05-27 22:35:55,537 [ERROR] Error in get_all_users: (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] 대상 컴퓨터에서 연결을 거부했으므로 연결하지 못했습니다)")
+2025-05-27 22:35:55,538 [INFO] 127.0.0.1 - - [27/May/2025 22:35:55] "[35m[1mGET /api/admin/users HTTP/1.1[0m" 500 -
+2025-05-27 22:36:29,830 [INFO]  * Detected change in 'C:\\Users\\kimeu\\Documents\\nn\\dashboard-vue\\back-end\\config.py', reloading
+2025-05-27 22:36:29,885 [INFO]  * Restarting with stat
+2025-05-27 22:36:30,391 [WARNING]  * Debugger is active!
+2025-05-27 22:36:30,398 [INFO]  * Debugger PIN: 449-956-913
+2025-05-27 22:36:33,102 [INFO] 127.0.0.1 - - [27/May/2025 22:36:33] "GET /api/auth/me HTTP/1.1" 200 -
+2025-05-27 22:36:33,115 [INFO] 127.0.0.1 - - [27/May/2025 22:36:33] "GET /api/auth/me HTTP/1.1" 200 -
+2025-05-27 22:36:33,344 [ERROR] Error in get_all_users: (1146, "Table 'patch_management.security_score_summary' doesn't exist")
+2025-05-27 22:36:33,345 [INFO] 127.0.0.1 - - [27/May/2025 22:36:33] "[35m[1mGET /api/admin/users HTTP/1.1[0m" 500 -
+2025-05-27 22:36:34,554 [ERROR] Error in get_all_users: (1146, "Table 'patch_management.security_score_summary' doesn't exist")
+2025-05-27 22:36:34,555 [INFO] 127.0.0.1 - - [27/May/2025 22:36:34] "[35m[1mGET /api/admin/users HTTP/1.1[0m" 500 -
+2025-05-27 22:37:07,747 [INFO] 127.0.0.1 - - [27/May/2025 22:37:07] "GET /api/admin/users HTTP/1.1" 200 -
+2025-05-27 22:37:11,264 [INFO] 127.0.0.1 - - [27/May/2025 22:37:11] "[33mGET /api/admin/education?year=2025 HTTP/1.1[0m" 404 -
+2025-05-27 22:37:11,856 [INFO] 127.0.0.1 - - [27/May/2025 22:37:11] "GET /api/admin/dashboard HTTP/1.1" 200 -
+2025-05-27 22:37:12,657 [INFO] 127.0.0.1 - - [27/May/2025 22:37:12] "[33mGET /api/admin/training?year=2025 HTTP/1.1[0m" 404 -
+2025-05-27 22:37:12,968 [INFO] 127.0.0.1 - - [27/May/2025 22:37:12] "[33mGET /api/admin/education?year=2025 HTTP/1.1[0m" 404 -
+2025-05-27 22:37:13,297 [INFO] 127.0.0.1 - - [27/May/2025 22:37:13] "GET /api/admin/dashboard HTTP/1.1" 200 -
+2025-05-27 22:37:16,641 [INFO] 127.0.0.1 - - [27/May/2025 22:37:16] "[33mGET /api/admin/education?year=2025 HTTP/1.1[0m" 404 -
+2025-05-27 22:37:17,465 [INFO] 127.0.0.1 - - [27/May/2025 22:37:17] "[33mGET /api/admin/training?year=2025 HTTP/1.1[0m" 404 -
+2025-05-27 22:37:17,738 [INFO] 127.0.0.1 - - [27/May/2025 22:37:17] "[33mGET /api/admin/education?year=2025 HTTP/1.1[0m" 404 -
+2025-05-27 22:40:00,588 [INFO] 사용자 김은제 (4)에 대해 감사 로그를 생성했습니다.
+2025-05-27 22:40:00,588 [INFO] 127.0.0.1 - - [27/May/2025 22:40:00] "POST /api/auth/authenticate HTTP/1.1" 200 -
+2025-05-27 22:40:04,068 [INFO] 127.0.0.1 - - [27/May/2025 22:40:04] "POST /api/security-audit/validate_check HTTP/1.1" 200 -
+2025-05-27 22:40:07,664 [INFO] 127.0.0.1 - - [27/May/2025 22:40:07] "POST /api/security-audit/validate_check HTTP/1.1" 200 -
+2025-05-27 22:40:13,074 [INFO] 127.0.0.1 - - [27/May/2025 22:40:13] "POST /api/security-audit/validate_check HTTP/1.1" 200 -
+2025-05-27 22:40:16,120 [INFO] 127.0.0.1 - - [27/May/2025 22:40:16] "POST /api/security-audit/validate_check HTTP/1.1" 200 -
+2025-05-27 22:40:19,211 [INFO] 127.0.0.1 - - [27/May/2025 22:40:19] "GET /api/admin/users HTTP/1.1" 200 -
+2025-05-27 22:40:19,720 [ERROR] 검증 오류: [사용자 계정명의 적정성] 체크리스트 항목을 찾을 수 없습니다
+2025-05-27 22:40:19,722 [INFO] 127.0.0.1 - - [27/May/2025 22:40:19] "[31m[1mPOST /api/security-audit/validate_check HTTP/1.1[0m" 400 -
+2025-05-27 22:40:19,924 [INFO] 127.0.0.1 - - [27/May/2025 22:40:19] "GET /api/admin/dashboard HTTP/1.1" 200 -
+2025-05-27 22:40:23,411 [ERROR] 검증 오류: [불필요한 계정 사용] 체크리스트 항목을 찾을 수 없습니다
+2025-05-27 22:40:23,412 [INFO] 127.0.0.1 - - [27/May/2025 22:40:23] "[31m[1mPOST /api/security-audit/validate_check HTTP/1.1[0m" 400 -
+2025-05-27 22:40:26,870 [INFO] 127.0.0.1 - - [27/May/2025 22:40:26] "POST /api/security-audit/validate_check HTTP/1.1" 200 -
+2025-05-27 22:40:26,888 [INFO] 127.0.0.1 - - [27/May/2025 22:40:26] "POST /api/security-audit/validate_check HTTP/1.1" 200 -
+2025-05-27 22:40:26,913 [INFO] 127.0.0.1 - - [27/May/2025 22:40:26] "POST /api/security-audit/validate_check HTTP/1.1" 200 -
+2025-05-27 22:40:26,942 [INFO] 127.0.0.1 - - [27/May/2025 22:40:26] "POST /api/security-audit/validate_check HTTP/1.1" 200 -
+2025-05-27 22:40:30,523 [INFO] 127.0.0.1 - - [27/May/2025 22:40:30] "POST /api/security-audit/validate_check HTTP/1.1" 200 -
+2025-05-27 22:40:33,807 [INFO] 127.0.0.1 - - [27/May/2025 22:40:33] "POST /api/security-audit/validate_check HTTP/1.1" 200 -
+2025-05-27 22:42:39,224 [INFO] 127.0.0.1 - - [27/May/2025 22:42:39] "GET /api/auth/me HTTP/1.1" 200 -
+2025-05-27 22:42:39,232 [INFO] 127.0.0.1 - - [27/May/2025 22:42:39] "GET /api/auth/me HTTP/1.1" 200 -
+2025-05-27 22:42:39,566 [INFO] 127.0.0.1 - - [27/May/2025 22:42:39] "GET /api/admin/dashboard HTTP/1.1" 200 -
+2025-05-27 22:42:41,288 [INFO] 127.0.0.1 - - [27/May/2025 22:42:41] "[33mGET /api/admin/scores?year=2025 HTTP/1.1[0m" 404 -
+2025-05-27 22:42:47,490 [INFO] 127.0.0.1 - - [27/May/2025 22:42:47] "GET /api/admin/dashboard HTTP/1.1" 200 -
+2025-05-27 22:42:48,768 [INFO] 127.0.0.1 - - [27/May/2025 22:42:48] "GET /api/admin/users HTTP/1.1" 200 -
+2025-05-27 22:42:49,077 [INFO] 127.0.0.1 - - [27/May/2025 22:42:49] "GET /api/admin/dashboard HTTP/1.1" 200 -
+2025-05-27 22:43:00,749 [ERROR] Error in get_security_stats: 사용자 정보를 찾을 수 없습니다.
+2025-05-27 22:43:00,750 [INFO] 127.0.0.1 - - [27/May/2025 22:43:00] "[35m[1mGET /api/security-audit/stats HTTP/1.1[0m" 500 -
+2025-05-27 22:43:02,992 [INFO] 127.0.0.1 - - [27/May/2025 22:43:02] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -
+2025-05-27 22:43:03,767 [ERROR] Error in get_security_stats: 사용자 정보를 찾을 수 없습니다.
+2025-05-27 22:43:03,768 [INFO] 127.0.0.1 - - [27/May/2025 22:43:03] "[35m[1mGET /api/security-audit/stats HTTP/1.1[0m" 500 -
+2025-05-27 22:45:58,364 [INFO] 127.0.0.1 - - [27/May/2025 22:45:58] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -
+2025-05-27 22:45:59,988 [INFO] 127.0.0.1 - - [27/May/2025 22:45:59] "GET /api/auth/me HTTP/1.1" 200 -
+2025-05-27 22:46:00,001 [INFO] 127.0.0.1 - - [27/May/2025 22:46:00] "GET /api/auth/me HTTP/1.1" 200 -
+2025-05-27 22:46:00,115 [INFO] 127.0.0.1 - - [27/May/2025 22:46:00] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -

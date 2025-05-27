@@ -39,9 +39,8 @@ import { RouterLink } from 'vue-router'
 const navItems = [
   { name: 'Home', path: '/' },
   { name: '상시보안감사', path: '/security-audit' },
-  { name: '웹사이트 허용 신청', path: '/website-allow' },
-  { name: '대용량 메일 작성', path: '/mail' },
-  { name: 'USB 반출 신청', path: '/usb-request' },
+  { name: '악성메일 모의훈련 현황', path: '/phishing-training',  },
+  { name: '정보보호 교육 현황', path: '/security-education',  },
 ]
 
 // 반응형 데이터

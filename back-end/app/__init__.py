@@ -1,0 +1,123 @@
+# app/__init__.py
+import logging
+import os
+from flask import Flask, jsonify, request, send_from_directory
+from flask_cors import CORS
+from config import config
+
+
+def create_app(config_name=None):
+    """Flask 애플리케이션 팩토리"""
+
+    if config_name is None:
+        config_name = os.environ.get('FLASK_ENV', 'default')
+
+    app = Flask(__name__, static_folder=config[config_name].STATIC_FOLDER,
+                static_url_path='', template_folder=config[config_name].TEMPLATE_FOLDER)
+
+    # 설정 로드
+    app.config.from_object(config[config_name])
+
+    # CORS 설정
+    CORS(
+        app,
+        resources={
+            r"/api/*": {
+                "origins": app.config['CORS_ORIGINS'],
+                "supports_credentials": True,
+            }
+        },
+        allow_headers=["Content-Type", "Authorization"],
+        expose_headers=["Content-Type", "Authorization"],
+        max_age=600,
+    )
+
+    # 로깅 설정
+    setup_logging(app)
+
+    # 컨트롤러 등록
+    register_controllers(app)
+
+    # 에러 핸들러 등록
+    register_error_handlers(app)
+
+    # Vue SPA 라우팅 설정
+    setup_spa_routing(app)
+
+    return app
+
+
+def setup_logging(app):
+    """로깅 설정"""
+    os.makedirs(app.config['LOG_DIR'], exist_ok=True)
+
+    logging.basicConfig(
+        level=getattr(logging, app.config['LOG_LEVEL']),
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler(os.path.join(app.config['LOG_DIR'], "server.log"),
+                                encoding="utf-8"),
+            logging.StreamHandler(),
+        ],
+    )
+
+
+def register_controllers(app):
+    """컨트롤러 등록"""
+    from app.controllers.auth_controller import auth_bp
+    from app.controllers.audit_controller import audit_bp
+    from app.controllers.education_controller import education_bp
+    from app.controllers.training_controller import training_bp
+    from app.controllers.score_controller import score_bp
+    from app.controllers.admin_controller import admin_bp
+
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(audit_bp, url_prefix='/api/security-audit')
+    app.register_blueprint(education_bp, url_prefix='/api/security-education')
+    app.register_blueprint(training_bp, url_prefix='/api/phishing-training')
+    app.register_blueprint(score_bp, url_prefix='/api/security-score')
+    app.register_blueprint(admin_bp, url_prefix='/api/admin')
+
+
+def register_error_handlers(app):
+    """에러 핸들러 등록"""
+
+    @app.errorhandler(404)
+    def not_found(error):
+        # API 요청인 경우
+        if request.path.startswith('/api/'):
+            return jsonify({"error": "API endpoint not found"}), 404
+
+        # Vue 앱으로 라우팅
+        try:
+            return send_from_directory(app.static_folder, 'index.html')
+        except FileNotFoundError:
+            return "Vue app not found", 404
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        return jsonify({"error": "Internal server error"}), 500
+
+
+def setup_spa_routing(app):
+    """Vue SPA 라우팅 설정"""
+
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve_vue_app(path):
+        # API 경로는 제외
+        if path.startswith('api/'):
+            return jsonify({"error": "API endpoint not found"}), 404
+
+        # 정적 파일 요청 처리
+        if '.' in path:
+            try:
+                return send_from_directory(app.static_folder, path)
+            except FileNotFoundError:
+                pass
+
+        # SPA 라우팅을 위해 index.html 반환
+        try:
+            return send_from_directory(app.static_folder, 'index.html')
+        except FileNotFoundError:
+            return "Vue app not found. Please build the Vue project first.", 404

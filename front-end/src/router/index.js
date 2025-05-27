@@ -29,6 +29,18 @@ const ScreenSaverSolutionPage = () => import('@/views/solutions/ScreenSaverSolut
 // // 에러 페이지
 // const NotFoundPage = () => import('@/views/NotFoundPage.vue')
 
+// 새로운 컴포넌트 import 추가 (기존 import 섹션에 추가)
+const SecurityEducationPage = () => import('@/views/SecurityEducationPage.vue')
+const PhishingTrainingPage = () => import('@/views/PhishingTrainingPage.vue')
+const SecurityScorePage = () => import('@/views/SecurityScorePage.vue')
+
+// 관리자 페이지 컴포넌트 import (기존 import 섹션에 추가)
+const AdminDashboard = () => import('@/views/admin/AdminDashboard.vue')
+const AdminEducationManagement = () => import('@/views/admin/AdminEducationManagement.vue')
+const AdminTrainingManagement = () => import('@/views/admin/AdminTrainingManagement.vue')
+const AdminUserManagement = () => import('@/views/admin/AdminUserManagement.vue')
+const AdminScoreManagement = () => import('@/views/admin/AdminScoreManagement.vue')
+
 // 보호된 라우트 목록
 const PROTECTED_ROUTES = ['/security-audit', '/website-allow', '/mail', '/usb-request']
 
@@ -42,6 +54,16 @@ const routes = [
     meta: {
       title: '나이스디앤비 - 상시보안감사',
       description: '나이스디앤비 상시보안감사 포털',
+    },
+  },
+
+  {
+    path: '/admin',
+    name: 'AdminDashboard',
+    component: AdminDashboard,
+    meta: {
+      title: '관리자 대시보드',
+      requiresAuth: true,
     },
   },
 
@@ -97,6 +119,96 @@ const routes = [
     meta: {
       title: '화면보호기 사용 확인',
       requiresAuth: true,
+    },
+  },
+
+  {
+    path: '/security-education',
+    name: 'SecurityEducation',
+    component: SecurityEducationPage,
+    meta: {
+      title: '정보보호 교육 현황',
+      requiresAuth: true,
+    },
+  },
+
+  // 악성메일 모의훈련 현황 페이지
+  {
+    path: '/phishing-training',
+    name: 'PhishingTraining',
+    component: PhishingTrainingPage,
+    meta: {
+      title: '악성메일 모의훈련 현황',
+      requiresAuth: true,
+    },
+  },
+
+  // 종합 보안 점수 페이지
+  {
+    path: '/security-score',
+    name: 'SecurityScore',
+    component: SecurityScorePage,
+    meta: {
+      title: '종합 보안 점수',
+      requiresAuth: true,
+    },
+  },
+
+  {
+    path: '/admin',
+    name: 'AdminDashboard',
+    component: AdminDashboard,
+    meta: {
+      title: '관리자 대시보드',
+      requiresAuth: true,
+      requiresAdmin: true, // 관리자 권한 필요
+    },
+  },
+
+  // 정보보호 교육 관리
+  {
+    path: '/admin/education',
+    name: 'AdminEducationManagement',
+    component: AdminEducationManagement,
+    meta: {
+      title: '정보보호 교육 관리',
+      requiresAuth: true,
+      // requiresAdmin: true,
+    },
+  },
+
+  // 모의훈련 관리
+  {
+    path: '/admin/training',
+    name: 'AdminTrainingManagement',
+    component: AdminTrainingManagement,
+    meta: {
+      title: '모의훈련 관리',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
+
+  // 사용자 관리
+  {
+    path: '/admin/users',
+    name: 'AdminUserManagement',
+    component: AdminUserManagement,
+    meta: {
+      title: '사용자 관리',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
+
+  {
+    path: '/admin/scores',
+    name: 'AdminScoreManagement',
+    component: AdminScoreManagement,
+    meta: {
+      title: '점수 관리',
+      requiresAuth: true,
+      requiresAdmin: true,
     },
   },
   // {
@@ -244,6 +356,7 @@ router.beforeEach(async (to, from, next) => {
   const isAuthenticated = authStore.isAuthenticated
   const requiresAuth = to.meta.requiresAuth
   const requiresGuest = to.meta.requiresGuest
+  const requiresAdmin = to.meta.requiresAdmin
 
   // 인증이 필요한 페이지에 미인증 사용자가 접근하는 경우
   if (requiresAuth && !isAuthenticated) {
@@ -261,6 +374,22 @@ router.beforeEach(async (to, from, next) => {
     const redirectPath = to.query.redirect || '/'
     next(redirectPath)
     return
+  }
+
+  // 관리자 권한이 필요한 페이지 체크
+  if (requiresAdmin && isAuthenticated) {
+    // 사용자 역할 체크 (TEST_USERS에서 admin 계정만 관리자로 설정)
+    const userRole = authStore.user?.role || 'user'
+    const isAdmin = userRole === 'admin' || authStore.user?.username === 'admin'
+
+    if (!isAdmin) {
+      console.log('관리자 권한이 없는 사용자의 관리자 페이지 접근:', to.path)
+      next({
+        name: 'Home',
+        query: { error: 'unauthorized' },
+      })
+      return
+    }
   }
 
   // 정상적인 경우 계속 진행

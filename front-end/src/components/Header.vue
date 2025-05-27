@@ -96,8 +96,8 @@ const getPageTitle = () => {
     { path: '/', title: '상시보안감사' },
     { path: '/security-audit', title: '상시보안감사' },
     { path: '/login', title: '로그인' },
-    { path: '/website-allow', title: '웹사이트 허용 신청' },
-    { path: '/mail', title: '대용량 메일 작성' },
+    { path: '/phishing-training', title: '악성메일 모의훈련 현황' },
+    { path: '/security-education', title: '정보보호 교육 현황' },
     { path: '/usb-request', title: 'USB 반출 신청' },
   ]
 
