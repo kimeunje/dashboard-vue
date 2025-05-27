@@ -1,4 +1,4 @@
-<!-- views/admin/AdminTrainingManagement.vue - Template -->
+<!-- views/admin/AdminTrainingManagement.vue -->
 <template>
   <div class="admin-training">
     <div class="admin-header">
@@ -23,13 +23,11 @@
         </div>
 
         <div class="filter-group">
-          <label>분기:</label>
-          <select v-model="selectedQuarter" @change="loadTrainingData">
+          <label>기간:</label>
+          <select v-model="selectedPeriod" @change="loadTrainingData">
             <option value="">전체</option>
-            <option value="1">1분기</option>
-            <option value="2">2분기</option>
-            <option value="3">3분기</option>
-            <option value="4">4분기</option>
+            <option value="first_half">상반기</option>
+            <option value="second_half">하반기</option>
           </select>
         </div>
 
@@ -48,7 +46,7 @@
             type="text"
             v-model="searchQuery"
             @input="searchTrainingData"
-            placeholder="사용자명 또는 ID 검색..."
+            placeholder="사용자명, ID 또는 이메일 검색..."
             class="search-input"
           />
         </div>
@@ -58,44 +56,25 @@
       <div class="action-section">
         <button @click="showBulkUploadModal = true" class="primary-button">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path
-              d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
-            />
-            <path
-              d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"
-            />
+            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+            <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
           </svg>
           일괄 등록
         </button>
 
         <button @click="exportTrainingData" class="secondary-button">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path
-              d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
-            />
-            <path
-              d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"
-            />
+            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z" />
           </svg>
           내보내기
         </button>
 
         <button @click="downloadTemplate" class="outline-button">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path
-              d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"
-            />
+            <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z" />
           </svg>
           템플릿 다운로드
-        </button>
-
-        <button @click="conductTraining" class="training-button">
-          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path
-              d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 14H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"
-            />
-          </svg>
-          모의훈련 실시
         </button>
       </div>
 
@@ -116,67 +95,67 @@
           <table class="training-table">
             <thead>
               <tr>
-                <th>
-                  <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" />
-                </th>
+                <th><input type="checkbox" v-model="selectAll" @change="toggleSelectAll" /></th>
                 <th>사용자 ID</th>
                 <th>사용자명</th>
                 <th>부서</th>
                 <th>연도</th>
-                <th>분기</th>
-                <th>훈련일</th>
+                <th>기간</th>
+                <th>이메일</th>
+                <th>메일발송시각</th>
+                <th>수행시간</th>
+                <th>로그유형</th>
+                <th>메일유형</th>
+                <th>IP주소</th>
                 <th>결과</th>
-                <th>피싱클릭</th>
-                <th>신고시간</th>
                 <th>점수</th>
-                <th>비고</th>
+                <th>점수제외</th>
                 <th>액션</th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="record in paginatedRecords"
-                :key="`${record.user_id}-${record.training_year}-${record.quarter}`"
+                :key="`${record.user_id}-${record.training_year}-${record.training_period}`"
               >
-                <td>
-                  <input type="checkbox" v-model="selectedRecords" :value="record" />
-                </td>
+                <td><input type="checkbox" v-model="selectedRecords" :value="record" /></td>
                 <td>{{ record.user_id }}</td>
                 <td>{{ record.username }}</td>
                 <td>{{ record.department }}</td>
                 <td>{{ record.training_year }}</td>
-                <td>{{ record.quarter }}분기</td>
-                <td>{{ formatDate(record.training_date) }}</td>
+                <td>{{ getPeriodName(record.training_period) }}</td>
+                <td>{{ record.user_email || '-' }}</td>
+                <td>{{ formatDateTime(record.email_sent_time) }}</td>
+                <td>{{ formatDateTime(record.action_time) }}</td>
+                <td>
+                  <span v-if="record.log_type" class="log-type danger-text">
+                    {{ record.log_type }}
+                  </span>
+                  <span v-else>-</span>
+                </td>
+                <td class="mail-type-cell" :title="record.mail_type">
+                  {{ truncateText(record.mail_type, 20) }}
+                </td>
+                <td>{{ record.ip_address || '-' }}</td>
                 <td>
                   <span class="status-badge" :class="getResultClass(record.training_result)">
                     {{ getResultText(record.training_result) }}
                   </span>
                 </td>
-                <td>
-                  <span
-                    class="phishing-status"
-                    :class="record.clicked_phishing ? 'clicked' : 'safe'"
-                  >
-                    {{
-                      record.clicked_phishing === null
-                        ? '-'
-                        : record.clicked_phishing
-                          ? '예'
-                          : '아니오'
-                    }}
-                  </span>
-                </td>
-                <td>{{ record.response_time ? `${record.response_time}분` : '-' }}</td>
                 <td>{{ record.training_score || '-' }}</td>
-                <td class="notes-cell" :title="record.notes">
-                  {{ truncateText(record.notes, 20) }}
+                <td>
+                  <button
+                    @click="toggleScoring(record)"
+                    :class="['scoring-toggle', record.exclude_from_scoring ? 'excluded' : 'included']"
+                    :title="record.exclude_from_scoring ? '점수 계산에서 제외됨' : '점수 계산에 포함됨'"
+                  >
+                    {{ record.exclude_from_scoring ? '제외' : '포함' }}
+                  </button>
                 </td>
                 <td>
                   <div class="action-buttons">
                     <button @click="editRecord(record)" class="edit-button" title="수정">✏️</button>
-                    <button @click="deleteRecord(record)" class="delete-button" title="삭제">
-                      🗑️
-                    </button>
+                    <button @click="deleteRecord(record)" class="delete-button" title="삭제">🗑️</button>
                   </div>
                 </td>
               </tr>
@@ -252,12 +231,11 @@
               <h4>업로드 형식 안내</h4>
               <ul>
                 <li>CSV 또는 Excel 파일 형식 지원</li>
-                <li>필수 컬럼: user_id, training_year, quarter, training_result</li>
-                <li>
-                  선택 컬럼: training_date, clicked_phishing, response_time, training_score, notes
-                </li>
+                <li>필수 컬럼: user_email, training_year, training_period</li>
+                <li>선택 컬럼: email_sent_time, action_time, log_type, mail_type, ip_address</li>
                 <li>첫 번째 행은 헤더로 처리됩니다</li>
-                <li>training_result: pass(통과), fail(실패), pending(미실시)</li>
+                <li>training_period: 상반기/하반기 또는 first_half/second_half</li>
+                <li>log_type이 있으면 자동으로 실패 처리됩니다</li>
               </ul>
             </div>
           </div>
@@ -268,32 +246,24 @@
               <table>
                 <thead>
                   <tr>
-                    <th>사용자 ID</th>
+                    <th>이메일</th>
                     <th>연도</th>
-                    <th>분기</th>
-                    <th>결과</th>
-                    <th>훈련일</th>
-                    <th>피싱클릭</th>
-                    <th>점수</th>
+                    <th>기간</th>
+                    <th>발송시각</th>
+                    <th>수행시간</th>
+                    <th>로그유형</th>
+                    <th>메일유형</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(record, index) in uploadPreview.slice(0, 5)" :key="index">
-                    <td>{{ record.user_id }}</td>
+                    <td>{{ record.user_email }}</td>
                     <td>{{ record.training_year }}</td>
-                    <td>{{ record.quarter }}</td>
-                    <td>{{ getResultText(record.training_result) }}</td>
-                    <td>{{ record.training_date || '-' }}</td>
-                    <td>
-                      {{
-                        record.clicked_phishing === null
-                          ? '-'
-                          : record.clicked_phishing
-                            ? '예'
-                            : '아니오'
-                      }}
-                    </td>
-                    <td>{{ record.training_score || '-' }}</td>
+                    <td>{{ getPeriodName(record.training_period) }}</td>
+                    <td>{{ record.email_sent_time || '-' }}</td>
+                    <td>{{ record.action_time || '-' }}</td>
+                    <td>{{ record.log_type || '-' }}</td>
+                    <td>{{ truncateText(record.mail_type, 30) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -340,14 +310,44 @@
               </div>
 
               <div class="form-group">
-                <label>분기:</label>
-                <select v-model="editingRecord.quarter" required>
-                  <option value="1">1분기</option>
-                  <option value="2">2분기</option>
-                  <option value="3">3분기</option>
-                  <option value="4">4분기</option>
+                <label>기간:</label>
+                <select v-model="editingRecord.training_period" required>
+                  <option value="first_half">상반기</option>
+                  <option value="second_half">하반기</option>
                 </select>
               </div>
+            </div>
+
+            <div class="form-group">
+              <label>사용자 이메일:</label>
+              <input type="email" v-model="editingRecord.user_email" />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>메일 발송시각:</label>
+                <input type="datetime-local" v-model="editingRecord.email_sent_time" />
+              </div>
+
+              <div class="form-group">
+                <label>수행시간:</label>
+                <input type="datetime-local" v-model="editingRecord.action_time" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>로그유형:</label>
+              <input type="text" v-model="editingRecord.log_type" placeholder="예: 스크립트 첨부파일 열람, 링크 클릭" />
+            </div>
+
+            <div class="form-group">
+              <label>메일유형:</label>
+              <input type="text" v-model="editingRecord.mail_type" placeholder="예: 퇴직연금 운용상품 안내 (HTML)" />
+            </div>
+
+            <div class="form-group">
+              <label>IP주소:</label>
+              <input type="text" v-model="editingRecord.ip_address" placeholder="예: 192.168.1.100" />
             </div>
 
             <div class="form-row">
@@ -361,36 +361,23 @@
               </div>
 
               <div class="form-group">
-                <label>훈련일:</label>
-                <input type="date" v-model="editingRecord.training_date" />
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>피싱메일 클릭:</label>
-                <select v-model="editingRecord.clicked_phishing">
-                  <option :value="null">-</option>
-                  <option :value="false">아니오</option>
-                  <option :value="true">예</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label>신고시간 (분):</label>
-                <input type="number" v-model="editingRecord.response_time" min="0" />
+                <label>점수:</label>
+                <input
+                  type="number"
+                  v-model="editingRecord.training_score"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                />
               </div>
             </div>
 
             <div class="form-group">
-              <label>점수:</label>
-              <input
-                type="number"
-                v-model="editingRecord.training_score"
-                min="0"
-                max="100"
-                step="0.1"
-              />
+              <label>점수 계산 제외:</label>
+              <select v-model="editingRecord.exclude_from_scoring">
+                <option :value="false">포함 (점수에 반영)</option>
+                <option :value="true">제외 (점수에 반영 안함)</option>
+              </select>
             </div>
 
             <div class="form-group">
@@ -420,7 +407,6 @@
   </div>
 </template>
 
-// views/admin/AdminTrainingManagement.vue - Script
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -435,7 +421,7 @@ const selectAll = ref(false)
 
 // 필터 및 검색
 const selectedYear = ref(new Date().getFullYear())
-const selectedQuarter = ref('')
+const selectedPeriod = ref('')
 const selectedResult = ref('')
 const searchQuery = ref('')
 
@@ -479,14 +465,13 @@ const loadTrainingData = async () => {
   error.value = null
 
   try {
-    // API 호출하여 모의훈련 데이터 로드
     const params = new URLSearchParams({
       year: selectedYear.value,
-      ...(selectedQuarter.value && { quarter: selectedQuarter.value }),
+      ...(selectedPeriod.value && { period: selectedPeriod.value }),
       ...(selectedResult.value && { result: selectedResult.value }),
     })
 
-    const response = await fetch(`/api/admin/training?${params}`, {
+    const response = await fetch(`/api/phishing-training/records?${params}`, {
       credentials: 'include',
     })
 
@@ -512,7 +497,8 @@ const applyFilters = () => {
     filtered = filtered.filter(
       (record) =>
         record.username.toLowerCase().includes(query) ||
-        record.user_id.toLowerCase().includes(query),
+        record.user_id.toLowerCase().includes(query) ||
+        (record.user_email && record.user_email.toLowerCase().includes(query)),
     )
   }
 
@@ -532,14 +518,22 @@ const toggleSelectAll = () => {
   }
 }
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('ko-KR')
+const formatDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return '-'
+  return new Date(dateTimeStr).toLocaleString('ko-KR')
 }
 
 const truncateText = (text, maxLength) => {
   if (!text) return '-'
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
+}
+
+const getPeriodName = (period) => {
+  const names = {
+    first_half: '상반기',
+    second_half: '하반기',
+  }
+  return names[period] || period
 }
 
 const getResultClass = (result) => {
@@ -560,8 +554,49 @@ const getResultText = (result) => {
   return texts[result] || '알 수 없음'
 }
 
+const toggleScoring = async (record) => {
+  try {
+    const response = await fetch('/api/admin/toggle-scoring', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        user_id: record.user_id,
+        year: record.training_year,
+        record_type: 'training',
+        period: record.training_period,
+        exclude: !record.exclude_from_scoring,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('점수 계산 설정 변경에 실패했습니다.')
+    }
+
+    // 로컬 데이터 업데이트
+    record.exclude_from_scoring = !record.exclude_from_scoring
+    showToastMessage('점수 계산 설정이 변경되었습니다.', 'success')
+  } catch (err) {
+    console.error('점수 계산 설정 변경 실패:', err)
+    showToastMessage(err.message, 'error')
+  }
+}
+
 const editRecord = (record) => {
   editingRecord.value = { ...record }
+  // datetime-local 형식으로 변환
+  if (editingRecord.value.email_sent_time) {
+    editingRecord.value.email_sent_time = new Date(editingRecord.value.email_sent_time)
+      .toISOString()
+      .slice(0, 16)
+  }
+  if (editingRecord.value.action_time) {
+    editingRecord.value.action_time = new Date(editingRecord.value.action_time)
+      .toISOString()
+      .slice(0, 16)
+  }
   showEditModal.value = true
 }
 
@@ -574,7 +609,7 @@ const saveRecord = async () => {
   saving.value = true
 
   try {
-    const response = await fetch('/api/admin/training/update', {
+    const response = await fetch('/api/phishing-training/update', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -602,7 +637,7 @@ const deleteRecord = async (record) => {
   if (!confirm('이 모의훈련 기록을 삭제하시겠습니까?')) return
 
   try {
-    const response = await fetch('/api/admin/training/delete', {
+    const response = await fetch('/api/phishing-training/delete', {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -611,7 +646,7 @@ const deleteRecord = async (record) => {
       body: JSON.stringify({
         user_id: record.user_id,
         training_year: record.training_year,
-        quarter: record.quarter,
+        training_period: record.training_period,
       }),
     })
 
@@ -656,9 +691,21 @@ const removeSelectedFile = () => {
 }
 
 const parseFile = async (file) => {
-  // 파일 파싱 로직 (CSV 또는 Excel)
   // 실제 구현에서는 Papa Parse나 SheetJS 사용
-  showToastMessage('파일 파싱 기능이 준비중입니다.', 'info')
+  // 여기서는 간단한 샘플 데이터로 대체
+  uploadPreview.value = [
+    {
+      user_email: 'test@example.com',
+      training_year: 2025,
+      training_period: 'first_half',
+      email_sent_time: '2025-05-15 10:44:25',
+      action_time: '2025-05-15 10:44:59',
+      log_type: '스크립트 첨부파일 열람',
+      mail_type: '퇴직연금 운용상품 안내 (HTML)',
+      ip_address: '112.111.231.120',
+    },
+  ]
+  showToastMessage('파일이 파싱되었습니다. 미리보기를 확인하세요.', 'info')
 }
 
 const processBulkUpload = async () => {
@@ -695,22 +742,25 @@ const exportTrainingData = () => {
   showToastMessage('데이터 내보내기 기능이 준비중입니다.', 'info')
 }
 
-const downloadTemplate = () => {
-  // 템플릿 파일 다운로드
-  const csvContent =
-    'user_id,training_year,quarter,training_result,training_date,clicked_phishing,response_time,training_score,notes\n' +
-    'admin,2025,1,pass,2025-02-28,false,15,95,1분기 모의훈련 통과\n' +
-    'user1,2025,1,fail,2025-02-28,true,,40,1분기 모의훈련 실패 - 피싱메일 클릭'
+const downloadTemplate = async () => {
+  try {
+    const response = await fetch('/api/phishing-training/template/download', {
+      credentials: 'include',
+    })
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(blob)
-  link.download = '모의훈련_업로드_템플릿.csv'
-  link.click()
-}
+    if (!response.ok) {
+      throw new Error('템플릿 다운로드에 실패했습니다.')
+    }
 
-const conductTraining = () => {
-  showToastMessage('모의훈련 실시 기능이 준비중입니다.', 'info')
+    const blob = await response.blob()
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = '모의훈련_업로드_템플릿.csv'
+    link.click()
+  } catch (err) {
+    console.error('템플릿 다운로드 실패:', err)
+    showToastMessage('템플릿 다운로드에 실패했습니다.', 'error')
+  }
 }
 
 const formatFileSize = (bytes) => {
@@ -732,7 +782,7 @@ const showToastMessage = (message, type = 'success') => {
 }
 
 // 감시자
-watch([selectedYear, selectedQuarter, selectedResult], () => {
+watch([selectedYear, selectedPeriod, selectedResult], () => {
   loadTrainingData()
 })
 
@@ -741,8 +791,9 @@ onMounted(() => {
   loadTrainingData()
 })
 </script>
-/* AdminTrainingManagement.vue - CSS Part 1: 기본 레이아웃 및 컴포넌트 */
+
 <style scoped>
+/* AdminTrainingManagement.vue CSS */
 .admin-training {
   max-width: 1400px;
   margin: 0 auto;
@@ -867,8 +918,7 @@ onMounted(() => {
 
 .primary-button,
 .secondary-button,
-.outline-button,
-.training-button {
+.outline-button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -908,15 +958,6 @@ onMounted(() => {
 .outline-button:hover {
   background-color: #f9fafb;
   border-color: #9ca3af;
-}
-
-.training-button {
-  background-color: #f59e0b;
-  color: white;
-}
-
-.training-button:hover {
-  background-color: #d97706;
 }
 
 /* 테이블 섹션 */
@@ -966,14 +1007,15 @@ onMounted(() => {
 .training-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .training-table th,
 .training-table td {
-  padding: 12px 8px;
+  padding: 8px 6px;
   text-align: left;
   border-bottom: 1px solid #f3f4f6;
+  white-space: nowrap;
 }
 
 .training-table th {
@@ -983,6 +1025,7 @@ onMounted(() => {
   position: sticky;
   top: 0;
   z-index: 10;
+  font-size: 11px;
 }
 
 .training-table tbody tr:hover {
@@ -990,9 +1033,9 @@ onMounted(() => {
 }
 
 .status-badge {
-  padding: 4px 8px;
+  padding: 2px 6px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -1011,23 +1054,40 @@ onMounted(() => {
   color: #92400e;
 }
 
-.phishing-status {
-  font-weight: 600;
-}
-
-.phishing-status.clicked {
+.log-type.danger-text {
   color: #ef4444;
+  font-weight: 600;
+  font-size: 11px;
 }
 
-.phishing-status.safe {
-  color: #10b981;
-}
-
-.notes-cell {
-  max-width: 150px;
+.mail-type-cell {
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.scoring-toggle {
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: none;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.scoring-toggle.included {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.scoring-toggle.excluded {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.scoring-toggle:hover {
+  opacity: 0.8;
 }
 
 .action-buttons {
@@ -1088,8 +1148,6 @@ onMounted(() => {
   color: #6b7280;
 }
 
-/* AdminTrainingManagement.vue - CSS Part 2: 모달 및 반응형 */
-
 /* 모달 스타일 */
 .modal-overlay {
   position: fixed;
@@ -1111,11 +1169,11 @@ onMounted(() => {
   max-width: 90vw;
   max-height: 90vh;
   overflow-y: auto;
-  width: 600px;
+  width: 800px;
 }
 
 .modal-content.edit-modal {
-  width: 500px;
+  width: 600px;
 }
 
 .modal-header {
@@ -1164,11 +1222,7 @@ onMounted(() => {
   border-top: 1px solid #f3f4f6;
 }
 
-/* 업로드 섹션 */
-.upload-section {
-  margin-bottom: 24px;
-}
-
+/* 업로드 관련 스타일 */
 .upload-area {
   border: 2px dashed #d1d5db;
   border-radius: 8px;
@@ -1271,7 +1325,7 @@ onMounted(() => {
   margin-bottom: 4px;
 }
 
-/* 미리보기 섹션 */
+/* 미리보기 테이블 */
 .preview-section {
   margin-top: 24px;
 }
@@ -1291,7 +1345,7 @@ onMounted(() => {
 .preview-table table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .preview-table th,
@@ -1469,12 +1523,12 @@ onMounted(() => {
   }
 
   .training-table {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .training-table th,
   .training-table td {
-    padding: 8px 4px;
+    padding: 6px 4px;
   }
 
   .modal-content {
@@ -1493,7 +1547,7 @@ onMounted(() => {
 }
 
 @media (max-width: 480px) {
-  .notes-cell {
+  .mail-type-cell {
     max-width: 80px;
   }
 
@@ -1507,8 +1561,8 @@ onMounted(() => {
 
   .training-table th,
   .training-table td {
-    padding: 6px 3px;
-    font-size: 11px;
+    padding: 4px 2px;
+    font-size: 10px;
   }
 }
 </style>

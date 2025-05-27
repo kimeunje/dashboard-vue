@@ -23,25 +23,27 @@ class AdminService:
             cursor.execute("SELECT COUNT(*) as total_users FROM users")
             total_users = cursor.fetchone()['total_users']
 
-            # 올해 교육 현황
+            # 올해 교육 현황 (상반기/하반기)
             cursor.execute(
                 """
                 SELECT 
                     COUNT(DISTINCT user_id) as total_participants,
                     SUM(CASE WHEN completion_status = 1 THEN 1 ELSE 0 END) as completed_count,
-                    SUM(CASE WHEN completion_status = 0 THEN 1 ELSE 0 END) as incomplete_count
+                    SUM(CASE WHEN completion_status = 0 AND exclude_from_scoring = 0 THEN 1 ELSE 0 END) as incomplete_count,
+                    SUM(CASE WHEN exclude_from_scoring = 1 THEN 1 ELSE 0 END) as excluded_count
                 FROM security_education 
                 WHERE education_year = %s
                 """, (current_year, ))
             education_stats = cursor.fetchone()
 
-            # 올해 모의훈련 현황
+            # 올해 모의훈련 현황 (상반기/하반기)
             cursor.execute(
                 """
                 SELECT 
                     COUNT(DISTINCT user_id) as total_participants,
                     SUM(CASE WHEN training_result = 'pass' THEN 1 ELSE 0 END) as passed_count,
-                    SUM(CASE WHEN training_result = 'fail' THEN 1 ELSE 0 END) as failed_count
+                    SUM(CASE WHEN training_result = 'fail' AND exclude_from_scoring = 0 THEN 1 ELSE 0 END) as failed_count,
+                    SUM(CASE WHEN exclude_from_scoring = 1 THEN 1 ELSE 0 END) as excluded_count
                 FROM phishing_training 
                 WHERE training_year = %s
                 """, (current_year, ))
@@ -57,6 +59,20 @@ class AdminService:
             avg_score_result = cursor.fetchone()
             avg_score = avg_score_result['avg_score'] or 0
 
+        # 교육 이수율 계산 (전체 대상자 대비)
+        education_completion_rate = 0
+        if education_stats['total_participants']:
+            # 상반기 + 하반기 총 2회 교육 대상
+            total_education_opportunities = total_users * 2
+            completion_rate = (education_stats['completed_count'] / total_education_opportunities) * 100
+            education_completion_rate = round(completion_rate, 1)
+
+        # 모의훈련 통과율 계산
+        training_pass_rate = 0
+        if training_stats['total_participants']:
+            pass_rate = (training_stats['passed_count'] / training_stats['total_participants']) * 100
+            training_pass_rate = round(pass_rate, 1)
+
         dashboard_data = {
             'overview': {
                 'total_users': total_users,
@@ -67,19 +83,15 @@ class AdminService:
                 'total_participants': education_stats['total_participants'] or 0,
                 'completed': education_stats['completed_count'] or 0,
                 'incomplete': education_stats['incomplete_count'] or 0,
-                'completion_rate': round(
-                    (education_stats['completed_count'] /
-                     max(1, education_stats['total_participants'] * 4)) *
-                    100, 1) if education_stats['total_participants'] else 0
+                'excluded': education_stats['excluded_count'] or 0,
+                'completion_rate': education_completion_rate
             },
             'training': {
                 'total_participants': training_stats['total_participants'] or 0,
                 'passed': training_stats['passed_count'] or 0,
                 'failed': training_stats['failed_count'] or 0,
-                'pass_rate': round(
-                    (training_stats['passed_count'] /
-                     max(1, training_stats['total_participants'])) *
-                    100, 1) if training_stats['total_participants'] else 0
+                'excluded': training_stats['excluded_count'] or 0,
+                'pass_rate': training_pass_rate
             }
         }
 
@@ -107,8 +119,7 @@ class AdminService:
 
             user['latest_score'] = score_info['total_score'] if score_info else None
             user['latest_grade'] = score_info['grade'] if score_info else None
-            user['last_score_update'] = score_info[
-                'last_calculated'] if score_info else None
+            user['last_score_update'] = score_info['last_calculated'] if score_info else None
 
         return users
 
@@ -163,21 +174,26 @@ class AdminService:
             if not user_info:
                 raise ValueError("사용자를 찾을 수 없습니다.")
 
-            # 교육 현황
+            # 교육 현황 (상반기/하반기)
             cursor.execute(
                 """
-                SELECT * FROM security_education
+                SELECT education_period, education_type, education_date, completion_status,
+                       score, exclude_from_scoring, notes
+                FROM security_education
                 WHERE user_id = %s AND education_year = %s
-                ORDER BY quarter
+                ORDER BY education_period
                 """, (user_id, year))
             education_records = cursor.fetchall()
 
-            # 모의훈련 현황
+            # 모의훈련 현황 (상반기/하반기)
             cursor.execute(
                 """
-                SELECT * FROM phishing_training
+                SELECT training_period, email_sent_time, action_time, log_type, mail_type,
+                       user_email, ip_address, training_result, response_time_minutes,
+                       training_score, exclude_from_scoring, notes
+                FROM phishing_training
                 WHERE user_id = %s AND training_year = %s
-                ORDER BY quarter
+                ORDER BY training_period
                 """, (user_id, year))
             training_records = cursor.fetchall()
 
@@ -196,3 +212,92 @@ class AdminService:
             'score_info': score_info,
             'year': year
         }
+
+    def get_training_statistics(self, year: int = None) -> dict:
+        """모의훈련 통계 조회"""
+        if year is None:
+            year = datetime.now().year
+
+        with DatabaseManager.get_db_cursor(commit=False) as cursor:
+            # 기간별 통계
+            cursor.execute(
+                """
+                SELECT 
+                    training_period,
+                    COUNT(*) as total_count,
+                    SUM(CASE WHEN training_result = 'pass' THEN 1 ELSE 0 END) as passed_count,
+                    SUM(CASE WHEN training_result = 'fail' THEN 1 ELSE 0 END) as failed_count,
+                    SUM(CASE WHEN training_result = 'pending' THEN 1 ELSE 0 END) as pending_count,
+                    SUM(CASE WHEN exclude_from_scoring = 1 THEN 1 ELSE 0 END) as excluded_count
+                FROM phishing_training
+                WHERE training_year = %s
+                GROUP BY training_period
+                ORDER BY training_period
+                """, (year, ))
+            period_stats = cursor.fetchall()
+
+            # 부서별 통계
+            cursor.execute(
+                """
+                SELECT 
+                    u.department,
+                    COUNT(*) as total_count,
+                    SUM(CASE WHEN pt.training_result = 'pass' THEN 1 ELSE 0 END) as passed_count,
+                    SUM(CASE WHEN pt.training_result = 'fail' THEN 1 ELSE 0 END) as failed_count
+                FROM phishing_training pt
+                JOIN users u ON pt.user_id = u.uid
+                WHERE pt.training_year = %s AND pt.exclude_from_scoring = 0
+                GROUP BY u.department
+                ORDER BY u.department
+                """, (year, ))
+            department_stats = cursor.fetchall()
+
+            # 로그 유형별 통계
+            cursor.execute(
+                """
+                SELECT 
+                    log_type,
+                    COUNT(*) as count
+                FROM phishing_training
+                WHERE training_year = %s AND log_type IS NOT NULL
+                GROUP BY log_type
+                ORDER BY count DESC
+                """, (year, ))
+            log_type_stats = cursor.fetchall()
+
+        return {
+            'year': year,
+            'period_stats': period_stats,
+            'department_stats': department_stats,
+            'log_type_stats': log_type_stats
+        }
+
+    def toggle_scoring_exclusion(self, user_id: int, year: int, record_type: str, period: str, exclude: bool) -> bool:
+        """점수 계산 제외/포함 토글"""
+        try:
+            if record_type == 'education':
+                table = 'security_education'
+                period_field = 'education_period'
+                year_field = 'education_year'
+            elif record_type == 'training':
+                table = 'phishing_training'
+                period_field = 'training_period'
+                year_field = 'training_year'
+            else:
+                raise ValueError("잘못된 기록 유형입니다.")
+
+            execute_query(
+                f"""
+                UPDATE {table} 
+                SET exclude_from_scoring = %s, updated_at = NOW()
+                WHERE user_id = %s AND {year_field} = %s AND {period_field} = %s
+                """,
+                (1 if exclude else 0, user_id, year, period))
+
+            # 점수 재계산
+            self.score_service.calculate_security_score(user_id, year)
+            
+            return True
+
+        except Exception as e:
+            raise ValueError(f"점수 계산 제외 설정 실패: {str(e)}")

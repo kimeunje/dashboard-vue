@@ -1,69 +1,26 @@
 # app/services/score_service.py
 from datetime import datetime
-from app.utils.database import DatabaseManager, execute_query
-from app.utils.constants import SCORE_WEIGHTS, GRADE_CRITERIA
+from app.utils.database import execute_query, DatabaseManager
+from app.utils.constants import SCORE_WEIGHTS, GRADE_CRITERIA, EXCEPTION_ITEM_NAMES
 
 
 class ScoreService:
-    """점수 계산 관련 서비스"""
+    """보안 점수 계산 관련 서비스"""
 
     def calculate_security_score(self, user_id: int, year: int = None) -> dict:
-        """
-        사용자의 종합 보안 점수를 계산하는 함수
-        - 상시감사: 기본 점수 (통과율 기반)
-        - 정보보호 교육 미이수: 연 2회 x -0.5점
-        - 악성메일 모의훈련 미흡: 연 2회 x -0.5점
-        """
+        """사용자의 종합 보안 점수 계산"""
         if year is None:
             year = datetime.now().year
 
         with DatabaseManager.get_db_cursor() as cursor:
-            # 1. 상시감사 점수 계산 (통과율 기반)
-            cursor.execute(
-                """
-                SELECT 
-                    COUNT(DISTINCT item_id) as total_items,
-                    COUNT(DISTINCT CASE WHEN passed = 1 THEN item_id END) as passed_items
-                FROM audit_log 
-                WHERE user_id = %s 
-                AND YEAR(checked_at) = %s
-                """, (user_id, year))
+            # 1. 상시감사 점수 계산 (기본 100점에서 감점)
+            audit_score = self._calculate_audit_score(cursor, user_id, year)
 
-            audit_result = cursor.fetchone()
-            total_items = audit_result['total_items'] or 0
-            passed_items = audit_result['passed_items'] or 0
+            # 2. 교육 점수 계산 (미이수 시 감점)
+            education_penalty, education_stats = self._calculate_education_penalty(cursor, user_id, year)
 
-            # 기본 점수 100점에서 시작, 통과율에 따라 조정
-            if total_items > 0:
-                audit_score = (passed_items / total_items) * 100
-            else:
-                audit_score = 100.0
-
-            # 2. 정보보호 교육 미이수 감점 계산
-            cursor.execute(
-                """
-                SELECT COUNT(*) as incomplete_count
-                FROM security_education
-                WHERE user_id = %s 
-                AND education_year = %s 
-                AND completion_status = 0
-                """, (user_id, year))
-
-            education_incomplete = cursor.fetchone()['incomplete_count'] or 0
-            education_penalty = education_incomplete * SCORE_WEIGHTS['EDUCATION_PENALTY']
-
-            # 3. 악성메일 모의훈련 미흡 감점 계산
-            cursor.execute(
-                """
-                SELECT COUNT(*) as failed_count
-                FROM phishing_training
-                WHERE user_id = %s 
-                AND training_year = %s 
-                AND training_result = 'fail'
-                """, (user_id, year))
-
-            training_failed = cursor.fetchone()['failed_count'] or 0
-            training_penalty = training_failed * SCORE_WEIGHTS['TRAINING_PENALTY']
+            # 3. 모의훈련 점수 계산 (실패 시 감점)
+            training_penalty, training_stats = self._calculate_training_penalty(cursor, user_id, year)
 
             # 4. 총 점수 계산
             total_score = audit_score - education_penalty - training_penalty
@@ -72,181 +29,233 @@ class ScoreService:
             # 5. 등급 계산
             grade = self._calculate_grade(total_score)
 
-            # 6. 결과 저장 또는 업데이트
-            cursor.execute(
-                """
-                INSERT INTO security_score_summary 
-                (user_id, evaluation_year, audit_score, education_penalty, training_penalty, total_score, grade)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON DUPLICATE KEY UPDATE
-                audit_score = VALUES(audit_score),
-                education_penalty = VALUES(education_penalty),
-                training_penalty = VALUES(training_penalty),
-                total_score = VALUES(total_score),
-                grade = VALUES(grade),
-                last_calculated = NOW()
-                """, (user_id, year, audit_score, education_penalty, training_penalty,
-                      total_score, grade))
+            # 6. 점수 요약 저장
+            self._save_score_summary(cursor, user_id, year, audit_score, 
+                                   education_penalty, training_penalty, 
+                                   total_score, grade, education_stats, training_stats)
 
             return {
                 'user_id': user_id,
                 'year': year,
-                'audit_score': round(audit_score, 1),
-                'education_incomplete': education_incomplete,
+                'audit_score': audit_score,
                 'education_penalty': education_penalty,
-                'training_failed': training_failed,
                 'training_penalty': training_penalty,
-                'total_score': round(total_score, 1),
+                'total_score': total_score,
                 'grade': grade,
-                'details': {
-                    'total_audit_items': total_items,
-                    'passed_audit_items': passed_items,
-                    'audit_pass_rate': round(
-                        (passed_items / total_items * 100) if total_items > 0 else 0, 1)
-                }
+                'education_stats': education_stats,
+                'training_stats': training_stats
             }
+
+    def _calculate_audit_score(self, cursor, user_id: int, year: int) -> float:
+        """상시감사 점수 계산"""
+        # 해당 연도의 감사 로그 조회
+        cursor.execute(
+            """
+            SELECT COUNT(*) as total_checks,
+                   SUM(CASE WHEN is_compliant = 1 THEN 1 ELSE 0 END) as compliant_checks
+            FROM audit_log 
+            WHERE user_id = %s 
+              AND YEAR(timestamp) = %s
+              AND item_name NOT IN %s
+            """, (user_id, year, EXCEPTION_ITEM_NAMES))
+        
+        result = cursor.fetchone()
+        
+        if not result or result['total_checks'] == 0:
+            return 100.0  # 감사 기록이 없으면 기본 100점
+        
+        # 통과율 계산
+        compliance_rate = result['compliant_checks'] / result['total_checks']
+        
+        # 통과율에 따른 점수 계산 (100점 기준)
+        audit_score = compliance_rate * 100
+        return round(audit_score, 1)
+
+    def _calculate_education_penalty(self, cursor, user_id: int, year: int) -> tuple:
+        """정보보호 교육 감점 계산"""
+        cursor.execute(
+            """
+            SELECT 
+                COUNT(*) as total_count,
+                SUM(CASE WHEN completion_status = 1 THEN 1 ELSE 0 END) as completed_count,
+                SUM(CASE WHEN exclude_from_scoring = 0 AND completion_status = 0 THEN 1 ELSE 0 END) as penalty_count,
+                SUM(CASE WHEN exclude_from_scoring = 1 THEN 1 ELSE 0 END) as excluded_count
+            FROM security_education
+            WHERE user_id = %s AND education_year = %s
+            """, (user_id, year))
+        
+        result = cursor.fetchone()
+        
+        penalty_count = result['penalty_count'] if result else 0
+        penalty = penalty_count * SCORE_WEIGHTS['EDUCATION_PENALTY']
+        
+        stats = {
+            'total_count': result['total_count'] if result else 0,
+            'completed_count': result['completed_count'] if result else 0,
+            'penalty_count': penalty_count,
+            'excluded_count': result['excluded_count'] if result else 0
+        }
+        
+        return penalty, stats
+
+    def _calculate_training_penalty(self, cursor, user_id: int, year: int) -> tuple:
+        """모의훈련 감점 계산"""
+        cursor.execute(
+            """
+            SELECT 
+                COUNT(*) as total_count,
+                SUM(CASE WHEN training_result = 'pass' THEN 1 ELSE 0 END) as passed_count,
+                SUM(CASE WHEN exclude_from_scoring = 0 AND training_result = 'fail' THEN 1 ELSE 0 END) as penalty_count,
+                SUM(CASE WHEN exclude_from_scoring = 1 THEN 1 ELSE 0 END) as excluded_count
+            FROM phishing_training
+            WHERE user_id = %s AND training_year = %s
+            """, (user_id, year))
+        
+        result = cursor.fetchone()
+        
+        penalty_count = result['penalty_count'] if result else 0
+        penalty = penalty_count * SCORE_WEIGHTS['TRAINING_PENALTY']
+        
+        stats = {
+            'total_count': result['total_count'] if result else 0,
+            'passed_count': result['passed_count'] if result else 0,
+            'penalty_count': penalty_count,
+            'excluded_count': result['excluded_count'] if result else 0
+        }
+        
+        return penalty, stats
 
     def _calculate_grade(self, score: float) -> str:
         """점수에 따른 등급 계산"""
-        for threshold, grade in GRADE_CRITERIA:
-            if score >= threshold:
+        for min_score, grade in GRADE_CRITERIA:
+            if score >= min_score:
                 return grade
-        return 'F'  # 기본값
+        return 'F'
 
-    def generate_recommendations(self, score_data: dict) -> list:
-        """점수 데이터를 바탕으로 개선 권장사항 생성"""
-        recommendations = []
+    def _save_score_summary(self, cursor, user_id: int, year: int, audit_score: float,
+                           education_penalty: float, training_penalty: float,
+                           total_score: float, grade: str, education_stats: dict, training_stats: dict):
+        """점수 요약 저장"""
+        cursor.execute(
+            """
+            INSERT INTO security_score_summary 
+            (user_id, evaluation_year, audit_score, education_penalty, training_penalty,
+             total_score, grade, education_completed_count, education_total_count,
+             training_passed_count, training_total_count)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+            audit_score = VALUES(audit_score),
+            education_penalty = VALUES(education_penalty),
+            training_penalty = VALUES(training_penalty),
+            total_score = VALUES(total_score),
+            grade = VALUES(grade),
+            education_completed_count = VALUES(education_completed_count),
+            education_total_count = VALUES(education_total_count),
+            training_passed_count = VALUES(training_passed_count),
+            training_total_count = VALUES(training_total_count),
+            last_calculated = NOW()
+            """,
+            (user_id, year, audit_score, education_penalty, training_penalty,
+             total_score, grade, education_stats['completed_count'], 
+             education_stats['total_count'], training_stats['passed_count'],
+             training_stats['total_count']))
 
-        # 상시감사 관련 권장사항
-        if score_data['audit_score'] < 80:
-            recommendations.append({
-                'category': 'audit',
-                'priority': 'high',
-                'title': '상시보안감사 개선 필요',
-                'description': '보안 정책 미준수 항목이 있습니다. 조치방법을 확인하여 개선해주세요.',
-                'action_link': '/security-audit/results'
-            })
-
-        # 교육 관련 권장사항
-        if score_data['education_incomplete'] > 0:
-            recommendations.append({
-                'category': 'education',
-                'priority': 'medium',
-                'title': '정보보호교육 이수 필요',
-                'description': f'{score_data["education_incomplete"]}회의 교육을 미이수하였습니다. 조속히 이수해주세요.',
-                'action_link': '/security-education'
-            })
-
-        # 모의훈련 관련 권장사항
-        if score_data['training_failed'] > 0:
-            recommendations.append({
-                'category': 'training',
-                'priority': 'medium',
-                'title': '모의훈련 결과 개선 필요',
-                'description': f'{score_data["training_failed"]}회의 모의훈련에서 미흡한 결과를 보였습니다. 추가 교육을 받아주세요.',
-                'action_link': '/phishing-training'
-            })
-
-        # 전반적인 점수가 낮은 경우
-        if score_data['total_score'] < 70:
-            recommendations.append({
-                'category': 'overall',
-                'priority': 'high',
-                'title': '종합적인 보안 역량 강화 필요',
-                'description': '전반적인 보안 점수가 낮습니다. IT 보안팀에 문의하여 개별 상담을 받아보세요.',
-                'action_link': '/security-audit/contact'
-            })
-
-        # 우수한 경우 격려 메시지
-        if score_data['total_score'] >= 90:
-            recommendations.append({
-                'category': 'excellent',
-                'priority': 'info',
-                'title': '우수한 보안 의식',
-                'description': '훌륭한 보안 관리 상태입니다. 현재 수준을 지속적으로 유지해주세요.',
-                'action_link': None
-            })
-
-        return recommendations
-
-    def get_user_security_score(self, username: str, year: int = None) -> dict:
-        """사용자의 보안 점수 조회"""
+    def get_user_score_summary(self, user_id: int, year: int = None) -> dict:
+        """사용자 점수 요약 조회"""
         if year is None:
             year = datetime.now().year
 
-        # 사용자 ID 가져오기
-        user = execute_query("SELECT uid FROM users WHERE user_id = %s", (username, ),
-                             fetch_one=True)
+        # 점수 계산 (최신 상태로)
+        score_data = self.calculate_security_score(user_id, year)
 
-        if not user:
-            raise ValueError("사용자를 찾을 수 없습니다.")
+        # 상세 정보 조회
+        with DatabaseManager.get_db_cursor(commit=False) as cursor:
+            # 교육 상세 정보
+            cursor.execute(
+                """
+                SELECT education_period, completion_status, education_date, 
+                       exclude_from_scoring, notes
+                FROM security_education
+                WHERE user_id = %s AND education_year = %s
+                ORDER BY education_period
+                """, (user_id, year))
+            education_details = cursor.fetchall()
 
-        user_id = user["uid"]
+            # 모의훈련 상세 정보
+            cursor.execute(
+                """
+                SELECT training_period, training_result, email_sent_time, action_time,
+                       log_type, exclude_from_scoring, notes
+                FROM phishing_training
+                WHERE user_id = %s AND training_year = %s
+                ORDER BY training_period
+                """, (user_id, year))
+            training_details = cursor.fetchall()
 
-        # 점수 계산
-        return self.calculate_security_score(user_id, year)
+            # 감사 로그 요약
+            cursor.execute(
+                """
+                SELECT COUNT(*) as total_checks,
+                       SUM(CASE WHEN is_compliant = 1 THEN 1 ELSE 0 END) as compliant_checks,
+                       SUM(CASE WHEN is_compliant = 0 THEN 1 ELSE 0 END) as non_compliant_checks
+                FROM audit_log 
+                WHERE user_id = %s 
+                  AND YEAR(timestamp) = %s
+                  AND item_name NOT IN %s
+                """, (user_id, year, EXCEPTION_ITEM_NAMES))
+            audit_summary = cursor.fetchone()
 
-    def get_dashboard_overview(self, username: str, year: int = None) -> dict:
-        """종합 보안 대시보드 데이터 조회"""
-        if year is None:
-            year = datetime.now().year
-
-        # 사용자 정보 조회
-        user = execute_query("SELECT uid, username FROM users WHERE user_id = %s",
-                             (username, ), fetch_one=True)
-
-        if not user:
-            raise ValueError("사용자를 찾을 수 없습니다.")
-
-        user_id = user["uid"]
-        user_display_name = user["username"]
-
-        # 점수 계산
-        score_summary = self.calculate_security_score(user_id, year)
-
-        # 대시보드 데이터 구성
-        dashboard_data = {
-            'user_info': {
-                'name': user_display_name,
-                'user_id': username
-            },
-            'evaluation_year': year,
-            'overall_score': {
-                'total_score': score_summary['total_score'],
-                'grade': score_summary['grade'],
-                'max_score': 100.0
-            },
-            'score_breakdown': {
-                'audit': {
-                    'name': '상시보안감사',
-                    'score': score_summary['audit_score'],
-                    'status': 'good' if score_summary['audit_score'] >= 80 else
-                    'warning' if score_summary['audit_score'] >= 60 else 'critical'
-                },
-                'education': {
-                    'name': '정보보호교육',
-                    'incomplete_count': score_summary['education_incomplete'],
-                    'penalty': score_summary['education_penalty'],
-                    'status': 'good'
-                    if score_summary['education_incomplete'] == 0 else 'warning'
-                    if score_summary['education_incomplete'] <= 1 else 'critical'
-                },
-                'training': {
-                    'name': '모의훈련',
-                    'failed_count': score_summary['training_failed'],
-                    'penalty': score_summary['training_penalty'],
-                    'status': 'good' if score_summary['training_failed'] == 0 else
-                    'warning' if score_summary['training_failed'] <= 1 else 'critical'
-                }
-            },
-            'quick_stats': {
-                'audit_pass_rate': score_summary['details']['audit_pass_rate'],
-                'education_completion_rate': round(
-                    (4 - score_summary['education_incomplete']) / 4 * 100, 1),
-                'training_pass_rate': round(
-                    (4 - score_summary['training_failed']) / 4 * 100, 1)
-            },
-            'recommendations': self.generate_recommendations(score_summary)
+        return {
+            **score_data,
+            'education_details': education_details,
+            'training_details': training_details,
+            'audit_summary': audit_summary
         }
 
-        return dashboard_data
+    def get_dashboard_overview(self, user_id: int, year: int = None) -> dict:
+        """대시보드용 개요 정보 조회"""
+        if year is None:
+            year = datetime.now().year
+
+        # 사용자 점수 정보 가져오기
+        score_summary = self.get_user_score_summary(user_id, year)
+
+        with DatabaseManager.get_db_cursor(commit=False) as cursor:
+            # 최근 감사 활동
+            cursor.execute(
+                """
+                SELECT item_name, is_compliant, timestamp
+                FROM audit_log
+                WHERE user_id = %s AND YEAR(timestamp) = %s
+                ORDER BY timestamp DESC
+                LIMIT 5
+                """, (user_id, year))
+            recent_audits = cursor.fetchall()
+
+            # 월별 감사 통계
+            cursor.execute(
+                """
+                SELECT 
+                    MONTH(timestamp) as month,
+                    COUNT(*) as total_checks,
+                    SUM(CASE WHEN is_compliant = 1 THEN 1 ELSE 0 END) as compliant_checks
+                FROM audit_log
+                WHERE user_id = %s AND YEAR(timestamp) = %s
+                  AND item_name NOT IN %s
+                GROUP BY MONTH(timestamp)
+                ORDER BY month
+                """, (user_id, year, EXCEPTION_ITEM_NAMES))
+            monthly_stats = cursor.fetchall()
+
+        return {
+            'score_summary': {
+                'total_score': score_summary['total_score'],
+                'grade': score_summary['grade'],
+                'audit_score': score_summary['audit_score'],
+                'education_penalty': score_summary['education_penalty'],
+                'training_penalty': score_summary['training_penalty']
+            },
+            'recent_audits': recent_audits,
+            'monthly_stats': monthly_stats,
+            'year': year
+        }
