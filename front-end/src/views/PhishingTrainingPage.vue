@@ -693,10 +693,10 @@
                 <span class="label">응답시간:</span>
                 <span class="value">{{ period.response_time_minutes }}분</span>
               </div>
-              <div class="detail-row">
+              <!-- <div class="detail-row">
                 <span class="label">점수:</span>
                 <span class="value">{{ period.score ? `${period.score}점` : '-' }}</span>
-              </div>
+              </div> -->
               <div class="detail-row">
                 <span class="label">비고:</span>
                 <span class="value notes">{{ period.notes || '-' }}</span>
@@ -749,7 +749,7 @@
               <li>피싱메일에 액션 없음: 통과</li>
               <li>첨부파일 열람/링크 클릭: 실패</li>
               <li>실패시 0.5점 감점</li>
-              <li>점수 제외 설정시 감점 없음</li>
+              <!-- <li>점수 제외 설정시 감점 없음</li> -->
             </ul>
           </div>
 
@@ -767,7 +767,7 @@
       </div>
 
       <!-- 훈련 통계 차트 -->
-      <div class="chart-section">
+      <!-- <div class="chart-section">
         <h2>연간 훈련 성과 추이</h2>
         <div class="chart-container">
           <div class="chart-placeholder">
@@ -803,7 +803,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
