@@ -14,14 +14,14 @@ def run_command(command, cwd=None):
     try:
         # Windows 환경에서 인코딩 문제 해결
         result = subprocess.run(
-            command, 
-            shell=True, 
-            cwd=cwd, 
+            command,
+            shell=True,
+            cwd=cwd,
             check=True,
-            capture_output=True, 
+            capture_output=True,
             text=True,
             encoding='utf-8',  # UTF-8 인코딩 명시
-            errors='ignore'    # 디코딩 에러 무시
+            errors='ignore'  # 디코딩 에러 무시
         )
         if result.stdout:
             print(f"성공: {result.stdout}")
@@ -49,32 +49,24 @@ def run_command_alternative(command, cwd=None):
     print(f"실행 중: {command}")
     try:
         # 실시간 출력으로 인코딩 문제 우회
-        process = subprocess.Popen(
-            command,
-            shell=True,
-            cwd=cwd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            encoding='utf-8',
-            errors='ignore',
-            bufsize=1,
-            universal_newlines=True
-        )
-        
+        process = subprocess.Popen(command, shell=True, cwd=cwd, stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT, text=True,
+                                   encoding='utf-8', errors='ignore', bufsize=1,
+                                   universal_newlines=True)
+
         # 실시간으로 출력 읽기
         for line in process.stdout:
             print(line.rstrip())
-        
+
         process.wait()
-        
+
         if process.returncode == 0:
             print("✅ 명령어 실행 성공")
             return True
         else:
             print(f"❌ 명령어 실행 실패 (반환 코드: {process.returncode})")
             return False
-            
+
     except Exception as e:
         print(f"예상치 못한 오류: {e}")
         return False
@@ -127,7 +119,7 @@ def deploy_vue_to_flask():
     shutil.copytree(str(vue_dist_dir), str(flask_static_dir))
 
     # 7. index.html을 templates 폴더에도 복사 (필요한 경우)
-    flask_templates_dir = flask_project_dir / "templates"
+    flask_templates_dir = flask_static_dir / "templates"
     flask_templates_dir.mkdir(exist_ok=True)
 
     index_html_src = flask_static_dir / "index.html"
@@ -153,7 +145,7 @@ def clean_deployment():
     current_dir = Path.cwd()
     flask_project_dir = current_dir / "back-end"
     flask_static_dir = flask_project_dir / "static"
-    flask_templates_dir = flask_project_dir / "templates"
+    flask_templates_dir = flask_static_dir / "templates"
     backup_dir = flask_project_dir / "static_backup"
 
     print("🧹 배포 파일 정리 중...")

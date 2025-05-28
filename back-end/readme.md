@@ -290,27 +290,46 @@ CREATE TABLE IF NOT EXISTS `security_education` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`uid`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
--- 악성메일 모의훈련 관련 테이블
-DROP TABLE IF EXISTS `phishing_training`;
-CREATE TABLE IF NOT EXISTS `phishing_training` (
-  `training_id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) NOT NULL,
-  `training_year` year NOT NULL,
-  `quarter` tinyint(4) NOT NULL COMMENT '1=1분기, 2=2분기, 3=3분기, 4=4분기',
-  `training_date` date DEFAULT NULL COMMENT '훈련 실시일',
-  `training_result` varchar(20) NOT NULL DEFAULT 'pending' COMMENT 'pass=통과, fail=실패, pending=대기',
-  `clicked_phishing` tinyint(4) NOT NULL DEFAULT 0 COMMENT '0=안전, 1=피싱메일 클릭',
-  `response_time` int(11) DEFAULT NULL COMMENT '신고까지 소요시간(분)',
-  `training_score` decimal(3,1) DEFAULT NULL COMMENT '훈련 점수',
-  `notes` text DEFAULT NULL COMMENT '비고',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`training_id`),
-  UNIQUE KEY `unique_user_training` (`user_id`, `training_year`, `quarter`),
-  KEY `idx_user_year` (`user_id`, `training_year`),
-  KEY `idx_training_result` (`training_result`),
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`uid`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+-- 3. 악성메일 모의훈련 테이블
+CREATE TABLE phishing_training (
+    training_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL COMMENT '사용자 UID',
+    training_year INT NOT NULL COMMENT '훈련 연도',
+    training_period ENUM('first_half', 'second_half') NOT NULL COMMENT '훈련 기간 (상반기/하반기)',
+    email_sent_time DATETIME DEFAULT NULL COMMENT '모의 메일 발송 시각',
+    action_time DATETIME DEFAULT NULL COMMENT '사용자 액션 수행 시각',
+    log_type VARCHAR(100) DEFAULT NULL COMMENT '로그 유형 (클릭/열람 등)',
+    mail_type VARCHAR(200) DEFAULT NULL COMMENT '모의 메일 유형',
+    user_email VARCHAR(100) DEFAULT NULL COMMENT '사용자 이메일',
+    ip_address VARCHAR(45) DEFAULT NULL COMMENT 'IP 주소',
+    training_result ENUM('pass', 'fail', 'pending') DEFAULT 'pending' COMMENT '훈련 결과',
+    response_time_minutes INT DEFAULT NULL COMMENT '응답 시간 (분)',
+    training_score DECIMAL(5,2) DEFAULT NULL COMMENT '훈련 점수',
+    exclude_from_scoring BOOLEAN DEFAULT FALSE COMMENT '점수 계산 제외 여부',
+    notes TEXT DEFAULT NULL COMMENT '비고',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성일',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일',
+
+    FOREIGN KEY (user_id) REFERENCES users(uid) ON DELETE CASCADE,
+    UNIQUE KEY unique_training (user_id, training_year, training_period),
+    INDEX idx_training_year (training_year),
+    INDEX idx_training_period (training_period),
+    INDEX idx_training_result (training_result),
+    INDEX idx_email_sent_time (email_sent_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 현황';
+
+INSERT INTO phishing_training (user_id, training_year, training_period, email_sent_time, action_time, log_type, mail_type, user_email, ip_address, training_result, response_time_minutes, training_score, exclude_from_scoring, notes) VALUES
+-- 2024년 모의훈련 데이터
+(2, 2024, 'first_half', '2024-05-15 10:44:25', '2024-05-15 10:44:59', '스크립트 첨부파일 열람', '퇴직연금 운용상품 안내 (HTML)', 'kim.cs@company.com', '192.168.1.101', 'fail', 1, 40.0, FALSE, '모의훈련 실패 - 첨부파일 열람'),
+(2, 2024, 'second_half', '2024-11-20 14:30:00', NULL, NULL, '보안 업데이트 안내', 'kim.cs@company.com', NULL, 'pass', NULL, 95.0, FALSE, '모의훈련 통과 - 액션 없음'),
+(3, 2024, 'first_half', '2024-05-16 09:30:15', '2024-05-16 09:35:42', '링크 클릭', '급여명세서 확인 요청', 'lee.yh@company.com', '192.168.1.102', 'fail', 5, 40.0, FALSE, '모의훈련 실패 - 링크 클릭'),
+(3, 2024, 'second_half', '2024-11-22 11:15:30', NULL, NULL, '시스템 점검 안내', 'lee.yh@company.com', NULL, 'pass', NULL, 95.0, FALSE, '모의훈련 통과'),
+(4, 2024, 'first_half', '2024-05-18 13:20:10', NULL, NULL, '회사 정책 변경 안내', 'park.ms@company.com', NULL, 'pass', NULL, 95.0, FALSE, '모의훈련 통과'),
+(4, 2024, 'second_half', '2024-11-25 16:45:20', '2024-11-25 16:50:35', '첨부파일 다운로드', '세무 관련 서류 검토 요청', 'park.ms@company.com', '192.168.1.103', 'fail', 5, 40.0, TRUE, '모의훈련 실패 - 점수 계산 제외'),
+(2, 2025, 'first_half', '2025-05-20 09:15:30', NULL, NULL, 'IT 보안 정책 업데이트', 'kim.cs@company.com', NULL, 'pass', NULL, 95.0, FALSE, '모의훈련 통과 - 의심스러운 메일 신고'),
+(3, 2025, 'first_half', '2025-05-22 14:30:45', '2025-05-22 14:35:12', '악성 링크 클릭', '온라인 설문조사 참여 요청', 'lee.yh@company.com', '192.168.1.105', 'fail', 4, 40.0, FALSE, '모의훈련 실패 - 링크 클릭'),
+(4, 2025, 'first_half', '2025-05-25 11:20:15', NULL, NULL, '휴가 신청서 양식 변경', 'park.ms@company.com', NULL, 'pass', NULL, 95.0, FALSE, '모의훈련 통과');
+
 
 -- 종합 보안 점수 테이블
 DROP TABLE IF EXISTS `security_score_summary`;

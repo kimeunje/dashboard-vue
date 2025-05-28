@@ -105,3 +105,133 @@
 2025-05-27 23:14:07,867 [INFO]  * Restarting with stat
 2025-05-27 23:14:08,245 [WARNING]  * Debugger is active!
 2025-05-27 23:14:08,251 [INFO]  * Debugger PIN: 449-956-913
+2025-05-28 21:09:06,549 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.30.1.38:5000
+2025-05-28 21:09:06,550 [INFO] [33mPress CTRL+C to quit[0m
+2025-05-28 21:09:06,552 [INFO]  * Restarting with stat
+2025-05-28 21:09:06,934 [WARNING]  * Debugger is active!
+2025-05-28 21:09:06,940 [INFO]  * Debugger PIN: 449-956-913
+2025-05-28 21:09:10,462 [INFO] 127.0.0.1 - - [28/May/2025 21:09:10] "POST /api/auth/check-credentials HTTP/1.1" 200 -
+2025-05-28 21:09:10,473 [INFO] 127.0.0.1 - - [28/May/2025 21:09:10] "POST /api/auth/email-verification HTTP/1.1" 200 -
+2025-05-28 21:09:12,699 [INFO] 127.0.0.1 - - [28/May/2025 21:09:12] "POST /api/auth/verify-and-login HTTP/1.1" 200 -
+2025-05-28 21:09:12,710 [INFO] 127.0.0.1 - - [28/May/2025 21:09:12] "GET /api/auth/me HTTP/1.1" 200 -
+2025-05-28 21:09:12,754 [INFO] 127.0.0.1 - - [28/May/2025 21:09:12] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -
+2025-05-28 21:09:20,948 [ERROR] Error in get_phishing_training_status: (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] 대상 컴퓨터에서 연결을 거부했으므로 연결하지 못했습니다)")
+2025-05-28 21:09:20,949 [INFO] 127.0.0.1 - - [28/May/2025 21:09:20] "[35m[1mGET /api/phishing-training/status?year=2025 HTTP/1.1[0m" 500 -
+2025-05-28 21:09:26,010 [ERROR] Error in get_phishing_training_status: (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] 대상 컴퓨터에서 연결을 거부했으므로 연결하지 못했습니다)")
+2025-05-28 21:09:26,012 [INFO] 127.0.0.1 - - [28/May/2025 21:09:26] "[35m[1mGET /api/phishing-training/status?year=2025 HTTP/1.1[0m" 500 -
+2025-05-28 21:09:26,581 [INFO] 127.0.0.1 - - [28/May/2025 21:09:26] "GET /api/auth/me HTTP/1.1" 200 -
+2025-05-28 21:09:26,588 [INFO] 127.0.0.1 - - [28/May/2025 21:09:26] "GET /api/auth/me HTTP/1.1" 200 -
+2025-05-28 21:09:30,804 [ERROR] Error in get_admin_dashboard: (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] 대상 컴퓨터에서 연결을 거부했으므로 연결하지 못했습니다)")
+2025-05-28 21:09:30,805 [INFO] 127.0.0.1 - - [28/May/2025 21:09:30] "[35m[1mGET /api/admin/dashboard HTTP/1.1[0m" 500 -
+2025-05-28 21:09:32,929 [INFO] 127.0.0.1 - - [28/May/2025 21:09:32] "GET /api/admin/education?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:09:42,164 [INFO] 127.0.0.1 - - [28/May/2025 21:09:42] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -
+2025-05-28 21:09:45,173 [INFO] 127.0.0.1 - - [28/May/2025 21:09:45] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -
+2025-05-28 21:09:48,451 [INFO] 127.0.0.1 - - [28/May/2025 21:09:48] "GET /api/admin/education?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:09:52,146 [ERROR] Error in get_admin_dashboard: (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] 대상 컴퓨터에서 연결을 거부했으므로 연결하지 못했습니다)")
+2025-05-28 21:09:52,147 [INFO] 127.0.0.1 - - [28/May/2025 21:09:52] "[35m[1mGET /api/admin/dashboard HTTP/1.1[0m" 500 -
+2025-05-28 21:09:52,536 [INFO] 127.0.0.1 - - [28/May/2025 21:09:52] "GET /api/admin/education?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:09:56,420 [ERROR] Error in get_all_users: (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] 대상 컴퓨터에서 연결을 거부했으므로 연결하지 못했습니다)")
+2025-05-28 21:09:56,421 [INFO] 127.0.0.1 - - [28/May/2025 21:09:56] "[35m[1mGET /api/admin/users HTTP/1.1[0m" 500 -
+2025-05-28 21:10:09,366 [INFO]  * Detected change in 'C:\\Users\\kimeu\\Documents\\nn\\dashboard-vue\\back-end\\config.py', reloading
+2025-05-28 21:10:09,414 [INFO]  * Restarting with stat
+2025-05-28 21:10:09,753 [WARNING]  * Debugger is active!
+2025-05-28 21:10:09,758 [INFO]  * Debugger PIN: 449-956-913
+2025-05-28 21:10:12,915 [INFO] 127.0.0.1 - - [28/May/2025 21:10:12] "GET /api/admin/users HTTP/1.1" 200 -
+2025-05-28 21:10:15,137 [INFO] 127.0.0.1 - - [28/May/2025 21:10:15] "GET /api/admin/education?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:10:17,906 [INFO] 127.0.0.1 - - [28/May/2025 21:10:17] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -
+2025-05-28 21:10:19,246 [INFO] 127.0.0.1 - - [28/May/2025 21:10:19] "GET /api/admin/education?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:10:19,966 [INFO] 127.0.0.1 - - [28/May/2025 21:10:19] "GET /api/admin/dashboard HTTP/1.1" 200 -
+2025-05-28 21:10:21,488 [INFO] 127.0.0.1 - - [28/May/2025 21:10:21] "[33mGET /api/admin/scores?year=2025 HTTP/1.1[0m" 404 -
+2025-05-28 21:10:22,731 [ERROR] Error in get_security_stats: 사용자 정보를 찾을 수 없습니다.
+2025-05-28 21:10:22,731 [INFO] 127.0.0.1 - - [28/May/2025 21:10:22] "[35m[1mGET /api/security-audit/stats HTTP/1.1[0m" 500 -
+2025-05-28 21:10:23,332 [INFO] 127.0.0.1 - - [28/May/2025 21:10:23] "[33mGET /api/phishing-training/status?year=2025 HTTP/1.1[0m" 404 -
+2025-05-28 21:10:24,454 [INFO] 127.0.0.1 - - [28/May/2025 21:10:24] "[33mGET /api/security-education/status?year=2025 HTTP/1.1[0m" 404 -
+2025-05-28 21:10:24,794 [INFO] 127.0.0.1 - - [28/May/2025 21:10:24] "[33mGET /api/phishing-training/status?year=2025 HTTP/1.1[0m" 404 -
+2025-05-28 21:10:25,287 [INFO] 127.0.0.1 - - [28/May/2025 21:10:25] "[33mGET /api/phishing-training/status?year=2025 HTTP/1.1[0m" 404 -
+2025-05-28 21:10:25,994 [INFO] 127.0.0.1 - - [28/May/2025 21:10:25] "[33mGET /api/phishing-training/status?year=2025 HTTP/1.1[0m" 404 -
+2025-05-28 21:10:26,285 [INFO] 127.0.0.1 - - [28/May/2025 21:10:26] "[33mGET /api/phishing-training/status?year=2025 HTTP/1.1[0m" 404 -
+2025-05-28 21:10:26,440 [INFO] 127.0.0.1 - - [28/May/2025 21:10:26] "[33mGET /api/phishing-training/status?year=2025 HTTP/1.1[0m" 404 -
+2025-05-28 21:10:26,611 [INFO] 127.0.0.1 - - [28/May/2025 21:10:26] "[33mGET /api/phishing-training/status?year=2025 HTTP/1.1[0m" 404 -
+2025-05-28 21:10:29,038 [INFO] 127.0.0.1 - - [28/May/2025 21:10:29] "POST /api/auth/logout HTTP/1.1" 200 -
+2025-05-28 21:10:39,087 [INFO] 127.0.0.1 - - [28/May/2025 21:10:39] "POST /api/auth/check-credentials HTTP/1.1" 200 -
+2025-05-28 21:10:39,096 [INFO] 127.0.0.1 - - [28/May/2025 21:10:39] "POST /api/auth/email-verification HTTP/1.1" 200 -
+2025-05-28 21:10:41,264 [INFO] 127.0.0.1 - - [28/May/2025 21:10:41] "POST /api/auth/verify-and-login HTTP/1.1" 200 -
+2025-05-28 21:10:41,273 [INFO] 127.0.0.1 - - [28/May/2025 21:10:41] "GET /api/auth/me HTTP/1.1" 200 -
+2025-05-28 21:10:41,317 [INFO] 127.0.0.1 - - [28/May/2025 21:10:41] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -
+2025-05-28 21:10:42,613 [INFO] 127.0.0.1 - - [28/May/2025 21:10:42] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:10:49,096 [INFO] 127.0.0.1 - - [28/May/2025 21:10:49] "GET /api/security-education/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:10:56,171 [INFO] 127.0.0.1 - - [28/May/2025 21:10:56] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:10:56,772 [INFO] 127.0.0.1 - - [28/May/2025 21:10:56] "GET /api/security-education/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:11:00,532 [INFO] 127.0.0.1 - - [28/May/2025 21:11:00] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:11:02,019 [INFO] 127.0.0.1 - - [28/May/2025 21:11:02] "GET /api/security-audit/stats HTTP/1.1" 200 -
+2025-05-28 21:11:03,451 [INFO] 127.0.0.1 - - [28/May/2025 21:11:03] "GET /api/security-audit/logs HTTP/1.1" 200 -
+2025-05-28 21:11:03,452 [INFO] 127.0.0.1 - - [28/May/2025 21:11:03] "GET /api/security-audit/checklist-items HTTP/1.1" 200 -
+2025-05-28 21:11:03,463 [INFO] 127.0.0.1 - - [28/May/2025 21:11:03] "GET /api/security-audit/checklist-items HTTP/1.1" 200 -
+2025-05-28 21:11:03,465 [INFO] 127.0.0.1 - - [28/May/2025 21:11:03] "GET /api/security-audit/logs HTTP/1.1" 200 -
+2025-05-28 21:11:04,515 [INFO] 127.0.0.1 - - [28/May/2025 21:11:04] "GET /api/security-audit/stats HTTP/1.1" 200 -
+2025-05-28 21:11:05,743 [INFO] 127.0.0.1 - - [28/May/2025 21:11:05] "GET /api/security-audit/stats HTTP/1.1" 200 -
+2025-05-28 21:11:06,062 [INFO] 127.0.0.1 - - [28/May/2025 21:11:06] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:11:07,214 [INFO] 127.0.0.1 - - [28/May/2025 21:11:07] "GET /api/security-audit/stats HTTP/1.1" 200 -
+2025-05-28 21:11:07,716 [INFO] 127.0.0.1 - - [28/May/2025 21:11:07] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -
+2025-05-28 21:11:08,363 [INFO] 127.0.0.1 - - [28/May/2025 21:11:08] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:11:09,128 [INFO] 127.0.0.1 - - [28/May/2025 21:11:09] "GET /api/security-audit/stats HTTP/1.1" 200 -
+2025-05-28 21:11:09,968 [INFO] 127.0.0.1 - - [28/May/2025 21:11:09] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -
+2025-05-28 21:11:10,752 [INFO] 127.0.0.1 - - [28/May/2025 21:11:10] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:11:12,888 [INFO] 127.0.0.1 - - [28/May/2025 21:11:12] "GET /api/security-education/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:11:17,431 [INFO] 127.0.0.1 - - [28/May/2025 21:11:17] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:15:23,337 [INFO] 127.0.0.1 - - [28/May/2025 21:15:23] "GET /api/security-education/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:15:28,462 [INFO] 127.0.0.1 - - [28/May/2025 21:15:28] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:15:32,372 [INFO] 127.0.0.1 - - [28/May/2025 21:15:32] "GET /api/security-education/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:15:32,924 [INFO] 127.0.0.1 - - [28/May/2025 21:15:32] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:15:34,401 [INFO] 127.0.0.1 - - [28/May/2025 21:15:34] "GET /api/security-education/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:15:35,908 [INFO] 127.0.0.1 - - [28/May/2025 21:15:35] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:15:43,590 [INFO] 127.0.0.1 - - [28/May/2025 21:15:43] "GET /api/phishing-training/status?year=2024 HTTP/1.1" 200 -
+2025-05-28 21:15:45,740 [INFO] 127.0.0.1 - - [28/May/2025 21:15:45] "GET /api/phishing-training/status?year=2026 HTTP/1.1" 200 -
+2025-05-28 21:15:48,097 [INFO] 127.0.0.1 - - [28/May/2025 21:15:48] "GET /api/phishing-training/status?year=2024 HTTP/1.1" 200 -
+2025-05-28 21:15:49,616 [INFO] 127.0.0.1 - - [28/May/2025 21:15:49] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:15:50,474 [INFO] 127.0.0.1 - - [28/May/2025 21:15:50] "GET /api/phishing-training/status?year=2024 HTTP/1.1" 200 -
+2025-05-28 21:15:55,059 [INFO] 127.0.0.1 - - [28/May/2025 21:15:55] "GET /api/security-audit/stats HTTP/1.1" 200 -
+2025-05-28 21:15:57,520 [INFO] 127.0.0.1 - - [28/May/2025 21:15:57] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -
+2025-05-28 21:16:02,409 [INFO] 127.0.0.1 - - [28/May/2025 21:16:02] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:16:03,412 [INFO] 127.0.0.1 - - [28/May/2025 21:16:03] "GET /api/security-education/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:16:05,841 [INFO] 127.0.0.1 - - [28/May/2025 21:16:05] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:16:10,881 [INFO] 127.0.0.1 - - [28/May/2025 21:16:10] "GET /api/security-education/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:16:13,599 [INFO] 127.0.0.1 - - [28/May/2025 21:16:13] "GET /api/security-audit/stats HTTP/1.1" 200 -
+2025-05-28 21:16:15,219 [INFO] 127.0.0.1 - - [28/May/2025 21:16:15] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -
+2025-05-28 21:16:26,366 [INFO] 127.0.0.1 - - [28/May/2025 21:16:26] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:16:27,018 [INFO] 127.0.0.1 - - [28/May/2025 21:16:27] "GET /api/security-education/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:54:54,036 [INFO] 127.0.0.1 - - [28/May/2025 21:54:54] "[31m[1mGET /api/phishing-training/status?year=2025 HTTP/1.1[0m" 401 -
+2025-05-28 21:54:55,951 [INFO] 127.0.0.1 - - [28/May/2025 21:54:55] "[31m[1mGET /api/security-education/status?year=2025 HTTP/1.1[0m" 401 -
+2025-05-28 21:54:56,925 [INFO] 127.0.0.1 - - [28/May/2025 21:54:56] "[31m[1mGET /api/phishing-training/status?year=2025 HTTP/1.1[0m" 401 -
+2025-05-28 21:54:57,670 [INFO] 127.0.0.1 - - [28/May/2025 21:54:57] "POST /api/auth/logout HTTP/1.1" 200 -
+2025-05-28 21:55:05,339 [INFO] 127.0.0.1 - - [28/May/2025 21:55:05] "POST /api/auth/check-credentials HTTP/1.1" 200 -
+2025-05-28 21:55:05,350 [INFO] 127.0.0.1 - - [28/May/2025 21:55:05] "POST /api/auth/email-verification HTTP/1.1" 200 -
+2025-05-28 21:55:07,330 [INFO] 127.0.0.1 - - [28/May/2025 21:55:07] "POST /api/auth/verify-and-login HTTP/1.1" 200 -
+2025-05-28 21:55:07,341 [INFO] 127.0.0.1 - - [28/May/2025 21:55:07] "GET /api/auth/me HTTP/1.1" 200 -
+2025-05-28 21:55:07,385 [INFO] 127.0.0.1 - - [28/May/2025 21:55:07] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -
+2025-05-28 21:55:11,594 [INFO] 127.0.0.1 - - [28/May/2025 21:55:11] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:55:16,403 [INFO] 127.0.0.1 - - [28/May/2025 21:55:16] "GET /api/security-education/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:55:18,322 [INFO] 127.0.0.1 - - [28/May/2025 21:55:18] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:55:19,371 [INFO] 127.0.0.1 - - [28/May/2025 21:55:19] "GET /api/security-education/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:55:22,777 [INFO] 127.0.0.1 - - [28/May/2025 21:55:22] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 21:55:45,964 [INFO] 127.0.0.1 - - [28/May/2025 21:55:45] "GET /api/security-audit/stats HTTP/1.1" 200 -
+2025-05-28 21:55:46,982 [INFO] 127.0.0.1 - - [28/May/2025 21:55:46] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 22:01:53,312 [INFO] 127.0.0.1 - - [28/May/2025 22:01:53] "[33mGET /api/security-dashboard/overview HTTP/1.1[0m" 404 -
+2025-05-28 22:01:54,449 [INFO] 127.0.0.1 - - [28/May/2025 22:01:54] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 22:01:54,728 [INFO] 127.0.0.1 - - [28/May/2025 22:01:54] "GET /api/security-audit/stats HTTP/1.1" 200 -
+2025-05-28 22:01:55,772 [INFO] 127.0.0.1 - - [28/May/2025 22:01:55] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 22:01:56,064 [INFO] 127.0.0.1 - - [28/May/2025 22:01:56] "GET /api/security-education/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 22:01:56,642 [INFO] 127.0.0.1 - - [28/May/2025 22:01:56] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 22:01:57,009 [INFO] 127.0.0.1 - - [28/May/2025 22:01:57] "GET /api/security-audit/stats HTTP/1.1" 200 -
+2025-05-28 22:01:57,632 [INFO] 127.0.0.1 - - [28/May/2025 22:01:57] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 22:01:58,444 [INFO] 127.0.0.1 - - [28/May/2025 22:01:58] "GET /api/security-education/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 22:01:58,758 [INFO] 127.0.0.1 - - [28/May/2025 22:01:58] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 22:01:59,063 [INFO] 127.0.0.1 - - [28/May/2025 22:01:59] "GET /api/security-audit/stats HTTP/1.1" 200 -
+2025-05-28 22:02:01,133 [INFO] 127.0.0.1 - - [28/May/2025 22:02:01] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 22:02:02,386 [INFO] 127.0.0.1 - - [28/May/2025 22:02:02] "GET /api/security-education/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 22:02:06,728 [INFO] 127.0.0.1 - - [28/May/2025 22:02:06] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -
+2025-05-28 22:02:53,202 [INFO] 127.0.0.1 - - [28/May/2025 22:02:53] "GET /api/phishing-training/status?year=2024 HTTP/1.1" 200 -
+2025-05-28 22:02:54,419 [INFO] 127.0.0.1 - - [28/May/2025 22:02:54] "GET /api/phishing-training/status?year=2025 HTTP/1.1" 200 -

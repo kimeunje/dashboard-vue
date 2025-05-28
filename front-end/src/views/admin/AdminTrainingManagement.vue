@@ -56,23 +56,33 @@
       <div class="action-section">
         <button @click="showBulkUploadModal = true" class="primary-button">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
-            <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
+            <path
+              d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
+            />
+            <path
+              d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"
+            />
           </svg>
           일괄 등록
         </button>
 
         <button @click="exportTrainingData" class="secondary-button">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
-            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z" />
+            <path
+              d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
+            />
+            <path
+              d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"
+            />
           </svg>
           내보내기
         </button>
 
         <button @click="downloadTemplate" class="outline-button">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z" />
+            <path
+              d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"
+            />
           </svg>
           템플릿 다운로드
         </button>
@@ -146,8 +156,13 @@
                 <td>
                   <button
                     @click="toggleScoring(record)"
-                    :class="['scoring-toggle', record.exclude_from_scoring ? 'excluded' : 'included']"
-                    :title="record.exclude_from_scoring ? '점수 계산에서 제외됨' : '점수 계산에 포함됨'"
+                    :class="[
+                      'scoring-toggle',
+                      record.exclude_from_scoring ? 'excluded' : 'included',
+                    ]"
+                    :title="
+                      record.exclude_from_scoring ? '점수 계산에서 제외됨' : '점수 계산에 포함됨'
+                    "
                   >
                     {{ record.exclude_from_scoring ? '제외' : '포함' }}
                   </button>
@@ -155,7 +170,9 @@
                 <td>
                   <div class="action-buttons">
                     <button @click="editRecord(record)" class="edit-button" title="수정">✏️</button>
-                    <button @click="deleteRecord(record)" class="delete-button" title="삭제">🗑️</button>
+                    <button @click="deleteRecord(record)" class="delete-button" title="삭제">
+                      🗑️
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -253,17 +270,19 @@
                     <th>수행시간</th>
                     <th>로그유형</th>
                     <th>메일유형</th>
+                    <th>점수제외</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(record, index) in uploadPreview.slice(0, 5)" :key="index">
-                    <td>{{ record.user_email }}</td>
-                    <td>{{ record.training_year }}</td>
-                    <td>{{ getPeriodName(record.training_period) }}</td>
+                    <td>{{ record.user_email || '-' }}</td>
+                    <td>{{ record.training_year || '-' }}</td>
+                    <td>{{ getPeriodName(record.training_period) || '-' }}</td>
                     <td>{{ record.email_sent_time || '-' }}</td>
                     <td>{{ record.action_time || '-' }}</td>
                     <td>{{ record.log_type || '-' }}</td>
-                    <td>{{ truncateText(record.mail_type, 30) }}</td>
+                    <td>{{ truncateText(record.mail_type, 30) || '-' }}</td>
+                    <td>{{ record.exclude_from_scoring ? '제외' : '포함' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -337,17 +356,29 @@
 
             <div class="form-group">
               <label>로그유형:</label>
-              <input type="text" v-model="editingRecord.log_type" placeholder="예: 스크립트 첨부파일 열람, 링크 클릭" />
+              <input
+                type="text"
+                v-model="editingRecord.log_type"
+                placeholder="예: 스크립트 첨부파일 열람, 링크 클릭"
+              />
             </div>
 
             <div class="form-group">
               <label>메일유형:</label>
-              <input type="text" v-model="editingRecord.mail_type" placeholder="예: 퇴직연금 운용상품 안내 (HTML)" />
+              <input
+                type="text"
+                v-model="editingRecord.mail_type"
+                placeholder="예: 퇴직연금 운용상품 안내 (HTML)"
+              />
             </div>
 
             <div class="form-group">
               <label>IP주소:</label>
-              <input type="text" v-model="editingRecord.ip_address" placeholder="예: 192.168.1.100" />
+              <input
+                type="text"
+                v-model="editingRecord.ip_address"
+                placeholder="예: 192.168.1.100"
+              />
             </div>
 
             <div class="form-row">
@@ -410,6 +441,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import * as XLSX from 'xlsx'
 
 // 반응형 데이터
 const loading = ref(false)
@@ -471,7 +503,7 @@ const loadTrainingData = async () => {
       ...(selectedResult.value && { result: selectedResult.value }),
     })
 
-    const response = await fetch(`/api/phishing-training/records?${params}`, {
+    const response = await fetch(`/api/admin/training?${params}`, {
       credentials: 'include',
     })
 
@@ -609,7 +641,7 @@ const saveRecord = async () => {
   saving.value = true
 
   try {
-    const response = await fetch('/api/phishing-training/update', {
+    const response = await fetch('/api/admin/training/update', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -637,7 +669,7 @@ const deleteRecord = async (record) => {
   if (!confirm('이 모의훈련 기록을 삭제하시겠습니까?')) return
 
   try {
-    const response = await fetch('/api/phishing-training/delete', {
+    const response = await fetch('/api/admin/training/delete', {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -690,22 +722,398 @@ const removeSelectedFile = () => {
   uploadPreview.value = []
 }
 
+// AdminTrainingManagement.vue에서 parseFile 메서드의 필드 매핑 부분을 완전히 수정
+
 const parseFile = async (file) => {
-  // 실제 구현에서는 Papa Parse나 SheetJS 사용
-  // 여기서는 간단한 샘플 데이터로 대체
-  uploadPreview.value = [
-    {
-      user_email: 'test@example.com',
-      training_year: 2025,
-      training_period: 'first_half',
-      email_sent_time: '2025-05-15 10:44:25',
-      action_time: '2025-05-15 10:44:59',
-      log_type: '스크립트 첨부파일 열람',
-      mail_type: '퇴직연금 운용상품 안내 (HTML)',
-      ip_address: '112.111.231.120',
-    },
-  ]
-  showToastMessage('파일이 파싱되었습니다. 미리보기를 확인하세요.', 'info')
+  try {
+    const fileName = file.name.toLowerCase()
+
+    if (fileName.endsWith('.csv')) {
+      // CSV 파일 처리
+      const text = await file.text()
+      const lines = text.split('\n')
+      const headers = lines[0].split(',').map((h) => h.trim().replace(/"/g, ''))
+
+      const records = []
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+          const values = lines[i].split(',').map((v) => v.trim().replace(/"/g, ''))
+          const record = {}
+          headers.forEach((header, index) => {
+            record[header] = values[index] || ''
+          })
+          records.push(record)
+        }
+      }
+
+      const processedRecords = postProcessRecords(records)
+      uploadPreview.value = processedRecords
+      showToastMessage(`${processedRecords.length}개의 레코드가 파싱되었습니다.`, 'success')
+    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      // Excel 파일 처리
+      const arrayBuffer = await file.arrayBuffer()
+      const XLSX = window.XLSX || (await import('xlsx'))
+
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+
+      // JSON으로 변환 (첫 번째 행을 헤더로 사용)
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+        raw: false,
+        dateNF: 'yyyy-mm-dd hh:mm:ss',
+      })
+
+      const processedRecords = postProcessRecords(jsonData)
+      uploadPreview.value = processedRecords
+      showToastMessage(`${processedRecords.length}개의 레코드가 파싱되었습니다.`, 'success')
+    } else {
+      throw new Error('지원하지 않는 파일 형식입니다. CSV 또는 Excel 파일을 선택해주세요.')
+    }
+  } catch (err) {
+    console.error('파일 파싱 실패:', err)
+    showToastMessage(`파일 파싱에 실패했습니다: ${err.message}`, 'error')
+    uploadPreview.value = []
+  }
+}
+
+// 레코드 후처리 함수 - 완전히 새로 작성
+const postProcessRecords = (records) => {
+  // 한글-영문 필드명 완전 매핑 테이블
+  const fieldMapping = {
+    // 기본 필드들
+    사용자ID: 'user_id',
+    사용자명: 'username',
+    사용자이름: 'username',
+    이름: 'username',
+    부서: 'department',
+    연도: 'training_year',
+    훈련연도: 'training_year',
+    기간: 'training_period',
+    훈련기간: 'training_period',
+    이메일: 'user_email',
+    사용자이메일: 'user_email',
+    email: 'user_email',
+    mail: 'user_email',
+
+    // 시간 관련
+    메일발송시각: 'email_sent_time',
+    발송시각: 'email_sent_time',
+    메일발송시간: 'email_sent_time',
+    발송시간: 'email_sent_time',
+    수행시각: 'action_time',
+    수행시간: 'action_time',
+    액션시각: 'action_time',
+    액션시간: 'action_time',
+    클릭시간: 'action_time',
+    응답시간: 'response_time_minutes',
+    '응답시간(분)': 'response_time_minutes',
+
+    // 훈련 관련
+    로그유형: 'log_type',
+    로그타입: 'log_type',
+    액션유형: 'log_type',
+    메일유형: 'mail_type',
+    메일타입: 'mail_type',
+    훈련유형: 'mail_type',
+    IP주소: 'ip_address',
+    IP: 'ip_address',
+    아이피: 'ip_address',
+    아이피주소: 'ip_address',
+
+    // 결과 관련
+    결과: 'training_result',
+    훈련결과: 'training_result',
+    점수: 'training_score',
+    훈련점수: 'training_score',
+    점수제외: 'exclude_from_scoring',
+    '점수 제외': 'exclude_from_scoring',
+    제외여부: 'exclude_from_scoring',
+    채점제외: 'exclude_from_scoring',
+    비고: 'notes',
+    메모: 'notes',
+    노트: 'notes',
+    설명: 'notes',
+
+    // 영문 필드들도 그대로 유지
+    user_id: 'user_id',
+    username: 'username',
+    department: 'department',
+    training_year: 'training_year',
+    training_period: 'training_period',
+    user_email: 'user_email',
+    email_sent_time: 'email_sent_time',
+    action_time: 'action_time',
+    log_type: 'log_type',
+    mail_type: 'mail_type',
+    ip_address: 'ip_address',
+    training_result: 'training_result',
+    response_time_minutes: 'response_time_minutes',
+    training_score: 'training_score',
+    exclude_from_scoring: 'exclude_from_scoring',
+    notes: 'notes',
+  }
+
+  return records
+    .map((originalRecord) => {
+      const mappedRecord = {}
+
+      // 모든 필드를 영문 필드명으로 매핑
+      Object.keys(originalRecord).forEach((originalKey) => {
+        const value = originalRecord[originalKey]
+
+        // 값이 비어있지 않은 경우만 처리
+        if (value !== undefined && value !== null && value !== '') {
+          // 매핑 테이블에서 영문 필드명 찾기
+          const mappedKey = fieldMapping[originalKey.trim()]
+
+          if (mappedKey) {
+            mappedRecord[mappedKey] = value
+          } else {
+            // 매핑되지 않은 필드는 소문자_스네이크케이스로 변환 시도
+            const normalizedKey = originalKey
+              .trim()
+              .toLowerCase()
+              .replace(/\s+/g, '_')
+              .replace(/[()]/g, '')
+
+            if (fieldMapping[normalizedKey]) {
+              mappedRecord[fieldMapping[normalizedKey]] = value
+            } else {
+              // 그래도 매핑되지 않으면 원본 키 사용 (디버깅용)
+              console.warn(`매핑되지 않은 필드: ${originalKey}`)
+              mappedRecord[originalKey] = value
+            }
+          }
+        }
+      })
+
+      // 데이터 후처리
+      return processRecordData(mappedRecord)
+    })
+    .filter((record) => {
+      // 최소 필수 필드가 있는 레코드만 포함
+      const hasEmail = record.user_email && record.user_email.includes('@')
+      const hasValidData = record.training_year || record.email_sent_time || record.log_type
+
+      return hasEmail && hasValidData
+    })
+}
+
+// 개별 레코드 데이터 처리
+const processRecordData = (record) => {
+  const processedRecord = { ...record }
+
+  // 1. training_year 처리
+  if (!processedRecord.training_year && processedRecord.email_sent_time) {
+    const year = extractYearFromDateTime(processedRecord.email_sent_time)
+    if (year) {
+      processedRecord.training_year = year
+    }
+  }
+
+  if (processedRecord.training_year) {
+    processedRecord.training_year = parseInt(processedRecord.training_year)
+  }
+
+  // 2. training_period 처리 및 정규화
+  if (!processedRecord.training_period && processedRecord.email_sent_time) {
+    const period = estimatePeriodFromDateTime(processedRecord.email_sent_time)
+    if (period) {
+      processedRecord.training_period = period
+    }
+  }
+
+  if (processedRecord.training_period) {
+    const period = processedRecord.training_period.toString().trim()
+    const periodMapping = {
+      상반기: 'first_half',
+      하반기: 'second_half',
+      '1학기': 'first_half',
+      '2학기': 'second_half',
+      1: 'first_half',
+      2: 'second_half',
+      first_half: 'first_half',
+      second_half: 'second_half',
+      '1반기': 'first_half',
+      '2반기': 'second_half',
+    }
+
+    processedRecord.training_period = periodMapping[period] || period
+  }
+
+  // 3. exclude_from_scoring을 boolean으로 변환
+  if (processedRecord.exclude_from_scoring !== undefined) {
+    const excludeValue = processedRecord.exclude_from_scoring.toString().toLowerCase().trim()
+    const trueValues = ['true', '1', '제외', 'exclude', 'yes', 'y', '참']
+    processedRecord.exclude_from_scoring = trueValues.includes(excludeValue)
+  } else {
+    processedRecord.exclude_from_scoring = false
+  }
+
+  // 4. training_result 정규화
+  if (processedRecord.training_result) {
+    const result = processedRecord.training_result.toString().trim()
+    const resultMapping = {
+      통과: 'pass',
+      성공: 'pass',
+      합격: 'pass',
+      실패: 'fail',
+      탈락: 'fail',
+      불합격: 'fail',
+      미실시: 'pending',
+      대기: 'pending',
+      보류: 'pending',
+      pass: 'pass',
+      fail: 'fail',
+      pending: 'pending',
+    }
+
+    processedRecord.training_result = resultMapping[result] || result
+  }
+
+  // 5. 날짜 형식 정규화
+  if (processedRecord.email_sent_time) {
+    processedRecord.email_sent_time = normalizeDateTime(processedRecord.email_sent_time)
+  }
+  if (processedRecord.action_time) {
+    processedRecord.action_time = normalizeDateTime(processedRecord.action_time)
+  }
+
+  // 6. 숫자 필드 처리
+  if (processedRecord.training_score) {
+    processedRecord.training_score = parseFloat(processedRecord.training_score)
+  }
+
+  if (processedRecord.response_time_minutes) {
+    processedRecord.response_time_minutes = parseInt(processedRecord.response_time_minutes)
+  }
+
+  // 7. 응답시간 자동 계산
+  if (
+    !processedRecord.response_time_minutes &&
+    processedRecord.email_sent_time &&
+    processedRecord.action_time
+  ) {
+    try {
+      const sentTime = new Date(processedRecord.email_sent_time)
+      const actionTime = new Date(processedRecord.action_time)
+      if (!isNaN(sentTime.getTime()) && !isNaN(actionTime.getTime())) {
+        processedRecord.response_time_minutes = Math.round((actionTime - sentTime) / (1000 * 60))
+      }
+    } catch (error) {
+      console.warn('응답시간 계산 실패:', error)
+    }
+  }
+
+  // 8. training_result 자동 결정
+  if (!processedRecord.training_result) {
+    if (processedRecord.log_type && processedRecord.log_type.trim()) {
+      processedRecord.training_result = 'fail' // 로그가 있으면 실패
+    } else if (processedRecord.email_sent_time && !processedRecord.action_time) {
+      processedRecord.training_result = 'pass' // 발송했지만 액션이 없으면 통과
+    } else {
+      processedRecord.training_result = 'pending' // 기본값
+    }
+  }
+
+  // 9. 기본 점수 설정
+  if (!processedRecord.training_score) {
+    if (processedRecord.training_result === 'pass') {
+      processedRecord.training_score = 95.0
+    } else if (processedRecord.training_result === 'fail') {
+      processedRecord.training_score = 40.0
+    }
+  }
+
+  return processedRecord
+}
+
+// 기존의 유틸리티 함수들은 그대로 유지
+const extractYearFromDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return null
+
+  try {
+    const dateStr = dateTimeStr.toString().trim()
+
+    // YYYY-MM-DD HH:mm:ss 형식
+    const isoMatch = dateStr.match(/(\d{4})-\d{2}-\d{2}/)
+    if (isoMatch) {
+      return parseInt(isoMatch[1])
+    }
+
+    // YYYY/MM/DD 형식
+    const slashMatch = dateStr.match(/(\d{4})\/\d{2}\/\d{2}/)
+    if (slashMatch) {
+      return parseInt(slashMatch[1])
+    }
+
+    // YYYY.MM.DD 형식
+    const dotMatch = dateStr.match(/(\d{4})\.\d{2}\.\d{2}/)
+    if (dotMatch) {
+      return parseInt(dotMatch[1])
+    }
+
+    // Excel 날짜 시리얼 번호 처리
+    const serialNumber = parseFloat(dateStr)
+    if (serialNumber > 40000 && serialNumber < 50000) {
+      const excelStartDate = new Date(1900, 0, 1)
+      const date = new Date(excelStartDate.getTime() + (serialNumber - 2) * 24 * 60 * 60 * 1000)
+      return date.getFullYear()
+    }
+
+    // JavaScript Date 객체로 파싱 시도
+    const date = new Date(dateStr)
+    if (!isNaN(date.getTime())) {
+      return date.getFullYear()
+    }
+
+    return null
+  } catch (error) {
+    console.warn('날짜 파싱 실패:', dateTimeStr, error)
+    return null
+  }
+}
+
+const estimatePeriodFromDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return null
+
+  try {
+    const date = new Date(dateTimeStr)
+    if (isNaN(date.getTime())) return null
+
+    const month = date.getMonth() + 1
+    return month <= 6 ? 'first_half' : 'second_half'
+  } catch (error) {
+    console.warn('기간 추정 실패:', dateTimeStr, error)
+    return null
+  }
+}
+
+const normalizeDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return null
+
+  try {
+    const date = new Date(dateTimeStr)
+    if (isNaN(date.getTime())) return dateTimeStr
+
+    return (
+      date.getFullYear() +
+      '-' +
+      String(date.getMonth() + 1).padStart(2, '0') +
+      '-' +
+      String(date.getDate()).padStart(2, '0') +
+      ' ' +
+      String(date.getHours()).padStart(2, '0') +
+      ':' +
+      String(date.getMinutes()).padStart(2, '0') +
+      ':' +
+      String(date.getSeconds()).padStart(2, '0')
+    )
+  } catch (error) {
+    console.warn('날짜 정규화 실패:', dateTimeStr, error)
+    return dateTimeStr
+  }
 }
 
 const processBulkUpload = async () => {
@@ -738,8 +1146,39 @@ const processBulkUpload = async () => {
   }
 }
 
-const exportTrainingData = () => {
-  showToastMessage('데이터 내보내기 기능이 준비중입니다.', 'info')
+const exportTrainingData = async () => {
+  try {
+    const params = new URLSearchParams({
+      year: selectedYear.value,
+      format: 'csv',
+    })
+
+    const response = await fetch(`/api/admin/export/training?${params}`, {
+      credentials: 'include',
+    })
+
+    if (!response.ok) {
+      throw new Error('데이터 내보내기에 실패했습니다.')
+    }
+
+    const result = await response.json()
+
+    // CSV 다운로드
+    const blob = new Blob([result.data], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', result.filename)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    showToastMessage('데이터가 성공적으로 내보내졌습니다.', 'success')
+  } catch (err) {
+    console.error('내보내기 실패:', err)
+    showToastMessage('데이터 내보내기에 실패했습니다.', 'error')
+  }
 }
 
 const downloadTemplate = async () => {
@@ -757,6 +1196,8 @@ const downloadTemplate = async () => {
     link.href = URL.createObjectURL(blob)
     link.download = '모의훈련_업로드_템플릿.csv'
     link.click()
+
+    showToastMessage('템플릿이 다운로드되었습니다.', 'success')
   } catch (err) {
     console.error('템플릿 다운로드 실패:', err)
     showToastMessage('템플릿 다운로드에 실패했습니다.', 'error')

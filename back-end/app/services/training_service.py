@@ -46,7 +46,7 @@ class TrainingService:
         period_status = []
         periods = ['first_half', 'second_half']
         period_names = {'first_half': '상반기', 'second_half': '하반기'}
-        
+
         for period in periods:
             period_record = next(
                 (r for r in training_records if r['training_period'] == period), None)
@@ -55,14 +55,16 @@ class TrainingService:
                 # 응답시간 계산 (분)
                 response_time = None
                 if period_record['email_sent_time'] and period_record['action_time']:
-                    time_diff = period_record['action_time'] - period_record['email_sent_time']
+                    time_diff = period_record['action_time'] - period_record[
+                        'email_sent_time']
                     response_time = int(time_diff.total_seconds() / 60)
-                    
+
                 status = {
                     'period': period,
                     'period_name': period_names[period],
                     'email_sent_time': period_record['email_sent_time'].strftime(
-                        '%Y-%m-%d %H:%M:%S') if period_record['email_sent_time'] else None,
+                        '%Y-%m-%d %H:%M:%S')
+                    if period_record['email_sent_time'] else None,
                     'action_time': period_record['action_time'].strftime(
                         '%Y-%m-%d %H:%M:%S') if period_record['action_time'] else None,
                     'log_type': period_record['log_type'],
@@ -72,7 +74,8 @@ class TrainingService:
                     'result': period_record['training_result'],
                     'passed': period_record['training_result'] == 'pass',
                     'clicked_or_opened': period_record['log_type'] is not None,
-                    'response_time_minutes': response_time or period_record['response_time_minutes'],
+                    'response_time_minutes': response_time
+                    or period_record['response_time_minutes'],
                     'score': period_record['training_score'],
                     'exclude_from_scoring': bool(period_record['exclude_from_scoring']),
                     'notes': period_record['notes']
@@ -141,8 +144,12 @@ class TrainingService:
             try:
                 # 필수 필드 검증
                 required_fields = ['user_email', 'training_year', 'training_period']
-                if not all(field in record and record[field] for field in required_fields):
-                    error_records.append({'record': record, 'error': '필수 필드 누락 (user_email, training_year, training_period)'})
+                if not all(field in record and record[field]
+                           for field in required_fields):
+                    error_records.append({
+                        'record': record,
+                        'error': '필수 필드 누락 (user_email, training_year, training_period)'
+                    })
                     continue
 
                 # 이메일로 사용자 찾기
@@ -165,7 +172,7 @@ class TrainingService:
                     'first_half': 'first_half',
                     'second_half': 'second_half'
                 }
-                
+
                 training_period = period_map.get(record['training_period'])
                 if not training_period:
                     error_records.append({
@@ -180,23 +187,29 @@ class TrainingService:
                     training_result = 'fail'  # 로그유형이 있으면 실패 (클릭/열람)
                 elif record.get('email_sent_time') and not record.get('action_time'):
                     training_result = 'pass'  # 메일 발송했지만 액션이 없으면 통과
+                elif record.get('training_result'):
+                    training_result = record['training_result']
 
                 # 응답시간 계산
                 response_time_minutes = None
                 if record.get('email_sent_time') and record.get('action_time'):
                     try:
-                        sent_time = datetime.fromisoformat(str(record['email_sent_time']).replace('T', ' '))
-                        action_time = datetime.fromisoformat(str(record['action_time']).replace('T', ' '))
-                        response_time_minutes = int((action_time - sent_time).total_seconds() / 60)
+                        sent_time = datetime.fromisoformat(
+                            str(record['email_sent_time']).replace('T', ' '))
+                        action_time = datetime.fromisoformat(
+                            str(record['action_time']).replace('T', ' '))
+                        response_time_minutes = int(
+                            (action_time - sent_time).total_seconds() / 60)
                     except:
                         response_time_minutes = record.get('response_time_minutes')
 
                 # 점수 계산
-                training_score = None
-                if training_result == 'pass':
-                    training_score = 95.0
-                elif training_result == 'fail':
-                    training_score = 40.0
+                training_score = record.get('training_score')
+                if not training_score:
+                    if training_result == 'pass':
+                        training_score = 95.0
+                    elif training_result == 'fail':
+                        training_score = 40.0
 
                 # 훈련 기록 등록/수정
                 execute_query(
@@ -223,8 +236,8 @@ class TrainingService:
                     (user_uid, record['training_year'], training_period,
                      record.get('email_sent_time'), record.get('action_time'),
                      record.get('log_type'), record.get('mail_type'),
-                     record['user_email'], record.get('ip_address'),
-                     training_result, response_time_minutes, training_score,
+                     record['user_email'], record.get('ip_address'), training_result,
+                     response_time_minutes, training_score,
                      record.get('exclude_from_scoring', 0), record.get('notes', '')))
 
                 success_count += 1
@@ -266,23 +279,21 @@ class TrainingService:
                 notes = %s,
                 updated_at = NOW()
                 WHERE user_id = %s AND training_year = %s AND training_period = %s
-                """,
-                (record.get('email_sent_time'), record.get('action_time'),
-                 record.get('log_type'), record.get('mail_type'),
-                 record.get('user_email'), record.get('ip_address'),
-                 record.get('training_result', 'pending'),
-                 record.get('response_time_minutes'),
-                 record.get('training_score'),
-                 record.get('exclude_from_scoring', 0),
-                 record.get('notes', ''),
-                 user_uid, record['training_year'], record['training_period']))
+                """, (record.get('email_sent_time'), record.get('action_time'),
+                      record.get('log_type'), record.get('mail_type'),
+                      record.get('user_email'), record.get('ip_address'),
+                      record.get('training_result', 'pending'),
+                      record.get('response_time_minutes'), record.get('training_score'),
+                      record.get('exclude_from_scoring', 0), record.get('notes', ''),
+                      user_uid, record['training_year'], record['training_period']))
 
             return True
 
         except Exception as e:
             raise ValueError(f"훈련 기록 수정 실패: {str(e)}")
 
-    def delete_training_record(self, user_id: str, training_year: int, training_period: str) -> bool:
+    def delete_training_record(self, user_id: str, training_year: int,
+                               training_period: str) -> bool:
         """훈련 기록 삭제"""
         try:
             # 사용자 확인
@@ -298,8 +309,7 @@ class TrainingService:
                 """
                 DELETE FROM phishing_training
                 WHERE user_id = %s AND training_year = %s AND training_period = %s
-                """,
-                (user_uid, training_year, training_period))
+                """, (user_uid, training_year, training_period))
 
             return result > 0
 
@@ -316,7 +326,8 @@ class TrainingService:
         ]
         return "\n".join(template_data)
 
-    def get_all_training_records(self, year: int = None, period: str = None, result: str = None) -> list:
+    def get_all_training_records(self, year: int = None, period: str = None,
+                                 result: str = None) -> list:
         """모든 훈련 기록 조회 (관리자용)"""
         if year is None:
             year = datetime.now().year
@@ -347,107 +358,110 @@ class TrainingService:
                 JOIN users u ON pt.user_id = u.uid
                 WHERE pt.training_year = %s
             """
-            
+
             params = [year]
-            
+
             if period:
                 base_query += " AND pt.training_period = %s"
                 params.append(period)
-                
+
             if result:
                 base_query += " AND pt.training_result = %s"
                 params.append(result)
-                
+
             base_query += " ORDER BY u.username, pt.training_period"
-            
-# app/controllers/training_controller.py
-from datetime import datetime
-from flask import Blueprint, request, jsonify, make_response
-from app.services.training_service import TrainingService
-from app.utils.decorators import token_required, admin_required, handle_exceptions
-from app.utils.constants import HTTP_STATUS
 
-training_bp = Blueprint('training', __name__)
-training_service = TrainingService()
+            cursor.execute(base_query, params)
+            return cursor.fetchall()
 
+    def get_training_statistics(self, year: int = None) -> dict:
+        """모의훈련 통계 조회"""
+        if year is None:
+            year = datetime.now().year
 
-@training_bp.route('/status', methods=['GET'])
-@token_required
-@handle_exceptions
-def get_phishing_training_status():
-    """사용자의 악성메일 모의훈련 현황 조회"""
-    user = request.current_user
-    username = user["username"]
+        with DatabaseManager.get_db_cursor(commit=False) as cursor:
+            # 기간별 통계
+            cursor.execute(
+                """
+                SELECT 
+                    training_period,
+                    COUNT(*) as total_count,
+                    SUM(CASE WHEN training_result = 'pass' THEN 1 ELSE 0 END) as passed_count,
+                    SUM(CASE WHEN training_result = 'fail' THEN 1 ELSE 0 END) as failed_count,
+                    SUM(CASE WHEN training_result = 'pending' THEN 1 ELSE 0 END) as pending_count,
+                    SUM(CASE WHEN exclude_from_scoring = 1 THEN 1 ELSE 0 END) as excluded_count
+                FROM phishing_training
+                WHERE training_year = %s
+                GROUP BY training_period
+                ORDER BY training_period
+                """, (year, ))
+            period_stats = cursor.fetchall()
 
-    year = request.args.get('year', datetime.now().year, type=int)
+            # 부서별 통계
+            cursor.execute(
+                """
+                SELECT 
+                    u.department,
+                    COUNT(*) as total_count,
+                    SUM(CASE WHEN pt.training_result = 'pass' THEN 1 ELSE 0 END) as passed_count,
+                    SUM(CASE WHEN pt.training_result = 'fail' THEN 1 ELSE 0 END) as failed_count
+                FROM phishing_training pt
+                JOIN users u ON pt.user_id = u.uid
+                WHERE pt.training_year = %s AND pt.exclude_from_scoring = 0
+                GROUP BY u.department
+                ORDER BY u.department
+                """, (year, ))
+            department_stats = cursor.fetchall()
 
-    try:
-        result = training_service.get_training_status(username, year)
-        return jsonify(result)
-    except ValueError as e:
-        return jsonify({"message": str(e)}), HTTP_STATUS['NOT_FOUND']
+            # 로그 유형별 통계
+            cursor.execute(
+                """
+                SELECT 
+                    log_type,
+                    COUNT(*) as count
+                FROM phishing_training
+                WHERE training_year = %s AND log_type IS NOT NULL
+                GROUP BY log_type
+                ORDER BY count DESC
+                """, (year, ))
+            log_type_stats = cursor.fetchall()
 
+        return {
+            'year': year,
+            'period_stats': period_stats,
+            'department_stats': department_stats,
+            'log_type_stats': log_type_stats
+        }
 
-@training_bp.route('/template/download', methods=['GET'])
-@admin_required
-@handle_exceptions
-def download_training_template():
-    """모의훈련 업로드 템플릿 다운로드"""
-    template_csv = training_service.get_training_excel_template()
-    
-    response = make_response(template_csv)
-    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
-    response.headers['Content-Disposition'] = 'attachment; filename=모의훈련_업로드_템플릿.csv'
-    
-    return response
+    def export_training_to_csv(self, year: int = None) -> str:
+        """모의훈련 데이터를 CSV 형태로 내보내기"""
+        records = self.get_all_training_records(year)
 
+        csv_lines = []
+        headers = [
+            '사용자ID', '사용자명', '부서', '연도', '기간', '발송시각', '수행시각', '로그유형', '메일유형', '이메일',
+            'IP주소', '결과', '점수', '점수제외', '비고'
+        ]
+        csv_lines.append(','.join(headers))
 
-@training_bp.route('/records', methods=['GET'])
-@admin_required
-@handle_exceptions
-def get_all_training_records():
-    """모든 모의훈련 기록 조회 (관리자용)"""
-    year = request.args.get('year', datetime.now().year, type=int)
-    period = request.args.get('period', None)
-    result = request.args.get('result', None)
-    
-    records = training_service.get_all_training_records(year, period, result)
-    return jsonify(records)
+        for record in records:
+            row = [
+                str(record.get('user_id', '')),
+                str(record.get('username', '')),
+                str(record.get('department', '')),
+                str(record.get('training_year', '')),
+                '상반기' if record.get('training_period') == 'first_half' else '하반기',
+                str(record.get('email_sent_time', '')),
+                str(record.get('action_time', '')),
+                str(record.get('log_type', '')),
+                str(record.get('mail_type', '')),
+                str(record.get('user_email', '')),
+                str(record.get('ip_address', '')),
+                str(record.get('training_result', '')),
+                str(record.get('training_score', '')),
+                '제외' if record.get('exclude_from_scoring') else '포함',
+                str(record.get('notes', ''))
+            ]
+            csv_lines.append(','.join(f'"{item}"' for item in row))
 
-
-@training_bp.route('/update', methods=['POST'])
-@admin_required
-@handle_exceptions
-def update_training_record():
-    """단일 모의훈련 기록 수정"""
-    data = request.json
-    
-    try:
-        success = training_service.update_training_record(data)
-        if success:
-            return jsonify({"message": "모의훈련 기록이 수정되었습니다."})
-        else:
-            return jsonify({"error": "수정에 실패했습니다."}), HTTP_STATUS['BAD_REQUEST']
-    except ValueError as e:
-        return jsonify({"error": str(e)}), HTTP_STATUS['BAD_REQUEST']
-
-
-@training_bp.route('/delete', methods=['DELETE'])
-@admin_required
-@handle_exceptions
-def delete_training_record():
-    """모의훈련 기록 삭제"""
-    data = request.json
-    
-    try:
-        success = training_service.delete_training_record(
-            data['user_id'], 
-            data['training_year'], 
-            data['training_period']
-        )
-        if success:
-            return jsonify({"message": "모의훈련 기록이 삭제되었습니다."})
-        else:
-            return jsonify({"error": "삭제할 기록을 찾을 수 없습니다."}), HTTP_STATUS['NOT_FOUND']
-    except ValueError as e:
-        return jsonify({"error": str(e)}), HTTP_STATUS['BAD_REQUEST']
+        return '\n'.join(csv_lines)

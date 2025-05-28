@@ -6,19 +6,21 @@ from datetime import timedelta
 class Config:
     """기본 설정"""
 
-    # Flask 설정
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key')
-
     # JWT 설정
-    JWT_SECRET = os.environ.get('JWT_SECRET', 'your-secret-key')
-    TOKEN_EXPIRATION = int(os.environ.get('TOKEN_EXPIRATION', 28800))  # 8시간
+    JWT_SECRET = os.environ.get('JWT_SECRET', 'fef#ecd@ec21@@ds-asc12!!-ke$dsy')
+    TOKEN_EXPIRATION = int(os.environ.get('TOKEN_EXPIRATION', 1800))  # 30분
 
     # CORS 설정
-    CORS_ORIGINS = ["http://localhost:3000", "http://10.106.25.129:3000"]
+    CORS_ORIGINS = [
+        "http://localhost:5173", "http://10.106.25.129:5173", "http://localhost:3000",
+        "http://10.106.25.129:3000"
+    ]
 
     # 정적 파일 경로
-    STATIC_FOLDER = os.path.join(os.path.dirname(__file__), 'app', 'static')
-    TEMPLATE_FOLDER = os.path.join(os.path.dirname(__file__), 'app', 'templates')
+    # STATIC_FOLDER = os.path.join(os.path.dirname(__file__), 'app', 'static')
+    STATIC_FOLDER = os.path.join(os.path.dirname(__file__), 'static')
+    # TEMPLATE_FOLDER = os.path.join(os.path.dirname(__file__), 'app', 'templates')
+    TEMPLATE_FOLDER = os.path.join(os.path.dirname(__file__), 'templates')
 
     # 로그 설정
     LOG_DIR = "logs"

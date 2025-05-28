@@ -32,11 +32,11 @@ def get_phishing_training_status():
 def download_training_template():
     """모의훈련 업로드 템플릿 다운로드"""
     template_csv = training_service.get_training_excel_template()
-    
+
     response = make_response(template_csv)
     response.headers['Content-Type'] = 'text/csv; charset=utf-8'
     response.headers['Content-Disposition'] = 'attachment; filename=모의훈련_업로드_템플릿.csv'
-    
+
     return response
 
 
@@ -48,7 +48,7 @@ def get_all_training_records():
     year = request.args.get('year', datetime.now().year, type=int)
     period = request.args.get('period', None)
     result = request.args.get('result', None)
-    
+
     records = training_service.get_all_training_records(year, period, result)
     return jsonify(records)
 
@@ -59,7 +59,7 @@ def get_all_training_records():
 def update_training_record():
     """단일 모의훈련 기록 수정"""
     data = request.json
-    
+
     try:
         success = training_service.update_training_record(data)
         if success:
@@ -76,16 +76,118 @@ def update_training_record():
 def delete_training_record():
     """모의훈련 기록 삭제"""
     data = request.json
-    
+
     try:
-        success = training_service.delete_training_record(
-            data['user_id'], 
-            data['training_year'], 
-            data['training_period']
-        )
+        success = training_service.delete_training_record(data['user_id'],
+                                                          data['training_year'],
+                                                          data['training_period'])
         if success:
             return jsonify({"message": "모의훈련 기록이 삭제되었습니다."})
         else:
             return jsonify({"error": "삭제할 기록을 찾을 수 없습니다."}), HTTP_STATUS['NOT_FOUND']
     except ValueError as e:
         return jsonify({"error": str(e)}), HTTP_STATUS['BAD_REQUEST']
+
+
+@training_bp.route('/bulk-upload', methods=['POST'])
+@admin_required
+@handle_exceptions
+def bulk_upload_training():
+    """모의훈련 결과 일괄 업로드"""
+    data = request.json
+    records = data.get('records', [])
+
+    if not records:
+        return jsonify({"error": "업로드할 기록이 없습니다."}), HTTP_STATUS['BAD_REQUEST']
+
+    try:
+        result = training_service.bulk_update_training(records)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), HTTP_STATUS['BAD_REQUEST']
+
+
+@training_bp.route('/statistics', methods=['GET'])
+@admin_required
+@handle_exceptions
+def get_training_statistics():
+    """모의훈련 통계 조회"""
+    year = request.args.get('year', datetime.now().year, type=int)
+
+    try:
+        stats = training_service.get_training_statistics(year)
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({"error": f"통계 조회 실패: {str(e)}"
+                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+
+
+@training_bp.route('/user/<string:user_id>/status', methods=['GET'])
+@admin_required
+@handle_exceptions
+def get_user_training_status(user_id):
+    """특정 사용자의 모의훈련 현황 조회 (관리자용)"""
+    year = request.args.get('year', datetime.now().year, type=int)
+
+    try:
+        result = training_service.get_training_status(user_id, year)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), HTTP_STATUS['NOT_FOUND']
+
+
+@training_bp.route('/export', methods=['GET'])
+@admin_required
+@handle_exceptions
+def export_training_data():
+    """모의훈련 데이터 내보내기"""
+    year = request.args.get('year', datetime.now().year, type=int)
+    format_type = request.args.get('format', 'csv')
+
+    try:
+        if format_type == 'csv':
+            csv_data = training_service.export_training_to_csv(year)
+            response = make_response(csv_data)
+            response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+            response.headers[
+                'Content-Disposition'] = f'attachment; filename=모의훈련_데이터_{year}.csv'
+            return response
+        else:
+            return jsonify({"error": "지원하지 않는 형식입니다."}), HTTP_STATUS['BAD_REQUEST']
+
+    except Exception as e:
+        return jsonify({"error": f"데이터 내보내기 실패: {str(e)}"
+                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+
+
+@training_bp.route('/periods', methods=['GET'])
+@token_required
+@handle_exceptions
+def get_training_periods():
+    """훈련 기간 목록 조회"""
+    periods = [{
+        'value': 'first_half',
+        'label': '상반기'
+    }, {
+        'value': 'second_half',
+        'label': '하반기'
+    }]
+    return jsonify(periods)
+
+
+@training_bp.route('/results', methods=['GET'])
+@admin_required
+@handle_exceptions
+def get_training_results():
+    """훈련 결과 옵션 조회"""
+    results = [{
+        'value': 'pass',
+        'label': '통과'
+    }, {
+        'value': 'fail',
+        'label': '실패'
+    }, {
+        'value': 'pending',
+        'label': '미실시'
+    }]
+    return jsonify(results)
