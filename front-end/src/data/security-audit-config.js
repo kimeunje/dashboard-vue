@@ -55,12 +55,6 @@ export const MENU_STRUCTURE = [
       },
     ],
   },
-  {
-    id: 'contact',
-    title: '문의하세요',
-    path: '/security-audit/contact',
-    subItems: [],
-  },
 ]
 
 /**

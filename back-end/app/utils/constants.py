@@ -27,9 +27,9 @@ TEST_USERS = {
         "dept": "품질관리팀",
     },
     "test": {
-        "password": "123",
-        "name": "테스트1",
-        "email": "test@example.com",
+        "password": "1234",
+        "name": "테스터",
+        "email": "test@test.com",
         "dept": "품질관리팀",
     },
 }
