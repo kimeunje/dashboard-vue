@@ -9,7 +9,7 @@ from app.utils.constants import EXCEPTION_ITEM_NAMES
 class AuditService:
     """보안 감사 관련 서비스"""
 
-    def get_user_stats(self, username: str) -> dict:
+    def get_user_stats(self, username: str, check_type: str = None) -> dict:
         """사용자별 보안 통계 데이터 조회"""
         # 사용자 ID 가져오기
         user = execute_query("SELECT uid FROM users WHERE user_id = %s", (username, ),
@@ -21,36 +21,55 @@ class AuditService:
         user_id = user["uid"]
 
         with DatabaseManager.get_db_cursor(commit=False) as cursor:
+            # 체크리스트 항목 조건 설정
+            if check_type:
+                checklist_condition = "WHERE check_type = %s"
+                checklist_params = (check_type,)
+                log_condition = """
+                    WHERE al.user_id = %s 
+                    AND ci.check_type = %s
+                """
+                log_params = (user_id, check_type)
+            else:
+                checklist_condition = ""
+                checklist_params = ()
+                log_condition = "WHERE al.user_id = %s"
+                log_params = (user_id,)
+
             # 총 체크리스트 항목 수 조회
-            cursor.execute("SELECT COUNT(*) as total_items FROM checklist_items")
+            cursor.execute(f"SELECT COUNT(*) as total_items FROM checklist_items {checklist_condition}", 
+                          checklist_params)
             total_checks = cursor.fetchone()["total_items"]
 
             # 해당 사용자의 가장 최근 감사 날짜 조회
             cursor.execute(
-                """
-                SELECT MAX(checked_at) as last_audit_date
-                FROM audit_log
-                WHERE user_id = %s
-                """, (user_id, ))
+                f"""
+                SELECT MAX(al.checked_at) as last_audit_date
+                FROM audit_log al
+                LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
+                {log_condition}
+                """, log_params)
             last_audit_result = cursor.fetchone()
             last_audit_date = last_audit_result["last_audit_date"]
 
             # 해당 사용자가 통과한 검사 항목 수 조회
             cursor.execute(
-                """
-                SELECT COUNT(DISTINCT item_id) as completed_checks
-                FROM audit_log
-                WHERE passed = 1 AND user_id = %s
-                """, (user_id, ))
+                f"""
+                SELECT COUNT(DISTINCT al.item_id) as completed_checks
+                FROM audit_log al
+                LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
+                {log_condition.replace('WHERE', 'WHERE al.passed = 1 AND')}
+                """, log_params)
             completed_checks = cursor.fetchone()["completed_checks"]
 
             # 해당 사용자의 심각한 문제(통과하지 못한 항목) 수 조회
             cursor.execute(
-                """
-                SELECT COUNT(DISTINCT item_id) as critical_issues
-                FROM audit_log
-                WHERE passed = 0 AND user_id = %s
-                """, (user_id, ))
+                f"""
+                SELECT COUNT(DISTINCT al.item_id) as critical_issues
+                FROM audit_log al
+                LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
+                {log_condition.replace('WHERE', 'WHERE al.passed = 0 AND')}
+                """, log_params)
             critical_issues = cursor.fetchone()["critical_issues"]
 
         # 날짜 포맷 변환
@@ -61,9 +80,10 @@ class AuditService:
             "totalChecks": total_checks,
             "completedChecks": completed_checks,
             "criticalIssues": critical_issues,
+            "checkType": check_type
         }
 
-    def get_user_logs(self, username: str) -> list:
+    def get_user_logs(self, username: str, check_type: str = None) -> list:
         """사용자별 보안 감사 로그 목록 조회"""
         # 사용자 ID 가져오기
         user = execute_query("SELECT uid FROM users WHERE user_id = %s", (username, ),
@@ -74,14 +94,29 @@ class AuditService:
 
         user_id = user["uid"]
 
+        # 점검 유형별 필터링 조건
+        if check_type:
+            condition = """
+                WHERE al.user_id = %s AND ci.check_type = %s
+                ORDER BY al.checked_at DESC
+            """
+            params = (user_id, check_type)
+        else:
+            condition = """
+                WHERE al.user_id = %s
+                ORDER BY al.checked_at DESC
+            """
+            params = (user_id,)
+
         # 특정 사용자의 로그만 날짜 역순으로 가져오기
         logs = execute_query(
-            """
-            SELECT log_id, user_id, item_id, actual_value, passed, notes, checked_at
-            FROM audit_log
-            WHERE user_id = %s
-            ORDER BY checked_at DESC
-            """, (user_id, ), fetch_all=True)
+            f"""
+            SELECT al.log_id, al.user_id, al.item_id, al.actual_value, al.passed, al.notes, al.checked_at,
+                   ci.check_type, ci.check_frequency
+            FROM audit_log al
+            LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
+            {condition}
+            """, params, fetch_all=True)
 
         result = []
         for log in logs:
@@ -105,37 +140,98 @@ class AuditService:
                 "passed": log["passed"],
                 "notes": log["notes"],
                 "checked_at": checked_at,
+                "check_type": log["check_type"],
+                "check_frequency": log["check_frequency"]
             })
 
         return result
 
-    def get_checklist_items(self) -> list:
+    def get_checklist_items(self, check_type: str = None) -> list:
         """체크리스트 항목 조회"""
+        if check_type:
+            condition = "WHERE check_type = %s"
+            params = (check_type,)
+        else:
+            condition = ""
+            params = ()
+
+        return execute_query(
+            f"""
+            SELECT item_id, category, item_name as name, description, check_type, check_frequency
+            FROM checklist_items
+            {condition}
+            ORDER BY check_type, item_id ASC
+            """, params, fetch_all=True)
+
+    def execute_manual_check(self, user_id: int, item_id: int, check_result: dict) -> dict:
+        """수시 점검 실행 및 결과 저장"""
+        # 항목 정보 확인
+        item_info = execute_query(
+            """
+            SELECT item_id, item_name, check_type
+            FROM checklist_items
+            WHERE item_id = %s AND check_type = 'manual'
+            """, (item_id,), fetch_one=True)
+
+        if not item_info:
+            raise ValueError("해당 수시 점검 항목을 찾을 수 없습니다.")
+
+        item_name = item_info["item_name"]
+        actual_value = check_result.get("actual_value", {})
+        passed = check_result.get("passed")
+        notes = check_result.get("notes", "")
+
+        # 수시 점검은 수동 입력이므로 passed 값이 반드시 필요
+        if passed is None:
+            raise ValueError("점검 결과(통과/실패)를 반드시 입력해야 합니다.")
+
+        # JSON 문자열로 변환
+        actual_value_json = json.dumps(actual_value, ensure_ascii=False)
+
+        # 로그 저장 (수시 점검은 매번 새로 생성)
+        execute_query(
+            """
+            INSERT INTO audit_log (user_id, item_id, actual_value, passed, notes)
+            VALUES (%s, %s, %s, %s, %s)
+            """, (user_id, item_id, actual_value_json, passed, notes))
+
+        return {
+            "status": "success",
+            "item_id": item_id,
+            "item_name": item_name,
+            "passed": passed,
+            "log_action": "created",
+            "message": "수시 점검 결과가 성공적으로 저장되었습니다."
+        }
+
+    def get_manual_check_items(self) -> list:
+        """수시 점검 가능한 항목 목록 조회"""
         return execute_query(
             """
             SELECT item_id, category, item_name as name, description
             FROM checklist_items
+            WHERE check_type = 'manual'
             ORDER BY item_id ASC
             """, fetch_all=True)
 
     def validate_check(self, data: dict) -> dict:
-        """항목 검증 및 로그 업데이트"""
+        """항목 검증 및 로그 업데이트 (기존 메서드 - 정기 점검용)"""
         required_fields = ["user_id", "item_type", "actual_value"]
         missing_fields = [field for field in required_fields if field not in data]
 
         if missing_fields:
             raise ValueError(f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}")
 
-        # 체크리스트 항목 조회
+        # 체크리스트 항목 조회 (정기 점검만)
         item_result = execute_query(
             """
             SELECT item_id, item_name
             FROM checklist_items
-            WHERE item_name LIKE %s
+            WHERE item_name LIKE %s AND check_type = 'daily'
             """, (data["item_type"], ), fetch_one=True)
 
         if not item_result:
-            raise ValueError(f"[{data['item_type']}] 체크리스트 항목을 찾을 수 없습니다")
+            raise ValueError(f"[{data['item_type']}] 정기 점검 항목을 찾을 수 없습니다")
 
         user_id = data["user_id"]
         item_id = item_result["item_id"]
