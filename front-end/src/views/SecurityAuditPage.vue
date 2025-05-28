@@ -129,7 +129,7 @@
               </div>
             </div>
 
-            <div class="feature-card">
+            <!-- <div class="feature-card">
               <div class="feature-icon contact">
                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                   <path
@@ -150,12 +150,12 @@
                   </svg>
                 </RouterLink>
               </div>
-            </div>
+            </div> -->
           </div>
         </div>
 
         <!-- 최근 감사 현황 -->
-        <div class="section" v-if="recentStats">
+        <!-- <div class="section" v-if="recentStats">
           <h2 class="section-title">최근 감사 현황</h2>
           <div class="recent-stats">
             <div class="stats-summary">
@@ -188,10 +188,10 @@
               </RouterLink>
             </div>
           </div>
-        </div>
+        </div> -->
 
         <!-- 안내 사항 -->
-        <div class="section">
+        <!-- <div class="section">
           <h2 class="section-title">안내 사항</h2>
           <div class="notice-cards">
             <div class="notice-card info">
@@ -223,7 +223,7 @@
               </div>
             </div>
           </div>
-        </div>
+        </div> -->
       </div>
     </main>
   </div>

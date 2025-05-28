@@ -23,11 +23,7 @@ export const MENU_STRUCTURE = [
         title: '화면보호기 점검',
         path: '/security-audit/solutions/screen-saver',
       },
-      {
-        id: 'auto-run',
-        title: '이동매체 자동실행 점검',
-        path: '/security-audit/solutions/auto-run',
-      },
+
       {
         id: 'antivirus',
         title: '백신 상태 점검',
@@ -38,11 +34,7 @@ export const MENU_STRUCTURE = [
         title: '패스워드 정책 점검',
         path: '/security-audit/solutions/password-policy',
       },
-      {
-        id: 'firewall',
-        title: '방화벽 정책 점검',
-        path: '/security-audit/solutions/firewall',
-      },
+
       {
         id: 'shared-folder',
         title: '공유폴더 점검',

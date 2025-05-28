@@ -14,12 +14,10 @@ const ContactPage = () => import('@/views/ContactPage.vue')
 
 // Solutions 하위 페이지들
 const ScreenSaverSolutionPage = () => import('@/views/solutions/ScreenSaverSolutionPage.vue')
-// const AutoRunSolutionPage = () => import('@/views/solutions/AutoRunSolutionPage.vue')
-// const AntivirusSolutionPage = () => import('@/views/solutions/AntivirusSolutionPage.vue')
-// const PasswordPolicySolutionPage = () => import('@/views/solutions/PasswordPolicySolutionPage.vue')
-// const FirewallSolutionPage = () => import('@/views/solutions/FirewallSolutionPage.vue')
-// const SharedFolderSolutionPage = () => import('@/views/solutions/SharedFolderSolutionPage.vue')
-// const RemoteDesktopSolutionPage = () => import('@/views/solutions/RemoteDesktopSolutionPage.vue')
+const AntivirusSolutionPage = () => import('@/views/solutions/AntivirusSolutionPage.vue')
+const PasswordPolicySolutionPage = () => import('@/views/solutions/PasswordPolicySolutionPage.vue')
+const SharedFolderSolutionPage = () => import('@/views/solutions/SharedFolderSolutionPage.vue')
+const RemoteDesktopSolutionPage = () => import('@/views/solutions/RemoteDesktopSolutionPage.vue')
 
 // // 기타 서비스 페이지들 (추후 구현 예정)
 // const WebsiteAllowPage = () => import('@/views/WebsiteAllowPage.vue')
@@ -211,60 +209,44 @@ const routes = [
       requiresAdmin: true,
     },
   },
-  // {
-  //   path: '/security-audit/solutions/auto-run',
-  //   name: 'AutoRunSolution',
-  //   component: AutoRunSolutionPage,
-  //   meta: {
-  //     title: '이동매체 자동실행 제한',
-  //     requiresAuth: true,
-  //   },
-  // },
-  // {
-  //   path: '/security-audit/solutions/antivirus',
-  //   name: 'AntivirusSolution',
-  //   component: AntivirusSolutionPage,
-  //   meta: {
-  //     title: '백신 상태 확인',
-  //     requiresAuth: true,
-  //   },
-  // },
-  // {
-  //   path: '/security-audit/solutions/password-policy',
-  //   name: 'PasswordPolicySolution',
-  //   component: PasswordPolicySolutionPage,
-  //   meta: {
-  //     title: '패스워드 정책 점검',
-  //     requiresAuth: true,
-  //   },
-  // },
-  // {
-  //   path: '/security-audit/solutions/firewall',
-  //   name: 'FirewallSolution',
-  //   component: FirewallSolutionPage,
-  //   meta: {
-  //     title: '방화벽 활성화 확인',
-  //     requiresAuth: true,
-  //   },
-  // },
-  // {
-  //   path: '/security-audit/solutions/shared-folder',
-  //   name: 'SharedFolderSolution',
-  //   component: SharedFolderSolutionPage,
-  //   meta: {
-  //     title: '공유폴더 확인',
-  //     requiresAuth: true,
-  //   },
-  // },
-  // {
-  //   path: '/security-audit/solutions/remote-desktop',
-  //   name: 'RemoteDesktopSolution',
-  //   component: RemoteDesktopSolutionPage,
-  //   meta: {
-  //     title: '원격데스크톱 제한',
-  //     requiresAuth: true,
-  //   },
-  // },
+
+  {
+    path: '/security-audit/solutions/antivirus',
+    name: 'AntivirusSolution',
+    component: AntivirusSolutionPage,
+    meta: {
+      title: '백신 상태 확인',
+      requiresAuth: true,
+    },
+  },
+  {
+    path: '/security-audit/solutions/password-policy',
+    name: 'PasswordPolicySolution',
+    component: PasswordPolicySolutionPage,
+    meta: {
+      title: '패스워드 정책 점검',
+      requiresAuth: true,
+    },
+  },
+
+  {
+    path: '/security-audit/solutions/shared-folder',
+    name: 'SharedFolderSolution',
+    component: SharedFolderSolutionPage,
+    meta: {
+      title: '공유폴더 확인',
+      requiresAuth: true,
+    },
+  },
+  {
+    path: '/security-audit/solutions/remote-desktop',
+    name: 'RemoteDesktopSolution',
+    component: RemoteDesktopSolutionPage,
+    meta: {
+      title: '원격데스크톱 제한',
+      requiresAuth: true,
+    },
+  },
 
   // 문의하기 페이지
   {
