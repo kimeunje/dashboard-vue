@@ -10,7 +10,7 @@ const LoginPage = () => import('@/views/LoginPage.vue')
 const SecurityAuditPage = () => import('@/views/SecurityAuditPage.vue')
 const SecurityAuditResultsPage = () => import('@/views/SecurityAuditResultsPage.vue')
 const SecurityAuditSolutionsPage = () => import('@/views/SecurityAuditSolutionsPage.vue')
-const SecurityAuditContactPage = () => import('@/views/SecurityAuditContactPage.vue')
+const ContactPage = () => import('@/views/ContactPage.vue')
 
 // Solutions 하위 페이지들
 const ScreenSaverSolutionPage = () => import('@/views/solutions/ScreenSaverSolutionPage.vue')
@@ -268,9 +268,9 @@ const routes = [
 
   // 문의하기 페이지
   {
-    path: '/security-audit/contact',
-    name: 'SecurityAuditContact',
-    component: SecurityAuditContactPage,
+    path: '/contact',
+    name: 'Contact',
+    component: ContactPage,
     meta: {
       title: '문의하기 - 상시보안감사',
       requiresAuth: true,

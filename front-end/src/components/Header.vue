@@ -98,6 +98,7 @@ const getPageTitle = () => {
     { path: '/login', title: '로그인' },
     { path: '/phishing-training', title: '악성메일 모의훈련 현황' },
     { path: '/security-education', title: '정보보호 교육 현황' },
+    { path: '/contact', title: '문의사항' },
     { path: '/usb-request', title: 'USB 반출 신청' },
   ]
 
