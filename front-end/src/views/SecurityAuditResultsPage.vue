@@ -69,33 +69,80 @@
 
         <!-- 데이터 표시 -->
         <div v-else>
+          <!-- 점검 유형 탭 -->
+          <div class="section">
+            <div class="tabs-container">
+              <div class="tabs-header">
+                <button
+                  @click="activeTab = 'daily'"
+                  class="tab-button"
+                  :class="{ active: activeTab === 'daily' }"
+                >
+                  <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
+                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
+                  </svg>
+                  정기 점검
+                  <span class="tab-count">{{ stats.daily?.totalChecks || 0 }}개 항목</span>
+                </button>
+
+                <button
+                  @click="activeTab = 'manual'"
+                  class="tab-button"
+                  :class="{ active: activeTab === 'manual' }"
+                >
+                  <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+                  </svg>
+                  수시 점검
+                  <span class="tab-count">{{ stats.manual?.totalChecks || 0 }}개 항목</span>
+                </button>
+
+                <button
+                  @click="activeTab = 'all'"
+                  class="tab-button"
+                  :class="{ active: activeTab === 'all' }"
+                >
+                  <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z"/>
+                  </svg>
+                  전체 결과
+                  <span class="tab-count">{{ stats.all?.totalChecks || 0 }}개 항목</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- 요약 통계 카드 -->
           <div class="section">
-            <h2 class="section-title">요약 통계</h2>
+            <h2 class="section-title">
+              {{ getTabTitle() }} 요약 통계
+              <span v-if="activeTab !== 'all'" class="tab-indicator">{{ getTabSubtitle() }}</span>
+            </h2>
             <div class="stats-grid">
               <StatsCard
                 title="총 점검 항목"
-                :value="stats.totalChecks"
-                :subtitle="`최근 업데이트: ${formatDate(stats.lastCheckedAt)}`"
+                :value="currentStats.totalChecks"
+                :subtitle="`최근 업데이트: ${formatDate(currentStats.lastCheckedAt)}`"
               />
 
               <StatsCard
                 title="통과"
-                :value="stats.passedChecks"
+                :value="currentStats.passedChecks"
                 :subtitle="`통과율: ${getPassRate()}%`"
                 value-color="green"
               />
 
               <StatsCard
                 title="실패"
-                :value="stats.failedChecks"
+                :value="currentStats.failedChecks"
                 :subtitle="`실패율: ${getFailRate()}%`"
                 value-color="red"
               />
 
               <StatsCard
                 title="보안 점수"
-                :value="stats.score"
+                :value="currentStats.score"
                 subtitle="총점: 3"
                 value-color="blue"
               />
@@ -103,15 +150,15 @@
           </div>
 
           <!-- 일별 통계 시각화 -->
-          <div class="section">
-            <h2 class="section-title">일별 검사 결과</h2>
-            <div v-if="dailyStats.length > 0" class="daily-stats-container">
+          <div class="section" v-if="currentDailyStats.length > 0">
+            <h2 class="section-title">{{ getTabTitle() }} 일별 검사 결과</h2>
+            <div class="daily-stats-container">
               <!-- 차트 영역 -->
               <div class="chart-container">
                 <div class="chart-area">
                   <div class="chart-bars">
                     <div
-                      v-for="(day, index) in dailyStats"
+                      v-for="(day, index) in currentDailyStats"
                       :key="index"
                       class="chart-bar-group"
                     >
@@ -155,7 +202,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="(day, index) in dailyStats" :key="index">
+                    <tr v-for="(day, index) in currentDailyStats" :key="index">
                       <td>{{ day.date }}</td>
                       <td class="passed-count">{{ day.passed }}</td>
                       <td class="failed-count">{{ day.failed }}</td>
@@ -165,32 +212,43 @@
                 </table>
               </div>
             </div>
-            <div v-else class="no-data">
-              <p>일별 검사 결과 데이터가 없습니다.</p>
+          </div>
+
+          <!-- 데이터 없음 상태 (일별 통계) -->
+          <div v-else class="section">
+            <h2 class="section-title">{{ getTabTitle() }} 일별 검사 결과</h2>
+            <div class="no-data">
+              <p>{{ getTabTitle() }} 검사 결과 데이터가 없습니다.</p>
             </div>
           </div>
 
           <!-- 항목별 상세 결과 테이블 -->
           <div class="section">
-            <h2 class="section-title">항목별 검사 결과</h2>
-            <div v-if="itemStats.length > 0" class="items-container">
+            <h2 class="section-title">{{ getTabTitle() }} 항목별 검사 결과</h2>
+            <div v-if="currentItemStats.length > 0" class="items-container">
               <!-- 테이블 헤더 -->
               <div class="items-header">
                 <div class="header-cell">ID</div>
                 <div class="header-cell">항목명</div>
                 <div class="header-cell">카테고리</div>
+                <div class="header-cell">점검 유형</div>
                 <div class="header-cell">통과</div>
                 <div class="header-cell">실패</div>
                 <div class="header-cell">통과율</div>
                 <div class="header-cell">상세</div>
               </div>
 
-              <div v-for="item in itemStats" :key="item.id" class="item-row-container">
+              <div v-for="item in currentItemStats" :key="item.id" class="item-row-container">
                 <!-- 항목 정보 행 -->
                 <div class="item-row" :class="{ 'expanded': selectedItemId === item.id }">
                   <div class="item-cell item-id">{{ item.id }}</div>
                   <div class="item-cell item-name">{{ item.name }}</div>
                   <div class="item-cell item-category">{{ item.category }}</div>
+                  <div class="item-cell">
+                    <span class="check-type-badge" :class="item.checkType">
+                      {{ item.checkType === 'daily' ? '정기' : '수시' }}
+                    </span>
+                  </div>
                   <div class="item-cell passed-count">{{ item.passed }}</div>
                   <div class="item-cell failed-count">{{ item.failed }}</div>
                   <div class="item-cell">
@@ -222,6 +280,14 @@
                     <div class="detail-info">
                       <h3 class="detail-title">{{ item.name }} 상세 정보</h3>
                       <p class="detail-description">{{ item.description }}</p>
+                      <div class="detail-meta">
+                        <span class="meta-item">
+                          <strong>점검 유형:</strong> {{ item.checkType === 'daily' ? '정기 점검 (매일 자동)' : '수시 점검 (수동 실행)' }}
+                        </span>
+                        <span class="meta-item">
+                          <strong>카테고리:</strong> {{ item.category }}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -250,7 +316,7 @@
                           <td class="actual-value">
                             <div v-if="log.actual_value && typeof log.actual_value === 'object'">
                               <div v-for="(value, key) in log.actual_value" :key="key">
-                                {{ key }}: {{ value }}
+                                {{ formatActualValueKey(key) }}: {{ formatActualValueValue(value) }}
                               </div>
                             </div>
                             <span v-else>{{ log.actual_value || '-' }}</span>
@@ -269,32 +335,9 @@
               </div>
             </div>
             <div v-else class="no-data">
-              <p>항목별 검사 결과 데이터가 없습니다.</p>
+              <p>{{ getTabTitle() }} 검사 결과 데이터가 없습니다.</p>
             </div>
           </div>
-
-          <!-- 관리자 연락처 -->
-          <!-- <div class="section">
-            <h2 class="section-title">관리자 연락처</h2>
-            <div class="contact-info">
-              <p>보안 감사 결과에 대한 문의사항이 있는 경우 아래 담당자에게 문의하세요:</p>
-              <div class="contact-details">
-                <div class="contact-item">
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M3.654 1.328a.678.678 0 0 0-1.015-.063L1.605 2.3c-.483.484-.661 1.169-.45 1.77a17.568 17.568 0 0 0 4.168 6.608 17.569 17.569 0 0 0 6.608 4.168c.601.211 1.286.033 1.77-.45l1.034-1.034a.678.678 0 0 0-.063-1.015l-2.307-1.794a.678.678 0 0 0-.58-.122L9.98 10.4a.678.678 0 0 1-.615-.04L7.6 9.39a.678.678 0 0 1-.215-.176L6.417 8.246a.678.678 0 0 1-.176-.215L5.27 6.266a.678.678 0 0 1-.04-.615l.969-1.805a.678.678 0 0 0-.122-.58L3.654 1.328z"/>
-                  </svg>
-                  <span>보안 감사팀: 내선 5678</span>
-                </div>
-                <div class="contact-item">
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M2 2a2 2 0 0 0-2 2v8.01A2 2 0 0 0 2 14h5.5a.5.5 0 0 0 0-1H2a1 1 0 0 1-.966-.741l5.64-3.471L8 9.583l7-4.2V8.5a.5.5 0 0 0 1 0V4a2 2 0 0 0-2-2H2Zm3.708 6.208L1 11.105V5.383l4.708 2.825ZM1 4.217V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v.217l-7 4.2-7-4.2Z"/>
-                    <path d="M14.247 14.269c1.01 0 1.587-.857 1.587-2.025v-.21C15.834 10.43 14.64 9 12.52 9h-.035C10.42 9 9 10.36 9 12.432v.214C9 14.82 10.438 16 12.358 16h.044c.594 0 1.018-.074 1.237-.175v-.73c-.245.11-.673.18-1.18.18h-.044c-1.334 0-2.571-.788-2.571-2.655v-.157c0-1.657 1.058-2.724 2.64-2.724h.04c1.535 0 2.484 1.05 2.484 2.326v.118c0 .975-.324 1.39-.639 1.39-.232 0-.41-.148-.41-.42v-2.19h-.906v.569h-.03c-.084-.298-.368-.61-.954-.61-.778 0-1.259.555-1.259 1.4v.528c0 .892.49 1.434 1.26 1.434.471 0 .896-.227 1.014-.643h.043c.118.42.617.648 1.12.648Zm-2.453-1.588v-.227c0-.546.227-.791.573-.791.297 0 .572.192.572.708v.367c0 .573-.253.744-.564.744-.354 0-.581-.215-.581-.8Z"/>
-                  </svg>
-                  <span>security-audit@example.com</span>
-                </div>
-              </div>
-            </div>
-          </div> -->
         </div>
 
         <!-- 페이지 네비게이션 -->
@@ -303,6 +346,7 @@
     </main>
   </div>
 </template>
+
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -317,30 +361,45 @@ const authStore = useAuthStore()
 // 반응형 데이터
 const loading = ref(false)
 const error = ref(null)
+const activeTab = ref('daily') // 'daily', 'manual', 'all'
 
-// 통계 데이터
+// 통계 데이터 (탭별)
 const stats = ref({
-  totalChecks: 0,
-  passedChecks: 0,
-  failedChecks: 0,
-  lastCheckedAt: '',
-  score: 0
+  daily: null,
+  manual: null,
+  all: null
 })
 
-// 보안 점검 항목 데이터
-const checklistItems = ref([])
+// 보안 점검 항목 데이터 (탭별)
+const checklistItems = ref({
+  daily: [],
+  manual: [],
+  all: []
+})
 
-// 로그 데이터
-const auditLogs = ref([])
+// 로그 데이터 (탭별)
+const auditLogs = ref({
+  daily: [],
+  manual: [],
+  all: []
+})
 
 // 선택된 항목 ID
 const selectedItemId = ref(null)
 
-// 시간별로 그룹화된 로그 (최근 7일)
-const dailyStats = ref([])
+// 시간별로 그룹화된 로그 (최근 7일) - 탭별
+const dailyStats = ref({
+  daily: [],
+  manual: [],
+  all: []
+})
 
-// 항목별 통과/실패 통계
-const itemStats = ref([])
+// 항목별 통과/실패 통계 - 탭별
+const itemStats = ref({
+  daily: [],
+  manual: [],
+  all: []
+})
 
 // Sidebar ref
 const sidebarRef = ref(null)
@@ -348,31 +407,56 @@ const sidebarRef = ref(null)
 // 계산된 속성
 const isAuthenticated = computed(() => !!authStore.user)
 
+const currentStats = computed(() => {
+  return stats.value[activeTab.value] || {
+    totalChecks: 0,
+    passedChecks: 0,
+    failedChecks: 0,
+    lastCheckedAt: '',
+    score: 0
+  }
+})
+
+const currentDailyStats = computed(() => {
+  return dailyStats.value[activeTab.value] || []
+})
+
+const currentItemStats = computed(() => {
+  return itemStats.value[activeTab.value] || []
+})
+
 const getPassRate = () => {
-  if (stats.value.totalChecks === 0) return 0
-  return Math.round((stats.value.passedChecks / stats.value.totalChecks) * 100)
+  if (currentStats.value.totalChecks === 0) return 0
+  return Math.round((currentStats.value.passedChecks / currentStats.value.totalChecks) * 100)
 }
 
 const getFailRate = () => {
-  if (stats.value.totalChecks === 0) return 0
-  return Math.round((stats.value.failedChecks / stats.value.totalChecks) * 100)
+  if (currentStats.value.totalChecks === 0) return 0
+  return Math.round((currentStats.value.failedChecks / currentStats.value.totalChecks) * 100)
 }
 
 const getMaxValue = () => {
-  if (dailyStats.value.length === 0) return 1
-  return Math.max(...dailyStats.value.map(day => Math.max(day.passed, day.failed)))
+  if (currentDailyStats.value.length === 0) return 1
+  return Math.max(...currentDailyStats.value.map(day => Math.max(day.passed, day.failed)))
 }
 
-const selectedItem = computed(() => {
-  return checklistItems.value.find(item => item.id === selectedItemId.value)
-})
+// 탭 관련 메서드
+const getTabTitle = () => {
+  switch (activeTab.value) {
+    case 'daily': return '정기 점검'
+    case 'manual': return '수시 점검'
+    case 'all': return '전체'
+    default: return '정기 점검'
+  }
+}
 
-const selectedItemLogs = computed(() => {
-  if (!selectedItemId.value) return []
-  return auditLogs.value
-    .filter(log => log.item_id === selectedItemId.value)
-    .sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at))
-})
+const getTabSubtitle = () => {
+  switch (activeTab.value) {
+    case 'daily': return '매일 자동 실행'
+    case 'manual': return '관리자 수동 실행'
+    default: return ''
+  }
+}
 
 // 메서드
 const fetchData = async () => {
@@ -382,48 +466,53 @@ const fetchData = async () => {
   error.value = null
 
   try {
-    // 병렬로 API 요청 보내기
-    const [logsResponse, checklistResponse] = await Promise.all([
-      fetch('/api/security-audit/logs', {
-        credentials: 'include'
-      }),
-      fetch('/api/security-audit/checklist-items', {
-        credentials: 'include'
-      })
+    // 모든 탭의 데이터를 병렬로 가져오기
+    const [
+      dailyLogsResponse, manualLogsResponse, allLogsResponse,
+      dailyChecklistResponse, manualChecklistResponse, allChecklistResponse
+    ] = await Promise.all([
+      fetch('/api/security-audit/logs?type=daily', { credentials: 'include' }),
+      fetch('/api/security-audit/logs?type=manual', { credentials: 'include' }),
+      fetch('/api/security-audit/logs', { credentials: 'include' }),
+      fetch('/api/security-audit/checklist-items?type=daily', { credentials: 'include' }),
+      fetch('/api/security-audit/checklist-items?type=manual', { credentials: 'include' }),
+      fetch('/api/security-audit/checklist-items', { credentials: 'include' })
     ])
 
     // 응답 확인
-    if (!logsResponse.ok) {
-      throw new Error(`Logs API error: ${logsResponse.status}`)
-    }
-
-    if (!checklistResponse.ok) {
-      throw new Error(`Checklist API error: ${checklistResponse.status}`)
+    const responses = [dailyLogsResponse, manualLogsResponse, allLogsResponse, dailyChecklistResponse, manualChecklistResponse, allChecklistResponse]
+    for (const response of responses) {
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
     }
 
     // 데이터 파싱
-    const logsData = await logsResponse.json()
-    const checklistData = await checklistResponse.json()
+    const [
+      dailyLogsData, manualLogsData, allLogsData,
+      dailyChecklistData, manualChecklistData, allChecklistData
+    ] = await Promise.all(responses.map(res => res.json()))
 
-    console.log('로그 데이터:', logsData)
-    console.log('체크리스트 데이터:', checklistData)
+    // 로그 데이터 설정
+    auditLogs.value = {
+      daily: dailyLogsData,
+      manual: manualLogsData,
+      all: allLogsData
+    }
 
-    // 체크리스트 데이터 변환 (API 응답 형식에 맞게 조정)
-    const formattedChecklistItems = checklistData.map(item => ({
-      id: item.item_id,
-      name: item.name || item.item_name,
-      category: item.category,
-      description: item.description
-    }))
+    // 체크리스트 데이터 변환 및 설정
+    checklistItems.value = {
+      daily: formatChecklistItems(dailyChecklistData),
+      manual: formatChecklistItems(manualChecklistData),
+      all: formatChecklistItems(allChecklistData)
+    }
 
-    // 상태 업데이트
-    auditLogs.value = logsData
-    checklistItems.value = formattedChecklistItems
+    // 각 탭별 통계 계산
+    calculateAllStats()
+    prepareAllDailyStats()
+    prepareAllItemStats()
 
-    // 통계 계산
-    calculateStats()
-    prepareDailyStats()
-    prepareItemStats()
+    console.log('모든 데이터 로드 완료')
 
   } catch (err) {
     console.error('Failed to fetch data:', err)
@@ -433,92 +522,111 @@ const fetchData = async () => {
   }
 }
 
-const calculateStats = () => {
-  const totalChecks = auditLogs.value.length
-  const passedChecks = auditLogs.value.filter(log => log.passed === 1).length
-  const failedChecks = auditLogs.value.filter(log => log.passed === 0).length
-
-  // 가장 최근 검사 날짜
-  const sortedLogs = [...auditLogs.value].sort(
-    (a, b) => new Date(b.checked_at) - new Date(a.checked_at)
-  )
-  const lastCheckedAt = sortedLogs.length > 0 ? sortedLogs[0].checked_at : ''
-
-  // 점수 계산 (통과율 * 100)
-  // const score = totalChecks > 0 ? Math.round((passedChecks / totalChecks) * 100) : 0
-   const score = Math.max(0, 3 - (failedChecks * 0.5))
-
-  stats.value = {
-    totalChecks,
-    passedChecks,
-    failedChecks,
-    lastCheckedAt,
-    score
-  }
+const formatChecklistItems = (checklistData) => {
+  return checklistData.map(item => ({
+    id: item.item_id,
+    name: item.name || item.item_name,
+    category: item.category,
+    description: item.description,
+    checkType: item.check_type,
+    checkFrequency: item.check_frequency
+  }))
 }
 
-const prepareDailyStats = () => {
-  // 날짜별로 로그를 그룹화
-  const groupedByDate = {}
+const calculateAllStats = () => {
+  ['daily', 'manual', 'all'].forEach(tabType => {
+    const logs = auditLogs.value[tabType]
+    const totalChecks = logs.length
+    const passedChecks = logs.filter(log => log.passed === 1).length
+    const failedChecks = logs.filter(log => log.passed === 0).length
 
-  auditLogs.value.forEach(log => {
-    const dateOnly = log.checked_at.split(' ')[0]
-    if (!groupedByDate[dateOnly]) {
-      groupedByDate[dateOnly] = { date: dateOnly, passed: 0, failed: 0 }
-    }
+    // 가장 최근 검사 날짜
+    const sortedLogs = [...logs].sort(
+      (a, b) => new Date(b.checked_at) - new Date(a.checked_at)
+    )
+    const lastCheckedAt = sortedLogs.length > 0 ? sortedLogs[0].checked_at : ''
 
-    if (log.passed === 1) {
-      groupedByDate[dateOnly].passed += 1
-    } else if (log.passed === 0) {
-      groupedByDate[dateOnly].failed += 1
-    }
-  })
+    // 점수 계산
+    const score = Math.max(0, 3 - (failedChecks * 0.5))
 
-  // 날짜순으로 정렬
-  const sortedDates = Object.values(groupedByDate).sort(
-    (a, b) => new Date(a.date) - new Date(b.date)
-  )
-
-  // 차트에서 사용하기 쉽게 데이터 구조 조정
-  const chartData = sortedDates.map(day => {
-    const total = day.passed + day.failed
-    const passRate = total > 0 ? Math.round((day.passed / total) * 100) : 0
-
-    return {
-      ...day,
-      passRate,
-      total
+    stats.value[tabType] = {
+      totalChecks,
+      passedChecks,
+      failedChecks,
+      lastCheckedAt,
+      score
     }
   })
-
-  dailyStats.value = chartData
 }
 
-const prepareItemStats = () => {
-  const itemStatsData = checklistItems.value.map(item => {
-    const itemLogs = auditLogs.value.filter(log => log.item_id === item.id)
-    const passedCount = itemLogs.filter(log => log.passed === 1).length
-    const failedCount = itemLogs.filter(log => log.passed === 0).length
-    const totalCount = passedCount + failedCount
-    const passRate = totalCount > 0 ? (passedCount / totalCount) * 100 : 0
+const prepareAllDailyStats = () => {
+  ['daily', 'manual', 'all'].forEach(tabType => {
+    const logs = auditLogs.value[tabType]
 
-    return {
-      id: item.id,
-      name: item.name,
-      category: item.category,
-      description: item.description,
-      total: totalCount,
-      passed: passedCount,
-      failed: failedCount,
-      passRate: Math.round(passRate)
-    }
+    // 날짜별로 로그를 그룹화
+    const groupedByDate = {}
+
+    logs.forEach(log => {
+      const dateOnly = log.checked_at.split(' ')[0]
+      if (!groupedByDate[dateOnly]) {
+        groupedByDate[dateOnly] = { date: dateOnly, passed: 0, failed: 0 }
+      }
+
+      if (log.passed === 1) {
+        groupedByDate[dateOnly].passed += 1
+      } else if (log.passed === 0) {
+        groupedByDate[dateOnly].failed += 1
+      }
+    })
+
+    // 날짜순으로 정렬
+    const sortedDates = Object.values(groupedByDate).sort(
+      (a, b) => new Date(a.date) - new Date(b.date)
+    )
+
+    // 차트에서 사용하기 쉽게 데이터 구조 조정
+    const chartData = sortedDates.map(day => {
+      const total = day.passed + day.failed
+      const passRate = total > 0 ? Math.round((day.passed / total) * 100) : 0
+
+      return {
+        ...day,
+        passRate,
+        total
+      }
+    })
+
+    dailyStats.value[tabType] = chartData
   })
-
-  itemStats.value = itemStatsData
 }
 
-const setSelectedItemId = (itemId) => {
-  selectedItemId.value = itemId
+const prepareAllItemStats = () => {
+  ['daily', 'manual', 'all'].forEach(tabType => {
+    const items = checklistItems.value[tabType]
+    const logs = auditLogs.value[tabType]
+
+    const itemStatsData = items.map(item => {
+      const itemLogs = logs.filter(log => log.item_id === item.id)
+      const passedCount = itemLogs.filter(log => log.passed === 1).length
+      const failedCount = itemLogs.filter(log => log.passed === 0).length
+      const totalCount = passedCount + failedCount
+      const passRate = totalCount > 0 ? (passedCount / totalCount) * 100 : 0
+
+      return {
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        description: item.description,
+        checkType: item.checkType,
+        total: totalCount,
+        passed: passedCount,
+        failed: failedCount,
+        passRate: Math.round(passRate)
+      }
+    })
+
+    itemStats.value[tabType] = itemStatsData
+  })
 }
 
 const toggleItemDetail = (itemId) => {
@@ -530,7 +638,8 @@ const toggleItemDetail = (itemId) => {
 }
 
 const getItemLogs = (itemId) => {
-  return auditLogs.value
+  const logs = auditLogs.value[activeTab.value]
+  return logs
     .filter(log => log.item_id === itemId)
     .sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at))
 }
@@ -561,6 +670,53 @@ const formatChartDate = (dateStr) => {
   return `${date.getMonth() + 1}/${date.getDate()}`
 }
 
+// 수시 점검용 실제 값 포맷팅
+const formatActualValueKey = (key) => {
+  const keyMap = {
+    'seal_status': '봉인씰 상태',
+    'check_date': '확인 날짜',
+    'malware_detected': '악성코드 탐지',
+    'threats_found': '위협 발견 수',
+    'last_scan_date': '마지막 검사',
+    'total_files': '전체 파일',
+    'encrypted_files': '암호화된 파일',
+    'encryption_rate': '암호화율',
+    'screenSaverTime': '화면보호기 시간',
+    'screenSaverSecure': '보안 설정',
+    'screenSaverEnabled': '활성화 상태',
+    'UpToDate': '업데이트',
+    'DisplayName': '백신명',
+    'RealTimeProtection': '실시간 보호',
+    'minimumPasswordLength': '최소 길이',
+    'passwordComplexity': '복잡도',
+    'maximumPasswordAge': '변경 주기',
+    'passwordHistorySize': '이력 크기',
+    'folders': '공유 폴더',
+    'fDenyTSConnections': '원격 접속 제한'
+  }
+  return keyMap[key] || key
+}
+
+const formatActualValueValue = (value) => {
+  if (typeof value === 'boolean') {
+    return value ? '예' : '아니오'
+  }
+  if (typeof value === 'number') {
+    return value.toString()
+  }
+  if (Array.isArray(value)) {
+    return value.join(', ')
+  }
+  if (value === 'intact') return '정상'
+  if (value === 'damaged') return '훼손됨'
+  return value
+}
+
+// 탭 변경 시 선택된 항목 초기화
+watch(activeTab, () => {
+  selectedItemId.value = null
+})
+
 // 라이프사이클 훅
 onMounted(() => {
   if (authStore.user) {
@@ -575,21 +731,38 @@ watch(() => authStore.user, (newUser) => {
   } else {
     // 로그아웃 시 데이터 초기화
     stats.value = {
-      totalChecks: 0,
-      passedChecks: 0,
-      failedChecks: 0,
-      lastCheckedAt: '',
-      score: 0
+      daily: null,
+      manual: null,
+      all: null
     }
-    checklistItems.value = []
-    auditLogs.value = []
-    dailyStats.value = []
-    itemStats.value = []
+    checklistItems.value = {
+      daily: [],
+      manual: [],
+      all: []
+    }
+    auditLogs.value = {
+      daily: [],
+      manual: [],
+      all: []
+    }
+    dailyStats.value = {
+      daily: [],
+      manual: [],
+      all: []
+    }
+    itemStats.value = {
+      daily: [],
+      manual: [],
+      all: []
+    }
     selectedItemId.value = null
   }
 })
+
 </script>
+
 <style scoped>
+/* SecurityAuditResultsPage.vue 확장 스타일 */
 .security-audit-layout {
   display: flex;
   background-color: var(--bright-bg);
@@ -605,6 +778,114 @@ watch(() => authStore.user, (newUser) => {
   margin: 20px;
 }
 
+/* 탭 컨테이너 */
+.tabs-container {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.tabs-header {
+  display: flex;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tab-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.tab-button:hover {
+  background-color: #f1f5f9;
+  color: #374151;
+}
+
+.tab-button.active {
+  background-color: white;
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+.tab-button.active svg {
+  color: var(--primary-color);
+}
+
+.tab-count {
+  font-size: 0.75rem;
+  background-color: #e5e7eb;
+  color: #6b7280;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 4px;
+}
+
+.tab-button.active .tab-count {
+  background-color: var(--light-blue);
+  color: var(--primary-color);
+}
+
+.tab-indicator {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 400;
+  margin-left: 8px;
+}
+
+/* 점검 유형 배지 */
+.check-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.check-type-badge.daily {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.check-type-badge.manual {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+/* 상세 메타 정보 */
+.detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.meta-item {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.meta-item strong {
+  color: var(--dark-blue);
+}
+
+/* 기존 스타일들 유지 */
 /* 인증 관련 스타일 */
 .not-authenticated {
   display: flex;
@@ -836,7 +1117,7 @@ watch(() => authStore.user, (newUser) => {
   font-weight: 600;
 }
 
-/* 항목별 테이블 - 새로운 구조 */
+/* 항목별 테이블 - 확장된 구조 */
 .items-container {
   background-color: white;
   border: 1px solid #e5e7eb;
@@ -855,7 +1136,7 @@ watch(() => authStore.user, (newUser) => {
 
 .item-row {
   display: grid;
-  grid-template-columns: 80px 1fr 120px 80px 80px 150px 100px;
+  grid-template-columns: 80px 1fr 120px 100px 80px 80px 150px 100px;
   align-items: center;
   padding: 12px 16px;
   transition: all 0.2s ease;
@@ -892,16 +1173,6 @@ watch(() => authStore.user, (newUser) => {
 .item-category {
   color: #6b7280;
   font-size: 0.875rem;
-}
-
-.passed-count {
-  color: #10b981;
-  font-weight: 600;
-}
-
-.failed-count {
-  color: #ef4444;
-  font-weight: 600;
 }
 
 .detail-button {
@@ -976,17 +1247,10 @@ watch(() => authStore.user, (newUser) => {
   font-size: 0.875rem;
 }
 
-/* 테이블 헤더 추가 */
-.items-container::before {
-  content: '';
-  display: block;
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-}
-
+/* 테이블 헤더 */
 .items-header {
   display: grid;
-  grid-template-columns: 80px 1fr 120px 80px 80px 150px 100px;
+  grid-template-columns: 80px 1fr 120px 100px 80px 80px 150px 100px;
   background-color: #f9fafb;
   padding: 12px 16px;
   font-weight: 600;
@@ -999,20 +1263,7 @@ watch(() => authStore.user, (newUser) => {
   font-size: 0.875rem;
 }
 
-/* 애니메이션 */
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    max-height: 0;
-    padding: 0 20px;
-  }
-  to {
-    opacity: 1;
-    max-height: 500px;
-    padding: 20px;
-  }
-}
-
+/* 진행률 바 */
 .progress-container {
   display: flex;
   align-items: center;
@@ -1052,69 +1303,7 @@ watch(() => authStore.user, (newUser) => {
   min-width: 40px;
 }
 
-.detail-button {
-  color: var(--primary-color);
-  background: none;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  text-decoration: underline;
-  transition: all 0.2s ease;
-}
-
-.detail-button:hover {
-  background-color: var(--light-blue);
-  text-decoration: none;
-}
-
-/* 상세 정보 섹션 */
-.detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  background-color: #e3f2fd;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.detail-info {
-  flex: 1;
-}
-
-.detail-description {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 8px 0 0 0;
-  line-height: 1.5;
-}
-
-.close-button {
-  color: #6b7280;
-  background: none;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-}
-
-.close-button:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: #374151;
-}
-
 /* 로그 테이블 */
-.logs-table-container {
-  background-color: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
 .logs-table {
   width: 100%;
   border-collapse: collapse;
@@ -1173,39 +1362,6 @@ watch(() => authStore.user, (newUser) => {
   overflow-wrap: break-word;
 }
 
-/* 연락처 정보 */
-.contact-info {
-  background-color: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 24px;
-  margin-top: 20px;
-}
-
-.contact-info p {
-  margin-bottom: 16px;
-  color: #374151;
-  line-height: 1.6;
-}
-
-.contact-details {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.contact-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--primary-color);
-  font-weight: 500;
-}
-
-.contact-item svg {
-  flex-shrink: 0;
-}
-
 /* 데이터 없음 상태 */
 .no-data {
   text-align: center;
@@ -1243,6 +1399,30 @@ watch(() => authStore.user, (newUser) => {
   transform: scale(1.05);
 }
 
+/* 섹션 및 제목 */
+.section {
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--dark-blue);
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--light-blue);
+  display: flex;
+  align-items: center;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--dark-blue);
+  margin-bottom: 32px;
+  text-align: center;
+}
+
 /* 애니메이션 */
 @keyframes spin {
   0% {
@@ -1250,6 +1430,19 @@ watch(() => authStore.user, (newUser) => {
   }
   100% {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    padding: 0 20px;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+    padding: 20px;
   }
 }
 
@@ -1261,6 +1454,20 @@ watch(() => authStore.user, (newUser) => {
 
   .main-content {
     margin: 20px;
+  }
+
+  .tabs-header {
+    flex-direction: column;
+  }
+
+  .tab-button {
+    border-bottom: 1px solid #e5e7eb;
+    border-right: none;
+  }
+
+  .tab-button.active {
+    border-bottom: 1px solid var(--primary-color);
+    border-left: 3px solid var(--primary-color);
   }
 }
 
@@ -1295,44 +1502,34 @@ watch(() => authStore.user, (newUser) => {
   }
 
   .items-container,
-  .logs-table-container,
+  .logs-table-container-inline,
   .daily-stats-table {
     overflow-x: auto;
   }
 
   .items-header,
   .item-row {
-    grid-template-columns: 60px 1fr 100px 60px 60px 120px 80px;
-    min-width: 600px;
+    grid-template-columns: 60px 1fr 100px 80px 60px 60px 120px 80px;
+    min-width: 700px;
   }
 
   .item-detail-container {
     padding: 16px;
   }
 
-  .logs-table-container-inline {
-    overflow-x: auto;
-  }
-
   .logs-table {
     min-width: 600px;
   }
 
-  .detail-header {
+  .tab-button {
     flex-direction: column;
-    gap: 16px;
+    gap: 4px;
+    padding: 12px 16px;
   }
 
-  .close-button {
-    align-self: flex-end;
-  }
-
-  .contact-details {
-    gap: 8px;
-  }
-
-  .contact-item {
-    font-size: 0.875rem;
+  .tab-count {
+    margin-left: 0;
+    margin-top: 4px;
   }
 }
 
@@ -1362,6 +1559,21 @@ watch(() => authStore.user, (newUser) => {
 
   .chart-bars-container {
     height: 120px;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tab-indicator {
+    margin-left: 0;
+    margin-top: 4px;
   }
 }
 

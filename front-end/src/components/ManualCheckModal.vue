@@ -6,7 +6,9 @@
         <h2>수시 점검 실행</h2>
         <button @click="$emit('close')" class="close-button">
           <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+            <path
+              d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"
+            />
           </svg>
         </button>
       </div>
@@ -30,16 +32,38 @@
               class="item-card"
             >
               <div class="item-icon">
-                <svg v-if="item.category === '물리적 보안'" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+                <svg
+                  v-if="item.category === '물리적 보안'"
+                  width="24"
+                  height="24"
+                  fill="currentColor"
+                  viewBox="0 0 16 16"
+                >
+                  <path
+                    d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"
+                  />
                 </svg>
-                <svg v-else-if="item.category === '악성코드 점검'" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M6.5 1A1.5 1.5 0 0 0 5 2.5V3H1.5A1.5 1.5 0 0 0 0 4.5v8A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 14.5 3H11v-.5A1.5 1.5 0 0 0 9.5 1h-3zm0 1h3a.5.5 0 0 1 .5.5V3H6v-.5a.5.5 0 0 1 .5-.5z"/>
-                  <path d="M.5 4v8a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5V4a.5.5 0 0 0-.5-.5H1a.5.5 0 0 0-.5.5zm2.5 1.5v1a.5.5 0 0 0 1 0v-1a.5.5 0 0 0-1 0z"/>
+                <svg
+                  v-else-if="item.category === '악성코드 점검'"
+                  width="24"
+                  height="24"
+                  fill="currentColor"
+                  viewBox="0 0 16 16"
+                >
+                  <path
+                    d="M6.5 1A1.5 1.5 0 0 0 5 2.5V3H1.5A1.5 1.5 0 0 0 0 4.5v8A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 14.5 3H11v-.5A1.5 1.5 0 0 0 9.5 1h-3zm0 1h3a.5.5 0 0 1 .5.5V3H6v-.5a.5.5 0 0 1 .5-.5z"
+                  />
+                  <path
+                    d="M.5 4v8a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5V4a.5.5 0 0 0-.5-.5H1a.5.5 0 0 0-.5.5zm2.5 1.5v1a.5.5 0 0 0 1 0v-1a.5.5 0 0 0-1 0z"
+                  />
                 </svg>
                 <svg v-else width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
-                  <path d="M9.5 1a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3z"/>
+                  <path
+                    d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"
+                  />
+                  <path
+                    d="M9.5 1a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3z"
+                  />
                 </svg>
               </div>
               <div class="item-info">
@@ -49,7 +73,10 @@
               </div>
               <div class="item-arrow">
                 <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                  <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                  <path
+                    fill-rule="evenodd"
+                    d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"
+                  />
                 </svg>
               </div>
             </div>
@@ -61,7 +88,10 @@
           <div class="selected-item-info">
             <button @click="selectedItem = null" class="back-button">
               <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+                <path
+                  fill-rule="evenodd"
+                  d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"
+                />
               </svg>
               뒤로 가기
             </button>
@@ -82,7 +112,7 @@
                     v-model="formData.sealStatus"
                     value="intact"
                     name="sealStatus"
-                  >
+                  />
                   <span class="radio-label">정상 (훼손 없음)</span>
                 </label>
                 <label class="radio-option">
@@ -91,7 +121,7 @@
                     v-model="formData.sealStatus"
                     value="damaged"
                     name="sealStatus"
-                  >
+                  />
                   <span class="radio-label">훼손됨</span>
                 </label>
               </div>
@@ -104,7 +134,7 @@
                   class="form-input"
                   :max="today"
                   required
-                >
+                />
               </div>
             </div>
 
@@ -118,7 +148,7 @@
                     v-model="formData.malwareDetected"
                     :value="false"
                     name="malwareDetected"
-                  >
+                  />
                   <span class="radio-label">탐지되지 않음</span>
                 </label>
                 <label class="radio-option">
@@ -127,7 +157,7 @@
                     v-model="formData.malwareDetected"
                     :value="true"
                     name="malwareDetected"
-                  >
+                  />
                   <span class="radio-label">탐지됨</span>
                 </label>
               </div>
@@ -140,7 +170,7 @@
                   class="form-input"
                   min="0"
                   placeholder="탐지된 위협의 개수를 입력하세요"
-                >
+                />
               </div>
 
               <div class="form-group">
@@ -151,7 +181,7 @@
                   class="form-input"
                   :max="today"
                   required
-                >
+                />
               </div>
             </div>
 
@@ -166,7 +196,7 @@
                   min="0"
                   placeholder="검사한 전체 파일 수"
                   required
-                >
+                />
               </div>
 
               <div class="form-group">
@@ -179,7 +209,7 @@
                   :max="formData.totalFiles || 999"
                   placeholder="암호화된 파일 수"
                   required
-                >
+                />
               </div>
 
               <div v-if="formData.totalFiles > 0" class="encryption-rate">
@@ -214,14 +244,8 @@
 
             <!-- 제출 버튼 -->
             <div class="form-actions">
-              <button type="button" @click="selectedItem = null" class="cancel-button">
-                취소
-              </button>
-              <button
-                type="submit"
-                class="submit-button"
-                :disabled="!isFormValid() || submitting"
-              >
+              <button type="button" @click="selectedItem = null" class="cancel-button">취소</button>
+              <button type="submit" class="submit-button" :disabled="!isFormValid() || submitting">
                 <span v-if="submitting">
                   <div class="inline-spinner"></div>
                   저장 중...
@@ -235,7 +259,9 @@
         <!-- 에러 메시지 -->
         <div v-if="error" class="error-message">
           <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+            <path
+              d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"
+            />
           </svg>
           {{ error }}
         </div>
@@ -243,7 +269,9 @@
         <!-- 성공 메시지 -->
         <div v-if="success" class="success-message">
           <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+            <path
+              d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"
+            />
           </svg>
           {{ success }}
         </div>
@@ -282,7 +310,7 @@ const formData = ref({
   encryptedFiles: 0,
 
   // 공통
-  notes: ''
+  notes: '',
 })
 
 // 계산된 속성
@@ -297,7 +325,7 @@ const fetchCheckItems = async () => {
 
   try {
     const response = await fetch('/api/security-audit/manual-check-items', {
-      credentials: 'include'
+      credentials: 'include',
     })
 
     if (response.ok) {
@@ -330,7 +358,7 @@ const resetFormData = () => {
     lastScanDate: today.value,
     totalFiles: 0,
     encryptedFiles: 0,
-    notes: ''
+    notes: '',
   }
 }
 
@@ -415,19 +443,19 @@ const submitCheck = async () => {
     if (selectedItem.value.name.includes('봉인씰')) {
       actualValue = {
         seal_status: formData.value.sealStatus,
-        check_date: formData.value.checkDate
+        check_date: formData.value.checkDate,
       }
     } else if (selectedItem.value.name.includes('악성코드')) {
       actualValue = {
         malware_detected: formData.value.malwareDetected,
         threats_found: formData.value.threatsFound,
-        last_scan_date: formData.value.lastScanDate
+        last_scan_date: formData.value.lastScanDate,
       }
     } else if (selectedItem.value.name.includes('암호화')) {
       actualValue = {
         total_files: formData.value.totalFiles,
         encrypted_files: formData.value.encryptedFiles,
-        encryption_rate: getEncryptionRate()
+        encryption_rate: getEncryptionRate(),
       }
     }
 
@@ -435,7 +463,7 @@ const submitCheck = async () => {
       item_id: selectedItem.value.item_id,
       actual_value: actualValue,
       passed: getCheckResult() ? 1 : 0,
-      notes: formData.value.notes || getResultDescription()
+      notes: formData.value.notes || getResultDescription(),
     }
 
     const response = await fetch('/api/security-audit/manual-check', {
@@ -444,7 +472,7 @@ const submitCheck = async () => {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
-      body: JSON.stringify(requestData)
+      body: JSON.stringify(requestData),
     })
 
     if (response.ok) {
@@ -762,6 +790,7 @@ onMounted(() => {
   color: #ef4444;
 }
 
+
 .result-section {
   padding: 16px;
   background-color: #f8fafc;
@@ -774,5 +803,166 @@ onMounted(() => {
   font-size: 1rem;
   font-weight: 600;
   color: var(--dark-blue);
+}
+
+.result-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.result-badge.pass {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.result-badge.fail {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.result-description {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.cancel-button {
+  background: none;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.cancel-button:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.submit-button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: var(--dark-blue);
+}
+
+.submit-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* 메시지 */
+.error-message,
+.success-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  margin-top: 16px;
+}
+
+.error-message {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.success-message {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 10px;
+  }
+
+  .modal-container {
+    max-height: 95vh;
+  }
+
+  .modal-header {
+    padding: 20px 20px 0 20px;
+  }
+
+  .modal-content {
+    padding: 0 20px 20px 20px;
+  }
+
+  .item-card {
+    padding: 12px;
+  }
+
+  .item-info h4 {
+    font-size: 0.875rem;
+  }
+
+  .item-info p {
+    font-size: 0.8125rem;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .cancel-button,
+  .submit-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .item-header h3 {
+    font-size: 1rem;
+  }
+
+  .radio-group {
+    gap: 4px;
+  }
+
+  .radio-option {
+    padding: 6px;
+  }
+
+  .result-section {
+    padding: 12px;
+  }
 }
 </style>
