@@ -8,7 +8,7 @@ class Config:
 
     # JWT 설정
     JWT_SECRET = os.environ.get('JWT_SECRET', 'fef#ecd@ec21@@ds-asc12!!-ke$dsy')
-    TOKEN_EXPIRATION = int(os.environ.get('TOKEN_EXPIRATION', 1800))  # 30분
+    TOKEN_EXPIRATION = int(os.environ.get('TOKEN_EXPIRATION', 36000))  # 30분
 
     # CORS 설정
     CORS_ORIGINS = [

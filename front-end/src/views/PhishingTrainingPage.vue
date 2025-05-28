@@ -1,20 +1,21 @@
 <style scoped>
 .training-page {
+  padding: 24px 30px 40px;
+  background-color: #ffffff;
+  min-height: calc(100vh - 114px);
+  width: 100%;
   max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  margin: 20px auto;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+  border-left: 1px solid #e0e4e9;
+  border-right: 1px solid #e0e4e9;
+  border-radius: 8px;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.training-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
 }
 
 .page-header {
@@ -503,6 +504,15 @@
   background-color: #f59e0b;
 }
 
+.main-content {
+  flex: 1;
+  padding: 30px;
+  background-color: var(--content-bg);
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  margin: 20px;
+}
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);
@@ -565,247 +575,211 @@
     width: 40px;
   }
 }
-</style><!-- views/PhishingTrainingPage.vue -->
+</style>
+<!-- views/PhishingTrainingPage.vue -->
 <template>
-  <div class="training-page">
-    <div class="page-header">
-      <h1 class="page-title">악성메일 모의훈련 현황</h1>
-      <div class="year-selector">
-        <label for="year">연도:</label>
-        <select id="year" v-model="selectedYear" @change="fetchTrainingStatus">
-          <option v-for="year in availableYears" :key="year" :value="year">{{ year }}년</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- 로딩 상태 -->
-    <div v-if="loading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>모의훈련 현황을 불러오는 중...</p>
-    </div>
-
-    <!-- 에러 상태 -->
-    <div v-else-if="error" class="error-container">
-      <div class="error-icon">⚠️</div>
-      <h3>데이터 로드 실패</h3>
-      <p>{{ error }}</p>
-      <button @click="fetchTrainingStatus" class="retry-button">다시 시도</button>
-    </div>
-
-    <!-- 모의훈련 현황 데이터 -->
-    <div v-else-if="trainingData" class="training-content">
-      <!-- 요약 카드 -->
-      <div class="summary-card">
-        <h2>{{ selectedYear }}년 모의훈련 결과</h2>
-        <div class="summary-stats">
-          <div class="stat-item">
-            <div class="stat-value conducted">{{ trainingData.summary.conducted }}</div>
-            <div class="stat-label">실시횟수</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value passed">{{ trainingData.summary.passed }}</div>
-            <div class="stat-label">통과</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value failed">{{ trainingData.summary.failed }}</div>
-            <div class="stat-label">실패</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value clicked">{{ trainingData.summary.clicked_or_opened_count }}</div>
-            <div class="stat-label">클릭/열람</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value rate">{{ trainingData.summary.pass_rate }}%</div>
-            <div class="stat-label">통과율</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value penalty">-{{ trainingData.summary.penalty_score }}</div>
-            <div class="stat-label">감점</div>
-          </div>
-        </div>
-
-        <!-- 제외된 기록이 있을 경우 표시 -->
-        <div v-if="trainingData.summary.excluded_count > 0" class="excluded-notice">
-          <div class="notice-icon">ℹ️</div>
-          <p>{{ trainingData.summary.excluded_count }}건의 기록이 점수 계산에서 제외되었습니다.</p>
-        </div>
-
-        <!-- 진행률 바 -->
-        <div class="progress-container">
-          <div class="progress-label">전체 통과율</div>
-          <div class="progress-bar">
-            <div
-              class="progress-fill"
-              :style="{ width: `${trainingData.summary.pass_rate}%` }"
-              :class="getProgressClass(trainingData.summary.pass_rate)"
-            ></div>
-          </div>
-          <div class="progress-text">{{ trainingData.summary.pass_rate }}%</div>
+  <main class="">
+    <div class="training-page">
+      <!-- 연도 선택기 -->
+      <div class="page-header">
+        <h1 class="page-title">악성메일 모의훈련 현황</h1>
+        <div class="year-selector">
+          <label for="year">연도:</label>
+          <select id="year" v-model="selectedYear" @change="fetchTrainingStatus">
+            <option v-for="year in availableYears" :key="year" :value="year">{{ year }}년</option>
+          </select>
         </div>
       </div>
 
-      <!-- 상반기/하반기별 상세 현황 -->
-      <div class="period-section">
-        <h2>상반기/하반기별 모의훈련 결과</h2>
-        <div class="periods-grid">
-          <div
-            v-for="period in trainingData.period_status"
-            :key="period.period"
-            class="period-card"
-            :class="getPeriodCardClass(period)"
-          >
-            <div class="period-header">
-              <h3>{{ period.period_name }}</h3>
-              <div class="status-badge" :class="getStatusBadgeClass(period.result)">
-                {{ getResultText(period.result) }}
-              </div>
-              <div v-if="period.exclude_from_scoring" class="excluded-badge">
-                점수 제외
-              </div>
-            </div>
-
-            <div class="period-details">
-              <div class="detail-row">
-                <span class="label">메일 발송시각:</span>
-                <span class="value">{{ period.email_sent_time || '미발송' }}</span>
-              </div>
-              <div class="detail-row" v-if="period.action_time">
-                <span class="label">수행시간:</span>
-                <span class="value">{{ period.action_time }}</span>
-              </div>
-              <div class="detail-row" v-if="period.log_type">
-                <span class="label">로그유형:</span>
-                <span class="value danger-text">{{ period.log_type }}</span>
-              </div>
-              <div class="detail-row" v-if="period.mail_type">
-                <span class="label">메일유형:</span>
-                <span class="value">{{ period.mail_type }}</span>
-              </div>
-              <div class="detail-row" v-if="period.user_email">
-                <span class="label">이메일:</span>
-                <span class="value">{{ period.user_email }}</span>
-              </div>
-              <div class="detail-row" v-if="period.ip_address">
-                <span class="label">IP주소:</span>
-                <span class="value">{{ period.ip_address }}</span>
-              </div>
-              <div class="detail-row" v-if="period.response_time_minutes">
-                <span class="label">응답시간:</span>
-                <span class="value">{{ period.response_time_minutes }}분</span>
-              </div>
-              <!-- <div class="detail-row">
-                <span class="label">점수:</span>
-                <span class="value">{{ period.score ? `${period.score}점` : '-' }}</span>
-              </div> -->
-              <div class="detail-row">
-                <span class="label">비고:</span>
-                <span class="value notes">{{ period.notes || '-' }}</span>
-              </div>
-            </div>
-
-            <!-- 결과별 알림 -->
-            <div v-if="period.result === 'fail'" class="result-notice fail">
-              <div class="notice-icon">⚠️</div>
-              <p>모의훈련에서 {{ period.log_type || '피싱 활동' }}을 했습니다.</p>
-              <small v-if="!period.exclude_from_scoring">감점: -0.5점</small>
-              <small v-else>점수 계산에서 제외됨</small>
-            </div>
-
-            <div v-else-if="period.result === 'pass'" class="result-notice pass">
-              <div class="notice-icon">✅</div>
-              <p>모의훈련을 성공적으로 통과했습니다.</p>
-              <small v-if="period.response_time_minutes">
-                {{ period.response_time_minutes }}분 경과 후 액션 없음
-              </small>
-            </div>
-
-            <div v-else="period.result === 'pending'" class="result-notice pending">
-              <div class="notice-icon">⏳</div>
-              <p>이 기간 모의훈련이 아직 실시되지 않았습니다.</p>
-            </div>
-          </div>
-        </div>
+      <!-- 로딩 상태 -->
+      <div v-if="loading" class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>모의훈련 현황을 불러오는 중...</p>
       </div>
 
-      <!-- 훈련 안내 -->
-      <div class="training-info">
-        <h2>악성메일 모의훈련 안내</h2>
-        <div class="info-grid">
-          <div class="info-card">
-            <div class="info-icon">📧</div>
-            <h3>훈련 방식</h3>
-            <ul>
-              <li>상반기/하반기 각 1회 실시</li>
-              <li>무작위 시점에 발송</li>
-              <li>실제 업무메일과 유사한 형태</li>
-              <li>클릭/열람 여부 및 시간 추적</li>
-            </ul>
-          </div>
-
-          <div class="info-card">
-            <div class="info-icon">🎯</div>
-            <h3>평가 기준</h3>
-            <ul>
-              <li>피싱메일에 액션 없음: 통과</li>
-              <li>첨부파일 열람/링크 클릭: 실패</li>
-              <li>실패시 0.5점 감점</li>
-              <!-- <li>점수 제외 설정시 감점 없음</li> -->
-            </ul>
-          </div>
-
-          <div class="info-card">
-            <div class="info-icon">🛡️</div>
-            <h3>대응 방법</h3>
-            <ul>
-              <li>의심스러운 메일은 즉시 신고</li>
-              <li>첨부파일 다운로드 주의</li>
-              <li>링크 클릭 전 URL 확인</li>
-              <li>발신자 정보 검증</li>
-            </ul>
-          </div>
-        </div>
+      <!-- 에러 상태 -->
+      <div v-else-if="error" class="error-container">
+        <div class="error-icon">⚠️</div>
+        <h3>데이터 로드 실패</h3>
+        <p>{{ error }}</p>
+        <button @click="fetchTrainingStatus" class="retry-button">다시 시도</button>
       </div>
 
-      <!-- 훈련 통계 차트 -->
-      <!-- <div class="chart-section">
-        <h2>연간 훈련 성과 추이</h2>
-        <div class="chart-container">
-          <div class="chart-placeholder">
-            <div class="period-chart">
-              <div
-                v-for="period in trainingData.period_status"
-                :key="period.period"
-                class="chart-bar"
-              >
+      <!-- 모의훈련 현황 데이터 -->
+      <div v-else-if="trainingData" class="training-content">
+        <!-- 요약 카드 -->
+        <div class="section">
+          <div class="summary-card">
+            <h2>{{ selectedYear }}년 모의훈련 결과</h2>
+            <div class="summary-stats">
+              <div class="stat-item">
+                <div class="stat-value conducted">{{ trainingData.summary.conducted }}</div>
+                <div class="stat-label">실시횟수</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value passed">{{ trainingData.summary.passed }}</div>
+                <div class="stat-label">통과</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value failed">{{ trainingData.summary.failed }}</div>
+                <div class="stat-label">실패</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value clicked">
+                  {{ trainingData.summary.clicked_or_opened_count }}
+                </div>
+                <div class="stat-label">클릭/열람</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value rate">{{ trainingData.summary.pass_rate }}%</div>
+                <div class="stat-label">통과율</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value penalty">-{{ trainingData.summary.penalty_score }}</div>
+                <div class="stat-label">감점</div>
+              </div>
+            </div>
+
+            <!-- 제외된 기록이 있을 경우 표시 -->
+            <div v-if="trainingData.summary.excluded_count > 0" class="excluded-notice">
+              <div class="notice-icon">ℹ️</div>
+              <p>
+                {{ trainingData.summary.excluded_count }}건의 기록이 점수 계산에서 제외되었습니다.
+              </p>
+            </div>
+
+            <!-- 진행률 바 -->
+            <div class="progress-container">
+              <div class="progress-label">전체 통과율</div>
+              <div class="progress-bar">
                 <div
-                  class="bar-fill"
-                  :class="
-                    period.passed ? 'success' : period.result === 'fail' ? 'danger' : 'pending'
-                  "
-                  :style="{ height: `${getChartBarHeight(period)}%` }"
+                  class="progress-fill"
+                  :style="{ width: `${trainingData.summary.pass_rate}%` }"
+                  :class="getProgressClass(trainingData.summary.pass_rate)"
                 ></div>
-                <div class="bar-label">{{ period.period_name }}</div>
               </div>
+              <div class="progress-text">{{ trainingData.summary.pass_rate }}%</div>
             </div>
-            <div class="chart-legend">
-              <div class="legend-item">
-                <div class="legend-color success"></div>
-                <span>통과</span>
+          </div>
+        </div>
+
+        <!-- 상반기/하반기별 상세 현황 -->
+        <div class="section">
+          <h2 class="section-title">상반기/하반기별 모의훈련 결과</h2>
+          <div class="periods-grid">
+            <div
+              v-for="period in trainingData.period_status"
+              :key="period.period"
+              class="period-card"
+              :class="getPeriodCardClass(period)"
+            >
+              <div class="period-header">
+                <h3>{{ period.period_name }}</h3>
+                <div class="status-badge" :class="getStatusBadgeClass(period.result)">
+                  {{ getResultText(period.result) }}
+                </div>
+                <div v-if="period.exclude_from_scoring" class="excluded-badge">점수 제외</div>
               </div>
-              <div class="legend-item">
-                <div class="legend-color danger"></div>
-                <span>실패</span>
+
+              <div class="period-details">
+                <div class="detail-row">
+                  <span class="label">메일 발송시각:</span>
+                  <span class="value">{{ period.email_sent_time || '미발송' }}</span>
+                </div>
+                <div class="detail-row" v-if="period.action_time">
+                  <span class="label">수행시간:</span>
+                  <span class="value">{{ period.action_time }}</span>
+                </div>
+                <div class="detail-row" v-if="period.log_type">
+                  <span class="label">로그유형:</span>
+                  <span class="value danger-text">{{ period.log_type }}</span>
+                </div>
+                <div class="detail-row" v-if="period.mail_type">
+                  <span class="label">메일유형:</span>
+                  <span class="value">{{ period.mail_type }}</span>
+                </div>
+                <div class="detail-row" v-if="period.user_email">
+                  <span class="label">이메일:</span>
+                  <span class="value">{{ period.user_email }}</span>
+                </div>
+                <div class="detail-row" v-if="period.ip_address">
+                  <span class="label">IP주소:</span>
+                  <span class="value">{{ period.ip_address }}</span>
+                </div>
+                <div class="detail-row" v-if="period.response_time_minutes">
+                  <span class="label">응답시간:</span>
+                  <span class="value">{{ period.response_time_minutes }}분</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">비고:</span>
+                  <span class="value notes">{{ period.notes || '-' }}</span>
+                </div>
               </div>
-              <div class="legend-item">
-                <div class="legend-color pending"></div>
-                <span>미실시</span>
+
+              <!-- 결과별 알림 -->
+              <div v-if="period.result === 'fail'" class="result-notice fail">
+                <div class="notice-icon">⚠️</div>
+                <p>모의훈련에서 {{ period.log_type || '피싱 활동' }}을 했습니다.</p>
+                <small v-if="!period.exclude_from_scoring">감점: -0.5점</small>
+                <small v-else>점수 계산에서 제외됨</small>
+              </div>
+
+              <div v-else-if="period.result === 'pass'" class="result-notice pass">
+                <div class="notice-icon">✅</div>
+                <p>모의훈련을 성공적으로 통과했습니다.</p>
+                <small v-if="period.response_time_minutes">
+                  {{ period.response_time_minutes }}분 경과 후 액션 없음
+                </small>
+              </div>
+
+              <div v-else="period.result === 'pending'" class="result-notice pending">
+                <div class="notice-icon">⏳</div>
+                <p>이 기간 모의훈련이 아직 실시되지 않았습니다.</p>
               </div>
             </div>
           </div>
         </div>
-      </div> -->
+
+        <!-- 훈련 안내 -->
+        <div class="section">
+          <h2 class="section-title">악성메일 모의훈련 안내</h2>
+          <div class="info-grid">
+            <div class="info-card">
+              <div class="info-icon">📧</div>
+              <h3>훈련 방식</h3>
+              <ul>
+                <li>상반기/하반기 각 1회 실시</li>
+                <li>무작위 시점에 발송</li>
+                <li>실제 업무메일과 유사한 형태</li>
+                <li>클릭/열람 여부 및 시간 추적</li>
+              </ul>
+            </div>
+
+            <div class="info-card">
+              <div class="info-icon">🎯</div>
+              <h3>평가 기준</h3>
+              <ul>
+                <li>피싱메일에 액션 없음: 통과</li>
+                <li>첨부파일 열람/링크 클릭: 실패</li>
+                <li>실패시 0.5점 감점</li>
+              </ul>
+            </div>
+
+            <div class="info-card">
+              <div class="info-icon">🛡️</div>
+              <h3>대응 방법</h3>
+              <ul>
+                <li>의심스러운 메일은 즉시 신고</li>
+                <li>첨부파일 다운로드 주의</li>
+                <li>링크 클릭 전 URL 확인</li>
+                <li>발신자 정보 검증</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
+  </main>
 </template>
 
 <script setup>
@@ -879,11 +853,11 @@ const getResultText = (result) => {
   return texts[result] || '알 수 없음'
 }
 
-const getChartBarHeight = (period) => {
-  if (period.result === 'pass') return 100
-  if (period.result === 'fail') return 30
-  return 10
-}
+// const getChartBarHeight = (period) => {
+//   if (period.result === 'pass') return 100
+//   if (period.result === 'fail') return 30
+//   return 10
+// }
 
 // 라이프사이클 훅
 onMounted(() => {
