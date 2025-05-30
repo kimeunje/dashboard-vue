@@ -1,58 +1,147 @@
-# app/services/auth_service.py
+# back-end/app/services/auth_service.py - IP 인증으로 수정
+
 import jwt
-import secrets
+import ipaddress
 from datetime import datetime, timedelta
 from flask import current_app
-from app.utils.constants import TEST_USERS, DEFAULT_VERIFICATION_CODE
+from app.utils.constants import TEST_USERS, ALLOWED_IP_RANGES, IP_AUTH_CONFIG, DEFAULT_VERIFICATION_CODE
 from app.utils.database import execute_query
 
 
 class AuthService:
-    """인증 관련 서비스"""
+    """인증 관련 서비스 - IP 기반 인증"""
 
     def __init__(self):
         self.verification_codes = {}  # 실제 환경에서는 Redis 등 사용 권장
 
-    def authenticate_ldap(self, username: str, password: str) -> dict:
-        """모의 LDAP 인증"""
-        if username in TEST_USERS and TEST_USERS[username]["password"] == password:
-            user_data = TEST_USERS[username]
+    def authenticate_by_ip(self, client_ip: str) -> dict:
+        """IP 기반 사용자 인증 (LDAP 대체)"""
+        try:
+            current_app.logger.info(f"IP 인증 시도: {client_ip}")
+
+            # 1. 업무시간 체크 (설정에 따라)
+            if not self._check_business_hours():
+                return {
+                    "success": False,
+                    "message": "업무시간(평일 08:00-19:00) 외에는 접근할 수 없습니다.",
+                    "code": "OUTSIDE_BUSINESS_HOURS"
+                }
+
+            # 2. IP 대역 체크
+            if not self._is_ip_in_allowed_ranges(client_ip):
+                return {
+                    "success": False,
+                    "message": f"허용되지 않은 네트워크({client_ip})에서의 접근입니다.",
+                    "code": "IP_RANGE_NOT_ALLOWED"
+                }
+
+            # 3. 사용자별 허용 IP 체크
+            user_info = self._find_user_by_ip(client_ip)
+            if not user_info:
+                return {
+                    "success": False,
+                    "message": f"IP {client_ip}에 등록된 사용자를 찾을 수 없습니다. IT팀에 문의하세요.",
+                    "code": "USER_NOT_FOUND"
+                }
+
+            # 4. 인증 성공
+            current_app.logger.info(f"IP 인증 성공: {user_info['username']} ({client_ip})")
             return {
                 "success": True,
-                "username": username,
-                "email": user_data["email"],
-                "name": user_data["name"],
-                "dept": user_data["dept"],
-            }
-        else:
-            return {
-                "success": False,
-                "message": "아이디 또는 비밀번호가 올바르지 않습니다.",
+                "username": user_info["username"],
+                "email": user_info["email"],
+                "name": user_info["name"],
+                "dept": user_info["dept"],
+                "role": user_info.get("role", "user"),
+                "client_ip": client_ip
             }
 
+        except Exception as e:
+            current_app.logger.error(f"IP 인증 오류: {str(e)}")
+            return {
+                "success": False,
+                "message": "인증 처리 중 오류가 발생했습니다.",
+                "code": "AUTH_ERROR"
+            }
+
+    def _check_business_hours(self) -> bool:
+        """업무시간 체크"""
+        if not IP_AUTH_CONFIG.get("enable_time_restriction", False):
+            return True
+
+        now = datetime.now()
+        business_hours = IP_AUTH_CONFIG["business_hours"]
+
+        # 주말 체크
+        if business_hours.get("weekdays_only", False) and now.weekday() >= 5:
+            current_app.logger.info("주말 접근 시도")
+            return False
+
+        # 시간 체크
+        current_hour = now.hour
+        if current_hour < business_hours["start"] or current_hour >= business_hours[
+                "end"]:
+            current_app.logger.info(f"업무시간 외 접근 시도: {current_hour}시")
+            return False
+
+        return True
+
+    def _is_ip_in_allowed_ranges(self, client_ip: str) -> bool:
+        """허용된 IP 대역 체크"""
+        if not IP_AUTH_CONFIG.get("enable_range_check", False):
+            return True
+
+        try:
+            client_ip_obj = ipaddress.IPv4Address(client_ip)
+
+            for ip_range in ALLOWED_IP_RANGES:
+                network = ipaddress.IPv4Network(ip_range, strict=False)
+                if client_ip_obj in network:
+                    current_app.logger.info(f"IP 대역 매칭: {client_ip} in {ip_range}")
+                    return True
+
+            current_app.logger.warning(f"허용되지 않은 IP 대역: {client_ip}")
+            return False
+
+        except ipaddress.AddressValueError:
+            current_app.logger.warning(f"잘못된 IP 주소 형식: {client_ip}")
+            return False
+
+    def _find_user_by_ip(self, client_ip: str) -> dict:
+        """IP로 사용자 찾기"""
+        for username, user_data in TEST_USERS.items():
+            allowed_ips = user_data.get("allowed_ips", [])
+
+            if client_ip in allowed_ips:
+                current_app.logger.info(f"사용자 매칭: {username} <- {client_ip}")
+                return {
+                    "username": username,
+                    "email": user_data["email"],
+                    "name": user_data["name"],
+                    "dept": user_data["dept"],
+                    "role": user_data.get("role", "user")
+                }
+
+        current_app.logger.warning(f"매칭되지 않은 IP: {client_ip}")
+        return None
+
+    # 기존 이메일 인증 관련 메서드들은 그대로 유지
     def send_verification_code(self, email: str) -> dict:
-        """이메일 인증 코드 발송 (모의)"""
+        """이메일 인증 코드 발송 (기존 유지)"""
         if not email:
             return {"success": False, "message": "이메일 주소가 필요합니다."}
 
-        # 6자리 인증 코드 생성 (테스트용 고정 코드)
         verification_code = DEFAULT_VERIFICATION_CODE
-
-        # 인증 코드 저장 (15분 유효)
         expiry = datetime.now() + timedelta(minutes=15)
         self.verification_codes[email] = {"code": verification_code, "expiry": expiry}
 
-        # 콘솔에 출력 (실제 이메일 발송 대신)
-        print(f"이메일 인증 코드: {verification_code} (수신자: {email})")
-
+        print(f"[이메일 인증] 인증 코드: {verification_code} (수신자: {email})")
         return {"success": True, "message": "인증 코드가 발송되었습니다."}
 
     def verify_code(self, email: str, code: str) -> bool:
-        """인증 코드 확인"""
-        # 테스트 모드: 모든 코드 허용 (123456 또는 DB에 저장된 코드)
+        """인증 코드 확인 (기존 유지)"""
         is_valid_code = code == DEFAULT_VERIFICATION_CODE
 
-        # 저장된 코드가 있으면 확인
         if email in self.verification_codes:
             verification_info = self.verification_codes[email]
             is_valid_code = is_valid_code or (verification_info["code"] == code
@@ -61,12 +150,14 @@ class AuthService:
 
         return is_valid_code
 
-    def generate_token(self, username: str, user_info: dict) -> str:
-        """JWT 토큰 생성"""
+    def generate_token(self, username: str, user_info: dict, client_ip: str) -> str:
+        """JWT 토큰 생성 (IP 정보 포함)"""
         token_payload = {
             "username": username,
             "name": user_info.get("name"),
             "dept": user_info.get("dept"),
+            "role": user_info.get("role", "user"),
+            "client_ip": client_ip,  # IP 정보 추가
             "exp": datetime.now() +
             timedelta(seconds=current_app.config['TOKEN_EXPIRATION']),
         }
@@ -74,26 +165,51 @@ class AuthService:
         return jwt.encode(token_payload, current_app.config['JWT_SECRET'],
                           algorithm="HS256")
 
-    def verify_token(self, token: str) -> dict:
-        """JWT 토큰 검증"""
+    def verify_token(self, token: str, client_ip: str = None) -> dict:
+        """JWT 토큰 검증 (IP 검증 포함)"""
         try:
             payload = jwt.decode(token, current_app.config['JWT_SECRET'],
                                  algorithms=["HS256"])
+
+            # IP 검증 (옵션 - 경고만 기록)
+            if client_ip and payload.get("client_ip"):
+                if payload["client_ip"] != client_ip:
+                    current_app.logger.warning(
+                        f"토큰 IP 불일치: 토큰={payload['client_ip']}, 현재={client_ip}")
+                    # DHCP 환경을 고려해 경고만 기록하고 통과
+
             return {"valid": True, "payload": payload}
+
         except jwt.ExpiredSignatureError:
             return {"valid": False, "error": "토큰이 만료되었습니다."}
         except jwt.InvalidTokenError:
             return {"valid": False, "error": "유효하지 않은 토큰입니다."}
 
     def clear_verification_code(self, email: str):
-        """인증 코드 삭제"""
+        """인증 코드 삭제 (기존 유지)"""
         if email in self.verification_codes:
             del self.verification_codes[email]
 
+    def get_client_ip(self, request) -> str:
+        """클라이언트 IP 주소 추출 (프록시 환경 고려)"""
+        # X-Forwarded-For 헤더 확인 (프록시/로드밸런서 환경)
+        if request.headers.get('X-Forwarded-For'):
+            ip = request.headers.get('X-Forwarded-For').split(',')[0].strip()
+            current_app.logger.info(f"X-Forwarded-For에서 IP 추출: {ip}")
+            return ip
+        elif request.headers.get('X-Real-IP'):
+            ip = request.headers.get('X-Real-IP')
+            current_app.logger.info(f"X-Real-IP에서 IP 추출: {ip}")
+            return ip
+        else:
+            ip = request.remote_addr
+            current_app.logger.info(f"Remote-Addr에서 IP 추출: {ip}")
+            return ip
+
+    # 기존 데이터베이스 관련 메서드들 유지
     def authenticate_user_in_db(self, username: str) -> dict:
-        """데이터베이스에서 사용자 검증 및 감사 로그 초기화"""
+        """데이터베이스에서 사용자 검증 및 감사 로그 초기화 (기존 유지)"""
         try:
-            # 사용자 확인
             user = execute_query("SELECT uid FROM users WHERE username = %s",
                                  (username, ), fetch_one=True)
 
@@ -105,7 +221,6 @@ class AuthService:
 
             user_id = user["uid"]
 
-            # 오늘 날짜의 감사 로그가 이미 있는지 확인
             existing_logs = execute_query(
                 """
                 SELECT COUNT(*) as log_count
@@ -113,7 +228,6 @@ class AuthService:
                 WHERE user_id = %s AND DATE(checked_at) = DATE(NOW())
                 """, (user_id, ), fetch_one=True)["log_count"]
 
-            # 오늘 감사 로그가 없으면 모든 체크리스트 항목에 대해 기본 로그 생성
             if existing_logs == 0:
                 self._create_initial_audit_logs(user_id)
                 current_app.logger.info(
@@ -129,8 +243,7 @@ class AuthService:
             }
 
     def _create_initial_audit_logs(self, user_id: int):
-        """초기 감사 로그 생성"""
-        # 모든 체크리스트 항목 조회
+        """초기 감사 로그 생성 (기존 유지)"""
         checklist_items = execute_query(
             """
             SELECT item_id, item_name, category, description
@@ -138,7 +251,6 @@ class AuthService:
             ORDER BY item_id
             """, fetch_all=True)
 
-        # 각 항목에 대해 기본 감사 로그 생성
         import json
         default_actual_value = json.dumps({
             "status": "pending",

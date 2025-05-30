@@ -12,7 +12,6 @@
   border-radius: 8px;
 }
 
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -79,16 +78,19 @@
 }
 
 .summary-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background-color: white;
+  color: #374151;
+  border: 2px solid #e5e7eb;
   border-radius: 12px;
   padding: 30px;
   margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .summary-card h2 {
   margin: 0 0 20px 0;
   font-size: 24px;
+  color: var(--dark-blue);
 }
 
 .summary-stats {
@@ -131,8 +133,8 @@
 }
 
 .excluded-notice {
-  background-color: rgba(59, 130, 246, 0.2);
-  border: 1px solid rgba(59, 130, 246, 0.4);
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 20px;
@@ -148,6 +150,7 @@
 .excluded-notice p {
   margin: 0;
   font-size: 14px;
+  color: #1e40af;
 }
 
 .progress-container {
@@ -164,7 +167,7 @@
 .progress-bar {
   flex: 1;
   height: 12px;
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: #f3f4f6;
   border-radius: 6px;
   overflow: hidden;
 }

@@ -98,3 +98,87 @@ MESSAGES = {
 
 # 기본 인증 코드 (테스트용)
 DEFAULT_VERIFICATION_CODE = "123456"
+
+# 기존 TEST_USERS를 IP 기반으로 확장
+TEST_USERS = {
+    "eunjekim8": {
+        "password": "1234",  # IP 인증으로 변경 후에도 유지 (호환성)
+        "name": "김은제",
+        "dept": "운영실",
+        "email": "eunjekim8@nicednb.com",
+        "allowed_ips": ["10.106.15.129", "172.30.1.38", "127.0.0.1"]  # 허용된 IP 목록
+    },
+    "parkchul": {
+        "password": "1234",
+        "name": "박철희",
+        "dept": "개발팀",
+        "email": "parkchul@test.com",
+        "allowed_ips": ["192.168.1.101", "10.106.25.130", "127.0.0.1"]
+    },
+    "test": {
+        "password": "1234",
+        "name": "테스터",
+        "dept": "운영실",
+        "email": "test@test.com",
+        "allowed_ips": ["192.168.1.102", "10.106.25.131", "127.0.0.1"]
+    },
+    "admin": {
+        "password": "admin123",
+        "name": "관리자",
+        "dept": "IT팀",
+        "email": "admin@test.com",
+        "role": "admin",
+        "allowed_ips": ["192.168.1.200", "10.106.25.200", "127.0.0.1"]
+    },
+}
+
+# IP 대역 화이트리스트 (추가 보안 레이어)
+ALLOWED_IP_RANGES = [
+    "192.168.1.0/24",  # 사무실 네트워크
+    "10.106.25.0/24",  # 개발 네트워크
+    "10.106.15.0/24",  # 개발 네트워크
+    "172.16.0.0/24",  # 관리 네트워크
+    "172.0.0.0/8",
+    "127.0.0.0/8",  # 로컬호스트 (테스트용)
+]
+
+# IP 인증 설정
+IP_AUTH_CONFIG = {
+    "enable_strict_mode": True,  # 엄격 모드 (정확한 IP 매칭)
+    "enable_range_check": True,  # 대역 체크 활성화
+    "enable_time_restriction": False,  # 시간 제한 (개발 중에는 비활성화)
+    "business_hours": {
+        "start": 8,  # 08:00
+        "end": 19,  # 19:00
+        "weekdays_only": True
+    }
+}
+
+# 기존 설정들 유지
+DEFAULT_VERIFICATION_CODE = "123456"
+
+HTTP_STATUS = {
+    'OK': 200,
+    'BAD_REQUEST': 400,
+    'UNAUTHORIZED': 401,
+    'FORBIDDEN': 403,
+    'NOT_FOUND': 404,
+    'INTERNAL_SERVER_ERROR': 500,
+}
+
+MESSAGES = {
+    'LOGIN_SUCCESS': '로그인에 성공했습니다.',
+    'LOGOUT_SUCCESS': '로그아웃되었습니다.',
+    'UNAUTHORIZED': '인증되지 않은 접근입니다.',
+    'INVALID_TOKEN': '유효하지 않은 토큰입니다.',
+    'EXPIRED_TOKEN': '토큰이 만료되었습니다.',
+    'INVALID_VERIFICATION_CODE': '인증 코드가 올바르지 않습니다.',
+    'ADMIN_REQUIRED': '관리자 권한이 필요합니다.',
+    'SERVER_ERROR': '서버 오류가 발생했습니다.',
+
+    # IP 인증 관련 메시지 추가
+    'IP_NOT_ALLOWED': '허용되지 않은 IP에서의 접근입니다.',
+    'OUTSIDE_BUSINESS_HOURS': '업무시간 외 접근이 제한됩니다.',
+    'USER_NOT_FOUND': '해당 IP에 등록된 사용자를 찾을 수 없습니다.',
+    'IP_RANGE_NOT_ALLOWED': '허용되지 않은 네트워크에서의 접근입니다.',
+}

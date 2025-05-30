@@ -79,8 +79,12 @@
                   :class="{ active: activeTab === 'daily' }"
                 >
                   <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
-                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
+                    <path
+                      d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"
+                    />
+                    <path
+                      d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"
+                    />
                   </svg>
                   정기 점검
                   <span class="tab-count">{{ stats.daily?.totalChecks || 0 }}개 항목</span>
@@ -92,7 +96,9 @@
                   :class="{ active: activeTab === 'manual' }"
                 >
                   <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+                    <path
+                      d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"
+                    />
                   </svg>
                   수시 점검
                   <span class="tab-count">{{ stats.manual?.totalChecks || 0 }}개 항목</span>
@@ -104,7 +110,9 @@
                   :class="{ active: activeTab === 'all' }"
                 >
                   <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z"/>
+                    <path
+                      d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z"
+                    />
                   </svg>
                   전체 결과
                   <span class="tab-count">{{ stats.all?.totalChecks || 0 }}개 항목</span>
@@ -140,12 +148,7 @@
                 value-color="red"
               />
 
-              <StatsCard
-                title="보안 점수"
-                :value="currentStats.score"
-                subtitle="총점: 3"
-                value-color="blue"
-              />
+              <StatsCard title="감점" :value="currentStats.score" subtitle="" value-color="blue" />
             </div>
           </div>
 
@@ -240,7 +243,7 @@
 
               <div v-for="item in currentItemStats" :key="item.id" class="item-row-container">
                 <!-- 항목 정보 행 -->
-                <div class="item-row" :class="{ 'expanded': selectedItemId === item.id }">
+                <div class="item-row" :class="{ expanded: selectedItemId === item.id }">
                   <div class="item-cell item-id">{{ item.id }}</div>
                   <div class="item-cell item-name">{{ item.name }}</div>
                   <div class="item-cell item-category">{{ item.category }}</div>
@@ -267,7 +270,7 @@
                     <button
                       @click="toggleItemDetail(item.id)"
                       class="detail-button"
-                      :class="{ 'active': selectedItemId === item.id }"
+                      :class="{ active: selectedItemId === item.id }"
                     >
                       {{ selectedItemId === item.id ? '닫기' : '상세보기' }}
                     </button>
@@ -282,7 +285,12 @@
                       <p class="detail-description">{{ item.description }}</p>
                       <div class="detail-meta">
                         <span class="meta-item">
-                          <strong>점검 유형:</strong> {{ item.checkType === 'daily' ? '정기 점검 (매일 자동)' : '수시 점검 (수동 실행)' }}
+                          <strong>점검 유형:</strong>
+                          {{
+                            item.checkType === 'daily'
+                              ? '정기 점검 (매일 자동)'
+                              : '수시 점검 (수동 실행)'
+                          }}
                         </span>
                         <span class="meta-item">
                           <strong>카테고리:</strong> {{ item.category }}
@@ -367,21 +375,21 @@ const activeTab = ref('daily') // 'daily', 'manual', 'all'
 const stats = ref({
   daily: null,
   manual: null,
-  all: null
+  all: null,
 })
 
 // 보안 점검 항목 데이터 (탭별)
 const checklistItems = ref({
   daily: [],
   manual: [],
-  all: []
+  all: [],
 })
 
 // 로그 데이터 (탭별)
 const auditLogs = ref({
   daily: [],
   manual: [],
-  all: []
+  all: [],
 })
 
 // 선택된 항목 ID
@@ -391,14 +399,14 @@ const selectedItemId = ref(null)
 const dailyStats = ref({
   daily: [],
   manual: [],
-  all: []
+  all: [],
 })
 
 // 항목별 통과/실패 통계 - 탭별
 const itemStats = ref({
   daily: [],
   manual: [],
-  all: []
+  all: [],
 })
 
 // Sidebar ref
@@ -408,13 +416,15 @@ const sidebarRef = ref(null)
 const isAuthenticated = computed(() => !!authStore.user)
 
 const currentStats = computed(() => {
-  return stats.value[activeTab.value] || {
-    totalChecks: 0,
-    passedChecks: 0,
-    failedChecks: 0,
-    lastCheckedAt: '',
-    score: 0
-  }
+  return (
+    stats.value[activeTab.value] || {
+      totalChecks: 0,
+      passedChecks: 0,
+      failedChecks: 0,
+      lastCheckedAt: '',
+      score: 0,
+    }
+  )
 })
 
 const currentDailyStats = computed(() => {
@@ -437,24 +447,31 @@ const getFailRate = () => {
 
 const getMaxValue = () => {
   if (currentDailyStats.value.length === 0) return 1
-  return Math.max(...currentDailyStats.value.map(day => Math.max(day.passed, day.failed)))
+  return Math.max(...currentDailyStats.value.map((day) => Math.max(day.passed, day.failed)))
 }
 
 // 탭 관련 메서드
 const getTabTitle = () => {
   switch (activeTab.value) {
-    case 'daily': return '정기 점검'
-    case 'manual': return '수시 점검'
-    case 'all': return '전체'
-    default: return '정기 점검'
+    case 'daily':
+      return '정기 점검'
+    case 'manual':
+      return '수시 점검'
+    case 'all':
+      return '전체'
+    default:
+      return '정기 점검'
   }
 }
 
 const getTabSubtitle = () => {
   switch (activeTab.value) {
-    case 'daily': return '매일 자동 실행'
-    case 'manual': return '관리자 수동 실행'
-    default: return ''
+    case 'daily':
+      return '매일 자동 실행'
+    case 'manual':
+      return '관리자 수동 실행'
+    default:
+      return ''
   }
 }
 
@@ -468,19 +485,30 @@ const fetchData = async () => {
   try {
     // 모든 탭의 데이터를 병렬로 가져오기
     const [
-      dailyLogsResponse, manualLogsResponse, allLogsResponse,
-      dailyChecklistResponse, manualChecklistResponse, allChecklistResponse
+      dailyLogsResponse,
+      manualLogsResponse,
+      allLogsResponse,
+      dailyChecklistResponse,
+      manualChecklistResponse,
+      allChecklistResponse,
     ] = await Promise.all([
       fetch('/api/security-audit/logs?type=daily', { credentials: 'include' }),
       fetch('/api/security-audit/logs?type=manual', { credentials: 'include' }),
       fetch('/api/security-audit/logs', { credentials: 'include' }),
       fetch('/api/security-audit/checklist-items?type=daily', { credentials: 'include' }),
       fetch('/api/security-audit/checklist-items?type=manual', { credentials: 'include' }),
-      fetch('/api/security-audit/checklist-items', { credentials: 'include' })
+      fetch('/api/security-audit/checklist-items', { credentials: 'include' }),
     ])
 
     // 응답 확인
-    const responses = [dailyLogsResponse, manualLogsResponse, allLogsResponse, dailyChecklistResponse, manualChecklistResponse, allChecklistResponse]
+    const responses = [
+      dailyLogsResponse,
+      manualLogsResponse,
+      allLogsResponse,
+      dailyChecklistResponse,
+      manualChecklistResponse,
+      allChecklistResponse,
+    ]
     for (const response of responses) {
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`)
@@ -489,22 +517,26 @@ const fetchData = async () => {
 
     // 데이터 파싱
     const [
-      dailyLogsData, manualLogsData, allLogsData,
-      dailyChecklistData, manualChecklistData, allChecklistData
-    ] = await Promise.all(responses.map(res => res.json()))
+      dailyLogsData,
+      manualLogsData,
+      allLogsData,
+      dailyChecklistData,
+      manualChecklistData,
+      allChecklistData,
+    ] = await Promise.all(responses.map((res) => res.json()))
 
     // 로그 데이터 설정
     auditLogs.value = {
       daily: dailyLogsData,
       manual: manualLogsData,
-      all: allLogsData
+      all: allLogsData,
     }
 
     // 체크리스트 데이터 변환 및 설정
     checklistItems.value = {
       daily: formatChecklistItems(dailyChecklistData),
       manual: formatChecklistItems(manualChecklistData),
-      all: formatChecklistItems(allChecklistData)
+      all: formatChecklistItems(allChecklistData),
     }
 
     // 각 탭별 통계 계산
@@ -513,7 +545,6 @@ const fetchData = async () => {
     prepareAllItemStats()
 
     console.log('모든 데이터 로드 완료')
-
   } catch (err) {
     console.error('Failed to fetch data:', err)
     error.value = '데이터를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
@@ -523,50 +554,48 @@ const fetchData = async () => {
 }
 
 const formatChecklistItems = (checklistData) => {
-  return checklistData.map(item => ({
+  return checklistData.map((item) => ({
     id: item.item_id,
     name: item.name || item.item_name,
     category: item.category,
     description: item.description,
     checkType: item.check_type,
-    checkFrequency: item.check_frequency
+    checkFrequency: item.check_frequency,
   }))
 }
 
 const calculateAllStats = () => {
-  ['daily', 'manual', 'all'].forEach(tabType => {
+  ;['daily', 'manual', 'all'].forEach((tabType) => {
     const logs = auditLogs.value[tabType]
     const totalChecks = logs.length
-    const passedChecks = logs.filter(log => log.passed === 1).length
-    const failedChecks = logs.filter(log => log.passed === 0).length
+    const passedChecks = logs.filter((log) => log.passed === 1).length
+    const failedChecks = logs.filter((log) => log.passed === 0).length
 
     // 가장 최근 검사 날짜
-    const sortedLogs = [...logs].sort(
-      (a, b) => new Date(b.checked_at) - new Date(a.checked_at)
-    )
+    const sortedLogs = [...logs].sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at))
     const lastCheckedAt = sortedLogs.length > 0 ? sortedLogs[0].checked_at : ''
 
     // 점수 계산
-    const score = Math.max(0, 3 - (failedChecks * 0.5))
+    const score = -(failedChecks * 0.5)
 
     stats.value[tabType] = {
       totalChecks,
       passedChecks,
       failedChecks,
       lastCheckedAt,
-      score
+      score,
     }
   })
 }
 
 const prepareAllDailyStats = () => {
-  ['daily', 'manual', 'all'].forEach(tabType => {
+  ;['daily', 'manual', 'all'].forEach((tabType) => {
     const logs = auditLogs.value[tabType]
 
     // 날짜별로 로그를 그룹화
     const groupedByDate = {}
 
-    logs.forEach(log => {
+    logs.forEach((log) => {
       const dateOnly = log.checked_at.split(' ')[0]
       if (!groupedByDate[dateOnly]) {
         groupedByDate[dateOnly] = { date: dateOnly, passed: 0, failed: 0 }
@@ -581,18 +610,18 @@ const prepareAllDailyStats = () => {
 
     // 날짜순으로 정렬
     const sortedDates = Object.values(groupedByDate).sort(
-      (a, b) => new Date(a.date) - new Date(b.date)
+      (a, b) => new Date(a.date) - new Date(b.date),
     )
 
     // 차트에서 사용하기 쉽게 데이터 구조 조정
-    const chartData = sortedDates.map(day => {
+    const chartData = sortedDates.map((day) => {
       const total = day.passed + day.failed
       const passRate = total > 0 ? Math.round((day.passed / total) * 100) : 0
 
       return {
         ...day,
         passRate,
-        total
+        total,
       }
     })
 
@@ -601,14 +630,14 @@ const prepareAllDailyStats = () => {
 }
 
 const prepareAllItemStats = () => {
-  ['daily', 'manual', 'all'].forEach(tabType => {
+  ;['daily', 'manual', 'all'].forEach((tabType) => {
     const items = checklistItems.value[tabType]
     const logs = auditLogs.value[tabType]
 
-    const itemStatsData = items.map(item => {
-      const itemLogs = logs.filter(log => log.item_id === item.id)
-      const passedCount = itemLogs.filter(log => log.passed === 1).length
-      const failedCount = itemLogs.filter(log => log.passed === 0).length
+    const itemStatsData = items.map((item) => {
+      const itemLogs = logs.filter((log) => log.item_id === item.id)
+      const passedCount = itemLogs.filter((log) => log.passed === 1).length
+      const failedCount = itemLogs.filter((log) => log.passed === 0).length
       const totalCount = passedCount + failedCount
       const passRate = totalCount > 0 ? (passedCount / totalCount) * 100 : 0
 
@@ -621,7 +650,7 @@ const prepareAllItemStats = () => {
         total: totalCount,
         passed: passedCount,
         failed: failedCount,
-        passRate: Math.round(passRate)
+        passRate: Math.round(passRate),
       }
     })
 
@@ -640,7 +669,7 @@ const toggleItemDetail = (itemId) => {
 const getItemLogs = (itemId) => {
   const logs = auditLogs.value[activeTab.value]
   return logs
-    .filter(log => log.item_id === itemId)
+    .filter((log) => log.item_id === itemId)
     .sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at))
 }
 
@@ -659,7 +688,7 @@ const formatDate = (dateStr) => {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 
@@ -673,26 +702,26 @@ const formatChartDate = (dateStr) => {
 // 수시 점검용 실제 값 포맷팅
 const formatActualValueKey = (key) => {
   const keyMap = {
-    'seal_status': '봉인씰 상태',
-    'check_date': '확인 날짜',
-    'malware_detected': '악성코드 탐지',
-    'threats_found': '위협 발견 수',
-    'last_scan_date': '마지막 검사',
-    'total_files': '전체 파일',
-    'encrypted_files': '암호화된 파일',
-    'encryption_rate': '암호화율',
-    'screenSaverTime': '화면보호기 시간',
-    'screenSaverSecure': '보안 설정',
-    'screenSaverEnabled': '활성화 상태',
-    'UpToDate': '업데이트',
-    'DisplayName': '백신명',
-    'RealTimeProtection': '실시간 보호',
-    'minimumPasswordLength': '최소 길이',
-    'passwordComplexity': '복잡도',
-    'maximumPasswordAge': '변경 주기',
-    'passwordHistorySize': '이력 크기',
-    'folders': '공유 폴더',
-    'fDenyTSConnections': '원격 접속 제한'
+    seal_status: '봉인씰 상태',
+    check_date: '확인 날짜',
+    malware_detected: '악성코드 탐지',
+    threats_found: '위협 발견 수',
+    last_scan_date: '마지막 검사',
+    total_files: '전체 파일',
+    encrypted_files: '암호화된 파일',
+    encryption_rate: '암호화율',
+    screenSaverTime: '화면보호기 시간',
+    screenSaverSecure: '보안 설정',
+    screenSaverEnabled: '활성화 상태',
+    UpToDate: '업데이트',
+    DisplayName: '백신명',
+    RealTimeProtection: '실시간 보호',
+    minimumPasswordLength: '최소 길이',
+    passwordComplexity: '복잡도',
+    maximumPasswordAge: '변경 주기',
+    passwordHistorySize: '이력 크기',
+    folders: '공유 폴더',
+    fDenyTSConnections: '원격 접속 제한',
   }
   return keyMap[key] || key
 }
@@ -725,40 +754,42 @@ onMounted(() => {
 })
 
 // 인증 상태 변경 감지
-watch(() => authStore.user, (newUser) => {
-  if (newUser) {
-    fetchData()
-  } else {
-    // 로그아웃 시 데이터 초기화
-    stats.value = {
-      daily: null,
-      manual: null,
-      all: null
+watch(
+  () => authStore.user,
+  (newUser) => {
+    if (newUser) {
+      fetchData()
+    } else {
+      // 로그아웃 시 데이터 초기화
+      stats.value = {
+        daily: null,
+        manual: null,
+        all: null,
+      }
+      checklistItems.value = {
+        daily: [],
+        manual: [],
+        all: [],
+      }
+      auditLogs.value = {
+        daily: [],
+        manual: [],
+        all: [],
+      }
+      dailyStats.value = {
+        daily: [],
+        manual: [],
+        all: [],
+      }
+      itemStats.value = {
+        daily: [],
+        manual: [],
+        all: [],
+      }
+      selectedItemId.value = null
     }
-    checklistItems.value = {
-      daily: [],
-      manual: [],
-      all: []
-    }
-    auditLogs.value = {
-      daily: [],
-      manual: [],
-      all: []
-    }
-    dailyStats.value = {
-      daily: [],
-      manual: [],
-      all: []
-    }
-    itemStats.value = {
-      daily: [],
-      manual: [],
-      all: []
-    }
-    selectedItemId.value = null
-  }
-})
-
+  },
+)
 </script>
 
 <style scoped>

@@ -1,4 +1,4 @@
-// stores/auth.js
+// stores/auth.js - IP 인증으로 수정
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
@@ -15,7 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 액션 (Actions)
 
-  // 초기 로드시 사용자 정보 가져오기
+  // 초기 로드시 사용자 정보 가져오기 (기존 유지)
   const loadUserInfo = async () => {
     loading.value = true
     try {
@@ -61,31 +61,35 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // 자격증명 확인 (1단계)
-  const checkCredentials = async (username, password) => {
+  // IP 기반 인증 확인 (LDAP 대체)
+  const checkIpAuthentication = async () => {
     try {
-      const response = await fetch('/api/auth/check-credentials', {
+      console.log('IP 인증 요청 시작...')
+
+      const response = await fetch('/api/auth/check-ip', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
         credentials: 'include',
       })
 
+      const result = await response.json()
+
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || '로그인에 실패했습니다.')
+        console.error('IP 인증 실패:', response.status, result)
+        throw new Error(result.message || 'IP 인증에 실패했습니다.')
       }
 
-      const credentialData = await response.json()
-      return credentialData
+      console.log('IP 인증 성공:', result)
+      return result
     } catch (error) {
+      console.error('IP 인증 오류:', error)
       return { success: false, error: error.message }
     }
   }
 
-  // 이메일 인증 코드 요청 (2단계)
+  // 이메일 인증 코드 요청 (기존 유지)
   const requestVerificationCode = async (email) => {
     try {
       const response = await fetch('/api/auth/email-verification', {
@@ -103,22 +107,27 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // 인증 코드 확인 및 최종 로그인 (3단계)
-  const verifyAndLogin = async (email, code, username, password) => {
+  // 인증 코드 확인 및 최종 로그인 (IP 기반으로 수정)
+  const verifyAndLogin = async (email, code, username) => {
     try {
+      console.log('최종 로그인 시도:', { email, username })
+
       const response = await fetch('/api/auth/verify-and-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, code, username, password }),
+        body: JSON.stringify({ email, code, username }),
         credentials: 'include',
       })
 
       if (!response.ok) {
         const error = await response.json()
+        console.error('로그인 실패:', response.status, error)
         throw new Error(error.message || '인증에 실패했습니다.')
       }
+
+      console.log('로그인 성공, 사용자 정보 조회 중...')
 
       // 사용자 정보 가져오기
       const userResponse = await fetch('/api/auth/me', {
@@ -130,19 +139,21 @@ export const useAuthStore = defineStore('auth', () => {
         if (userData.authenticated) {
           user.value = userData
           authError.value = null
+          console.log('사용자 정보 설정 완료:', userData)
           return { success: true }
         } else {
-          throw new Error('인증에 실패했습니다.')
+          throw new Error('사용자 정보 인증에 실패했습니다.')
         }
       } else {
         throw new Error('사용자 정보를 가져오는데 실패했습니다.')
       }
     } catch (error) {
+      console.error('verifyAndLogin 오류:', error)
       return { success: false, error: error.message }
     }
   }
 
-  // 로그아웃
+  // 로그아웃 (기존 유지)
   const logout = async (redirect = true) => {
     try {
       // 서버에 로그아웃 요청
@@ -154,9 +165,10 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       authError.value = null
 
+      console.log('로그아웃 완료')
+
       // 리디렉션 옵션이 true인 경우만 로그인 페이지로 이동
       if (redirect) {
-        // Vue Router를 사용하여 리디렉션 (필요시 router 인스턴스 주입)
         window.location.href = '/login'
       }
     } catch (error) {
@@ -164,7 +176,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // 인증 상태 새로고침
+  // 인증 상태 새로고침 (기존 유지)
   const refreshAuthState = async () => {
     loading.value = true
 
@@ -196,9 +208,53 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // 초기화 시 사용자 정보 로드
+  // 초기화 시 사용자 정보 로드 (기존 유지)
   const initialize = async () => {
     await loadUserInfo()
+  }
+
+  // 현재 IP 정보 조회 (디버깅용)
+  const getCurrentIpInfo = async () => {
+    try {
+      const response = await fetch('/api/auth/ip-info', {
+        credentials: 'include',
+      })
+
+      if (response.ok) {
+        return await response.json()
+      } else {
+        throw new Error('IP 정보 조회 실패')
+      }
+    } catch (error) {
+      console.error('IP 정보 조회 오류:', error)
+      return { error: error.message }
+    }
+  }
+
+  // 기존 LDAP 인증 메서드는 호환성을 위해 유지 (사용 중단 예정)
+  const checkCredentials = async (username, password) => {
+    console.warn('checkCredentials는 더 이상 사용되지 않습니다. IP 인증을 사용하세요.')
+
+    try {
+      const response = await fetch('/api/auth/check-credentials', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || '로그인에 실패했습니다.')
+      }
+
+      const credentialData = await response.json()
+      return credentialData
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
   }
 
   return {
@@ -215,10 +271,14 @@ export const useAuthStore = defineStore('auth', () => {
     // 액션
     initialize,
     loadUserInfo,
-    checkCredentials,
+    checkIpAuthentication, // 새로운 IP 인증 메서드
     requestVerificationCode,
     verifyAndLogin,
     logout,
     refreshAuthState,
+    getCurrentIpInfo, // IP 정보 조회 메서드
+
+    // 호환성을 위한 기존 메서드 (사용 중단 예정)
+    checkCredentials,
   }
 })
