@@ -82,7 +82,7 @@ const routes = [
     name: 'SecurityAudit',
     component: SecurityAuditPage,
     meta: {
-      title: '상시보안감사',
+      title: '정보보안 감사 현황',
       requiresAuth: true,
     },
   },

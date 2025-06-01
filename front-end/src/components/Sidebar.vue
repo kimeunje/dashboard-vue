@@ -3,7 +3,7 @@
 <template>
   <!-- 데스크톱에서는 항상 표시, 모바일에서는 조건부 표시 -->
   <aside v-show="!isMobile || isOpen" :class="['sidebar', { 'mobile-open': isMobile && isOpen }]">
-    <div class="sidebar-title">상시보안감사</div>
+    <div class="sidebar-title">정보보안 감사 현황</div>
     <ul class="sidebar-menu">
       <li v-for="mainItem in MENU_STRUCTURE" :key="mainItem.id" class="sidebar-main-item">
         <RouterLink

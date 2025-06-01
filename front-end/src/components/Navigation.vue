@@ -37,7 +37,7 @@ import { RouterLink } from 'vue-router'
 
 // 네비게이션 메뉴 항목
 const navItems = [
-  { name: '상시보안감사', path: '/security-audit' },
+  { name: '정보보안 감사 현황', path: '/security-audit' },
   { name: '악성메일 모의훈련 현황', path: '/phishing-training' },
   { name: '정보보호 교육 현황', path: '/security-education' },
   { name: '문의사항', path: '/contact' },

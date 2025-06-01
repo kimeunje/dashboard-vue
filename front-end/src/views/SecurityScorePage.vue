@@ -68,7 +68,7 @@
           <div class="breakdown-card audit">
             <div class="card-header">
               <div class="card-icon">🛡️</div>
-              <h3>상시보안감사</h3>
+              <h3>정보보안 감사 현황</h3>
             </div>
             <div class="card-content">
               <div class="main-score">{{ scoreData.audit_score }}점</div>

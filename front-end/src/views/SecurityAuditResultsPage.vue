@@ -1430,22 +1430,6 @@ watch(
   transform: scale(1.05);
 }
 
-/* 섹션 및 제목 */
-.section {
-  margin-bottom: 32px;
-}
-
-.section-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--dark-blue);
-  margin-bottom: 20px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid var(--light-blue);
-  display: flex;
-  align-items: center;
-}
-
 .page-title {
   font-size: 2rem;
   font-weight: 700;

@@ -93,8 +93,8 @@ const route = useRoute()
 // 현재 경로에 따른 페이지 제목 설정
 const getPageTitle = () => {
   const routes = [
-    { path: '/', title: '상시보안감사' },
-    { path: '/security-audit', title: '상시보안감사' },
+    { path: '/', title: '정보보안 감사 현황' },
+    { path: '/security-audit', title: '정보보안 감사 현황' },
     { path: '/login', title: '로그인' },
     { path: '/phishing-training', title: '악성메일 모의훈련 현황' },
     { path: '/security-education', title: '정보보호 교육 현황' },

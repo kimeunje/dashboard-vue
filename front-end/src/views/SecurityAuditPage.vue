@@ -52,7 +52,7 @@
       <!-- 인증된 사용자용 콘텐츠 -->
       <div v-else>
         <div class="page-header">
-          <h1 class="page-title">상시보안감사</h1>
+          <h1 class="page-title">정보보안 감사 현황</h1>
         </div>
         <!-- 로딩 상태 -->
         <div v-if="loading" class="loading-container">
@@ -62,7 +62,6 @@
 
         <!-- 점검 상태 대시보드 -->
         <div class="section" v-if="dashboardStats">
-          <h2 class="section-title">점검 상태 대시보드</h2>
           <div class="dashboard-grid">
             <!-- 정기 점검 카드 -->
             <div class="dashboard-card daily-check">

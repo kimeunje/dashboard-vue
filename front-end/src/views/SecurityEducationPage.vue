@@ -29,56 +29,66 @@
 
       <!-- 교육 현황 데이터 -->
       <div v-else-if="educationData" class="education-content">
-        <!-- 요약 카드 -->
+        <!-- 교육 상태 대시보드 -->
         <div class="section">
-          <div class="summary-card">
-            <h2>{{ selectedYear }}년 정보보호 교육 현황</h2>
-            <div class="summary-stats">
-              <div class="stat-item">
-                <div class="stat-value conducted">{{ educationData.summary.total_courses }}</div>
-                <div class="stat-label">총 과정수</div>
+          <!-- <h2 class="section-title">교육 상태 대시보드</h2> -->
+          <div class="dashboard-grid">
+            <!-- 정보보호 교육 카드 -->
+            <div class="dashboard-card education-check">
+              <div class="card-header">
+                <div class="card-icon education">
+                  <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                    <path
+                      d="M8.211 2.047a.5.5 0 0 0-.422 0l-7.5 3.5a.5.5 0 0 0 .025.917l7.5 3a.5.5 0 0 0 .372 0L14.5 7.14V13a1 1 0 0 0-1 1v2h3v-2a1 1 0 0 0-1-1V6.739l.686-.275a.5.5 0 0 0 .025-.917l-7.5-3.5ZM8 8.46 1.758 5.965 8 3.052l6.242 2.913L8 8.46Z"
+                    />
+                    <path
+                      d="M4.176 9.032a.5.5 0 0 0-.656.327l-.5 1.7a.5.5 0 0 0 .294.605l4.5 1.8a.5.5 0 0 0 .372 0l4.5-1.8a.5.5 0 0 0 .294-.605l-.5-1.7a.5.5 0 0 0-.656-.327L8 10.466 4.176 9.032Z"
+                    />
+                  </svg>
+                </div>
+                <h3>정보보호 교육</h3>
+                <span class="card-frequency">{{ selectedYear }}년 온/오프라인 교육</span>
               </div>
-              <div class="stat-item">
-                <div class="stat-value passed">{{ educationData.summary.completed }}</div>
-                <div class="stat-label">이수완료</div>
+              <div class="card-stats">
+                <div class="stat-row">
+                  <span class="stat-label">총 과정수</span>
+                  <span class="stat-value">{{ educationData.summary.total_courses }}</span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">이수완료</span>
+                  <span class="stat-value success">{{ educationData.summary.completed }}</span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">미이수</span>
+                  <span class="stat-value danger">{{ educationData.summary.incomplete }}</span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">미실시</span>
+                  <span class="stat-value warning">{{ educationData.summary.not_started }}</span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">감점</span>
+                  <span class="stat-value danger">-{{ educationData.summary.penalty_score }}</span>
+                </div>
               </div>
-              <div class="stat-item">
-                <div class="stat-value failed">{{ educationData.summary.incomplete }}</div>
-                <div class="stat-label">미이수</div>
+              <div class="card-progress">
+                <div class="progress-bar">
+                  <div
+                    class="progress-fill education"
+                    :style="{ width: `${educationData.summary.completion_rate}%` }"
+                    :class="getProgressClass(educationData.summary.completion_rate)"
+                  ></div>
+                </div>
+                <span class="progress-text"
+                  >이수율 {{ educationData.summary.completion_rate }}%</span
+                >
               </div>
-              <div class="stat-item">
-                <div class="stat-value pending">{{ educationData.summary.not_started }}</div>
-                <div class="stat-label">미실시</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-value rate">{{ educationData.summary.completion_rate }}%</div>
-                <div class="stat-label">이수율</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-value penalty">-{{ educationData.summary.penalty_score }}</div>
-                <div class="stat-label">감점</div>
-              </div>
-            </div>
 
-            <!-- 제외된 기록이 있을 경우 표시 -->
-            <div v-if="educationData.summary.excluded_count > 0" class="excluded-notice">
-              <div class="notice-icon">ℹ️</div>
-              <p>
-                {{ educationData.summary.excluded_count }}건의 기록이 점수 계산에서 제외되었습니다.
-              </p>
-            </div>
-
-            <!-- 진행률 바 -->
-            <div class="progress-container">
-              <div class="progress-label">전체 이수율</div>
-              <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  :style="{ width: `${educationData.summary.completion_rate}%` }"
-                  :class="getProgressClass(educationData.summary.completion_rate)"
-                ></div>
+              <!-- 제외된 기록이 있을 경우 표시 -->
+              <div v-if="educationData.summary.excluded_count > 0" class="card-notice">
+                <div class="notice-icon">ℹ️</div>
+                <span>{{ educationData.summary.excluded_count }}건 점수 제외</span>
               </div>
-              <div class="progress-text">{{ educationData.summary.completion_rate }}%</div>
             </div>
           </div>
         </div>
@@ -194,6 +204,7 @@
     </div>
   </main>
 </template>
+
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
@@ -430,6 +441,7 @@ onMounted(() => {
   }
 })
 </script>
+
 <style scoped>
 .education-page {
   padding: 24px 30px 40px;
@@ -509,144 +521,170 @@ onMounted(() => {
   margin-top: 16px;
 }
 
-.summary-card {
-  background-color: white;
-  color: #374151;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 30px;
-  margin-bottom: 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+/* 대시보드 카드 스타일 (security-audit와 통일) */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 24px;
+  margin-top: 20px;
 }
 
-.summary-card h2 {
-  margin: 0 0 20px 0;
-  font-size: 24px;
+.dashboard-card {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.dashboard-card.education-check {
+  border-left: 4px solid #8b5cf6;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  color: white;
+}
+
+.card-icon.education {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.card-header h3 {
+  margin: 0 0 4px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
   color: var(--dark-blue);
 }
 
-.summary-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 20px;
+.card-frequency {
+  padding-left: 10px;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.card-stats {
   margin-bottom: 20px;
 }
 
-.stat-item {
-  text-align: center;
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
 }
 
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  display: block;
-}
-
-.stat-value.conducted {
-  color: #3b82f6;
-}
-
-.stat-value.passed {
-  color: #10b981;
-}
-
-.stat-value.failed {
-  color: #ef4444;
-}
-
-.stat-value.pending {
-  color: #f59e0b;
-}
-
-.stat-value.rate {
-  color: #06b6d4;
-}
-
-.stat-value.penalty {
-  color: #dc2626;
+.stat-row:last-child {
+  border-bottom: none;
 }
 
 .stat-label {
-  font-size: 12px;
-  opacity: 0.9;
+  font-size: 0.875rem;
+  color: #6b7280;
 }
 
-.excluded-notice {
-  background-color: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 20px;
+.stat-value {
+  font-weight: 600;
+  color: var(--dark-blue);
+}
+
+.stat-value.success {
+  color: #10b981;
+}
+
+.stat-value.danger {
+  color: #ef4444;
+}
+
+.stat-value.warning {
+  color: #f59e0b;
+}
+
+.card-progress {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.excluded-notice p {
-  margin: 0;
-  font-size: 14px;
-  color: #1e40af;
-}
-
-.progress-container {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.progress-label {
-  min-width: 80px;
-  font-weight: 500;
+  gap: 12px;
 }
 
 .progress-bar {
   flex: 1;
-  height: 12px;
-  background-color: #f3f4f6;
-  border-radius: 6px;
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
+  border-radius: 4px;
   transition: width 0.3s ease;
-  border-radius: 6px;
+}
+
+.progress-fill.education {
+  background: linear-gradient(90deg, #8b5cf6, #7c3aed);
 }
 
 .progress-fill.excellent {
-  background-color: #10b981;
+  background: linear-gradient(90deg, #10b981, #059669);
 }
 
 .progress-fill.good {
-  background-color: #3b82f6;
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
 }
 
 .progress-fill.warning {
-  background-color: #f59e0b;
+  background: linear-gradient(90deg, #f59e0b, #d97706);
 }
 
 .progress-fill.poor {
-  background-color: #ef4444;
+  background: linear-gradient(90deg, #ef4444, #dc2626);
 }
 
 .progress-text {
-  min-width: 50px;
-  font-weight: 600;
-}
-
-.section {
-  margin-bottom: 40px;
-}
-
-.section-title {
-  font-size: 20px;
-  margin-bottom: 15px;
-  border-left: 4px solid var(--primary-color);
-  padding-left: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
   color: var(--dark-blue);
+  min-width: 70px;
 }
 
+.card-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #1e40af;
+}
+
+.notice-icon {
+  font-size: 16px;
+}
+
+/* 기존 스타일들 유지 */
 .periods-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -791,11 +829,6 @@ onMounted(() => {
   border: 1px solid #f59e0b;
 }
 
-.notice-icon {
-  font-size: 24px;
-  margin-bottom: 8px;
-}
-
 .result-notice p {
   margin: 0 0 4px 0;
   font-weight: 500;
@@ -872,18 +905,8 @@ onMounted(() => {
     align-items: flex-start;
   }
 
-  .summary-stats {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-  }
-
-  .stat-value {
-    font-size: 24px;
-  }
-
-  .progress-container {
-    flex-direction: column;
-    gap: 10px;
+  .dashboard-grid {
+    grid-template-columns: 1fr;
   }
 
   .periods-grid {
@@ -909,16 +932,19 @@ onMounted(() => {
     font-size: 24px;
   }
 
-  .summary-card {
-    padding: 20px;
-  }
-
-  .summary-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   .info-grid {
     grid-template-columns: 1fr;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: center;
+  }
+
+  .card-icon {
+    margin-right: 0;
+    margin-bottom: 12px;
   }
 }
 </style>
