@@ -1,4 +1,4 @@
-# app/controllers/audit_controller.py
+# app/controllers/audit_controller.py - KPI 감점 시스템으로 수정
 import os
 import io
 import logging
@@ -16,7 +16,7 @@ audit_service = AuditService()
 @token_required
 @handle_exceptions
 def get_security_stats():
-    """사용자별 보안 통계 데이터 조회"""
+    """사용자별 보안 통계 데이터 조회 (감점 기준으로 수정)"""
     user = request.current_user
     username = user["username"]
     
@@ -31,7 +31,7 @@ def get_security_stats():
 @token_required
 @handle_exceptions
 def get_audit_logs():
-    """사용자별 보안 감사 로그 목록 조회"""
+    """사용자별 보안 감사 로그 목록 조회 (감점 정보 포함)"""
     user = request.current_user
     username = user["username"]
     
@@ -45,7 +45,7 @@ def get_audit_logs():
 @audit_bp.route('/checklist-items', methods=['GET'])
 @handle_exceptions
 def get_checklist_items():
-    """체크리스트 항목 조회"""
+    """체크리스트 항목 조회 (감점 가중치 포함)"""
     # 점검 유형 파라미터 (daily, manual, 또는 전체)
     check_type = request.args.get('type', None)
     
@@ -57,7 +57,7 @@ def get_checklist_items():
 @token_required
 @handle_exceptions
 def get_manual_check_items():
-    """수시 점검 가능한 항목 목록 조회"""
+    """수시 점검 가능한 항목 목록 조회 (감점 가중치 포함)"""
     items = audit_service.get_manual_check_items()
     return jsonify(items)
 
@@ -67,7 +67,7 @@ def get_manual_check_items():
 @validate_json
 @handle_exceptions
 def execute_manual_check():
-    """수시 점검 실행"""
+    """수시 점검 실행 (감점 계산 포함)"""
     user = request.current_user
     data = request.json
 
@@ -117,7 +117,7 @@ def execute_manual_check():
 @token_required
 @handle_exceptions
 def get_dashboard_stats():
-    """대시보드용 통합 통계 데이터 조회"""
+    """대시보드용 통합 통계 데이터 조회 (감점 기준)"""
     user = request.current_user
     username = user["username"]
 
@@ -131,10 +131,20 @@ def get_dashboard_stats():
         # 전체 통계
         total_stats = audit_service.get_user_stats(username)
 
+        # 수정: 감점 요약 추가
+        daily_penalty_summary = audit_service.get_penalty_summary(username, 'daily')
+        manual_penalty_summary = audit_service.get_penalty_summary(username, 'manual')
+        total_penalty_summary = audit_service.get_penalty_summary(username)
+
         return jsonify({
             "daily": daily_stats,
             "manual": manual_stats,
-            "total": total_stats
+            "total": total_stats,
+            "penalty_summary": {  # 수정: 감점 요약 추가
+                "daily": daily_penalty_summary,
+                "manual": manual_penalty_summary,
+                "total": total_penalty_summary
+            }
         }), HTTP_STATUS['OK']
 
     except Exception as e:
@@ -144,11 +154,11 @@ def get_dashboard_stats():
         }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
 
 
-# 기존 validate_check 엔드포인트 (정기 점검용)
+# 기존 validate_check 엔드포인트 (정기 점검용, 감점 계산 포함)
 @audit_bp.route('/validate_check', methods=['POST'])
 @handle_exceptions
 def validate_check():
-    """항목 검증 API (정기 점검용)"""
+    """항목 검증 API (정기 점검용, 감점 계산 포함)"""
     data = request.json
 
     if not data:
@@ -213,7 +223,7 @@ def receive_log():
 @token_required
 @handle_exceptions
 def get_manual_check_history(item_id):
-    """특정 수시 점검 항목의 실행 이력 조회"""
+    """특정 수시 점검 항목의 실행 이력 조회 (감점 정보 포함)"""
     user = request.current_user
     username = user["username"]
     
@@ -229,11 +239,12 @@ def get_manual_check_history(item_id):
 
         user_id = user_info["uid"]
         
-        # 특정 항목의 수시 점검 이력 조회
+        # 수정: 특정 항목의 수시 점검 이력 조회 (감점 정보 포함)
         history = execute_query(
             """
             SELECT al.log_id, al.actual_value, al.passed, al.notes, al.checked_at,
-                   ci.item_name, ci.category
+                   ci.item_name, ci.category, ci.penalty_weight,
+                   CASE WHEN al.passed = 0 THEN COALESCE(ci.penalty_weight, 0.5) ELSE 0 END as penalty_applied
             FROM audit_log al
             LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
             WHERE al.user_id = %s AND al.item_id = %s AND ci.check_type = 'manual'
@@ -263,7 +274,9 @@ def get_manual_check_history(item_id):
                 "actual_value": actual_value,
                 "passed": record["passed"],
                 "notes": record["notes"],
-                "checked_at": checked_at
+                "checked_at": checked_at,
+                "penalty_weight": float(record["penalty_weight"] or 0),  # 수정: 감점 가중치 추가
+                "penalty_applied": float(record["penalty_applied"] or 0)  # 수정: 적용된 감점 추가
             })
 
         return jsonify(result), HTTP_STATUS['OK']
@@ -272,4 +285,97 @@ def get_manual_check_history(item_id):
         current_app.logger.error(f"수시 점검 이력 조회 오류: {str(e)}")
         return jsonify({
             "error": "이력 조회 중 오류가 발생했습니다."
+        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+
+
+@audit_bp.route('/penalty-summary', methods=['GET'])
+@token_required
+@handle_exceptions
+def get_penalty_summary():
+    """감점 요약 정보 조회 (새로운 엔드포인트)"""
+    user = request.current_user
+    username = user["username"]
+    check_type = request.args.get('type', None)
+
+    try:
+        penalty_summary = audit_service.get_penalty_summary(username, check_type)
+        return jsonify(penalty_summary), HTTP_STATUS['OK']
+    except Exception as e:
+        current_app.logger.error(f"감점 요약 조회 오류: {str(e)}")
+        return jsonify({
+            "error": "감점 요약 조회 중 오류가 발생했습니다."
+        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+
+
+@audit_bp.route('/penalty-breakdown', methods=['GET'])
+@token_required
+@handle_exceptions
+def get_penalty_breakdown():
+    """항목별 감점 분석 (새로운 엔드포인트)"""
+    user = request.current_user
+    username = user["username"]
+    check_type = request.args.get('type', None)
+
+    try:
+        from app.utils.database import execute_query
+        
+        # 사용자 ID 가져오기
+        user_info = execute_query("SELECT uid FROM users WHERE user_id = %s", 
+                                (username,), fetch_one=True)
+        
+        if not user_info:
+            return jsonify({"error": "사용자 정보를 찾을 수 없습니다."}), HTTP_STATUS['BAD_REQUEST']
+
+        user_id = user_info["uid"]
+        
+        # 점검 유형별 조건 설정
+        if check_type:
+            type_condition = "AND ci.check_type = %s"
+            params = (user_id, check_type)
+        else:
+            type_condition = ""
+            params = (user_id,)
+        
+        # 항목별 감점 분석
+        breakdown = execute_query(
+            f"""
+            SELECT 
+                ci.item_name,
+                ci.category,
+                ci.check_type,
+                ci.penalty_weight,
+                al.passed,
+                al.checked_at,
+                CASE WHEN al.passed = 0 THEN ci.penalty_weight ELSE 0 END as penalty_applied,
+                al.notes
+            FROM audit_log al
+            INNER JOIN (
+                SELECT item_id, MAX(checked_at) as max_checked_at
+                FROM audit_log 
+                WHERE user_id = %s
+                GROUP BY item_id
+            ) latest ON al.item_id = latest.item_id AND al.checked_at = latest.max_checked_at
+            INNER JOIN checklist_items ci ON al.item_id = ci.item_id
+            WHERE al.user_id = %s {type_condition}
+            ORDER BY penalty_applied DESC, ci.category, ci.item_name
+            """, params, fetch_all=True)
+
+        # 총 감점 계산
+        total_penalty = sum(float(item["penalty_applied"] or 0) for item in breakdown)
+        failed_items = sum(1 for item in breakdown if item["passed"] == 0)
+        
+        return jsonify({
+            "breakdown": breakdown,
+            "summary": {
+                "total_penalty": round(total_penalty, 1),
+                "failed_items": failed_items,
+                "total_items": len(breakdown),
+                "check_type": check_type
+            }
+        }), HTTP_STATUS['OK']
+
+    except Exception as e:
+        current_app.logger.error(f"감점 분석 조회 오류: {str(e)}")
+        return jsonify({
+            "error": "감점 분석 조회 중 오류가 발생했습니다."
         }), HTTP_STATUS['INTERNAL_SERVER_ERROR']

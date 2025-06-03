@@ -1,4 +1,4 @@
-# app/services/audit_service.py
+# app/services/audit_service.py - KPI 감점 시스템으로 수정
 import json
 from datetime import datetime
 from app.utils.database import execute_query, DatabaseManager
@@ -7,10 +7,10 @@ from app.utils.constants import EXCEPTION_ITEM_NAMES
 
 
 class AuditService:
-    """보안 감사 관련 서비스"""
+    """보안 감사 관련 서비스 - KPI 감점 시스템"""
 
     def get_user_stats(self, username: str, check_type: str = None) -> dict:
-        """사용자별 보안 통계 데이터 조회"""
+        """사용자별 보안 통계 데이터 조회 (감점 기준으로 수정)"""
         # 사용자 ID 가져오기
         user = execute_query("SELECT uid FROM users WHERE user_id = %s", (username, ),
                              fetch_one=True)
@@ -62,7 +62,7 @@ class AuditService:
                 """, log_params)
             completed_checks = cursor.fetchone()["completed_checks"]
 
-            # 해당 사용자의 심각한 문제(통과하지 못한 항목) 수 조회
+            # 해당 사용자의 실패 항목 수 조회
             cursor.execute(
                 f"""
                 SELECT COUNT(DISTINCT al.item_id) as critical_issues
@@ -72,6 +72,18 @@ class AuditService:
                 """, log_params)
             critical_issues = cursor.fetchone()["critical_issues"]
 
+            # 수정: 감점 계산 (실패 항목별 가중치 적용)
+            cursor.execute(
+                f"""
+                SELECT 
+                    SUM(CASE WHEN al.passed = 0 THEN COALESCE(ci.penalty_weight, 0.5) ELSE 0 END) as total_penalty
+                FROM audit_log al
+                LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
+                {log_condition}
+                """, log_params)
+            penalty_result = cursor.fetchone()
+            total_penalty = float(penalty_result["total_penalty"] or 0)
+
         # 날짜 포맷 변환
         formatted_date = last_audit_date.strftime("%Y-%m-%d") if last_audit_date else ""
 
@@ -80,11 +92,12 @@ class AuditService:
             "totalChecks": total_checks,
             "completedChecks": completed_checks,
             "criticalIssues": critical_issues,
+            "totalPenalty": round(total_penalty, 1),  # 수정: 감점 추가
             "checkType": check_type
         }
 
     def get_user_logs(self, username: str, check_type: str = None) -> list:
-        """사용자별 보안 감사 로그 목록 조회"""
+        """사용자별 보안 감사 로그 목록 조회 (감점 정보 포함)"""
         # 사용자 ID 가져오기
         user = execute_query("SELECT uid FROM users WHERE user_id = %s", (username, ),
                              fetch_one=True)
@@ -108,11 +121,12 @@ class AuditService:
             """
             params = (user_id,)
 
-        # 특정 사용자의 로그만 날짜 역순으로 가져오기
+        # 수정: 감점 정보 포함하여 로그 조회
         logs = execute_query(
             f"""
             SELECT al.log_id, al.user_id, al.item_id, al.actual_value, al.passed, al.notes, al.checked_at,
-                   ci.check_type, ci.check_frequency
+                   ci.check_type, ci.check_frequency, ci.penalty_weight,
+                   CASE WHEN al.passed = 0 THEN COALESCE(ci.penalty_weight, 0.5) ELSE 0 END as penalty_applied
             FROM audit_log al
             LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
             {condition}
@@ -141,13 +155,15 @@ class AuditService:
                 "notes": log["notes"],
                 "checked_at": checked_at,
                 "check_type": log["check_type"],
-                "check_frequency": log["check_frequency"]
+                "check_frequency": log["check_frequency"],
+                "penalty_weight": float(log["penalty_weight"] or 0),  # 수정: 감점 가중치 추가
+                "penalty_applied": float(log["penalty_applied"] or 0)  # 수정: 적용된 감점 추가
             })
 
         return result
 
     def get_checklist_items(self, check_type: str = None) -> list:
-        """체크리스트 항목 조회"""
+        """체크리스트 항목 조회 (감점 가중치 포함)"""
         if check_type:
             condition = "WHERE check_type = %s"
             params = (check_type,)
@@ -155,20 +171,21 @@ class AuditService:
             condition = ""
             params = ()
 
+        # 수정: penalty_weight 필드 추가
         return execute_query(
             f"""
-            SELECT item_id, category, item_name as name, description, check_type, check_frequency
+            SELECT item_id, category, item_name as name, description, check_type, check_frequency, penalty_weight
             FROM checklist_items
             {condition}
             ORDER BY check_type, item_id ASC
             """, params, fetch_all=True)
 
     def execute_manual_check(self, user_id: int, item_id: int, check_result: dict) -> dict:
-        """수시 점검 실행 및 결과 저장"""
+        """수시 점검 실행 및 결과 저장 (감점 계산 포함)"""
         # 항목 정보 확인
         item_info = execute_query(
             """
-            SELECT item_id, item_name, check_type
+            SELECT item_id, item_name, check_type, penalty_weight
             FROM checklist_items
             WHERE item_id = %s AND check_type = 'manual'
             """, (item_id,), fetch_one=True)
@@ -177,6 +194,7 @@ class AuditService:
             raise ValueError("해당 수시 점검 항목을 찾을 수 없습니다.")
 
         item_name = item_info["item_name"]
+        penalty_weight = float(item_info["penalty_weight"] or 0.5)
         actual_value = check_result.get("actual_value", {})
         passed = check_result.get("passed")
         notes = check_result.get("notes", "")
@@ -187,6 +205,9 @@ class AuditService:
 
         # JSON 문자열로 변환
         actual_value_json = json.dumps(actual_value, ensure_ascii=False)
+
+        # 수정: 감점 계산
+        penalty_applied = penalty_weight if passed == 0 else 0
 
         # 로그 저장 (수시 점검은 매번 새로 생성)
         execute_query(
@@ -200,32 +221,35 @@ class AuditService:
             "item_id": item_id,
             "item_name": item_name,
             "passed": passed,
+            "penalty_weight": penalty_weight,  # 수정: 감점 가중치 추가
+            "penalty_applied": penalty_applied,  # 수정: 적용된 감점 추가
             "log_action": "created",
             "message": "수시 점검 결과가 성공적으로 저장되었습니다."
         }
 
     def get_manual_check_items(self) -> list:
-        """수시 점검 가능한 항목 목록 조회"""
+        """수시 점검 가능한 항목 목록 조회 (감점 가중치 포함)"""
+        # 수정: penalty_weight 필드 추가
         return execute_query(
             """
-            SELECT item_id, category, item_name as name, description
+            SELECT item_id, category, item_name as name, description, penalty_weight
             FROM checklist_items
             WHERE check_type = 'manual'
             ORDER BY item_id ASC
             """, fetch_all=True)
 
     def validate_check(self, data: dict) -> dict:
-        """항목 검증 및 로그 업데이트 (기존 메서드 - 정기 점검용)"""
+        """항목 검증 및 로그 업데이트 (기존 메서드 - 정기 점검용, 감점 계산 포함)"""
         required_fields = ["user_id", "item_type", "actual_value"]
         missing_fields = [field for field in required_fields if field not in data]
 
         if missing_fields:
             raise ValueError(f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}")
 
-        # 체크리스트 항목 조회 (정기 점검만)
+        # 체크리스트 항목 조회 (정기 점검만, 감점 가중치 포함)
         item_result = execute_query(
             """
-            SELECT item_id, item_name
+            SELECT item_id, item_name, penalty_weight
             FROM checklist_items
             WHERE item_name LIKE %s AND check_type = 'daily'
             """, (data["item_type"], ), fetch_one=True)
@@ -236,6 +260,7 @@ class AuditService:
         user_id = data["user_id"]
         item_id = item_result["item_id"]
         item_name = item_result["item_name"]
+        penalty_weight = float(item_result["penalty_weight"] or 0.5)  # 수정: 감점 가중치
         actual_value = data["actual_value"]
         notes = data.get("notes", "")
 
@@ -254,6 +279,9 @@ class AuditService:
         # JSON 문자열로 변환
         actual_value_json = json.dumps(actual_value, ensure_ascii=False)
 
+        # 수정: 감점 계산
+        penalty_applied = penalty_weight if passed == 0 else 0
+
         # 기존 로그 업데이트 또는 새로 생성
         log_action = self._update_or_create_log(user_id, item_id, actual_value_json,
                                                 passed, notes)
@@ -263,6 +291,8 @@ class AuditService:
             "item_id": item_id,
             "item_name": item_name,
             "passed": passed,
+            "penalty_weight": penalty_weight,  # 수정: 감점 가중치 추가
+            "penalty_applied": penalty_applied,  # 수정: 적용된 감점 추가
             "log_action": log_action,
         }
 
@@ -296,3 +326,27 @@ class AuditService:
                 VALUES (%s, %s, %s, %s, %s)
                 """, (user_id, item_id, actual_value_json, passed, notes))
             return "created"
+
+    def get_penalty_summary(self, username: str, check_type: str = None) -> dict:
+        """사용자 감점 요약 조회 (새로운 메서드)"""
+        user_stats = self.get_user_stats(username, check_type)
+        
+        # 감점 레벨 계산
+        total_penalty = user_stats.get("totalPenalty", 0)
+        penalty_level = "none"
+        if total_penalty > 0:
+            if total_penalty <= 1.0:
+                penalty_level = "low"
+            elif total_penalty <= 2.5:
+                penalty_level = "medium"
+            else:
+                penalty_level = "high"
+        
+        return {
+            "total_penalty": total_penalty,
+            "penalty_level": penalty_level,
+            "failed_items": user_stats.get("criticalIssues", 0),
+            "total_items": user_stats.get("totalChecks", 0),
+            "check_type": check_type,
+            "last_audit_date": user_stats.get("lastAuditDate", "")
+        }

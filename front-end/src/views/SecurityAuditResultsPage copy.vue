@@ -1,4 +1,4 @@
-<!-- SecurityAuditResultsPage.vue Template - KPI 감점 시스템으로 수정 -->
+<!-- views/SecurityAuditResultsPage.vue - Template -->
 <template>
   <div class="security-audit-layout">
     <!-- 모바일 메뉴 토글 버튼 -->
@@ -51,7 +51,7 @@
 
       <!-- 인증된 사용자용 콘텐츠 -->
       <div v-else>
-        <h1 class="page-title">보안 감사 결과 및 감점 현황</h1> <!-- 수정: 제목에 감점 추가 -->
+        <h1 class="page-title">보안 감사 결과</h1>
 
         <!-- 로딩 상태 -->
         <div v-if="loading" class="loading-container">
@@ -121,10 +121,10 @@
             </div>
           </div>
 
-          <!-- 요약 통계 카드 --> <!-- 수정: 감점 중심으로 변경 -->
+          <!-- 요약 통계 카드 -->
           <div class="section">
             <h2 class="section-title">
-              {{ getTabTitle() }} 감점 요약 <!-- 수정: 요약 통계 -> 감점 요약 -->
+              {{ getTabTitle() }} 요약 통계
               <span v-if="activeTab !== 'all'" class="tab-indicator">{{ getTabSubtitle() }}</span>
             </h2>
             <div class="stats-grid">
@@ -136,31 +136,25 @@
 
               <StatsCard
                 title="통과"
-                :value="currentStats.completedChecks"
-                :subtitle="`통과 항목: ${getPassedCount()}개`"
+                :value="currentStats.passedChecks"
+                :subtitle="`통과율: ${getPassRate()}%`"
                 value-color="green"
               />
 
               <StatsCard
                 title="실패"
-                :value="currentStats.criticalIssues"
-                :subtitle="`실패 항목: ${getFailedCount()}개`"
+                :value="currentStats.failedChecks"
+                :subtitle="`실패율: ${getFailRate()}%`"
                 value-color="red"
               />
 
-              <!-- 수정: 점수 대신 감점 표시 -->
-              <StatsCard
-                title="총 감점"
-                :value="formatPenalty(currentStats.totalPenalty)"
-                :subtitle="getPenaltyDescription(currentStats.totalPenalty)"
-                value-color="orange"
-              />
+              <StatsCard title="감점" :value="currentStats.score" subtitle="" value-color="blue" />
             </div>
           </div>
 
-          <!-- 일별 감점 시각화 --> <!-- 수정: 통계 -> 감점 -->
+          <!-- 일별 통계 시각화 -->
           <div class="section" v-if="currentDailyStats.length > 0">
-            <h2 class="section-title">{{ getTabTitle() }} 일별 감점 현황</h2> <!-- 수정 -->
+            <h2 class="section-title">{{ getTabTitle() }} 일별 검사 결과</h2>
             <div class="daily-stats-container">
               <!-- 차트 영역 -->
               <div class="chart-container">
@@ -182,8 +176,6 @@
                         ></div>
                       </div>
                       <div class="chart-label">{{ formatChartDate(day.date) }}</div>
-                      <!-- 수정: 감점 표시 추가 -->
-                      <div class="chart-penalty">-{{ day.penalty }}점</div>
                     </div>
                   </div>
                 </div>
@@ -198,15 +190,10 @@
                     <div class="legend-color failed"></div>
                     <span>실패</span>
                   </div>
-                  <!-- 수정: 감점 범례 추가 -->
-                  <div class="legend-item">
-                    <div class="legend-color penalty"></div>
-                    <span>감점</span>
-                  </div>
                 </div>
               </div>
 
-              <!-- 일별 통계 테이블 --> <!-- 수정: 감점 컬럼 추가 -->
+              <!-- 일별 통계 테이블 -->
               <div class="daily-stats-table">
                 <table>
                   <thead>
@@ -215,7 +202,6 @@
                       <th>통과</th>
                       <th>실패</th>
                       <th>통과율</th>
-                      <th>감점</th> <!-- 수정: 감점 컬럼 추가 -->
                     </tr>
                   </thead>
                   <tbody>
@@ -224,7 +210,6 @@
                       <td class="passed-count">{{ day.passed }}</td>
                       <td class="failed-count">{{ day.failed }}</td>
                       <td>{{ day.passRate }}%</td>
-                      <td class="penalty-count">-{{ day.penalty }}점</td> <!-- 수정: 감점 표시 -->
                     </tr>
                   </tbody>
                 </table>
@@ -234,17 +219,17 @@
 
           <!-- 데이터 없음 상태 (일별 통계) -->
           <div v-else class="section">
-            <h2 class="section-title">{{ getTabTitle() }} 일별 감점 현황</h2> <!-- 수정 -->
+            <h2 class="section-title">{{ getTabTitle() }} 일별 검사 결과</h2>
             <div class="no-data">
               <p>{{ getTabTitle() }} 검사 결과 데이터가 없습니다.</p>
             </div>
           </div>
 
-          <!-- 항목별 상세 결과 테이블 --> <!-- 수정: 감점 정보 추가 -->
+          <!-- 항목별 상세 결과 테이블 -->
           <div class="section">
-            <h2 class="section-title">{{ getTabTitle() }} 항목별 검사 결과 및 감점</h2> <!-- 수정 -->
+            <h2 class="section-title">{{ getTabTitle() }} 항목별 검사 결과</h2>
             <div v-if="currentItemStats.length > 0" class="items-container">
-              <!-- 테이블 헤더 --> <!-- 수정: 감점 컬럼 추가 -->
+              <!-- 테이블 헤더 -->
               <div class="items-header">
                 <div class="header-cell">ID</div>
                 <div class="header-cell">항목명</div>
@@ -253,12 +238,11 @@
                 <div class="header-cell">통과</div>
                 <div class="header-cell">실패</div>
                 <div class="header-cell">통과율</div>
-                <div class="header-cell">감점</div> <!-- 수정: 감점 컬럼 추가 -->
                 <div class="header-cell">상세</div>
               </div>
 
               <div v-for="item in currentItemStats" :key="item.id" class="item-row-container">
-                <!-- 항목 정보 행 --> <!-- 수정: 감점 정보 추가 -->
+                <!-- 항목 정보 행 -->
                 <div class="item-row" :class="{ expanded: selectedItemId === item.id }">
                   <div class="item-cell item-id">{{ item.id }}</div>
                   <div class="item-cell item-name">{{ item.name }}</div>
@@ -276,19 +260,10 @@
                         <div
                           class="progress-fill"
                           :style="{ width: `${item.passRate}%` }"
-                          :class="getPenaltyClass(item.penalty)"
+                          :class="getProgressClass(item.passRate)"
                         ></div>
                       </div>
                       <span class="progress-text">{{ item.passRate }}%</span>
-                    </div>
-                  </div>
-                  <!-- 수정: 감점 표시 -->
-                  <div class="item-cell penalty-cell">
-                    <span class="penalty-value" :class="getPenaltyClass(item.penalty)">
-                      {{ formatPenalty(item.penalty) }}
-                    </span>
-                    <div class="penalty-info">
-                      ({{ item.penaltyWeight }}점 × {{ item.failed }}개)
                     </div>
                   </div>
                   <div class="item-cell">
@@ -320,18 +295,11 @@
                         <span class="meta-item">
                           <strong>카테고리:</strong> {{ item.category }}
                         </span>
-                        <!-- 수정: 감점 정보 추가 -->
-                        <span class="meta-item">
-                          <strong>감점 가중치:</strong> {{ item.penaltyWeight }}점/실패
-                        </span>
-                        <span class="meta-item">
-                          <strong>현재 감점:</strong> {{ formatPenalty(item.penalty) }}
-                        </span>
                       </div>
                     </div>
                   </div>
 
-                  <!-- 항목 상세 로그 --> <!-- 수정: 감점 정보 추가 -->
+                  <!-- 항목 상세 로그 -->
                   <div v-if="getItemLogs(item.id).length > 0" class="logs-table-container-inline">
                     <table class="logs-table">
                       <thead>
@@ -339,7 +307,6 @@
                           <th>검사 일시</th>
                           <th>결과</th>
                           <th>실제 값</th>
-                          <th>감점</th> <!-- 수정: 감점 컬럼 추가 -->
                           <th>메모</th>
                         </tr>
                       </thead>
@@ -361,13 +328,6 @@
                               </div>
                             </div>
                             <span v-else>{{ log.actual_value || '-' }}</span>
-                          </td>
-                          <!-- 수정: 감점 표시 -->
-                          <td class="penalty-applied">
-                            <span v-if="log.passed === 0" class="penalty-value">
-                              -{{ log.penalty_applied || log.penalty_weight || 0.5 }}점
-                            </span>
-                            <span v-else class="no-penalty">0점</span>
                           </td>
                           <td>
                             <pre class="log-notes">{{ log.notes || '-' }}</pre>
@@ -396,7 +356,6 @@
 </template>
 
 <script setup>
-
 import { ref, onMounted, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -413,7 +372,7 @@ const loading = ref(false)
 const error = ref(null)
 const activeTab = ref('daily') // 'daily', 'manual', 'all'
 
-// 수정: 통계 데이터 (감점 기준)
+// 통계 데이터 (탭별)
 const stats = ref({
   daily: null,
   manual: null,
@@ -461,10 +420,10 @@ const currentStats = computed(() => {
   return (
     stats.value[activeTab.value] || {
       totalChecks: 0,
-      completedChecks: 0,  // 통과 항목
-      criticalIssues: 0,   // 실패 항목 (감점 대상)
+      passedChecks: 0,
+      failedChecks: 0,
       lastCheckedAt: '',
-      totalPenalty: 0,     // 수정: 총 감점 추가
+      score: 0,
     }
   )
 })
@@ -477,24 +436,14 @@ const currentItemStats = computed(() => {
   return itemStats.value[activeTab.value] || []
 })
 
-// 수정: 통과율 대신 감점 정보 계산
-const getPassedCount = () => {
-  return currentStats.value.completedChecks || 0
+const getPassRate = () => {
+  if (currentStats.value.totalChecks === 0) return 0
+  return Math.round((currentStats.value.passedChecks / currentStats.value.totalChecks) * 100)
 }
 
-const getFailedCount = () => {
-  return currentStats.value.criticalIssues || 0
-}
-
-const getTotalPenalty = () => {
-  return (currentStats.value.totalPenalty || 0).toFixed(1)
-}
-
-const getPenaltyRate = () => {
-  const totalItems = currentStats.value.totalChecks || 0
-  const failedItems = currentStats.value.criticalIssues || 0
-  if (totalItems === 0) return 0
-  return Math.round((failedItems / totalItems) * 100)
+const getFailRate = () => {
+  if (currentStats.value.totalChecks === 0) return 0
+  return Math.round((currentStats.value.failedChecks / currentStats.value.totalChecks) * 100)
 }
 
 const getMaxValue = () => {
@@ -613,11 +562,9 @@ const formatChecklistItems = (checklistData) => {
     description: item.description,
     checkType: item.check_type,
     checkFrequency: item.check_frequency,
-    penaltyWeight: item.penalty_weight || 0.5,  // 수정: 감점 가중치 추가
   }))
 }
 
-// 수정: 통계 계산 (감점 기준)
 const calculateAllStats = () => {
   ;['daily', 'manual', 'all'].forEach((tabType) => {
     const logs = auditLogs.value[tabType]
@@ -629,20 +576,15 @@ const calculateAllStats = () => {
     const sortedLogs = [...logs].sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at))
     const lastCheckedAt = sortedLogs.length > 0 ? sortedLogs[0].checked_at : ''
 
-    // 수정: 감점 계산 (감점 가중치 적용)
-    let totalPenalty = 0
-    logs.forEach(log => {
-      if (log.passed === 0) {
-        totalPenalty += (log.penalty_weight || 0.5)
-      }
-    })
+    // 점수 계산
+    const score = -(failedChecks * 0.5)
 
     stats.value[tabType] = {
       totalChecks,
-      completedChecks: passedChecks,
-      criticalIssues: failedChecks,
+      passedChecks,
+      failedChecks,
       lastCheckedAt,
-      totalPenalty: totalPenalty,  // 수정: 총 감점 추가
+      score,
     }
   })
 }
@@ -657,20 +599,13 @@ const prepareAllDailyStats = () => {
     logs.forEach((log) => {
       const dateOnly = log.checked_at.split(' ')[0]
       if (!groupedByDate[dateOnly]) {
-        groupedByDate[dateOnly] = {
-          date: dateOnly,
-          passed: 0,
-          failed: 0,
-          penalty: 0  // 수정: 감점 추가
-        }
+        groupedByDate[dateOnly] = { date: dateOnly, passed: 0, failed: 0 }
       }
 
       if (log.passed === 1) {
         groupedByDate[dateOnly].passed += 1
       } else if (log.passed === 0) {
         groupedByDate[dateOnly].failed += 1
-        // 수정: 감점 누적
-        groupedByDate[dateOnly].penalty += (log.penalty_weight || 0.5)
       }
     })
 
@@ -688,7 +623,6 @@ const prepareAllDailyStats = () => {
         ...day,
         passRate,
         total,
-        penalty: Math.round(day.penalty * 10) / 10,  // 수정: 감점 반올림
       }
     })
 
@@ -708,21 +642,16 @@ const prepareAllItemStats = () => {
       const totalCount = passedCount + failedCount
       const passRate = totalCount > 0 ? (passedCount / totalCount) * 100 : 0
 
-      // 수정: 감점 계산
-      const penalty = failedCount * (item.penaltyWeight || 0.5)
-
       return {
         id: item.id,
         name: item.name,
         category: item.category,
         description: item.description,
         checkType: item.checkType,
-        penaltyWeight: item.penaltyWeight,  // 수정: 감점 가중치 추가
         total: totalCount,
         passed: passedCount,
         failed: failedCount,
         passRate: Math.round(passRate),
-        penalty: Math.round(penalty * 10) / 10,  // 수정: 감점 추가
       }
     })
 
@@ -745,12 +674,10 @@ const getItemLogs = (itemId) => {
     .sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at))
 }
 
-// 수정: 진행률 클래스를 감점 클래스로 변경
-const getPenaltyClass = (penalty) => {
-  if (penalty === 0) return 'no-penalty'
-  if (penalty <= 1.0) return 'low-penalty'
-  if (penalty <= 2.5) return 'medium-penalty'
-  return 'high-penalty'
+const getProgressClass = (rate) => {
+  if (rate >= 70) return 'excellent'
+  if (rate >= 40) return 'good'
+  return 'poor'
 }
 
 const formatDate = (dateStr) => {
@@ -773,7 +700,7 @@ const formatChartDate = (dateStr) => {
   return `${date.getMonth() + 1}/${date.getDate()}`
 }
 
-// 수시 점검용 실제 값 포맷팅 (기존 유지)
+// 수시 점검용 실제 값 포맷팅
 const formatActualValueKey = (key) => {
   const keyMap = {
     seal_status: '봉인씰 상태',
@@ -813,18 +740,6 @@ const formatActualValueValue = (value) => {
   if (value === 'intact') return '정상'
   if (value === 'damaged') return '훼손됨'
   return value
-}
-
-// 수정: 감점 포맷팅 함수 추가
-const formatPenalty = (penalty) => {
-  return penalty ? `-${penalty}점` : '0점'
-}
-
-const getPenaltyDescription = (penalty) => {
-  if (penalty === 0) return '감점 없음'
-  if (penalty <= 1.0) return '경미한 감점'
-  if (penalty <= 2.5) return '주의 필요'
-  return '즉시 개선 필요'
 }
 
 // 탭 변경 시 선택된 항목 초기화

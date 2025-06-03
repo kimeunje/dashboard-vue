@@ -48,7 +48,7 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: HomePage,
+    component: SecurityScorePage,
     meta: {
       title: '나이스디앤비 - 정보보안 감사 시스템',
       description: '나이스디앤비 정보보안 감사 시스템',

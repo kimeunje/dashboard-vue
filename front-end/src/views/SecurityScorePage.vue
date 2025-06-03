@@ -1,8 +1,9 @@
-<!-- SecurityScorePage.vue - Template 부분 -->
+<!-- SecurityScorePage.vue - KPI 감점 시스템으로 수정 -->
 <template>
   <div class="score-page">
     <div class="page-header">
-      <h1 class="page-title">종합 보안 점수</h1>
+      <h1 class="page-title">KPI 보안 감점 현황</h1>
+      <!-- 수정: 종합 보안 점수 -> KPI 보안 감점 현황 -->
       <div class="year-selector">
         <label for="year">평가연도:</label>
         <select id="year" v-model="selectedYear" @change="fetchSecurityScore">
@@ -14,55 +15,68 @@
     <!-- 로딩 상태 -->
     <div v-if="loading" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>보안 점수를 계산하는 중...</p>
+      <p>KPI 감점을 계산하는 중...</p>
+      <!-- 수정 -->
     </div>
 
     <!-- 에러 상태 -->
     <div v-else-if="error" class="error-container">
       <div class="error-icon">⚠️</div>
-      <h3>점수 계산 실패</h3>
+      <h3>감점 계산 실패</h3>
+      <!-- 수정 -->
       <p>{{ error }}</p>
       <button @click="fetchSecurityScore" class="retry-button">다시 계산</button>
     </div>
 
-    <!-- 보안 점수 데이터 -->
+    <!-- KPI 감점 데이터 -->
+    <!-- 수정 -->
     <div v-else-if="scoreData" class="score-content">
-      <!-- 종합 점수 카드 -->
+      <!-- 총 감점 카드 -->
+      <!-- 수정: 종합 점수 카드 -> 총 감점 카드 -->
       <div class="overall-score-card">
         <div class="score-circle">
-          <div class="circle-chart" :class="getGradeClass(scoreData.grade)">
+          <div class="circle-chart penalty-display">
+            <!-- 수정: grade 클래스 제거 -->
             <div class="circle-score">
-              <span class="score-number">{{ Math.round(scoreData.total_score) }}</span>
+              <span class="score-number">-{{ scoreData.total_penalty || 0 }}</span>
+              <!-- 수정: total_score -> total_penalty -->
               <span class="score-unit">점</span>
             </div>
-            <div class="circle-grade">{{ scoreData.grade }}</div>
+            <div class="circle-grade">감점</div>
+            <!-- 수정: grade -> '감점' 고정 -->
           </div>
         </div>
         <div class="score-summary">
-          <h2>{{ selectedYear }}년 종합 보안 점수</h2>
+          <h2>{{ selectedYear }}년 KPI 보안 감점</h2>
+          <!-- 수정 -->
           <p class="score-description">
-            {{ getScoreDescription(scoreData.grade, scoreData.total_score) }}
+            {{ getPenaltyDescription(scoreData.total_penalty) }}
+            <!-- 수정: 감점 기준 설명 -->
           </p>
           <div class="score-details">
             <div class="detail-item">
-              <span class="detail-label">상시감사 점수:</span>
-              <span class="detail-value">{{ Math.round(scoreData.audit_score) }}점</span>
+              <span class="detail-label">상시감사 감점:</span>
+              <!-- 수정 -->
+              <span class="detail-value penalty">-{{ scoreData.audit_penalty || 0 }}점</span>
+              <!-- 수정 -->
             </div>
             <div class="detail-item">
               <span class="detail-label">교육 미이수 감점:</span>
-              <span class="detail-value penalty">-{{ scoreData.education_penalty }}점</span>
+              <span class="detail-value penalty">-{{ scoreData.education_penalty || 0 }}점</span>
             </div>
             <div class="detail-item">
               <span class="detail-label">모의훈련 감점:</span>
-              <span class="detail-value penalty">-{{ scoreData.training_penalty }}점</span>
+              <span class="detail-value penalty">-{{ scoreData.training_penalty || 0 }}점</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 점수 구성 요소 -->
+      <!-- 감점 구성 요소 -->
+      <!-- 수정: 점수 구성 요소 -> 감점 구성 요소 -->
       <div class="score-breakdown">
-        <h2>점수 구성 요소</h2>
+        <h2>감점 구성 요소</h2>
+        <!-- 수정 -->
         <div class="breakdown-grid">
           <!-- 정보보안 감사 -->
           <div class="breakdown-card audit">
@@ -71,20 +85,14 @@
               <h3>정보보안 감사 현황</h3>
             </div>
             <div class="card-content">
-              <div class="main-score">{{ Math.round(scoreData.audit_score) }}점</div>
+              <div class="main-score penalty">-{{ scoreData.audit_penalty || 0 }}점</div>
               <div class="score-detail">
                 <p>
-                  통과 항목: {{ scoreData.education_stats?.completed_count || 0 }}/{{
-                    scoreData.education_stats?.total_count || 0
+                  실패 항목: {{ scoreData.audit_stats?.failed_count || 0 }}/{{
+                    scoreData.audit_stats?.total_count || 0
                   }}
                 </p>
-                <p>통과율: {{ getAuditPassRate() }}%</p>
-              </div>
-              <div class="progress-bar">
-                <div
-                  class="progress-fill audit-progress"
-                  :style="{ width: `${getAuditPassRate()}%` }"
-                ></div>
+                <p>감점: {{ scoreData.audit_stats?.failed_count || 0 }} × 0.5점</p>
               </div>
             </div>
             <div class="card-footer">
@@ -101,10 +109,11 @@
               <h3>정보보호교육</h3>
             </div>
             <div class="card-content">
-              <div class="main-score penalty">-{{ scoreData.education_penalty }}점</div>
+              <div class="main-score penalty">-{{ scoreData.education_penalty || 0 }}점</div>
               <div class="score-detail">
                 <p>미이수 횟수: {{ getEducationIncompleteCount() }}회</p>
-                <p>연간 이수율: {{ getEducationCompletionRate() }}%</p>
+                <p>감점: {{ getEducationIncompleteCount() }} × 0.5점</p>
+                <!-- 수정: 이수율 -> 감점 계산 -->
               </div>
               <div class="penalty-info">
                 <small>미이수시 0.5점 감점</small>
@@ -122,10 +131,11 @@
               <h3>악성메일 모의훈련</h3>
             </div>
             <div class="card-content">
-              <div class="main-score penalty">-{{ scoreData.training_penalty }}점</div>
+              <div class="main-score penalty">-{{ scoreData.training_penalty || 0 }}점</div>
               <div class="score-detail">
                 <p>실패 횟수: {{ getTrainingFailedCount() }}회</p>
-                <p>연간 통과율: {{ getTrainingPassRate() }}%</p>
+                <p>감점: {{ getTrainingFailedCount() }} × 0.5점</p>
+                <!-- 수정: 통과율 -> 감점 계산 -->
               </div>
               <div class="penalty-info">
                 <small>실패시 0.5점 감점</small>
@@ -138,52 +148,7 @@
         </div>
       </div>
 
-      <!-- 등급별 기준 -->
-      <div class="grade-criteria">
-        <h2>등급 평가 기준</h2>
-        <div class="criteria-grid">
-          <div class="criteria-item grade-a-plus">
-            <div class="grade-label">A+</div>
-            <div class="grade-range">95점 이상</div>
-            <div class="grade-desc">최우수</div>
-          </div>
-          <div class="criteria-item grade-a">
-            <div class="grade-label">A</div>
-            <div class="grade-range">90-94점</div>
-            <div class="grade-desc">우수</div>
-          </div>
-          <div class="criteria-item grade-b-plus">
-            <div class="grade-label">B+</div>
-            <div class="grade-range">85-89점</div>
-            <div class="grade-desc">양호</div>
-          </div>
-          <div class="criteria-item grade-b">
-            <div class="grade-label">B</div>
-            <div class="grade-range">80-84점</div>
-            <div class="grade-desc">보통</div>
-          </div>
-          <div class="criteria-item grade-c-plus">
-            <div class="grade-label">C+</div>
-            <div class="grade-range">75-79점</div>
-            <div class="grade-desc">미흡</div>
-          </div>
-          <div class="criteria-item grade-c">
-            <div class="grade-label">C</div>
-            <div class="grade-range">70-74점</div>
-            <div class="grade-desc">부족</div>
-          </div>
-          <div class="criteria-item grade-d">
-            <div class="grade-label">D</div>
-            <div class="grade-range">60-69점</div>
-            <div class="grade-desc">불량</div>
-          </div>
-          <div class="criteria-item grade-f">
-            <div class="grade-label">F</div>
-            <div class="grade-range">60점 미만</div>
-            <div class="grade-desc">매우불량</div>
-          </div>
-        </div>
-      </div>
+      <!-- 수정: 등급별 기준 섹션 완전 제거 (KPI에서 등급 불필요) -->
 
       <!-- 개선 권장사항 -->
       <div v-if="recommendations.length > 0" class="recommendations">
@@ -209,28 +174,31 @@
         </div>
       </div>
 
-      <!-- 연도별 점수 추이 -->
+      <!-- 연도별 감점 추이 -->
+      <!-- 수정: 점수 추이 -> 감점 추이 -->
       <div class="score-trend">
-        <h2>연도별 점수 추이</h2>
+        <h2>연도별 감점 추이</h2>
+        <!-- 수정 -->
         <div class="trend-chart">
           <div v-if="yearlyTrend.length > 0" class="chart-container">
             <div class="trend-bars">
               <div v-for="yearData in yearlyTrend" :key="yearData.year" class="trend-bar-group">
                 <div class="trend-bar-container">
                   <div
-                    class="trend-bar"
-                    :style="{ height: `${(yearData.score / 100) * 100}%` }"
-                    :class="getScoreBarClass(yearData.score)"
+                    class="trend-bar penalty-bar"
+                    :style="{ height: `${(yearData.penalty / 5.0) * 100}%` }"
                   ></div>
                 </div>
                 <div class="trend-label">{{ yearData.year }}</div>
-                <div class="trend-score">{{ Math.round(yearData.score) }}점</div>
-                <div class="trend-grade">{{ yearData.grade }}</div>
+                <div class="trend-score">-{{ yearData.penalty }}점</div>
+                <!-- 수정: score -> penalty -->
+                <!-- 수정: trend-grade 제거 -->
               </div>
             </div>
           </div>
           <div v-else class="chart-placeholder">
-            <p>점수 추이 데이터를 불러오는 중...</p>
+            <p>감점 추이 데이터를 불러오는 중...</p>
+            <!-- 수정 -->
           </div>
         </div>
       </div>
@@ -247,7 +215,8 @@
                 d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"
               />
             </svg>
-            평가 보고서 다운로드
+            KPI 감점 보고서 다운로드
+            <!-- 수정 -->
           </button>
 
           <button @click="requestImprovement" class="secondary-button">
@@ -310,8 +279,8 @@ const fetchSecurityScore = async () => {
     // 연도별 추이 데이터 가져오기
     await fetchYearlyTrend()
   } catch (err) {
-    console.error('보안 점수 조회 실패:', err)
-    error.value = err.message || '점수 데이터를 불러오는 중 오류가 발생했습니다.'
+    console.error('KPI 감점 조회 실패:', err) // 수정
+    error.value = err.message || '감점 데이터를 불러오는 중 오류가 발생했습니다.' // 수정
   } finally {
     loading.value = false
   }
@@ -332,8 +301,7 @@ const fetchYearlyTrend = async () => {
           const data = await response.json()
           trendData.push({
             year: year,
-            score: data.total_score,
-            grade: data.grade,
+            penalty: data.total_penalty || 0, // 수정: score -> penalty
           })
         }
       } catch (err) {
@@ -372,8 +340,8 @@ const generateRecommendations = () => {
     })
   }
 
-  // 감사 점수에 따른 권장사항
-  if (scoreData.value.audit_score < 90) {
+  // 감사 감점에 따른 권장사항 // 수정
+  if (scoreData.value.audit_penalty > 0) {
     recs.push({
       priority: 'medium',
       title: '보안 설정 개선',
@@ -382,12 +350,13 @@ const generateRecommendations = () => {
     })
   }
 
-  // 총 점수에 따른 일반적인 권장사항
-  if (scoreData.value.total_score < 80) {
+  // 총 감점에 따른 일반적인 권장사항 // 수정
+  if (scoreData.value.total_penalty >= 2.0) {
+    // 수정: 80점 기준 -> 2점 이상 감점
     recs.push({
       priority: 'info',
       title: '종합적인 보안 의식 개선',
-      description: '보안 점수가 낮습니다. 정기적인 보안 교육 참여와 정책 준수를 권장합니다.',
+      description: '감점이 많습니다. 정기적인 보안 교육 참여와 정책 준수를 권장합니다.', // 수정
       action_link: '/security-audit/solutions',
     })
   }
@@ -395,67 +364,29 @@ const generateRecommendations = () => {
   recommendations.value = recs
 }
 
-const getGradeClass = (grade) => {
-  const gradeClasses = {
-    'A+': 'grade-a-plus',
-    A: 'grade-a',
-    'B+': 'grade-b-plus',
-    B: 'grade-b',
-    'C+': 'grade-c-plus',
-    C: 'grade-c',
-    D: 'grade-d',
-    F: 'grade-f',
-  }
-  return gradeClasses[grade] || 'grade-f'
-}
+// 수정: getGradeClass 메서드 제거 (등급 불필요)
 
-const getScoreDescription = (grade, score) => {
-  if (score >= 95) {
-    return '탁월한 보안 관리 상태입니다. 현재 수준을 유지해주세요.'
-  } else if (score >= 90) {
-    return '우수한 보안 의식을 보유하고 있습니다.'
-  } else if (score >= 80) {
+const getPenaltyDescription = (penalty) => {
+  // 수정: 감점 기준 설명
+  if (penalty === 0) {
+    return '우수한 보안 관리 상태입니다. 현재 수준을 유지해주세요.'
+  } else if (penalty <= 1.0) {
     return '양호한 상태이나 일부 개선이 필요합니다.'
-  } else if (score >= 70) {
+  } else if (penalty <= 2.5) {
     return '보안 의식 향상이 필요합니다.'
   } else {
     return '즉시 보안 교육 및 개선 조치가 필요합니다.'
   }
 }
 
-const getAuditPassRate = () => {
-  if (!scoreData.value?.audit_score) return 0
-  return Math.round(scoreData.value.audit_score)
-}
-
 const getEducationIncompleteCount = () => {
   if (!scoreData.value?.education_stats) return 0
-  return (
-    (scoreData.value.education_stats.total_count || 0) -
-    (scoreData.value.education_stats.completed_count || 0)
-  )
-}
-
-const getEducationCompletionRate = () => {
-  if (!scoreData.value?.education_stats) return 0
-  const stats = scoreData.value.education_stats
-  if (stats.total_count === 0) return 0
-  return Math.round((stats.completed_count / stats.total_count) * 100)
+  return scoreData.value.education_stats.incomplete_count || 0 // 수정: 직접 계산 제거
 }
 
 const getTrainingFailedCount = () => {
   if (!scoreData.value?.training_stats) return 0
-  return (
-    (scoreData.value.training_stats.total_count || 0) -
-    (scoreData.value.training_stats.passed_count || 0)
-  )
-}
-
-const getTrainingPassRate = () => {
-  if (!scoreData.value?.training_stats) return 0
-  const stats = scoreData.value.training_stats
-  if (stats.total_count === 0) return 0
-  return Math.round((stats.passed_count / stats.total_count) * 100)
+  return scoreData.value.training_stats.failed_count || 0 // 수정: 직접 계산 제거
 }
 
 const getPriorityText = (priority) => {
@@ -468,37 +399,32 @@ const getPriorityText = (priority) => {
   return priorities[priority] || '일반'
 }
 
-const getScoreBarClass = (score) => {
-  if (score >= 90) return 'excellent'
-  if (score >= 80) return 'good'
-  if (score >= 70) return 'warning'
-  return 'poor'
-}
+// 수정: getScoreBarClass 메서드 제거 (등급별 스타일 불필요)
 
 const downloadReport = () => {
   if (!scoreData.value) return
 
-  // 간단한 보고서 텍스트 생성
+  // KPI 감점 보고서 텍스트 생성 // 수정
   const reportContent = `
-정보보안 평가 보고서
-=====================
+KPI 보안 감점 보고서
+==================
 
 평가 연도: ${selectedYear.value}년
 평가 대상: ${authStore.user?.name || '사용자'}
 
-종합 점수: ${Math.round(scoreData.value.total_score)}점 (${scoreData.value.grade})
+총 감점: -${scoreData.value.total_penalty || 0}점
 
-점수 구성:
-- 상시감사 점수: ${Math.round(scoreData.value.audit_score)}점
-- 교육 미이수 감점: -${scoreData.value.education_penalty}점
-- 모의훈련 감점: -${scoreData.value.training_penalty}점
+감점 구성:
+- 상시감사 감점: -${scoreData.value.audit_penalty || 0}점
+- 교육 미이수 감점: -${scoreData.value.education_penalty || 0}점
+- 모의훈련 감점: -${scoreData.value.training_penalty || 0}점
 
 세부 내용:
-- 교육 이수율: ${getEducationCompletionRate()}%
-- 모의훈련 통과율: ${getTrainingPassRate()}%
-- 감사 항목 통과율: ${getAuditPassRate()}%
+- 감사 실패 항목: ${scoreData.value.audit_stats?.failed_count || 0}개
+- 교육 미이수: ${getEducationIncompleteCount()}회
+- 모의훈련 실패: ${getTrainingFailedCount()}회
 
-평가 결과: ${getScoreDescription(scoreData.value.grade, scoreData.value.total_score)}
+평가 결과: ${getPenaltyDescription(scoreData.value.total_penalty)}
 
 개선 권장사항:
 ${recommendations.value.map((rec) => `- [${getPriorityText(rec.priority)}] ${rec.title}: ${rec.description}`).join('\n')}
@@ -511,7 +437,7 @@ ${recommendations.value.map((rec) => `- [${getPriorityText(rec.priority)}] ${rec
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `보안평가보고서_${selectedYear.value}_${authStore.user?.username || 'user'}.txt`
+  link.download = `KPI감점보고서_${selectedYear.value}_${authStore.user?.username || 'user'}.txt` // 수정
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
@@ -519,7 +445,7 @@ ${recommendations.value.map((rec) => `- [${getPriorityText(rec.priority)}] ${rec
 }
 
 const requestImprovement = () => {
-  const currentScore = Math.round(scoreData.value?.total_score || 0)
+  const currentPenalty = scoreData.value?.total_penalty || 0 // 수정
   const improvements = []
 
   if (scoreData.value?.education_penalty > 0) {
@@ -528,7 +454,8 @@ const requestImprovement = () => {
   if (scoreData.value?.training_penalty > 0) {
     improvements.push('악성메일 대응 능력 향상')
   }
-  if (scoreData.value?.audit_score < 90) {
+  if (scoreData.value?.audit_penalty > 0) {
+    // 수정
     improvements.push('보안 설정 개선')
   }
 
@@ -539,7 +466,7 @@ const requestImprovement = () => {
 
   alert(`개선 컨설팅 요청이 접수되었습니다.
 
-현재 보안 점수: ${currentScore}점 (${scoreData.value?.grade || 'N/A'})${improvementText}
+현재 KPI 감점: -${currentPenalty}점${improvementText}
 
 담당자: IT 보안팀
 연락처: 내선 1234

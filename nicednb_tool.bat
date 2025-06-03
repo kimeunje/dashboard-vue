@@ -36,7 +36,7 @@ set "GREEN=PowerShell -Command Write-Host -ForegroundColor Green"
 set "RED=PowerShell -Command Write-Host -ForegroundColor Red"
 set "YELLOW=PowerShell -Command Write-Host -ForegroundColor DarkYellow"
 
-set USER="테스터"
+set USER="김은제"
 
 :: 로그 디렉토리 설정
 set "LOG_DIR=%TEMP%\security_audit"

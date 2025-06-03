@@ -1,13 +1,13 @@
-# app/services/score_service.py - Part 1
+# app/services/score_service.py - KPI 감점 시스템으로 수정
 from datetime import datetime
 from app.utils.database import execute_query, DatabaseManager
 
 
 class ScoreService:
-    """보안 점수 계산 관련 서비스"""
+    """KPI 보안 감점 계산 관련 서비스 (100점 기준 제거, 감점만 계산)"""
 
     def get_user_security_score(self, username: str, year: int = None) -> dict:
-        """사용자명으로 보안 점수 조회"""
+        """사용자명으로 보안 감점 조회"""
         if year is None:
             year = datetime.now().year
 
@@ -22,44 +22,39 @@ class ScoreService:
         return self.calculate_security_score(user["uid"], year)
 
     def calculate_security_score(self, user_id: int, year: int = None) -> dict:
-        """사용자의 종합 보안 점수 계산"""
+        """사용자의 KPI 보안 감점 계산 (감점만 계산, 100점 기준 제거)"""
         if year is None:
             year = datetime.now().year
 
         with DatabaseManager.get_db_cursor() as cursor:
-            # 1. 상시감사 점수 계산 (기본 100점에서 감점)
-            audit_score, audit_penalty, audit_stats = self._calculate_audit_score(
+            # 1. 상시감사 감점 계산 (실패 항목당 0.5점 감점)
+            audit_penalty, audit_stats = self._calculate_audit_penalty(
                 cursor, user_id, year
             )
 
-            # 2. 교육 점수 계산 (미이수 시 감점)
+            # 2. 교육 감점 계산 (미이수 시 0.5점 감점)
             education_penalty, education_stats = self._calculate_education_penalty(
                 cursor, user_id, year
             )
 
-            # 3. 모의훈련 점수 계산 (실패 시 감점)
+            # 3. 모의훈련 감점 계산 (실패 시 0.5점 감점)
             training_penalty, training_stats = self._calculate_training_penalty(
                 cursor, user_id, year
             )
 
-            # 4. 총 점수 계산
-            total_score = audit_score - education_penalty - training_penalty
-            total_score = max(0, total_score)  # 최소 0점
+            # 4. 총 감점 계산 (최대 -5.0점)
+            total_penalty = audit_penalty + education_penalty + training_penalty
+            total_penalty = min(5.0, total_penalty)  # 최대 5점 감점
 
-            # 5. 등급 계산
-            grade = self._calculate_grade(total_score)
-
-            # 6. 점수 요약 저장
+            # 5. 감점 요약 저장
             self._save_score_summary(
                 cursor,
                 user_id,
                 year,
-                audit_score,
                 audit_penalty,
                 education_penalty,
                 training_penalty,
-                total_score,
-                grade,
+                total_penalty,
                 education_stats,
                 training_stats,
                 audit_stats,
@@ -68,19 +63,17 @@ class ScoreService:
             return {
                 "user_id": user_id,
                 "year": year,
-                "audit_score": float(audit_score),
-                "audit_penalty": float(audit_penalty),
+                "audit_penalty": float(audit_penalty),  # 수정: audit_score 제거
                 "education_penalty": float(education_penalty),
                 "training_penalty": float(training_penalty),
-                "total_score": float(total_score),
-                "grade": grade,
+                "total_penalty": float(total_penalty),  # 수정: total_score -> total_penalty
                 "education_stats": education_stats,
                 "training_stats": training_stats,
                 "audit_stats": audit_stats,
             }
 
-    def _calculate_audit_score(self, cursor, user_id: int, year: int) -> tuple:
-        """상시감사 점수 계산"""
+    def _calculate_audit_penalty(self, cursor, user_id: int, year: int) -> tuple:
+        """상시감사 감점 계산 (100점 기준 제거, 실패 항목당 0.5점 감점)"""
 
         # 해당 연도의 최신 감사 로그 조회 (각 항목별 최신 기록만)
         cursor.execute(
@@ -112,17 +105,14 @@ class ScoreService:
         failed_items = sum(1 for log in audit_logs if log["passed"] == 0)
         pending_items = sum(1 for log in audit_logs if log["passed"] is None)
 
-        # 감점 계산 (항목별 가중치 적용)
+        # 감점 계산 (실패한 항목만, 항목별 가중치 적용)
         total_penalty = 0.0
         for log in audit_logs:
             if log["passed"] == 0:  # 실패한 경우만 감점
                 penalty_weight = (
-                    float(log["penalty_weight"]) if log["penalty_weight"] else 0.1
+                    float(log["penalty_weight"]) if log["penalty_weight"] else 0.5
                 )
                 total_penalty += penalty_weight
-
-        # 기본 100점에서 감점
-        audit_score = max(0, 100.0 - total_penalty)
 
         audit_stats = {
             "total_count": total_items,
@@ -131,15 +121,13 @@ class ScoreService:
             "pending_count": pending_items,
             "penalty_count": failed_items,
             "total_penalty": round(total_penalty, 2),
-            "pass_rate": round(
-                (passed_items / total_items * 100) if total_items > 0 else 0, 1
-            ),
+            # 수정: pass_rate 제거 (KPI에서 불필요)
         }
 
-        return audit_score, total_penalty, audit_stats
+        return total_penalty, audit_stats
 
     def _calculate_education_penalty(self, cursor, user_id: int, year: int) -> tuple:
-        """정보보호 교육 감점 계산"""
+        """정보보호 교육 감점 계산 (미이수당 0.5점 감점)"""
         cursor.execute(
             """
             SELECT 
@@ -192,20 +180,13 @@ class ScoreService:
             "penalty_count": incomplete_count,
             "excluded_count": excluded_count,
             "total_penalty": round(total_penalty, 2),
-            "completion_rate": round(
-                (
-                    (completed_count / (total_count - excluded_count) * 100)
-                    if (total_count - excluded_count) > 0
-                    else 0
-                ),
-                1,
-            ),
+            # 수정: completion_rate 제거 (KPI에서 불필요)
         }
 
         return total_penalty, education_stats
 
     def _calculate_training_penalty(self, cursor, user_id: int, year: int) -> tuple:
-        """모의훈련 감점 계산"""
+        """모의훈련 감점 계산 (실패당 0.5점 감점)"""
         cursor.execute(
             """
                 SELECT 
@@ -262,99 +243,63 @@ class ScoreService:
             "penalty_count": failed_count,
             "excluded_count": excluded_count,
             "total_penalty": round(total_penalty, 2),
-            "pass_rate": round(
-                (
-                    (passed_count / (total_count - excluded_count) * 100)
-                    if (total_count - excluded_count) > 0
-                    else 0
-                ),
-                1,
-            ),
+            # 수정: pass_rate 제거 (KPI에서 불필요)
         }
 
         return total_penalty, training_stats
 
-    def _calculate_grade(self, score: float) -> str:
-        """점수에 따른 등급 계산"""
-        if score >= 95:
-            return "A+"
-        elif score >= 90:
-            return "A"
-        elif score >= 85:
-            return "B+"
-        elif score >= 80:
-            return "B"
-        elif score >= 75:
-            return "C+"
-        elif score >= 70:
-            return "C"
-        elif score >= 60:
-            return "D"
-        else:
-            return "F"
+    # 수정: _calculate_grade 메서드 제거 (등급 불필요)
 
     def _save_score_summary(
         self,
         cursor,
         user_id: int,
         year: int,
-        audit_score: float,
         audit_penalty: float,
         education_penalty: float,
         training_penalty: float,
-        total_score: float,
-        grade: str,
+        total_penalty: float,
         education_stats: dict,
         training_stats: dict,
         audit_stats: dict,
     ):
-        """점수 요약 저장"""
+        """KPI 감점 요약 저장 (100점 기준 제거)"""
         cursor.execute(
             """
             INSERT INTO security_score_summary 
-            (user_id, evaluation_year, audit_score, audit_penalty, education_penalty, 
-            training_penalty, total_score, grade, education_completed_count, education_total_count,
-            training_passed_count, training_total_count, audit_passed_count, audit_total_count)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            (user_id, evaluation_year, audit_penalty, education_penalty, 
+            training_penalty, total_penalty, audit_failed_count, education_incomplete_count,
+            training_failed_count)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
-            audit_score = VALUES(audit_score),
             audit_penalty = VALUES(audit_penalty),
             education_penalty = VALUES(education_penalty),
             training_penalty = VALUES(training_penalty),
-            total_score = VALUES(total_score),
-            grade = VALUES(grade),
-            education_completed_count = VALUES(education_completed_count),
-            education_total_count = VALUES(education_total_count),
-            training_passed_count = VALUES(training_passed_count),
-            training_total_count = VALUES(training_total_count),
-            audit_passed_count = VALUES(audit_passed_count),
-            audit_total_count = VALUES(audit_total_count),
+            total_penalty = VALUES(total_penalty),
+            audit_failed_count = VALUES(audit_failed_count),
+            education_incomplete_count = VALUES(education_incomplete_count),
+            training_failed_count = VALUES(training_failed_count),
             last_calculated = NOW()
             """,
             (
                 user_id,
                 year,
-                audit_score,
                 audit_penalty,
                 education_penalty,
                 training_penalty,
-                total_score,
-                grade,
-                education_stats["completed_count"],
-                education_stats["total_count"],
-                training_stats["passed_count"],
-                training_stats["total_count"],
-                audit_stats["passed_count"],
-                audit_stats["total_count"],
+                total_penalty,
+                audit_stats["failed_count"],
+                education_stats["incomplete_count"],
+                training_stats["failed_count"],
             ),
         )
 
     def get_dashboard_overview(self, username: str, year: int = None) -> dict:
-        """대시보드용 개요 정보 조회"""
+        """대시보드용 KPI 감점 정보 조회 (100점 기준 제거)"""
         if year is None:
             year = datetime.now().year
 
-        # 사용자 점수 정보 가져오기
+        # 사용자 감점 정보 가져오기
         score_data = self.get_user_security_score(username, year)
 
         # 사용자 ID 가져오기
@@ -374,7 +319,8 @@ class ScoreService:
                     ci.item_name, 
                     al.passed, 
                     al.checked_at,
-                    ci.category
+                    ci.category,
+                    ci.penalty_weight
                 FROM audit_log al
                 JOIN checklist_items ci ON al.item_id = ci.item_id
                 WHERE al.user_id = %s AND YEAR(al.checked_at) = %s
@@ -385,14 +331,15 @@ class ScoreService:
             )
             recent_audits = cursor.fetchall()
 
-            # 월별 감사 통계
+            # 월별 감점 통계
             cursor.execute(
                 """
                 SELECT 
                     MONTH(al.checked_at) as month,
                     COUNT(*) as total_checks,
                     SUM(CASE WHEN al.passed = 1 THEN 1 ELSE 0 END) as passed_checks,
-                    SUM(CASE WHEN al.passed = 0 THEN 1 ELSE 0 END) as failed_checks
+                    SUM(CASE WHEN al.passed = 0 THEN 1 ELSE 0 END) as failed_checks,
+                    SUM(CASE WHEN al.passed = 0 THEN ci.penalty_weight ELSE 0 END) as monthly_penalty
                 FROM audit_log al
                 JOIN checklist_items ci ON al.item_id = ci.item_id
                 WHERE al.user_id = %s AND YEAR(al.checked_at) = %s
@@ -404,10 +351,8 @@ class ScoreService:
             monthly_stats = cursor.fetchall()
 
         return {
-            "score_summary": {
-                "total_score": score_data["total_score"],
-                "grade": score_data["grade"],
-                "audit_score": score_data["audit_score"],
+            "penalty_summary": {  # 수정: score_summary -> penalty_summary
+                "total_penalty": score_data["total_penalty"],
                 "audit_penalty": score_data["audit_penalty"],
                 "education_penalty": score_data["education_penalty"],
                 "training_penalty": score_data["training_penalty"],

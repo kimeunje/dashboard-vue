@@ -1,3 +1,4 @@
+/* SecurityScorePage.css - KPI 감점 시스템으로 수정 */
 .score-page {
   max-width: 1200px;
   margin: 0 auto;
@@ -74,8 +75,9 @@
   background-color: var(--dark-blue);
 }
 
+/* 수정: 감점 카드 스타일 (100점 원형 차트 제거) */
 .overall-score-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); /* 수정: 감점용 빨간색 그라데이션 */
   color: white;
   border-radius: 20px;
   padding: 40px;
@@ -101,28 +103,10 @@
   border: 8px solid rgba(255, 255, 255, 0.3);
 }
 
-.circle-chart.grade-a-plus,
-.circle-chart.grade-a {
-  border-color: #10b981;
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.circle-chart.grade-b-plus,
-.circle-chart.grade-b {
-  border-color: #3b82f6;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-}
-
-.circle-chart.grade-c-plus,
-.circle-chart.grade-c {
-  border-color: #f59e0b;
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.circle-chart.grade-d,
-.circle-chart.grade-f {
-  border-color: #ef4444;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+/* 수정: 감점 전용 스타일 (등급별 색상 제거) */
+.circle-chart.penalty-display {
+  border-color: #fca5a5; /* 연한 빨간색 */
+  background: linear-gradient(135deg, #ef4444, #dc2626); /* 빨간색 그라데이션 */
 }
 
 .circle-score {
@@ -189,7 +173,7 @@
 }
 
 .detail-value.penalty {
-  color: #fecaca;
+  color: #fecaca; /* 수정: 감점 표시용 연한 빨간색 */
 }
 
 .score-breakdown {
@@ -269,7 +253,7 @@
 }
 
 .main-score.penalty {
-  color: #ef4444;
+  color: #ef4444; /* 수정: 감점 표시용 빨간색 */
 }
 
 .score-detail p {
@@ -278,23 +262,7 @@
   font-size: 14px;
 }
 
-.progress-bar {
-  height: 8px;
-  background-color: #f3f4f6;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-top: 12px;
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s ease;
-}
-
-.audit-progress {
-  background-color: #3b82f6;
-}
+/* 수정: progress-bar 제거 (감점에서는 진행률바 불필요) */
 
 .penalty-info {
   margin-top: 8px;
@@ -320,77 +288,7 @@
   text-decoration: underline;
 }
 
-.grade-criteria {
-  margin-bottom: 40px;
-}
-
-.grade-criteria h2 {
-  margin-bottom: 20px;
-  color: var(--dark-blue);
-  font-size: 24px;
-}
-
-.criteria-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
-}
-
-.criteria-item {
-  background-color: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.criteria-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.criteria-item.grade-a-plus,
-.criteria-item.grade-a {
-  border-color: #10b981;
-  background-color: #ecfdf5;
-}
-
-.criteria-item.grade-b-plus,
-.criteria-item.grade-b {
-  border-color: #3b82f6;
-  background-color: #eff6ff;
-}
-
-.criteria-item.grade-c-plus,
-.criteria-item.grade-c {
-  border-color: #f59e0b;
-  background-color: #fffbeb;
-}
-
-.criteria-item.grade-d,
-.criteria-item.grade-f {
-  border-color: #ef4444;
-  background-color: #fef2f2;
-}
-
-.grade-label {
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 4px;
-  color: var(--dark-blue);
-}
-
-.grade-range {
-  font-size: 14px;
-  color: #6b7280;
-  margin-bottom: 4px;
-}
-
-.grade-desc {
-  font-size: 12px;
-  color: #9ca3af;
-}
+/* 수정: grade-criteria 섹션 스타일 완전 제거 (등급 불필요) */
 
 .recommendations {
   margin-bottom: 40px;
@@ -545,20 +443,9 @@
   transition: height 0.3s ease;
 }
 
-.trend-bar.excellent {
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.trend-bar.good {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-}
-
-.trend-bar.warning {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.trend-bar.poor {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+/* 수정: 감점용 바 스타일 (등급별 색상 제거) */
+.trend-bar.penalty-bar {
+  background: linear-gradient(135deg, #ef4444, #dc2626); /* 감점용 빨간색 */
 }
 
 .trend-label {
@@ -574,11 +461,7 @@
   margin-bottom: 2px;
 }
 
-.trend-grade {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--primary-color);
-}
+/* 수정: trend-grade 스타일 제거 (등급 불필요) */
 
 .chart-placeholder {
   text-align: center;
@@ -688,18 +571,7 @@
     grid-template-columns: 1fr;
   }
 
-  .criteria-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-  }
-
-  .criteria-item {
-    padding: 12px 8px;
-  }
-
-  .grade-label {
-    font-size: 20px;
-  }
+  /* 수정: criteria-grid 스타일 제거 (등급 불필요) */
 
   .action-buttons {
     flex-direction: column;
@@ -714,9 +586,7 @@
 }
 
 @media (max-width: 480px) {
-  .criteria-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  /* 수정: criteria-grid 스타일 제거 */
 
   .detail-item {
     flex-direction: column;

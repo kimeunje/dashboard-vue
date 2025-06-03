@@ -1,4 +1,4 @@
-<!-- views/SecurityAuditPage.vue -->
+<!-- SecurityAuditPage.vue - KPI 감점 시스템으로 수정 -->
 <template>
   <div class="security-audit-layout">
     <!-- 모바일 메뉴 토글 버튼 -->
@@ -54,13 +54,14 @@
         <div class="page-header">
           <h1 class="page-title">정보보안 감사 현황</h1>
         </div>
+
         <!-- 로딩 상태 -->
         <div v-if="loading" class="loading-container">
           <div class="loading-spinner"></div>
           <p>데이터를 불러오는 중...</p>
         </div>
 
-        <!-- 점검 상태 대시보드 -->
+        <!-- KPI 감점 상태 대시보드 --> <!-- 수정: 점검 상태 -> KPI 감점 상태 -->
         <div class="section" v-if="dashboardStats">
           <div class="dashboard-grid">
             <!-- 정기 점검 카드 -->
@@ -92,31 +93,22 @@
                   <span class="stat-label">실패 항목</span>
                   <span class="stat-value danger">{{ dashboardStats.daily.criticalIssues }}</span>
                 </div>
-                <div class="stat-row">
-                  <span class="stat-label">미실시</span>
-                  <span class="stat-value warning">{{ dashboardStats.daily.notStarted || 0 }}</span>
-                </div>
+                <!-- 수정: 미실시/감점 통합, 감점 추가 -->
                 <div class="stat-row">
                   <span class="stat-label">감점</span>
-                  <span class="stat-value danger"
-                    >-{{ dashboardStats.manual.penaltyScore || 0 }}</span
-                  >
+                  <span class="stat-value danger">-{{ getDailyPenalty() }}점</span>
                 </div>
                 <div class="stat-row">
                   <span class="stat-label">최근 점검</span>
-                  <span class="stat-value">{{
-                    formatDate(dashboardStats.daily.lastAuditDate)
-                  }}</span>
+                  <span class="stat-value">{{ formatDate(dashboardStats.daily.lastAuditDate) }}</span>
                 </div>
               </div>
+              <!-- 수정: 진행률 바를 감점 표시로 변경 -->
               <div class="card-progress">
-                <div class="progress-bar">
-                  <div
-                    class="progress-fill daily"
-                    :style="{ width: `${getDailyPassRate()}%` }"
-                  ></div>
+                <div class="penalty-display">
+                  <span class="penalty-label">정기점검 감점:</span>
+                  <span class="penalty-value">-{{ getDailyPenalty() }}점</span>
                 </div>
-                <span class="progress-text">통과율 {{ getDailyPassRate() }}%</span>
               </div>
             </div>
 
@@ -140,86 +132,51 @@
                 </div>
                 <div class="stat-row">
                   <span class="stat-label">통과 항목</span>
-                  <span class="stat-value success">{{
-                    dashboardStats.manual.completedChecks
-                  }}</span>
+                  <span class="stat-value success">{{ dashboardStats.manual.completedChecks }}</span>
                 </div>
                 <div class="stat-row">
                   <span class="stat-label">실패 항목</span>
                   <span class="stat-value danger">{{ dashboardStats.manual.criticalIssues }}</span>
                 </div>
-                <div class="stat-row">
-                  <span class="stat-label">미실시</span>
-                  <span class="stat-value warning">{{
-                    dashboardStats.manual.notStarted || 0
-                  }}</span>
-                </div>
+                <!-- 수정: 감점 추가 -->
                 <div class="stat-row">
                   <span class="stat-label">감점</span>
-                  <span class="stat-value danger"
-                    >-{{ dashboardStats.manual.penaltyScore || 0 }}</span
-                  >
+                  <span class="stat-value danger">-{{ getManualPenalty() }}점</span>
                 </div>
                 <div class="stat-row">
                   <span class="stat-label">최근 점검</span>
-                  <span class="stat-value">{{
-                    formatDate(dashboardStats.manual.lastAuditDate)
-                  }}</span>
+                  <span class="stat-value">{{ formatDate(dashboardStats.manual.lastAuditDate) }}</span>
                 </div>
               </div>
+              <!-- 수정: 진행률 바를 감점 표시로 변경 -->
               <div class="card-progress">
-                <div class="progress-bar">
-                  <div
-                    class="progress-fill manual"
-                    :style="{ width: `${getManualPassRate()}%` }"
-                  ></div>
+                <div class="penalty-display">
+                  <span class="penalty-label">수시점검 감점:</span>
+                  <span class="penalty-value">-{{ getManualPenalty() }}점</span>
                 </div>
-                <span class="progress-text">통과율 {{ getManualPassRate() }}%</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 빠른 실행 패널 -->
-        <!-- <div class="section">
-          <h2 class="section-title">빠른 실행</h2>
-          <div class="quick-actions">
-            <div class="action-card">
-              <div class="action-icon daily">
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M11 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h6zM5 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H5z"
-                  />
-                  <path d="M8 14a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
-                </svg>
+        <!-- 총 감점 요약 --> <!-- 수정: 새로운 섹션 추가 -->
+        <div class="section" v-if="dashboardStats">
+          <div class="total-penalty-summary">
+            <h2 class="section-title">감사 항목 총 감점</h2>
+            <div class="total-penalty-card">
+              <div class="penalty-icon">⚠️</div>
+              <div class="penalty-content">
+                <div class="penalty-number">-{{ getTotalAuditPenalty() }}점</div>
+                <div class="penalty-description">
+                  정기점검 {{ getDailyPenalty() }}점 + 수시점검 {{ getManualPenalty() }}점
+                </div>
               </div>
-              <div class="action-content">
-                <h4>정기 점검 실행</h4>
-                <p>시스템에서 자동으로 실행되는 8개 항목의 정기 보안 점검</p>
-                <span class="action-status">{{
-                  dashboardStats?.daily?.lastAuditDate ? '자동 실행됨' : '아직 실행되지 않음'
-                }}</span>
-              </div>
-            </div>
-
-            <div class="action-card">
-              <div class="action-icon manual">
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"
-                  />
-                </svg>
-              </div>
-              <div class="action-content">
-                <h4>수시 점검 실행</h4>
-                <p>PC 봉인씰, 악성코드 탐지, 개인정보 암호화 등 수동 점검 항목</p>
-                <button @click="showManualCheckModal = true" class="execute-button">
-                  점검 실행
-                </button>
+              <div class="penalty-status" :class="getPenaltyStatusClass()">
+                {{ getPenaltyStatusText() }}
               </div>
             </div>
           </div>
-        </div> -->
+        </div>
 
         <!-- 주요 기능 소개 -->
         <div class="section">
@@ -235,7 +192,7 @@
               </div>
               <div class="feature-content">
                 <h3>검사결과</h3>
-                <p>실시간 보안 감사 결과와 통계를 확인하고 분석할 수 있습니다.</p>
+                <p>실시간 보안 감사 결과와 감점 현황을 확인하고 분석할 수 있습니다.</p> <!-- 수정 -->
                 <RouterLink to="/security-audit/results" class="feature-link">
                   결과 보기
                   <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
@@ -261,7 +218,7 @@
               </div>
               <div class="feature-content">
                 <h3>조치방법</h3>
-                <p>보안 문제에 대한 상세한 해결 방법과 가이드를 제공합니다.</p>
+                <p>보안 문제에 대한 상세한 해결 방법과 감점 해소 가이드를 제공합니다.</p> <!-- 수정 -->
                 <RouterLink to="/security-audit/solutions" class="feature-link">
                   조치방법 보기
                   <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
@@ -295,7 +252,6 @@ import Sidebar from '@/components/Sidebar.vue'
 import ManualCheckModal from '@/components/ManualCheckModal.vue'
 import '@/assets/styles/views/SecurityAuditPage.css'
 
-
 // Pinia Store
 const authStore = useAuthStore()
 
@@ -310,18 +266,44 @@ const sidebarRef = ref(null)
 // 계산된 속성
 const isAuthenticated = computed(() => !!authStore.user)
 
-const getDailyPassRate = () => {
+// 수정: 감점 계산 함수들 (통과율 제거)
+const getDailyPenalty = () => {
   if (!dashboardStats.value?.daily) return 0
   const stats = dashboardStats.value.daily
-  if (stats.totalChecks === 0) return 0
-  return Math.round((stats.completedChecks / stats.totalChecks) * 100)
+  // 실패 항목 수 × 0.5점
+  return ((stats.criticalIssues || 0) * 0.5).toFixed(1)
 }
 
-const getManualPassRate = () => {
+const getManualPenalty = () => {
   if (!dashboardStats.value?.manual) return 0
   const stats = dashboardStats.value.manual
-  if (stats.totalChecks === 0) return 0
-  return Math.round((stats.completedChecks / stats.totalChecks) * 100)
+  // 실패 항목 수 × 0.5점
+  return ((stats.criticalIssues || 0) * 0.5).toFixed(1)
+}
+
+// 수정: 총 감점 계산
+const getTotalAuditPenalty = () => {
+  const dailyPenalty = parseFloat(getDailyPenalty())
+  const manualPenalty = parseFloat(getManualPenalty())
+  return (dailyPenalty + manualPenalty).toFixed(1)
+}
+
+// 수정: 감점 상태 클래스
+const getPenaltyStatusClass = () => {
+  const totalPenalty = parseFloat(getTotalAuditPenalty())
+  if (totalPenalty === 0) return 'no-penalty'
+  if (totalPenalty <= 1.0) return 'low-penalty'
+  if (totalPenalty <= 2.5) return 'medium-penalty'
+  return 'high-penalty'
+}
+
+// 수정: 감점 상태 텍스트
+const getPenaltyStatusText = () => {
+  const totalPenalty = parseFloat(getTotalAuditPenalty())
+  if (totalPenalty === 0) return '우수'
+  if (totalPenalty <= 1.0) return '양호'
+  if (totalPenalty <= 2.5) return '주의'
+  return '개선필요'
 }
 
 // 메서드
