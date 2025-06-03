@@ -1,16 +1,20 @@
-# app/services/audit_service.py - KPI 감점 시스템으로 수정
+# app/services/audit_service.py - 제외 설정 반영 버전
 import json
 from datetime import datetime
 from app.utils.database import execute_query, DatabaseManager
 from app.utils.validation import validate_security_item, generate_notes
 from app.utils.constants import EXCEPTION_ITEM_NAMES
+from app.services.exception_service import ExceptionService
 
 
 class AuditService:
-    """보안 감사 관련 서비스 - KPI 감점 시스템"""
+    """보안 감사 관련 서비스 - 제외 설정 반영"""
+
+    def __init__(self):
+        self.exception_service = ExceptionService()
 
     def get_user_stats(self, username: str, check_type: str = None) -> dict:
-        """사용자별 보안 통계 데이터 조회 (감점 기준으로 수정)"""
+        """사용자별 보안 통계 데이터 조회 (제외 설정 반영)"""
         # 사용자 ID 가져오기
         user = execute_query("SELECT uid FROM users WHERE user_id = %s", (username, ),
                              fetch_one=True)
@@ -23,7 +27,7 @@ class AuditService:
         with DatabaseManager.get_db_cursor(commit=False) as cursor:
             # 체크리스트 항목 조건 설정
             if check_type:
-                checklist_condition = "WHERE check_type = %s"
+                checklist_condition = "WHERE ci.check_type = %s"
                 checklist_params = (check_type,)
                 log_condition = """
                     WHERE al.user_id = %s 
@@ -37,7 +41,7 @@ class AuditService:
                 log_params = (user_id,)
 
             # 총 체크리스트 항목 수 조회
-            cursor.execute(f"SELECT COUNT(*) as total_items FROM checklist_items {checklist_condition}", 
+            cursor.execute(f"SELECT COUNT(*) as total_items FROM checklist_items ci {checklist_condition}", 
                           checklist_params)
             total_checks = cursor.fetchone()["total_items"]
 
@@ -52,37 +56,39 @@ class AuditService:
             last_audit_result = cursor.fetchone()
             last_audit_date = last_audit_result["last_audit_date"]
 
-            # 해당 사용자가 통과한 검사 항목 수 조회
-            cursor.execute(
-                f"""
-                SELECT COUNT(DISTINCT al.item_id) as completed_checks
-                FROM audit_log al
-                LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
-                {log_condition.replace('WHERE', 'WHERE al.passed = 1 AND')}
-                """, log_params)
-            completed_checks = cursor.fetchone()["completed_checks"]
-
-            # 해당 사용자의 실패 항목 수 조회
-            cursor.execute(
-                f"""
-                SELECT COUNT(DISTINCT al.item_id) as critical_issues
-                FROM audit_log al
-                LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
-                {log_condition.replace('WHERE', 'WHERE al.passed = 0 AND')}
-                """, log_params)
-            critical_issues = cursor.fetchone()["critical_issues"]
-
-            # 수정: 감점 계산 (실패 항목별 가중치 적용)
+            # 제외 설정 반영하여 통계 계산
+            # 1. 제외되지 않은 항목들만 대상으로 계산
             cursor.execute(
                 f"""
                 SELECT 
+                    COUNT(DISTINCT al.item_id) as completed_checks,
+                    SUM(CASE WHEN al.passed = 1 THEN 1 ELSE 0 END) as passed_count,
+                    SUM(CASE WHEN al.passed = 0 THEN 1 ELSE 0 END) as failed_count,
                     SUM(CASE WHEN al.passed = 0 THEN COALESCE(ci.penalty_weight, 0.5) ELSE 0 END) as total_penalty
                 FROM audit_log al
                 LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
-                {log_condition}
+                LEFT JOIN v_active_exceptions vae ON vae.user_id = al.user_id AND vae.item_id = al.item_id
+                {log_condition.replace('WHERE', 'WHERE vae.user_id IS NULL AND')}
                 """, log_params)
-            penalty_result = cursor.fetchone()
-            total_penalty = float(penalty_result["total_penalty"] or 0)
+            
+            stats_result = cursor.fetchone()
+
+            completed_checks = stats_result["completed_checks"] or 0
+            passed_count = stats_result["passed_count"] or 0
+            failed_count = stats_result["failed_count"] or 0
+            total_penalty = float(stats_result["total_penalty"] or 0)
+
+            # 제외된 항목 수 조회
+            cursor.execute(
+                f"""
+                SELECT COUNT(DISTINCT vae.item_id) as excluded_count
+                FROM v_active_exceptions vae
+                LEFT JOIN checklist_items ci ON vae.item_id = ci.item_id
+                WHERE vae.user_id = %s
+                {('AND ci.check_type = %s' if check_type else '')}
+                """, (user_id, check_type) if check_type else (user_id,))
+            
+            excluded_count = cursor.fetchone()["excluded_count"] or 0
 
         # 날짜 포맷 변환
         formatted_date = last_audit_date.strftime("%Y-%m-%d") if last_audit_date else ""
@@ -90,14 +96,15 @@ class AuditService:
         return {
             "lastAuditDate": formatted_date,
             "totalChecks": total_checks,
-            "completedChecks": completed_checks,
-            "criticalIssues": critical_issues,
-            "totalPenalty": round(total_penalty, 1),  # 수정: 감점 추가
+            "completedChecks": passed_count,  # 통과한 항목
+            "criticalIssues": failed_count,   # 실패한 항목 (감점 대상)
+            "excludedItems": excluded_count,  # 제외된 항목
+            "totalPenalty": round(total_penalty, 1),
             "checkType": check_type
         }
 
     def get_user_logs(self, username: str, check_type: str = None) -> list:
-        """사용자별 보안 감사 로그 목록 조회 (감점 정보 포함)"""
+        """사용자별 보안 감사 로그 목록 조회 (제외 설정 정보 포함)"""
         # 사용자 ID 가져오기
         user = execute_query("SELECT uid FROM users WHERE user_id = %s", (username, ),
                              fetch_one=True)
@@ -121,14 +128,20 @@ class AuditService:
             """
             params = (user_id,)
 
-        # 수정: 감점 정보 포함하여 로그 조회
+        # 제외 설정 정보를 포함하여 로그 조회
         logs = execute_query(
             f"""
-            SELECT al.log_id, al.user_id, al.item_id, al.actual_value, al.passed, al.notes, al.checked_at,
-                   ci.check_type, ci.check_frequency, ci.penalty_weight,
-                   CASE WHEN al.passed = 0 THEN COALESCE(ci.penalty_weight, 0.5) ELSE 0 END as penalty_applied
+            SELECT 
+                al.log_id, al.user_id, al.item_id, al.actual_value, al.passed, al.notes, al.checked_at,
+                ci.check_type, ci.check_frequency, ci.penalty_weight, ci.item_name,
+                CASE WHEN al.passed = 0 AND vae.user_id IS NULL THEN COALESCE(ci.penalty_weight, 0.5) ELSE 0 END as penalty_applied,
+                vae.exception_type,
+                vae.exclude_reason,
+                vae.exclude_type,
+                CASE WHEN vae.user_id IS NOT NULL THEN 1 ELSE 0 END as is_excluded
             FROM audit_log al
             LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
+            LEFT JOIN v_active_exceptions vae ON vae.user_id = al.user_id AND vae.item_id = al.item_id
             {condition}
             """, params, fetch_all=True)
 
@@ -150,14 +163,19 @@ class AuditService:
                 "log_id": log["log_id"],
                 "user_id": log["user_id"],
                 "item_id": log["item_id"],
+                "item_name": log["item_name"],
                 "actual_value": actual_value,
                 "passed": log["passed"],
                 "notes": log["notes"],
                 "checked_at": checked_at,
                 "check_type": log["check_type"],
                 "check_frequency": log["check_frequency"],
-                "penalty_weight": float(log["penalty_weight"] or 0),  # 수정: 감점 가중치 추가
-                "penalty_applied": float(log["penalty_applied"] or 0)  # 수정: 적용된 감점 추가
+                "penalty_weight": float(log["penalty_weight"] or 0),
+                "penalty_applied": float(log["penalty_applied"] or 0),
+                "is_excluded": bool(log["is_excluded"]),
+                "exception_type": log["exception_type"],
+                "exclude_reason": log["exclude_reason"],
+                "exclude_type": log["exclude_type"]
             })
 
         return result
@@ -171,7 +189,6 @@ class AuditService:
             condition = ""
             params = ()
 
-        # 수정: penalty_weight 필드 추가
         return execute_query(
             f"""
             SELECT item_id, category, item_name as name, description, check_type, check_frequency, penalty_weight
@@ -181,7 +198,10 @@ class AuditService:
             """, params, fetch_all=True)
 
     def execute_manual_check(self, user_id: int, item_id: int, check_result: dict) -> dict:
-        """수시 점검 실행 및 결과 저장 (감점 계산 포함)"""
+        """수시 점검 실행 및 결과 저장 (제외 설정 확인)"""
+        # 제외 설정 확인
+        exception_info = self.exception_service.is_item_excluded_for_user(user_id, item_id)
+        
         # 항목 정보 확인
         item_info = execute_query(
             """
@@ -206,47 +226,46 @@ class AuditService:
         # JSON 문자열로 변환
         actual_value_json = json.dumps(actual_value, ensure_ascii=False)
 
-        # 수정: 감점 계산
-        penalty_applied = penalty_weight if passed == 0 else 0
+        # 감점 계산 (제외 설정 반영)
+        if exception_info["is_excluded"]:
+            penalty_applied = 0
+            if notes:
+                notes += f" [제외사유: {exception_info['exclude_reason']}]"
+            else:
+                notes = f"제외사유: {exception_info['exclude_reason']}"
+        else:
+            penalty_applied = penalty_weight if passed == 0 else 0
 
         # 로그 저장 (수시 점검은 매번 새로 생성)
         execute_query(
             """
-            INSERT INTO audit_log (user_id, item_id, actual_value, passed, notes)
-            VALUES (%s, %s, %s, %s, %s)
-            """, (user_id, item_id, actual_value_json, passed, notes))
+            INSERT INTO audit_log (user_id, item_id, actual_value, passed, notes, exclude_reason)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """, (user_id, item_id, actual_value_json, passed, notes, 
+                  exception_info.get('exclude_reason') if exception_info["is_excluded"] else None))
 
         return {
             "status": "success",
             "item_id": item_id,
             "item_name": item_name,
             "passed": passed,
-            "penalty_weight": penalty_weight,  # 수정: 감점 가중치 추가
-            "penalty_applied": penalty_applied,  # 수정: 적용된 감점 추가
+            "penalty_weight": penalty_weight,
+            "penalty_applied": penalty_applied,
+            "is_excluded": exception_info["is_excluded"],
+            "exclude_reason": exception_info.get("exclude_reason"),
             "log_action": "created",
             "message": "수시 점검 결과가 성공적으로 저장되었습니다."
         }
 
-    def get_manual_check_items(self) -> list:
-        """수시 점검 가능한 항목 목록 조회 (감점 가중치 포함)"""
-        # 수정: penalty_weight 필드 추가
-        return execute_query(
-            """
-            SELECT item_id, category, item_name as name, description, penalty_weight
-            FROM checklist_items
-            WHERE check_type = 'manual'
-            ORDER BY item_id ASC
-            """, fetch_all=True)
-
     def validate_check(self, data: dict) -> dict:
-        """항목 검증 및 로그 업데이트 (기존 메서드 - 정기 점검용, 감점 계산 포함)"""
+        """항목 검증 및 로그 업데이트 (제외 설정 반영)"""
         required_fields = ["user_id", "item_type", "actual_value"]
         missing_fields = [field for field in required_fields if field not in data]
 
         if missing_fields:
             raise ValueError(f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}")
 
-        # 체크리스트 항목 조회 (정기 점검만, 감점 가중치 포함)
+        # 체크리스트 항목 조회
         item_result = execute_query(
             """
             SELECT item_id, item_name, penalty_weight
@@ -260,9 +279,12 @@ class AuditService:
         user_id = data["user_id"]
         item_id = item_result["item_id"]
         item_name = item_result["item_name"]
-        penalty_weight = float(item_result["penalty_weight"] or 0.5)  # 수정: 감점 가중치
+        penalty_weight = float(item_result["penalty_weight"] or 0.5)
         actual_value = data["actual_value"]
         notes = data.get("notes", "")
+
+        # 제외 설정 확인
+        exception_info = self.exception_service.is_item_excluded_for_user(user_id, item_id)
 
         # 검증 로직
         passed = None
@@ -276,29 +298,41 @@ class AuditService:
             if notes == "":
                 notes = generate_notes(item_name, passed, actual_value)
 
+        # 제외 설정이 있는 경우 notes에 추가
+        if exception_info["is_excluded"]:
+            if notes:
+                notes += f" [제외사유: {exception_info['exclude_reason']}]"
+            else:
+                notes = f"제외사유: {exception_info['exclude_reason']}"
+
         # JSON 문자열로 변환
         actual_value_json = json.dumps(actual_value, ensure_ascii=False)
 
-        # 수정: 감점 계산
-        penalty_applied = penalty_weight if passed == 0 else 0
+        # 감점 계산 (제외 설정 반영)
+        if exception_info["is_excluded"]:
+            penalty_applied = 0
+        else:
+            penalty_applied = penalty_weight if passed == 0 else 0
 
         # 기존 로그 업데이트 또는 새로 생성
         log_action = self._update_or_create_log(user_id, item_id, actual_value_json,
-                                                passed, notes)
+                                                passed, notes, exception_info.get('exclude_reason'))
 
         return {
             "status": "success",
             "item_id": item_id,
             "item_name": item_name,
             "passed": passed,
-            "penalty_weight": penalty_weight,  # 수정: 감점 가중치 추가
-            "penalty_applied": penalty_applied,  # 수정: 적용된 감점 추가
+            "penalty_weight": penalty_weight,
+            "penalty_applied": penalty_applied,
+            "is_excluded": exception_info["is_excluded"],
+            "exclude_reason": exception_info.get("exclude_reason"),
             "log_action": log_action,
         }
 
     def _update_or_create_log(self, user_id: int, item_id: int, actual_value_json: str,
-                              passed: int, notes: str) -> str:
-        """기존 로그 업데이트 또는 새로 생성"""
+                              passed: int, notes: str, exclude_reason: str = None) -> str:
+        """기존 로그 업데이트 또는 새로 생성 (제외 사유 포함)"""
         # 오늘 날짜의 해당 항목 로그를 찾아서 업데이트
         existing_log = execute_query(
             """
@@ -314,21 +348,21 @@ class AuditService:
             execute_query(
                 """
                 UPDATE audit_log 
-                SET actual_value = %s, passed = %s, notes = %s, checked_at = NOW()
+                SET actual_value = %s, passed = %s, notes = %s, exclude_reason = %s, checked_at = NOW()
                 WHERE log_id = %s
-                """, (actual_value_json, passed, notes, existing_log["log_id"]))
+                """, (actual_value_json, passed, notes, exclude_reason, existing_log["log_id"]))
             return "updated"
         else:
-            # 새로 생성 (예외 상황)
+            # 새로 생성
             execute_query(
                 """
-                INSERT INTO audit_log (user_id, item_id, actual_value, passed, notes)
-                VALUES (%s, %s, %s, %s, %s)
-                """, (user_id, item_id, actual_value_json, passed, notes))
+                INSERT INTO audit_log (user_id, item_id, actual_value, passed, notes, exclude_reason)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """, (user_id, item_id, actual_value_json, passed, notes, exclude_reason))
             return "created"
 
     def get_penalty_summary(self, username: str, check_type: str = None) -> dict:
-        """사용자 감점 요약 조회 (새로운 메서드)"""
+        """사용자 감점 요약 조회 (제외 설정 반영)"""
         user_stats = self.get_user_stats(username, check_type)
         
         # 감점 레벨 계산
@@ -347,6 +381,24 @@ class AuditService:
             "penalty_level": penalty_level,
             "failed_items": user_stats.get("criticalIssues", 0),
             "total_items": user_stats.get("totalChecks", 0),
+            "excluded_items": user_stats.get("excludedItems", 0),
             "check_type": check_type,
             "last_audit_date": user_stats.get("lastAuditDate", "")
+        }
+
+    def get_user_exceptions_summary(self, username: str) -> dict:
+        """사용자의 제외 설정 요약"""
+        user = execute_query("SELECT uid FROM users WHERE user_id = %s", (username, ),
+                             fetch_one=True)
+        
+        if not user:
+            raise ValueError("사용자 정보를 찾을 수 없습니다.")
+
+        exceptions = self.exception_service.get_active_exceptions_for_user(user["uid"])
+        
+        return {
+            "total_exceptions": len(exceptions),
+            "user_specific": len([e for e in exceptions if e["exception_type"] == "user"]),
+            "department_based": len([e for e in exceptions if e["exception_type"] == "department"]),
+            "exceptions": exceptions
         }

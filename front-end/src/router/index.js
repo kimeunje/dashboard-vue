@@ -32,6 +32,8 @@ const SecurityEducationPage = () => import('@/views/SecurityEducationPage.vue')
 const PhishingTrainingPage = () => import('@/views/PhishingTrainingPage.vue')
 const SecurityScorePage = () => import('@/views/SecurityScorePage.vue')
 
+const AdminExceptionManagement = () => import('@/views/admin/AdminExceptionManagement.vue')
+
 // 관리자 페이지 컴포넌트 import (기존 import 섹션에 추가)
 const AdminDashboard = () => import('@/views/admin/AdminDashboard.vue')
 const AdminEducationManagement = () => import('@/views/admin/AdminEducationManagement.vue')
@@ -63,6 +65,13 @@ const routes = [
       title: '관리자 대시보드',
       requiresAuth: true,
     },
+  },
+
+  {
+    path: '/admin/exceptions',
+    name: 'AdminExceptionManagement',
+    component: AdminExceptionManagement,
+    meta: { requiresAuth: true, requiresAdmin: true }
   },
 
   // 로그인 페이지

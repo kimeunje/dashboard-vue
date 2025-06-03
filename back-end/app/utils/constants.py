@@ -101,7 +101,7 @@ DEFAULT_VERIFICATION_CODE = "123456"
 
 # 기존 TEST_USERS를 IP 기반으로 확장
 TEST_USERS = {
-    "eunjekim8": {
+    "admin": {
         "password": "1234",  # IP 인증으로 변경 후에도 유지 (호환성)
         "name": "김은제",
         "dept": "운영실",
