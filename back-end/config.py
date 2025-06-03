@@ -17,10 +17,10 @@ class Config:
     ]
 
     # 정적 파일 경로
-    # STATIC_FOLDER = os.path.join(os.path.dirname(__file__), 'app', 'static')
-    STATIC_FOLDER = os.path.join(os.path.dirname(__file__), 'static')
-    # TEMPLATE_FOLDER = os.path.join(os.path.dirname(__file__), 'app', 'templates')
-    TEMPLATE_FOLDER = os.path.join(os.path.dirname(__file__), 'templates')
+    STATIC_FOLDER = os.path.join(os.path.dirname(__file__), 'app', 'static')
+    # STATIC_FOLDER = os.path.join(os.path.dirname(__file__), 'static')
+    TEMPLATE_FOLDER = os.path.join(os.path.dirname(__file__), 'app', 'templates')
+    # TEMPLATE_FOLDER = os.path.join(os.path.dirname(__file__), 'templates')
 
     # 로그 설정
     LOG_DIR = "logs"
