@@ -1,4 +1,4 @@
-<!-- views/SecurityScorePage.vue 템플릿 부분 -->
+<!-- SecurityScorePage.vue - Template 부분 -->
 <template>
   <div class="score-page">
     <div class="page-header">
@@ -32,7 +32,7 @@
         <div class="score-circle">
           <div class="circle-chart" :class="getGradeClass(scoreData.grade)">
             <div class="circle-score">
-              <span class="score-number">{{ scoreData.total_score }}</span>
+              <span class="score-number">{{ Math.round(scoreData.total_score) }}</span>
               <span class="score-unit">점</span>
             </div>
             <div class="circle-grade">{{ scoreData.grade }}</div>
@@ -46,7 +46,7 @@
           <div class="score-details">
             <div class="detail-item">
               <span class="detail-label">상시감사 점수:</span>
-              <span class="detail-value">{{ scoreData.audit_score }}점</span>
+              <span class="detail-value">{{ Math.round(scoreData.audit_score) }}점</span>
             </div>
             <div class="detail-item">
               <span class="detail-label">교육 미이수 감점:</span>
@@ -71,19 +71,19 @@
               <h3>정보보안 감사 현황</h3>
             </div>
             <div class="card-content">
-              <div class="main-score">{{ scoreData.audit_score }}점</div>
+              <div class="main-score">{{ Math.round(scoreData.audit_score) }}점</div>
               <div class="score-detail">
                 <p>
-                  통과 항목: {{ scoreData.details.passed_audit_items }}/{{
-                    scoreData.details.total_audit_items
+                  통과 항목: {{ scoreData.education_stats?.completed_count || 0 }}/{{
+                    scoreData.education_stats?.total_count || 0
                   }}
                 </p>
-                <p>통과율: {{ scoreData.details.audit_pass_rate }}%</p>
+                <p>통과율: {{ getAuditPassRate() }}%</p>
               </div>
               <div class="progress-bar">
                 <div
                   class="progress-fill audit-progress"
-                  :style="{ width: `${scoreData.details.audit_pass_rate}%` }"
+                  :style="{ width: `${getAuditPassRate()}%` }"
                 ></div>
               </div>
             </div>
@@ -103,13 +103,11 @@
             <div class="card-content">
               <div class="main-score penalty">-{{ scoreData.education_penalty }}점</div>
               <div class="score-detail">
-                <p>미이수 횟수: {{ scoreData.education_incomplete }}회</p>
-                <p>
-                  연간 이수율: {{ Math.round(((4 - scoreData.education_incomplete) / 4) * 100) }}%
-                </p>
+                <p>미이수 횟수: {{ getEducationIncompleteCount() }}회</p>
+                <p>연간 이수율: {{ getEducationCompletionRate() }}%</p>
               </div>
               <div class="penalty-info">
-                <small>분기당 0.5점 감점</small>
+                <small>미이수시 0.5점 감점</small>
               </div>
             </div>
             <div class="card-footer">
@@ -126,8 +124,8 @@
             <div class="card-content">
               <div class="main-score penalty">-{{ scoreData.training_penalty }}점</div>
               <div class="score-detail">
-                <p>실패 횟수: {{ scoreData.training_failed }}회</p>
-                <p>연간 통과율: {{ Math.round(((4 - scoreData.training_failed) / 4) * 100) }}%</p>
+                <p>실패 횟수: {{ getTrainingFailedCount() }}회</p>
+                <p>연간 통과율: {{ getTrainingPassRate() }}%</p>
               </div>
               <div class="penalty-info">
                 <small>실패시 0.5점 감점</small>
@@ -215,9 +213,24 @@
       <div class="score-trend">
         <h2>연도별 점수 추이</h2>
         <div class="trend-chart">
-          <div class="chart-placeholder">
-            <p>점수 추이 차트가 여기에 표시됩니다.</p>
-            <small>* 향후 업데이트 예정</small>
+          <div v-if="yearlyTrend.length > 0" class="chart-container">
+            <div class="trend-bars">
+              <div v-for="yearData in yearlyTrend" :key="yearData.year" class="trend-bar-group">
+                <div class="trend-bar-container">
+                  <div
+                    class="trend-bar"
+                    :style="{ height: `${(yearData.score / 100) * 100}%` }"
+                    :class="getScoreBarClass(yearData.score)"
+                  ></div>
+                </div>
+                <div class="trend-label">{{ yearData.year }}</div>
+                <div class="trend-score">{{ Math.round(yearData.score) }}점</div>
+                <div class="trend-grade">{{ yearData.grade }}</div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="chart-placeholder">
+            <p>점수 추이 데이터를 불러오는 중...</p>
           </div>
         </div>
       </div>
@@ -255,6 +268,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { RouterLink } from 'vue-router'
+import '@/assets/styles/views/SecurityScorePage.css'
 
 // Pinia Store
 const authStore = useAuthStore()
@@ -264,6 +278,7 @@ const loading = ref(false)
 const error = ref(null)
 const scoreData = ref(null)
 const recommendations = ref([])
+const yearlyTrend = ref([])
 const selectedYear = ref(new Date().getFullYear())
 
 // 계산된 속성
@@ -289,29 +304,95 @@ const fetchSecurityScore = async () => {
     const data = await response.json()
     scoreData.value = data
 
-    // 권장사항 가져오기
-    await fetchRecommendations()
+    // 권장사항 생성
+    generateRecommendations()
+
+    // 연도별 추이 데이터 가져오기
+    await fetchYearlyTrend()
   } catch (err) {
     console.error('보안 점수 조회 실패:', err)
-    error.value = err.message
+    error.value = err.message || '점수 데이터를 불러오는 중 오류가 발생했습니다.'
   } finally {
     loading.value = false
   }
 }
 
-const fetchRecommendations = async () => {
+const fetchYearlyTrend = async () => {
   try {
-    const response = await fetch(`/api/security-dashboard/overview?year=${selectedYear.value}`, {
-      credentials: 'include',
-    })
+    const years = [selectedYear.value - 2, selectedYear.value - 1, selectedYear.value]
+    const trendData = []
 
-    if (response.ok) {
-      const data = await response.json()
-      recommendations.value = data.recommendations || []
+    for (const year of years) {
+      try {
+        const response = await fetch(`/api/security-score/summary?year=${year}`, {
+          credentials: 'include',
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          trendData.push({
+            year: year,
+            score: data.total_score,
+            grade: data.grade,
+          })
+        }
+      } catch (err) {
+        console.warn(`${year}년 데이터 조회 실패:`, err)
+      }
     }
+
+    yearlyTrend.value = trendData
   } catch (err) {
-    console.error('권장사항 조회 실패:', err)
+    console.error('연도별 추이 데이터 조회 실패:', err)
   }
+}
+
+const generateRecommendations = () => {
+  const recs = []
+
+  if (!scoreData.value) return
+
+  // 교육 미이수에 따른 권장사항
+  if (scoreData.value.education_penalty > 0) {
+    recs.push({
+      priority: 'high',
+      title: '정보보호 교육 이수',
+      description: `미이수된 교육이 ${getEducationIncompleteCount()}회 있습니다. 교육을 완료하여 감점을 해소하세요.`,
+      action_link: '/security-education',
+    })
+  }
+
+  // 모의훈련 실패에 따른 권장사항
+  if (scoreData.value.training_penalty > 0) {
+    recs.push({
+      priority: 'high',
+      title: '악성메일 대응 능력 향상',
+      description: `모의훈련에서 ${getTrainingFailedCount()}회 실패했습니다. 악성메일 식별 능력을 향상시키세요.`,
+      action_link: '/phishing-training',
+    })
+  }
+
+  // 감사 점수에 따른 권장사항
+  if (scoreData.value.audit_score < 90) {
+    recs.push({
+      priority: 'medium',
+      title: '보안 설정 개선',
+      description: '일부 보안 설정이 정책에 맞지 않습니다. 감사 결과를 확인하고 조치하세요.',
+      action_link: '/security-audit/results',
+    })
+  }
+
+  // 총 점수에 따른 일반적인 권장사항
+  if (scoreData.value.total_score < 80) {
+    recs.push({
+      priority: 'info',
+      title: '종합적인 보안 의식 개선',
+      description: '보안 점수가 낮습니다. 정기적인 보안 교육 참여와 정책 준수를 권장합니다.',
+      action_link: '/security-audit/solutions',
+    })
+  }
+
+  recommendations.value = recs
 }
 
 const getGradeClass = (grade) => {
@@ -342,6 +423,41 @@ const getScoreDescription = (grade, score) => {
   }
 }
 
+const getAuditPassRate = () => {
+  if (!scoreData.value?.audit_score) return 0
+  return Math.round(scoreData.value.audit_score)
+}
+
+const getEducationIncompleteCount = () => {
+  if (!scoreData.value?.education_stats) return 0
+  return (
+    (scoreData.value.education_stats.total_count || 0) -
+    (scoreData.value.education_stats.completed_count || 0)
+  )
+}
+
+const getEducationCompletionRate = () => {
+  if (!scoreData.value?.education_stats) return 0
+  const stats = scoreData.value.education_stats
+  if (stats.total_count === 0) return 0
+  return Math.round((stats.completed_count / stats.total_count) * 100)
+}
+
+const getTrainingFailedCount = () => {
+  if (!scoreData.value?.training_stats) return 0
+  return (
+    (scoreData.value.training_stats.total_count || 0) -
+    (scoreData.value.training_stats.passed_count || 0)
+  )
+}
+
+const getTrainingPassRate = () => {
+  if (!scoreData.value?.training_stats) return 0
+  const stats = scoreData.value.training_stats
+  if (stats.total_count === 0) return 0
+  return Math.round((stats.passed_count / stats.total_count) * 100)
+}
+
 const getPriorityText = (priority) => {
   const priorities = {
     high: '긴급',
@@ -352,14 +468,84 @@ const getPriorityText = (priority) => {
   return priorities[priority] || '일반'
 }
 
+const getScoreBarClass = (score) => {
+  if (score >= 90) return 'excellent'
+  if (score >= 80) return 'good'
+  if (score >= 70) return 'warning'
+  return 'poor'
+}
+
 const downloadReport = () => {
-  // 평가 보고서 다운로드 기능
-  alert('평가 보고서 다운로드 기능이 준비중입니다.')
+  if (!scoreData.value) return
+
+  // 간단한 보고서 텍스트 생성
+  const reportContent = `
+정보보안 평가 보고서
+=====================
+
+평가 연도: ${selectedYear.value}년
+평가 대상: ${authStore.user?.name || '사용자'}
+
+종합 점수: ${Math.round(scoreData.value.total_score)}점 (${scoreData.value.grade})
+
+점수 구성:
+- 상시감사 점수: ${Math.round(scoreData.value.audit_score)}점
+- 교육 미이수 감점: -${scoreData.value.education_penalty}점
+- 모의훈련 감점: -${scoreData.value.training_penalty}점
+
+세부 내용:
+- 교육 이수율: ${getEducationCompletionRate()}%
+- 모의훈련 통과율: ${getTrainingPassRate()}%
+- 감사 항목 통과율: ${getAuditPassRate()}%
+
+평가 결과: ${getScoreDescription(scoreData.value.grade, scoreData.value.total_score)}
+
+개선 권장사항:
+${recommendations.value.map((rec) => `- [${getPriorityText(rec.priority)}] ${rec.title}: ${rec.description}`).join('\n')}
+
+생성일: ${new Date().toLocaleDateString('ko-KR')}
+  `
+
+  // 파일 다운로드
+  const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `보안평가보고서_${selectedYear.value}_${authStore.user?.username || 'user'}.txt`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
 }
 
 const requestImprovement = () => {
-  // 개선 컨설팅 요청 기능
-  alert('개선 컨설팅 요청이 접수되었습니다. IT 보안팀에서 연락드리겠습니다.')
+  const currentScore = Math.round(scoreData.value?.total_score || 0)
+  const improvements = []
+
+  if (scoreData.value?.education_penalty > 0) {
+    improvements.push('정보보호 교육 이수')
+  }
+  if (scoreData.value?.training_penalty > 0) {
+    improvements.push('악성메일 대응 능력 향상')
+  }
+  if (scoreData.value?.audit_score < 90) {
+    improvements.push('보안 설정 개선')
+  }
+
+  const improvementText =
+    improvements.length > 0
+      ? `\n\n주요 개선 필요 사항:\n${improvements.map((item) => `- ${item}`).join('\n')}`
+      : ''
+
+  alert(`개선 컨설팅 요청이 접수되었습니다.
+
+현재 보안 점수: ${currentScore}점 (${scoreData.value?.grade || 'N/A'})${improvementText}
+
+담당자: IT 보안팀
+연락처: 내선 1234
+이메일: security@company.com
+
+2-3일 내에 담당자가 연락드려 맞춤형 개선 방안을 제시해드리겠습니다.`)
 }
 
 // 라이프사이클 훅
@@ -369,651 +555,3 @@ onMounted(() => {
   }
 })
 </script>
-
-/* SecurityScorePage.vue 스타일 */
-<style scoped>
-.score-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.page-title {
-  font-size: 28px;
-  font-weight: 600;
-  color: var(--dark-blue);
-  margin: 0;
-}
-
-.year-selector {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.year-selector label {
-  font-weight: 500;
-  color: #374151;
-}
-
-.year-selector select {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.loading-container,
-.error-container {
-  text-align: center;
-  padding: 60px 20px;
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f4f6;
-  border-top: 4px solid var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
-}
-
-.error-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.retry-button {
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-top: 16px;
-}
-
-.overall-score-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 20px;
-  padding: 40px;
-  margin-bottom: 40px;
-  display: flex;
-  align-items: center;
-  gap: 40px;
-}
-
-.score-circle {
-  flex-shrink: 0;
-}
-
-.circle-chart {
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  border: 8px solid rgba(255, 255, 255, 0.3);
-}
-
-.circle-chart.grade-a-plus,
-.circle-chart.grade-a {
-  border-color: #10b981;
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.circle-chart.grade-b-plus,
-.circle-chart.grade-b {
-  border-color: #3b82f6;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-}
-
-.circle-chart.grade-c-plus,
-.circle-chart.grade-c {
-  border-color: #f59e0b;
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.circle-chart.grade-d,
-.circle-chart.grade-f {
-  border-color: #ef4444;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-}
-
-.circle-score {
-  text-align: center;
-}
-
-.score-number {
-  font-size: 48px;
-  font-weight: 700;
-  display: block;
-  line-height: 1;
-}
-
-.score-unit {
-  font-size: 16px;
-  opacity: 0.9;
-}
-
-.circle-grade {
-  font-size: 24px;
-  font-weight: 700;
-  margin-top: 8px;
-}
-
-.score-summary {
-  flex: 1;
-}
-
-.score-summary h2 {
-  margin: 0 0 16px 0;
-  font-size: 32px;
-  font-weight: 700;
-}
-
-.score-description {
-  font-size: 18px;
-  margin: 0 0 24px 0;
-  opacity: 0.9;
-  line-height: 1.5;
-}
-
-.score-details {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.detail-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.detail-label {
-  font-size: 16px;
-  opacity: 0.9;
-}
-
-.detail-value {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.detail-value.penalty {
-  color: #fecaca;
-}
-
-.score-breakdown {
-  margin-bottom: 40px;
-}
-
-.score-breakdown h2 {
-  margin-bottom: 24px;
-  color: var(--dark-blue);
-  font-size: 24px;
-}
-
-.breakdown-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
-}
-
-.breakdown-card {
-  background-color: white;
-  border-radius: 12px;
-  border: 2px solid #e5e7eb;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.breakdown-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-.breakdown-card.audit {
-  border-top-color: #3b82f6;
-}
-
-.breakdown-card.education {
-  border-top-color: #10b981;
-}
-
-.breakdown-card.training {
-  border-top-color: #f59e0b;
-}
-
-.card-header {
-  padding: 20px 20px 0 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.card-icon {
-  font-size: 24px;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  background-color: #f3f4f6;
-}
-
-.card-header h3 {
-  margin: 0;
-  color: var(--dark-blue);
-  font-size: 18px;
-}
-
-.card-content {
-  padding: 16px 20px;
-}
-
-.main-score {
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--primary-color);
-  margin-bottom: 12px;
-}
-
-.main-score.penalty {
-  color: #ef4444;
-}
-
-.score-detail p {
-  margin: 4px 0;
-  color: #6b7280;
-  font-size: 14px;
-}
-
-.progress-bar {
-  height: 8px;
-  background-color: #f3f4f6;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-top: 12px;
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s ease;
-}
-
-.audit-progress {
-  background-color: #3b82f6;
-}
-
-.penalty-info {
-  margin-top: 8px;
-}
-
-.penalty-info small {
-  color: #ef4444;
-  font-style: italic;
-}
-
-.card-footer {
-  padding: 0 20px 20px 20px;
-}
-
-.detail-link {
-  color: var(--primary-color);
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 14px;
-}
-
-.detail-link:hover {
-  text-decoration: underline;
-}
-
-.grade-criteria {
-  margin-bottom: 40px;
-}
-
-.grade-criteria h2 {
-  margin-bottom: 20px;
-  color: var(--dark-blue);
-  font-size: 24px;
-}
-
-.criteria-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
-}
-
-.criteria-item {
-  background-color: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.criteria-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.criteria-item.grade-a-plus,
-.criteria-item.grade-a {
-  border-color: #10b981;
-  background-color: #ecfdf5;
-}
-
-.criteria-item.grade-b-plus,
-.criteria-item.grade-b {
-  border-color: #3b82f6;
-  background-color: #eff6ff;
-}
-
-.criteria-item.grade-c-plus,
-.criteria-item.grade-c {
-  border-color: #f59e0b;
-  background-color: #fffbeb;
-}
-
-.criteria-item.grade-d,
-.criteria-item.grade-f {
-  border-color: #ef4444;
-  background-color: #fef2f2;
-}
-
-.grade-label {
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 4px;
-  color: var(--dark-blue);
-}
-
-.grade-range {
-  font-size: 14px;
-  color: #6b7280;
-  margin-bottom: 4px;
-}
-
-.grade-desc {
-  font-size: 12px;
-  color: #9ca3af;
-}
-
-.recommendations {
-  margin-bottom: 40px;
-}
-
-.recommendations h2 {
-  margin-bottom: 20px;
-  color: var(--dark-blue);
-  font-size: 24px;
-}
-
-.recommendations-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.recommendation-card {
-  background-color: white;
-  border: 1px solid #e5e7eb;
-  border-left: 4px solid #6b7280;
-  border-radius: 8px;
-  padding: 20px;
-}
-
-.recommendation-card.high {
-  border-left-color: #ef4444;
-  background-color: #fef2f2;
-}
-
-.recommendation-card.medium {
-  border-left-color: #f59e0b;
-  background-color: #fffbeb;
-}
-
-.recommendation-card.low {
-  border-left-color: #3b82f6;
-  background-color: #eff6ff;
-}
-
-.recommendation-card.info {
-  border-left-color: #10b981;
-  background-color: #ecfdf5;
-}
-
-.recommendation-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.priority-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: white;
-}
-
-.priority-badge.high {
-  background-color: #ef4444;
-}
-
-.priority-badge.medium {
-  background-color: #f59e0b;
-}
-
-.priority-badge.low {
-  background-color: #3b82f6;
-}
-
-.priority-badge.info {
-  background-color: #10b981;
-}
-
-.recommendation-card h3 {
-  margin: 0;
-  color: var(--dark-blue);
-  font-size: 16px;
-}
-
-.recommendation-card p {
-  margin: 0 0 16px 0;
-  color: #6b7280;
-  line-height: 1.5;
-}
-
-.recommendation-action {
-  text-align: right;
-}
-
-.action-button {
-  color: var(--primary-color);
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 14px;
-}
-
-.action-button:hover {
-  text-decoration: underline;
-}
-
-.score-trend {
-  margin-bottom: 40px;
-}
-
-.score-trend h2 {
-  margin-bottom: 20px;
-  color: var(--dark-blue);
-  font-size: 24px;
-}
-
-.trend-chart {
-  background-color: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 40px;
-}
-
-.chart-placeholder {
-  text-align: center;
-  color: #6b7280;
-  padding: 40px;
-}
-
-.chart-placeholder p {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-}
-
-.action-section {
-  text-align: center;
-  padding: 40px 0;
-}
-
-.action-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.primary-button,
-.secondary-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
-  font-size: 16px;
-}
-
-.primary-button {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.primary-button:hover {
-  background-color: var(--dark-blue);
-  transform: translateY(-2px);
-}
-
-.secondary-button {
-  background-color: white;
-  color: var(--primary-color);
-  border: 2px solid var(--primary-color);
-}
-
-.secondary-button:hover {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-/* 반응형 디자인 */
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    gap: 15px;
-    align-items: flex-start;
-  }
-
-  .overall-score-card {
-    flex-direction: column;
-    text-align: center;
-    gap: 20px;
-    padding: 30px 20px;
-  }
-
-  .score-summary h2 {
-    font-size: 24px;
-  }
-
-  .score-description {
-    font-size: 16px;
-  }
-
-  .circle-chart {
-    width: 150px;
-    height: 150px;
-  }
-
-  .score-number {
-    font-size: 36px;
-  }
-
-  .circle-grade {
-    font-size: 20px;
-  }
-
-  .breakdown-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .criteria-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-  }
-
-  .criteria-item {
-    padding: 12px 8px;
-  }
-
-  .grade-label {
-    font-size: 20px;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-  }
-}
-
-@media (max-width: 480px) {
-  .criteria-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .detail-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-}
-</style>
