@@ -64,7 +64,7 @@
       <div class="score-breakdown">
         <h2>점수 구성 요소</h2>
         <div class="breakdown-grid">
-          <!-- 상시보안감사 -->
+          <!-- 정보보안 감사 -->
           <div class="breakdown-card audit">
             <div class="card-header">
               <div class="card-icon">🛡️</div>

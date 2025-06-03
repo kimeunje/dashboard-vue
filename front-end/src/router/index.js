@@ -50,8 +50,8 @@ const routes = [
     name: 'Home',
     component: HomePage,
     meta: {
-      title: '나이스디앤비 - 상시보안감사',
-      description: '나이스디앤비 상시보안감사 포털',
+      title: '나이스디앤비 - 정보보안 감사 시스템',
+      description: '나이스디앤비 정보보안 감사 시스템',
     },
   },
 
@@ -71,12 +71,12 @@ const routes = [
     name: 'Login',
     component: LoginPage,
     meta: {
-      title: '로그인 - 상시보안감사',
+      title: '로그인 - 정보보안 감사 시스템',
       requiresGuest: true, // 이미 로그인한 사용자는 접근 제한
     },
   },
 
-  // 상시보안감사 관련 라우트
+  // 정보보안 감사 관련 라우트
   {
     path: '/security-audit',
     name: 'SecurityAudit',
@@ -254,7 +254,7 @@ const routes = [
     name: 'Contact',
     component: ContactPage,
     meta: {
-      title: '문의하기 - 상시보안감사',
+      title: '문의하기 - 정보보안 감사 시스템',
       requiresAuth: true,
     },
   },

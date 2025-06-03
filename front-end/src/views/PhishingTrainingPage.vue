@@ -59,9 +59,9 @@
                   <span class="stat-value danger">{{ trainingData.summary.failed }}</span>
                 </div>
                 <div class="stat-row">
-                  <span class="stat-label">클릭/열람</span>
+                  <span class="stat-label">미실시</span>
                   <span class="stat-value warning">{{
-                    trainingData.summary.clicked_or_opened_count
+                    trainingData.summary.not_started || 0
                   }}</span>
                 </div>
                 <div class="stat-row">
@@ -390,7 +390,7 @@ onMounted(() => {
 }
 
 .dashboard-card.phishing-training {
-  border-left: 4px solid #f59e0b;
+  border-left: 4px solid #3b82f6;
 }
 
 .card-header {
@@ -411,7 +411,7 @@ onMounted(() => {
 }
 
 .card-icon.phishing {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
 }
 
 .card-header h3 {
@@ -486,7 +486,7 @@ onMounted(() => {
 }
 
 .progress-fill.phishing {
-  background: linear-gradient(90deg, #f59e0b, #d97706);
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
 }
 
 .progress-fill.excellent {

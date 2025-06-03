@@ -10,7 +10,7 @@ app.use(createPinia())
 app.use(router)
 
 // 전역 속성 설정 (필요한 경우)
-app.config.globalProperties.$appName = '나이스디앤비 상시보안감사'
+app.config.globalProperties.$appName = '나이스디앤비 정보보안 감사 시스템'
 app.config.globalProperties.$version = '1.0.0'
 
 // 에러 핸들링

@@ -63,6 +63,39 @@ onMounted(async () => {
 </script>
 
 <style>
+/* Noto Sans KR TTF 폰트 정의 */
+@font-face {
+  font-family: 'Noto Sans KR';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/NotoSansKR-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Noto Sans KR';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/NotoSansKR-Medium.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Noto Sans KR';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/NotoSansKR-SemiBold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Noto Sans KR';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/NotoSansKR-Bold.ttf') format('truetype');
+}
+
 /* 전역 CSS 변수 */
 :root {
   --primary-color: #4056b7;
@@ -89,16 +122,16 @@ html,
 body {
   max-width: 100vw;
   font-family:
+    'Noto Sans KR',
+    'Malgun Gothic',
+    '맑은 고딕',
     -apple-system,
     BlinkMacSystemFont,
-    Segoe UI,
+    'Apple SD Gothic Neo',
+    'Segoe UI',
     Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    Fira Sans,
-    Droid Sans,
-    Helvetica Neue,
+    'Helvetica Neue',
+    Arial,
     sans-serif;
   color: var(--text-color);
   background-color: var(--bright-bg);

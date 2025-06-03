@@ -192,7 +192,7 @@
               <div class="info-icon">🎯</div>
               <h3>평가 기준</h3>
               <ul>
-                <li>온라인: 미수료율 기준 평가</li>
+                <li>온라인: 미수료율 기준 평가(0% 초과 감점)</li>
                 <li>오프라인: 참석 여부 평가</li>
                 <li>미이수시 감점 적용</li>
                 <li>제외 대상자는 감점 면제</li>
@@ -545,7 +545,7 @@ onMounted(() => {
 }
 
 .dashboard-card.education-check {
-  border-left: 4px solid #8b5cf6;
+  border-left: 4px solid #3b82f6;
 }
 
 .card-header {
@@ -566,7 +566,7 @@ onMounted(() => {
 }
 
 .card-icon.education {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
 }
 
 .card-header h3 {
@@ -641,7 +641,7 @@ onMounted(() => {
 }
 
 .progress-fill.education {
-  background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
 }
 
 .progress-fill.excellent {

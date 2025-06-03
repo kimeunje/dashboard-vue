@@ -3,7 +3,7 @@
   <div class="login-container">
     <div class="login-card">
       <div class="login-header">
-        <h1>상시보안감사</h1>
+        <h1>정보보안 감사 시스템</h1>
         <p v-if="loginStep === 'ip_check'">IP 기반 자동 인증</p>
         <p v-else-if="loginStep === 'verification'">이메일 인증</p>
       </div>
@@ -50,7 +50,7 @@
                 d="M8.47 2.47a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1-1.06 1.06L9.75 4.81V15a.75.75 0 0 1-1.5 0V4.81L5.03 8.03a.75.75 0 0 1-1.06-1.06l4.5-4.5Z"
               />
             </svg>
-            <p class="help-text">접근이 거부될 경우 IT팀(내선 1111)에 문의하세요.</p>
+            <p class="help-text">접근이 거부될 경우 운영실(내선 2533)에 문의하세요.</p>
           </div>
         </div>
       </div>
@@ -200,7 +200,7 @@ const handleIpAuthentication = async () => {
       err.message.includes('허용되지 않은') ||
       err.message.includes('등록된 사용자를 찾을 수 없습니다')
     ) {
-      error.value += ' IT팀에 IP 등록을 요청하세요.'
+      error.value += ' 운영실에 IP 등록을 요청하세요.'
     }
   } finally {
     loading.value = false

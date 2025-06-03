@@ -30,7 +30,7 @@
             </svg>
           </div>
           <h2>인증이 필요합니다</h2>
-          <p>상시보안감사 페이지에 접근하려면 로그인이 필요합니다.</p>
+          <p>정보보안 감사 시스템에 접근하려면 로그인이 필요합니다.</p>
           <div class="auth-actions">
             <RouterLink to="/login" class="login-button">
               <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -93,6 +93,16 @@
                   <span class="stat-value danger">{{ dashboardStats.daily.criticalIssues }}</span>
                 </div>
                 <div class="stat-row">
+                  <span class="stat-label">미실시</span>
+                  <span class="stat-value warning">{{ dashboardStats.daily.notStarted || 0 }}</span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">감점</span>
+                  <span class="stat-value danger"
+                    >-{{ dashboardStats.manual.penaltyScore || 0 }}</span
+                  >
+                </div>
+                <div class="stat-row">
                   <span class="stat-label">최근 점검</span>
                   <span class="stat-value">{{
                     formatDate(dashboardStats.daily.lastAuditDate)
@@ -137,6 +147,18 @@
                 <div class="stat-row">
                   <span class="stat-label">실패 항목</span>
                   <span class="stat-value danger">{{ dashboardStats.manual.criticalIssues }}</span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">미실시</span>
+                  <span class="stat-value warning">{{
+                    dashboardStats.manual.notStarted || 0
+                  }}</span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">감점</span>
+                  <span class="stat-value danger"
+                    >-{{ dashboardStats.manual.penaltyScore || 0 }}</span
+                  >
                 </div>
                 <div class="stat-row">
                   <span class="stat-label">최근 점검</span>
@@ -575,6 +597,10 @@ onMounted(() => {
 
 .stat-value.danger {
   color: #ef4444;
+}
+
+.stat-value.warning {
+  color: #f59e0b;
 }
 
 .card-progress {

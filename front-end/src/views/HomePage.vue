@@ -15,7 +15,6 @@
       </svg>
     </button>
 
-
     <!-- 메인 콘텐츠 -->
     <main class="main-content">
       <div v-if="!authStore.user" class="not-authenticated">
@@ -28,7 +27,7 @@
             </svg>
           </div>
           <h2>인증이 필요합니다</h2>
-          <p>공통 정보보안 시스템에 접근하려면 로그인이 필요합니다.</p>
+          <p>정보보안 감사 시스템에 접근하려면 로그인이 필요합니다.</p>
           <div class="auth-actions">
             <RouterLink to="/login" class="login-button">
               <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -49,7 +48,6 @@
 
       <!-- 인증된 사용자용 콘텐츠 -->
       <div v-else>
-
         <!-- 로딩 상태 -->
         <div v-if="loading" class="loading-container">
           <div class="loading-spinner"></div>
@@ -70,7 +68,7 @@
               </svg>
             </div>
             <div class="welcome-content">
-              <h2>공통 정보보안 시스템에 오신 것을 환영합니다</h2>
+              <h2>정보보안 감사 시스템에 오신 것을 환영합니다</h2>
               <p>
                 {{ authStore.user.name }}님, 조직의 보안 정책 준수를 위한 체계적인 감사 도구를
                 활용하여 시스템의 보안 상태를 점검하고 개선하세요.
@@ -78,8 +76,6 @@
             </div>
           </div>
         </div>
-
-
 
         <!-- 수시 점검 모달 -->
         <ManualCheckModal
@@ -208,8 +204,12 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* 인증 관련 스타일 */
