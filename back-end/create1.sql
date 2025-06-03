@@ -238,14 +238,14 @@ CREATE TABLE IF NOT EXISTS `security_score_summary` (
 -- 테이블 데이터 patch_management.security_score_summary:~8 rows (대략적) 내보내기
 DELETE FROM `security_score_summary`;
 INSERT INTO `security_score_summary` (`summary_id`, `user_id`, `evaluation_year`, `audit_penalty`, `education_penalty`, `training_penalty`, `total_penalty`, `audit_failed_count`, `education_incomplete_count`, `training_failed_count`, `last_calculated`, `created_at`) VALUES
-	(1, 3, 2025, 3.00, 1.00, 0.50, 4.50, 6, 2, 1, '2025-06-03 15:02:29', '2025-06-03 12:52:56'),
-	(2, 3, 2023, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 15:02:29', '2025-06-03 12:52:56'),
-	(3, 3, 2024, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-03 15:02:29', '2025-06-03 12:52:56'),
+	(1, 3, 2025, 3.00, 1.00, 0.50, 4.50, 6, 2, 1, '2025-06-03 15:57:43', '2025-06-03 12:52:56'),
+	(2, 3, 2023, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 15:57:43', '2025-06-03 12:52:56'),
+	(3, 3, 2024, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-03 15:57:43', '2025-06-03 12:52:56'),
 	(10, 3, 2022, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 13:46:57', '2025-06-03 12:54:03'),
 	(57, 3, 2026, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 13:47:01', '2025-06-03 13:46:58'),
-	(116, 5, 2025, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 15:44:26', '2025-06-03 15:02:34'),
-	(117, 5, 2023, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 15:44:26', '2025-06-03 15:02:34'),
-	(118, 5, 2024, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 15:44:26', '2025-06-03 15:02:34');
+	(116, 5, 2025, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 15:56:23', '2025-06-03 15:02:34'),
+	(117, 5, 2023, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 15:56:23', '2025-06-03 15:02:34'),
+	(118, 5, 2024, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 15:56:23', '2025-06-03 15:02:34');
 
 -- 테이블 patch_management.users 구조 내보내기
 DROP TABLE IF EXISTS `users`;
@@ -337,11 +337,13 @@ CREATE TABLE IF NOT EXISTS `user_item_exceptions` (
   CONSTRAINT `fk_exception_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 감사 항목 제외 설정';
 
--- 테이블 데이터 patch_management.user_item_exceptions:~2 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.user_item_exceptions:~4 rows (대략적) 내보내기
 DELETE FROM `user_item_exceptions`;
 INSERT INTO `user_item_exceptions` (`exception_id`, `user_id`, `item_id`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`, `item_type`, `item_name`, `item_category`) VALUES
 	(1, 3, 8, '개발자는 원격 데스크톱 접근이 필요함', 'permanent', NULL, NULL, 'admin', '2025-06-03 14:45:53', '2025-06-03 15:33:51', 1, 'audit', '원격데스크톱 제한', '접근통제'),
-	(2, 3, 7, '개발 환경에서 공유폴더 필요', 'permanent', NULL, NULL, 'admin', '2025-06-03 14:45:53', '2025-06-03 15:33:51', 1, 'audit', '공유폴더 확인', '접근통제');
+	(2, 3, 7, '개발 환경에서 공유폴더 필요', 'permanent', NULL, NULL, 'admin', '2025-06-03 14:45:53', '2025-06-03 15:33:51', 1, 'audit', '공유폴더 확인', '접근통제'),
+	(3, 3, 5, 'ㅈㅊㅈㅂㅊㅈㅂㅇㅊ', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:55:44', '2025-06-03 15:55:44', 1, 'audit', '패스워드 주기적 변경', '접근통제'),
+	(4, 3, 2, 'testset', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:58:20', '2025-06-03 15:58:20', 1, 'audit', '백신 상태 확인', '악성코드');
 
 -- 뷰 patch_management.v_active_exceptions 구조 내보내기
 DROP VIEW IF EXISTS `v_active_exceptions`;
