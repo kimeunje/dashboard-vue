@@ -101,12 +101,12 @@ DEFAULT_VERIFICATION_CODE = "123456"
 
 # 기존 TEST_USERS를 IP 기반으로 확장
 TEST_USERS = {
-    "admin": {
+    "eunjekim8": {
         "password": "1234",  # IP 인증으로 변경 후에도 유지 (호환성)
         "name": "김은제",
         "dept": "운영실",
         "email": "eunjekim8@nicednb.com",
-        "allowed_ips": ["10.106.15.129", "172.30.1.38", "127.0.0.1"]  # 허용된 IP 목록
+        "allowed_ips": ["10.106.15.129", "172.19.48.1", "172.30.1.38"]  # 허용된 IP 목록
     },
     "parkchul": {
         "password": "1234",
@@ -128,7 +128,7 @@ TEST_USERS = {
         "dept": "IT팀",
         "email": "admin@test.com",
         "role": "admin",
-        "allowed_ips": ["192.168.1.200", "10.106.25.200", "127.0.0.1"]
+        "allowed_ips": ["192.168.1.200", "10.106.25.200", "127.0.0.1",]
     },
 }
 

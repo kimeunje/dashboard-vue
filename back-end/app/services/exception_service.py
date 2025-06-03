@@ -1,30 +1,31 @@
-# app/services/exception_service.py
+# app/services/exception_service.py - 수정된 버전
 from datetime import datetime, date
 from typing import List, Dict, Optional
 from app.utils.database import execute_query, DatabaseManager
 
 
 class ExceptionService:
-    """사용자별/부서별 감사 항목 제외 설정 관리 서비스 - 개선된 버전"""
+    """사용자별/부서별 감사 항목 제외 설정 관리 서비스 - 확장된 버전"""
 
     def get_user_exceptions(
         self, user_id: int = None, item_id: int = None
     ) -> List[Dict]:
-        """사용자별 제외 설정 조회"""
-        conditions = ["uie.is_active = 1"]
-        params = []
+        """사용자별 제외 설정 조회 (확장된 테이블 포함)"""
+        # 기존 감사 항목 제외 설정
+        audit_conditions = ["uie.is_active = 1"]
+        audit_params = []
 
         if user_id:
-            conditions.append("uie.user_id = %s")
-            params.append(user_id)
+            audit_conditions.append("uie.user_id = %s")
+            audit_params.append(user_id)
 
         if item_id:
-            conditions.append("uie.item_id = %s")
-            params.append(item_id)
+            audit_conditions.append("uie.item_id = %s")
+            audit_params.append(item_id)
 
-        where_clause = " AND ".join(conditions)
+        audit_where_clause = " AND ".join(audit_conditions)
 
-        return execute_query(
+        audit_exceptions = execute_query(
             f"""
             SELECT 
                 uie.exception_id,
@@ -32,8 +33,8 @@ class ExceptionService:
                 u.user_id as user_login_id,
                 u.username,
                 u.department,
-                uie.item_id,
-                uie.item_type,
+                CAST(uie.item_id AS CHAR) as item_id,
+                'audit_item' as item_type,
                 uie.item_name,
                 uie.item_category,
                 uie.exclude_reason,
@@ -45,103 +46,153 @@ class ExceptionService:
                 uie.updated_at
             FROM user_item_exceptions uie
             JOIN users u ON uie.user_id = u.uid
-            WHERE {where_clause}
-            ORDER BY u.username, uie.item_type, uie.item_name
+            WHERE {audit_where_clause}
             """,
-            params,
+            audit_params,
             fetch_all=True,
         )
 
-    def search_users(
-        self, search_query: str = "", department: str = "", limit: int = 50
-    ) -> List[Dict]:
-        """사용자 검색 (개선된 버전)"""
-        conditions = []
-        params = []
+        # 확장된 제외 설정 (교육/훈련)
+        extended_conditions = ["uee.is_active = 1"]
+        extended_params = []
 
-        if search_query:
-            conditions.append(
-                "(u.username LIKE %s OR u.user_id LIKE %s OR u.mail LIKE %s)"
-            )
-            search_pattern = f"%{search_query}%"
-            params.extend([search_pattern, search_pattern, search_pattern])
+        if user_id:
+            extended_conditions.append("uee.user_id = %s")
+            extended_params.append(user_id)
+
+        extended_where_clause = " AND ".join(extended_conditions)
+
+        extended_exceptions = execute_query(
+            f"""
+            SELECT 
+                uee.exception_id,
+                uee.user_id,
+                u.user_id as user_login_id,
+                u.username,
+                u.department,
+                uee.item_id,
+                uee.item_type,
+                uee.item_name,
+                uee.item_category,
+                uee.exclude_reason,
+                uee.exclude_type,
+                uee.start_date,
+                uee.end_date,
+                uee.created_by,
+                uee.created_at,
+                uee.updated_at
+            FROM user_extended_exceptions uee
+            JOIN users u ON uee.user_id = u.uid
+            WHERE {extended_where_clause}
+            """,
+            extended_params,
+            fetch_all=True,
+        )
+
+        # 결과 합치기
+        all_exceptions = audit_exceptions + extended_exceptions
+        all_exceptions.sort(
+            key=lambda x: (x["username"], x["item_type"], x["item_name"])
+        )
+
+        return all_exceptions
+
+    def get_department_exceptions(
+        self, department: str = None, item_id: int = None
+    ) -> List[Dict]:
+        """부서별 제외 설정 조회 (확장된 테이블 포함)"""
+        # 기존 감사 항목 제외 설정
+        audit_conditions = ["die.is_active = 1"]
+        audit_params = []
 
         if department:
-            conditions.append("u.department = %s")
-            params.append(department)
-
-        where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
-
-        return execute_query(
-            f"""
-            SELECT uid, user_id, username, department, mail
-            FROM users u
-            {where_clause}
-            ORDER BY u.username
-            LIMIT %s
-            """,
-            params + [limit],
-            fetch_all=True,
-        )
-
-
-from datetime import datetime, date
-from typing import List, Dict, Optional
-from app.utils.database import execute_query, DatabaseManager
-
-
-class ExceptionService:
-    """사용자별/부서별 감사 항목 제외 설정 관리 서비스 - 개선된 버전"""
-
-    def get_user_exceptions(
-        self, user_id: int = None, item_id: int = None
-    ) -> List[Dict]:
-        """사용자별 제외 설정 조회"""
-        conditions = ["uie.is_active = 1"]
-        params = []
-
-        if user_id:
-            conditions.append("uie.user_id = %s")
-            params.append(user_id)
+            audit_conditions.append("die.department = %s")
+            audit_params.append(department)
 
         if item_id:
-            conditions.append("uie.item_id = %s")
-            params.append(item_id)
+            audit_conditions.append("die.item_id = %s")
+            audit_params.append(item_id)
 
-        where_clause = " AND ".join(conditions)
+        audit_where_clause = " AND ".join(audit_conditions)
 
-        return execute_query(
+        audit_exceptions = execute_query(
             f"""
             SELECT 
-                uie.exception_id,
-                uie.user_id,
-                u.user_id as user_login_id,
-                u.username,
-                u.department,
-                uie.item_id,
-                uie.item_type,
-                uie.item_name,
-                uie.item_category,
-                uie.exclude_reason,
-                uie.exclude_type,
-                uie.start_date,
-                uie.end_date,
-                uie.created_by,
-                uie.created_at,
-                uie.updated_at
-            FROM user_item_exceptions uie
-            JOIN users u ON uie.user_id = u.uid
-            WHERE {where_clause}
-            ORDER BY u.username, uie.item_type, uie.item_name
+                die.dept_exception_id,
+                die.department,
+                CAST(die.item_id AS CHAR) as item_id,
+                'audit_item' as item_type,
+                die.item_name,
+                die.item_category,
+                die.exclude_reason,
+                die.exclude_type,
+                die.start_date,
+                die.end_date,
+                die.created_by,
+                die.created_at,
+                die.updated_at,
+                COUNT(u.uid) as affected_users
+            FROM department_item_exceptions die
+            LEFT JOIN users u ON die.department = u.department
+            WHERE {audit_where_clause}
+            GROUP BY die.dept_exception_id, die.department, die.item_id,
+                     die.item_name, die.item_category, die.exclude_reason, die.exclude_type,
+                     die.start_date, die.end_date, die.created_by, die.created_at, die.updated_at
             """,
-            params,
+            audit_params,
             fetch_all=True,
         )
+
+        # 확장된 제외 설정 (교육/훈련)
+        extended_conditions = ["dee.is_active = 1"]
+        extended_params = []
+
+        if department:
+            extended_conditions.append("dee.department = %s")
+            extended_params.append(department)
+
+        extended_where_clause = " AND ".join(extended_conditions)
+
+        extended_exceptions = execute_query(
+            f"""
+            SELECT 
+                dee.dept_exception_id,
+                dee.department,
+                dee.item_id,
+                dee.item_type,
+                dee.item_name,
+                dee.item_category,
+                dee.exclude_reason,
+                dee.exclude_type,
+                dee.start_date,
+                dee.end_date,
+                dee.created_by,
+                dee.created_at,
+                dee.updated_at,
+                COUNT(u.uid) as affected_users
+            FROM department_extended_exceptions dee
+            LEFT JOIN users u ON dee.department = u.department
+            WHERE {extended_where_clause}
+            GROUP BY dee.dept_exception_id, dee.department, dee.item_id, dee.item_type,
+                     dee.item_name, dee.item_category, dee.exclude_reason, dee.exclude_type,
+                     dee.start_date, dee.end_date, dee.created_by, dee.created_at, dee.updated_at
+            """,
+            extended_params,
+            fetch_all=True,
+        )
+
+        # 결과 합치기
+        all_exceptions = audit_exceptions + extended_exceptions
+        all_exceptions.sort(
+            key=lambda x: (x["department"], x["item_type"], x["item_name"])
+        )
+
+        return all_exceptions
 
     def search_users(
         self, search_query: str = "", department: str = "", limit: int = 50
     ) -> List[Dict]:
-        """사용자 검색 (개선된 버전)"""
+        """사용자 검색"""
         conditions = []
         params = []
 
@@ -224,52 +275,6 @@ class ExceptionService:
             "악성메일 모의훈련": training_items,
         }
 
-    def get_department_exceptions(
-        self, department: str = None, item_id: int = None
-    ) -> List[Dict]:
-        """부서별 제외 설정 조회"""
-        conditions = ["die.is_active = 1"]
-        params = []
-
-        if department:
-            conditions.append("die.department = %s")
-            params.append(department)
-
-        if item_id:
-            conditions.append("die.item_id = %s")
-            params.append(item_id)
-
-        where_clause = " AND ".join(conditions)
-
-        return execute_query(
-            f"""
-            SELECT 
-                die.dept_exception_id,
-                die.department,
-                die.item_id,
-                ci.item_name,
-                ci.category,
-                die.exclude_reason,
-                die.exclude_type,
-                die.start_date,
-                die.end_date,
-                die.created_by,
-                die.created_at,
-                die.updated_at,
-                COUNT(u.uid) as affected_users
-            FROM department_item_exceptions die
-            JOIN checklist_items ci ON die.item_id = ci.item_id
-            LEFT JOIN users u ON die.department = u.department
-            WHERE {where_clause}
-            GROUP BY die.dept_exception_id, die.department, die.item_id, ci.item_name, ci.category,
-                     die.exclude_reason, die.exclude_type, die.start_date, die.end_date,
-                     die.created_by, die.created_at, die.updated_at
-            ORDER BY die.department, ci.item_name
-            """,
-            params,
-            fetch_all=True,
-        )
-
     def get_active_exceptions_for_user(self, user_id: int) -> List[Dict]:
         """특정 사용자에게 적용되는 모든 유효한 제외 설정 조회"""
         return execute_query(
@@ -323,143 +328,257 @@ class ExceptionService:
     def add_user_exception(
         self,
         user_id: int,
-        item_id: int,
+        item_type: str,
+        item_name: str,
         exclude_reason: str,
         exclude_type: str = "permanent",
         start_date: date = None,
         end_date: date = None,
         created_by: str = "admin",
     ) -> Dict:
-        """사용자별 제외 설정 추가"""
+        """사용자별 제외 설정 추가 (확장된 버전)"""
         try:
-            # 기존 설정 확인
-            existing = execute_query(
-                "SELECT exception_id FROM user_item_exceptions WHERE user_id = %s AND item_id = %s",
-                (user_id, item_id),
-                fetch_one=True,
-            )
-            print("HELLO")
-            if existing:
-                # 기존 설정 업데이트
-                execute_query(
-                    """
-                    UPDATE user_item_exceptions 
-                    SET exclude_reason = %s, exclude_type = %s, start_date = %s, 
-                        end_date = %s, created_by = %s, is_active = 1, updated_at = NOW()
-                    WHERE user_id = %s AND item_id = %s
-                    """,
-                    (
-                        exclude_reason,
-                        exclude_type,
-                        start_date,
-                        end_date,
-                        created_by,
-                        user_id,
-                        item_id,
-                    ),
+            # item_type에 따라 적절한 테이블과 item_id 결정
+            if item_type.startswith("audit_"):
+                # 감사 항목 처리
+                item_id = int(item_type.replace("audit_", ""))
+                return self._add_user_audit_exception(
+                    user_id,
+                    item_id,
+                    item_name,
+                    exclude_reason,
+                    exclude_type,
+                    start_date,
+                    end_date,
+                    created_by,
                 )
-
-                return {
-                    "success": True,
-                    "message": "기존 제외 설정이 업데이트되었습니다.",
-                    "action": "updated",
-                }
             else:
-                # 새 설정 추가
-                execute_query(
-                    """
-                    INSERT INTO user_item_exceptions 
-                    (user_id, item_id, exclude_reason, exclude_type, start_date, end_date, created_by)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (
-                        user_id,
-                        item_id,
-                        exclude_reason,
-                        exclude_type,
-                        start_date,
-                        end_date,
-                        created_by,
-                    ),
+                # 교육/훈련 항목 처리
+                return self._add_user_extended_exception(
+                    user_id,
+                    item_type,
+                    item_name,
+                    exclude_reason,
+                    exclude_type,
+                    start_date,
+                    end_date,
+                    created_by,
                 )
-
-                return {
-                    "success": True,
-                    "message": "새로운 제외 설정이 추가되었습니다.",
-                    "action": "created",
-                }
 
         except Exception as e:
             return {"success": False, "message": f"제외 설정 추가 실패: {str(e)}"}
 
+    def _add_user_audit_exception(
+        self,
+        user_id: int,
+        item_id: int,
+        item_name: str,
+        exclude_reason: str,
+        exclude_type: str,
+        start_date: date,
+        end_date: date,
+        created_by: str,
+    ) -> Dict:
+        """감사 항목 사용자별 제외 설정 추가"""
+        # 항목 정보 조회
+        item_info = execute_query(
+            "SELECT item_name, category FROM checklist_items WHERE item_id = %s",
+            (item_id,),
+            fetch_one=True,
+        )
+
+        if not item_info:
+            return {"success": False, "message": "존재하지 않는 감사 항목입니다."}
+
+        # 기존 설정 확인
+        existing = execute_query(
+            "SELECT exception_id FROM user_item_exceptions WHERE user_id = %s AND item_id = %s",
+            (user_id, item_id),
+            fetch_one=True,
+        )
+
+        if existing:
+            # 기존 설정 업데이트
+            execute_query(
+                """
+                UPDATE user_item_exceptions 
+                SET exclude_reason = %s, exclude_type = %s, start_date = %s, 
+                    end_date = %s, created_by = %s, is_active = 1, updated_at = NOW(),
+                    item_name = %s, item_category = %s
+                WHERE user_id = %s AND item_id = %s
+                """,
+                (
+                    exclude_reason,
+                    exclude_type,
+                    start_date,
+                    end_date,
+                    created_by,
+                    item_info["item_name"],
+                    item_info["category"],
+                    user_id,
+                    item_id,
+                ),
+            )
+            return {
+                "success": True,
+                "message": "기존 제외 설정이 업데이트되었습니다.",
+                "action": "updated",
+            }
+        else:
+            # 새 설정 추가
+            execute_query(
+                """
+                INSERT INTO user_item_exceptions 
+                (user_id, item_id, exclude_reason, exclude_type, start_date, end_date, 
+                 created_by, item_name, item_category, item_type)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'audit')
+                """,
+                (
+                    user_id,
+                    item_id,
+                    exclude_reason,
+                    exclude_type,
+                    start_date,
+                    end_date,
+                    created_by,
+                    item_info["item_name"],
+                    item_info["category"],
+                ),
+            )
+            return {
+                "success": True,
+                "message": "새로운 제외 설정이 추가되었습니다.",
+                "action": "created",
+            }
+
+    def _add_user_extended_exception(
+        self,
+        user_id: int,
+        item_type: str,
+        item_name: str,
+        exclude_reason: str,
+        exclude_type: str,
+        start_date: date,
+        end_date: date,
+        created_by: str,
+    ) -> Dict:
+        """교육/훈련 항목 사용자별 제외 설정 추가"""
+        # item_type에 따른 카테고리 결정
+        if item_type.startswith("education_"):
+            category = "정보보호 교육"
+        elif item_type.startswith("training_"):
+            category = "악성메일 모의훈련"
+        else:
+            return {"success": False, "message": "알 수 없는 항목 유형입니다."}
+
+        # 기존 설정 확인
+        existing = execute_query(
+            "SELECT exception_id FROM user_extended_exceptions WHERE user_id = %s AND item_id = %s",
+            (user_id, item_type),
+            fetch_one=True,
+        )
+
+        if existing:
+            # 기존 설정 업데이트
+            execute_query(
+                """
+                UPDATE user_extended_exceptions 
+                SET exclude_reason = %s, exclude_type = %s, start_date = %s, 
+                    end_date = %s, created_by = %s, is_active = 1, updated_at = NOW(),
+                    item_name = %s, item_category = %s
+                WHERE user_id = %s AND item_id = %s
+                """,
+                (
+                    exclude_reason,
+                    exclude_type,
+                    start_date,
+                    end_date,
+                    created_by,
+                    item_name,
+                    category,
+                    user_id,
+                    item_type,
+                ),
+            )
+            return {
+                "success": True,
+                "message": "기존 제외 설정이 업데이트되었습니다.",
+                "action": "updated",
+            }
+        else:
+            # 새 설정 추가
+            if item_type.startswith("education_"):
+                db_item_type = "education_period"
+            elif item_type.startswith("training_"):
+                db_item_type = "training_period"
+            else:
+                db_item_type = "audit_item"
+
+            execute_query(
+                """
+                INSERT INTO user_extended_exceptions 
+                (user_id, item_id, item_type, item_name, item_category, exclude_reason, 
+                 exclude_type, start_date, end_date, created_by)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    user_id,
+                    item_type,
+                    db_item_type,
+                    item_name,
+                    category,
+                    exclude_reason,
+                    exclude_type,
+                    start_date,
+                    end_date,
+                    created_by,
+                ),
+            )
+            return {
+                "success": True,
+                "message": "새로운 제외 설정이 추가되었습니다.",
+                "action": "created",
+            }
+
     def add_department_exception(
         self,
         department: str,
-        item_id: int,
+        item_type: str,
+        item_name: str,
         exclude_reason: str,
         exclude_type: str = "permanent",
         start_date: date = None,
         end_date: date = None,
         created_by: str = "admin",
     ) -> Dict:
-        """부서별 제외 설정 추가"""
+        """부서별 제외 설정 추가 (확장된 버전)"""
         try:
-            # 기존 설정 확인
-            existing = execute_query(
-                "SELECT dept_exception_id FROM department_item_exceptions WHERE department = %s AND item_id = %s",
-                (department, item_id),
-                fetch_one=True,
-            )
-
-            if existing:
-                # 기존 설정 업데이트
-                execute_query(
-                    """
-                    UPDATE department_item_exceptions 
-                    SET exclude_reason = %s, exclude_type = %s, start_date = %s, 
-                        end_date = %s, created_by = %s, is_active = 1, updated_at = NOW()
-                    WHERE department = %s AND item_id = %s
-                    """,
-                    (
-                        exclude_reason,
-                        exclude_type,
-                        start_date,
-                        end_date,
-                        created_by,
-                        department,
-                        item_id,
-                    ),
+            # item_type에 따라 적절한 테이블과 item_id 결정
+            if item_type.startswith("audit_"):
+                # 감사 항목 처리
+                item_id = int(item_type.replace("audit_", ""))
+                return self._add_department_audit_exception(
+                    department,
+                    item_id,
+                    item_name,
+                    exclude_reason,
+                    exclude_type,
+                    start_date,
+                    end_date,
+                    created_by,
                 )
-
-                return {
-                    "success": True,
-                    "message": "기존 부서별 제외 설정이 업데이트되었습니다.",
-                    "action": "updated",
-                }
             else:
-                # 새 설정 추가
-                execute_query(
-                    """
-                    INSERT INTO department_item_exceptions 
-                    (department, item_id, exclude_reason, exclude_type, start_date, end_date, created_by)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (
-                        department,
-                        item_id,
-                        exclude_reason,
-                        exclude_type,
-                        start_date,
-                        end_date,
-                        created_by,
-                    ),
+                # 교육/훈련 항목 처리
+                return self._add_department_extended_exception(
+                    department,
+                    item_type,
+                    item_name,
+                    exclude_reason,
+                    exclude_type,
+                    start_date,
+                    end_date,
+                    created_by,
                 )
-
-                return {
-                    "success": True,
-                    "message": "새로운 부서별 제외 설정이 추가되었습니다.",
-                    "action": "created",
-                }
 
         except Exception as e:
             return {
@@ -467,13 +586,194 @@ class ExceptionService:
                 "message": f"부서별 제외 설정 추가 실패: {str(e)}",
             }
 
-    def remove_user_exception(self, user_id: int, item_id: int) -> Dict:
-        """사용자별 제외 설정 제거"""
-        try:
-            result = execute_query(
-                "UPDATE user_item_exceptions SET is_active = 0 WHERE user_id = %s AND item_id = %s",
-                (user_id, item_id),
+    def _add_department_audit_exception(
+        self,
+        department: str,
+        item_id: int,
+        item_name: str,
+        exclude_reason: str,
+        exclude_type: str,
+        start_date: date,
+        end_date: date,
+        created_by: str,
+    ) -> Dict:
+        """감사 항목 부서별 제외 설정 추가"""
+        # 항목 정보 조회
+        item_info = execute_query(
+            "SELECT item_name, category FROM checklist_items WHERE item_id = %s",
+            (item_id,),
+            fetch_one=True,
+        )
+
+        if not item_info:
+            return {"success": False, "message": "존재하지 않는 감사 항목입니다."}
+
+        # 기존 설정 확인
+        existing = execute_query(
+            "SELECT dept_exception_id FROM department_item_exceptions WHERE department = %s AND item_id = %s",
+            (department, item_id),
+            fetch_one=True,
+        )
+
+        if existing:
+            # 기존 설정 업데이트
+            execute_query(
+                """
+                UPDATE department_item_exceptions 
+                SET exclude_reason = %s, exclude_type = %s, start_date = %s, 
+                    end_date = %s, created_by = %s, is_active = 1, updated_at = NOW(),
+                    item_name = %s, item_category = %s
+                WHERE department = %s AND item_id = %s
+                """,
+                (
+                    exclude_reason,
+                    exclude_type,
+                    start_date,
+                    end_date,
+                    created_by,
+                    item_info["item_name"],
+                    item_info["category"],
+                    department,
+                    item_id,
+                ),
             )
+            return {
+                "success": True,
+                "message": "기존 부서별 제외 설정이 업데이트되었습니다.",
+                "action": "updated",
+            }
+        else:
+            # 새 설정 추가
+            execute_query(
+                """
+                INSERT INTO department_item_exceptions 
+                (department, item_id, exclude_reason, exclude_type, start_date, end_date, 
+                 created_by, item_name, item_category, item_type)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'audit')
+                """,
+                (
+                    department,
+                    item_id,
+                    exclude_reason,
+                    exclude_type,
+                    start_date,
+                    end_date,
+                    created_by,
+                    item_info["item_name"],
+                    item_info["category"],
+                ),
+            )
+            return {
+                "success": True,
+                "message": "새로운 부서별 제외 설정이 추가되었습니다.",
+                "action": "created",
+            }
+
+    def _add_department_extended_exception(
+        self,
+        department: str,
+        item_type: str,
+        item_name: str,
+        exclude_reason: str,
+        exclude_type: str,
+        start_date: date,
+        end_date: date,
+        created_by: str,
+    ) -> Dict:
+        """교육/훈련 항목 부서별 제외 설정 추가"""
+        # item_type에 따른 카테고리 결정
+        if item_type.startswith("education_"):
+            category = "정보보호 교육"
+        elif item_type.startswith("training_"):
+            category = "악성메일 모의훈련"
+        else:
+            return {"success": False, "message": "알 수 없는 항목 유형입니다."}
+
+        # 기존 설정 확인
+        existing = execute_query(
+            "SELECT dept_exception_id FROM department_extended_exceptions WHERE department = %s AND item_id = %s",
+            (department, item_type),
+            fetch_one=True,
+        )
+
+        if existing:
+            # 기존 설정 업데이트
+            execute_query(
+                """
+                UPDATE department_extended_exceptions 
+                SET exclude_reason = %s, exclude_type = %s, start_date = %s, 
+                    end_date = %s, created_by = %s, is_active = 1, updated_at = NOW(),
+                    item_name = %s, item_category = %s
+                WHERE department = %s AND item_id = %s
+                """,
+                (
+                    exclude_reason,
+                    exclude_type,
+                    start_date,
+                    end_date,
+                    created_by,
+                    item_name,
+                    category,
+                    department,
+                    item_type,
+                ),
+            )
+            return {
+                "success": True,
+                "message": "기존 부서별 제외 설정이 업데이트되었습니다.",
+                "action": "updated",
+            }
+        else:
+            # 새 설정 추가
+            if item_type.startswith("education_"):
+                db_item_type = "education_period"
+            elif item_type.startswith("training_"):
+                db_item_type = "training_period"
+            else:
+                db_item_type = "audit_item"
+
+            execute_query(
+                """
+                INSERT INTO department_extended_exceptions 
+                (department, item_id, item_type, item_name, item_category, exclude_reason, 
+                 exclude_type, start_date, end_date, created_by)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    department,
+                    item_type,
+                    db_item_type,
+                    item_name,
+                    category,
+                    exclude_reason,
+                    exclude_type,
+                    start_date,
+                    end_date,
+                    created_by,
+                ),
+            )
+            return {
+                "success": True,
+                "message": "새로운 부서별 제외 설정이 추가되었습니다.",
+                "action": "created",
+            }
+
+    def remove_user_exception(self, user_id: int, item_type: str) -> Dict:
+        """사용자별 제외 설정 제거 (확장된 버전)"""
+        try:
+            if item_type.startswith("audit_"):
+                # 감사 항목 제외 설정 제거
+                item_id = int(item_type.replace("audit_", ""))
+                result = execute_query(
+                    "UPDATE user_item_exceptions SET is_active = 0 WHERE user_id = %s AND item_id = %s",
+                    (user_id, item_id),
+                )
+            else:
+                # 교육/훈련 항목 제외 설정 제거
+                result = execute_query(
+                    "UPDATE user_extended_exceptions SET is_active = 0 WHERE user_id = %s AND item_id = %s",
+                    (user_id, item_type),
+                )
 
             if result > 0:
                 return {"success": True, "message": "제외 설정이 비활성화되었습니다."}
@@ -486,13 +786,22 @@ class ExceptionService:
         except Exception as e:
             return {"success": False, "message": f"제외 설정 제거 실패: {str(e)}"}
 
-    def remove_department_exception(self, department: str, item_id: int) -> Dict:
-        """부서별 제외 설정 제거"""
+    def remove_department_exception(self, department: str, item_type: str) -> Dict:
+        """부서별 제외 설정 제거 (확장된 버전)"""
         try:
-            result = execute_query(
-                "UPDATE department_item_exceptions SET is_active = 0 WHERE department = %s AND item_id = %s",
-                (department, item_id),
-            )
+            if item_type.startswith("audit_"):
+                # 감사 항목 제외 설정 제거
+                item_id = int(item_type.replace("audit_", ""))
+                result = execute_query(
+                    "UPDATE department_item_exceptions SET is_active = 0 WHERE department = %s AND item_id = %s",
+                    (department, item_id),
+                )
+            else:
+                # 교육/훈련 항목 제외 설정 제거
+                result = execute_query(
+                    "UPDATE department_extended_exceptions SET is_active = 0 WHERE department = %s AND item_id = %s",
+                    (department, item_type),
+                )
 
             if result > 0:
                 return {
@@ -517,7 +826,6 @@ class ExceptionService:
             "SELECT DISTINCT department FROM users WHERE department IS NOT NULL ORDER BY department",
             fetch_all=True,
         )
-
         return [dept["department"] for dept in departments]
 
     def get_exception_summary(self) -> Dict:

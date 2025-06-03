@@ -1,4 +1,4 @@
-# app/services/audit_service.py - 제외 설정 반영 버전
+# app/services/audit_service.py - 제외 설정 반영 버전 (수정)
 import json
 from datetime import datetime
 from app.utils.database import execute_query, DatabaseManager
@@ -8,7 +8,7 @@ from app.services.exception_service import ExceptionService
 
 
 class AuditService:
-    """보안 감사 관련 서비스 - 제외 설정 반영"""
+    """보안 감사 관련 서비스 - 제외 설정 반영 (수정된 버전)"""
 
     def __init__(self):
         self.exception_service = ExceptionService()
@@ -56,20 +56,53 @@ class AuditService:
             last_audit_result = cursor.fetchone()
             last_audit_date = last_audit_result["last_audit_date"]
 
-            # 제외 설정 반영하여 통계 계산
-            # 1. 제외되지 않은 항목들만 대상으로 계산
+            # 제외 설정 반영하여 통계 계산 (수정된 버전)
+            # 뷰 대신 직접 조인하여 제외 설정 확인
             cursor.execute(
                 f"""
                 SELECT 
                     COUNT(DISTINCT al.item_id) as completed_checks,
-                    SUM(CASE WHEN al.passed = 1 THEN 1 ELSE 0 END) as passed_count,
-                    SUM(CASE WHEN al.passed = 0 THEN 1 ELSE 0 END) as failed_count,
-                    SUM(CASE WHEN al.passed = 0 THEN COALESCE(ci.penalty_weight, 0.5) ELSE 0 END) as total_penalty
+                    SUM(CASE 
+                        WHEN (uie.exception_id IS NOT NULL OR die.dept_exception_id IS NOT NULL) THEN 0
+                        WHEN al.passed = 1 THEN 1 
+                        ELSE 0 
+                    END) as passed_count,
+                    SUM(CASE 
+                        WHEN (uie.exception_id IS NOT NULL OR die.dept_exception_id IS NOT NULL) THEN 0
+                        WHEN al.passed = 0 THEN 1 
+                        ELSE 0 
+                    END) as failed_count,
+                    SUM(CASE 
+                        WHEN (uie.exception_id IS NOT NULL OR die.dept_exception_id IS NOT NULL) THEN 0
+                        WHEN al.passed = 0 THEN COALESCE(ci.penalty_weight, 0.5) 
+                        ELSE 0 
+                    END) as total_penalty
                 FROM audit_log al
-                LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
-                LEFT JOIN v_active_exceptions vae ON vae.user_id = al.user_id AND vae.item_id = al.item_id
-                {log_condition.replace('WHERE', 'WHERE vae.user_id IS NULL AND')}
-                """, log_params)
+                INNER JOIN (
+                    SELECT item_id, MAX(checked_at) as max_checked_at
+                    FROM audit_log 
+                    WHERE user_id = %s
+                    GROUP BY item_id
+                ) latest ON al.item_id = latest.item_id AND al.checked_at = latest.max_checked_at
+                INNER JOIN checklist_items ci ON al.item_id = ci.item_id
+                LEFT JOIN user_item_exceptions uie ON (
+                    uie.user_id = al.user_id 
+                    AND uie.item_id = al.item_id 
+                    AND uie.is_active = 1
+                    AND (uie.exclude_type = 'permanent' OR 
+                         (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
+                )
+                LEFT JOIN department_item_exceptions die ON (
+                    die.department = (SELECT department FROM users WHERE uid = al.user_id)
+                    AND die.item_id = al.item_id 
+                    AND die.is_active = 1
+                    AND (die.exclude_type = 'permanent' OR 
+                         (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
+                )
+                WHERE al.user_id = %s
+                {(' AND ci.check_type = %s' if check_type else '')}
+                """, 
+                (user_id, user_id) + ((check_type,) if check_type else ()))
             
             stats_result = cursor.fetchone()
 
@@ -78,15 +111,29 @@ class AuditService:
             failed_count = stats_result["failed_count"] or 0
             total_penalty = float(stats_result["total_penalty"] or 0)
 
-            # 제외된 항목 수 조회
+            # 제외된 항목 수 조회 (수정된 버전)
             cursor.execute(
                 f"""
-                SELECT COUNT(DISTINCT vae.item_id) as excluded_count
-                FROM v_active_exceptions vae
-                LEFT JOIN checklist_items ci ON vae.item_id = ci.item_id
-                WHERE vae.user_id = %s
+                SELECT COUNT(DISTINCT COALESCE(uie.item_id, die.item_id)) as excluded_count
+                FROM checklist_items ci
+                LEFT JOIN user_item_exceptions uie ON (
+                    uie.item_id = ci.item_id 
+                    AND uie.user_id = %s 
+                    AND uie.is_active = 1
+                    AND (uie.exclude_type = 'permanent' OR 
+                         (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
+                )
+                LEFT JOIN department_item_exceptions die ON (
+                    die.item_id = ci.item_id 
+                    AND die.department = (SELECT department FROM users WHERE uid = %s)
+                    AND die.is_active = 1
+                    AND (die.exclude_type = 'permanent' OR 
+                         (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
+                )
+                WHERE (uie.exception_id IS NOT NULL OR die.dept_exception_id IS NOT NULL)
                 {('AND ci.check_type = %s' if check_type else '')}
-                """, (user_id, check_type) if check_type else (user_id,))
+                """, 
+                (user_id, user_id) + ((check_type,) if check_type else ()))
             
             excluded_count = cursor.fetchone()["excluded_count"] or 0
 
@@ -128,20 +175,41 @@ class AuditService:
             """
             params = (user_id,)
 
-        # 제외 설정 정보를 포함하여 로그 조회
+        # 제외 설정 정보를 포함하여 로그 조회 (수정된 버전)
         logs = execute_query(
             f"""
             SELECT 
                 al.log_id, al.user_id, al.item_id, al.actual_value, al.passed, al.notes, al.checked_at,
                 ci.check_type, ci.check_frequency, ci.penalty_weight, ci.item_name,
-                CASE WHEN al.passed = 0 AND vae.user_id IS NULL THEN COALESCE(ci.penalty_weight, 0.5) ELSE 0 END as penalty_applied,
-                vae.exception_type,
-                vae.exclude_reason,
-                vae.exclude_type,
-                CASE WHEN vae.user_id IS NOT NULL THEN 1 ELSE 0 END as is_excluded
+                CASE 
+                    WHEN (uie.exception_id IS NOT NULL OR die.dept_exception_id IS NOT NULL) THEN 0
+                    WHEN al.passed = 0 THEN COALESCE(ci.penalty_weight, 0.5) 
+                    ELSE 0 
+                END as penalty_applied,
+                COALESCE(uie.exclude_reason, die.exclude_reason) as exclude_reason,
+                COALESCE(uie.exclude_type, die.exclude_type) as exclude_type,
+                CASE 
+                    WHEN uie.exception_id IS NOT NULL THEN 'user'
+                    WHEN die.dept_exception_id IS NOT NULL THEN 'department'
+                    ELSE NULL
+                END as exception_type,
+                CASE WHEN (uie.exception_id IS NOT NULL OR die.dept_exception_id IS NOT NULL) THEN 1 ELSE 0 END as is_excluded
             FROM audit_log al
             LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
-            LEFT JOIN v_active_exceptions vae ON vae.user_id = al.user_id AND vae.item_id = al.item_id
+            LEFT JOIN user_item_exceptions uie ON (
+                uie.user_id = al.user_id 
+                AND uie.item_id = al.item_id 
+                AND uie.is_active = 1
+                AND (uie.exclude_type = 'permanent' OR 
+                     (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
+            )
+            LEFT JOIN department_item_exceptions die ON (
+                die.department = (SELECT department FROM users WHERE uid = al.user_id)
+                AND die.item_id = al.item_id 
+                AND die.is_active = 1
+                AND (die.exclude_type = 'permanent' OR 
+                     (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
+            )
             {condition}
             """, params, fetch_all=True)
 
@@ -180,6 +248,129 @@ class AuditService:
 
         return result
 
+    def validate_check(self, data: dict) -> dict:
+        """항목 검증 및 로그 업데이트 (제외 설정 반영)"""
+        required_fields = ["user_id", "item_type", "actual_value"]
+        missing_fields = [field for field in required_fields if field not in data]
+
+        if missing_fields:
+            raise ValueError(f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}")
+
+        # 체크리스트 항목 조회
+        item_result = execute_query(
+            """
+            SELECT item_id, item_name, penalty_weight
+            FROM checklist_items
+            WHERE item_name LIKE %s AND check_type = 'daily'
+            """, (data["item_type"], ), fetch_one=True)
+
+        if not item_result:
+            raise ValueError(f"[{data['item_type']}] 정기 점검 항목을 찾을 수 없습니다")
+
+        user_id = data["user_id"]
+        item_id = item_result["item_id"]
+        item_name = item_result["item_name"]
+        penalty_weight = float(item_result["penalty_weight"] or 0.5)
+        actual_value = data["actual_value"]
+        notes = data.get("notes", "")
+
+        # 제외 설정 확인 (수정된 버전)
+        exception_info = self._check_item_excluded_for_user(user_id, item_id)
+
+        # 검증 로직
+        passed = None
+
+        # 예외 목록에 없는 경우만 검증
+        if item_name not in EXCEPTION_ITEM_NAMES:
+            # 검증 수행
+            passed = 1 if validate_security_item(item_name, actual_value) else 0
+
+            # 검증 결과에 따라 자동으로 notes 생성
+            if notes == "":
+                notes = generate_notes(item_name, passed, actual_value)
+
+        # 제외 설정이 있는 경우 notes에 추가
+        if exception_info["is_excluded"]:
+            if notes:
+                notes += f" [제외사유: {exception_info['exclude_reason']}]"
+            else:
+                notes = f"제외사유: {exception_info['exclude_reason']}"
+
+        # JSON 문자열로 변환
+        actual_value_json = json.dumps(actual_value, ensure_ascii=False)
+
+        # 감점 계산 (제외 설정 반영)
+        if exception_info["is_excluded"]:
+            penalty_applied = 0
+        else:
+            penalty_applied = penalty_weight if passed == 0 else 0
+
+        # 기존 로그 업데이트 또는 새로 생성
+        log_action = self._update_or_create_log(user_id, item_id, actual_value_json,
+                                                passed, notes, exception_info.get('exclude_reason'))
+
+        return {
+            "status": "success",
+            "item_id": item_id,
+            "item_name": item_name,
+            "passed": passed,
+            "penalty_weight": penalty_weight,
+            "penalty_applied": penalty_applied,
+            "is_excluded": exception_info["is_excluded"],
+            "exclude_reason": exception_info.get("exclude_reason"),
+            "log_action": log_action,
+        }
+
+    def _check_item_excluded_for_user(self, user_id: int, item_id: int) -> dict:
+        """특정 사용자-항목이 제외 대상인지 확인 (직접 쿼리 버전)"""
+        result = execute_query(
+            """
+            SELECT 
+                CASE 
+                    WHEN uie.exception_id IS NOT NULL THEN 'user'
+                    WHEN die.dept_exception_id IS NOT NULL THEN 'department'
+                    ELSE NULL
+                END as exception_type,
+                COALESCE(uie.exclude_reason, die.exclude_reason) as exclude_reason,
+                COALESCE(uie.exclude_type, die.exclude_type) as exclude_type,
+                COALESCE(uie.start_date, die.start_date) as start_date,
+                COALESCE(uie.end_date, die.end_date) as end_date
+            FROM users u
+            LEFT JOIN user_item_exceptions uie ON (
+                uie.user_id = u.uid 
+                AND uie.item_id = %s 
+                AND uie.is_active = 1
+                AND (uie.exclude_type = 'permanent' OR 
+                     (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
+            )
+            LEFT JOIN department_item_exceptions die ON (
+                die.department = u.department
+                AND die.item_id = %s 
+                AND die.is_active = 1
+                AND (die.exclude_type = 'permanent' OR 
+                     (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
+            )
+            WHERE u.uid = %s
+            AND (uie.exception_id IS NOT NULL OR die.dept_exception_id IS NOT NULL)
+            LIMIT 1
+            """,
+            (item_id, item_id, user_id),
+            fetch_one=True,
+        )
+
+        if result:
+            return {
+                "is_excluded": True,
+                "exception_type": result["exception_type"],
+                "exclude_reason": result["exclude_reason"],
+                "exclude_type": result["exclude_type"],
+                "start_date": result["start_date"],
+                "end_date": result["end_date"],
+            }
+
+        return {"is_excluded": False}
+
+    # 나머지 메서드들은 기존과 동일하게 유지
     def get_checklist_items(self, check_type: str = None) -> list:
         """체크리스트 항목 조회 (감점 가중치 포함)"""
         if check_type:
@@ -200,7 +391,7 @@ class AuditService:
     def execute_manual_check(self, user_id: int, item_id: int, check_result: dict) -> dict:
         """수시 점검 실행 및 결과 저장 (제외 설정 확인)"""
         # 제외 설정 확인
-        exception_info = self.exception_service.is_item_excluded_for_user(user_id, item_id)
+        exception_info = self._check_item_excluded_for_user(user_id, item_id)
         
         # 항목 정보 확인
         item_info = execute_query(
@@ -255,79 +446,6 @@ class AuditService:
             "exclude_reason": exception_info.get("exclude_reason"),
             "log_action": "created",
             "message": "수시 점검 결과가 성공적으로 저장되었습니다."
-        }
-
-    def validate_check(self, data: dict) -> dict:
-        """항목 검증 및 로그 업데이트 (제외 설정 반영)"""
-        required_fields = ["user_id", "item_type", "actual_value"]
-        missing_fields = [field for field in required_fields if field not in data]
-
-        if missing_fields:
-            raise ValueError(f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}")
-
-        # 체크리스트 항목 조회
-        item_result = execute_query(
-            """
-            SELECT item_id, item_name, penalty_weight
-            FROM checklist_items
-            WHERE item_name LIKE %s AND check_type = 'daily'
-            """, (data["item_type"], ), fetch_one=True)
-
-        if not item_result:
-            raise ValueError(f"[{data['item_type']}] 정기 점검 항목을 찾을 수 없습니다")
-
-        user_id = data["user_id"]
-        item_id = item_result["item_id"]
-        item_name = item_result["item_name"]
-        penalty_weight = float(item_result["penalty_weight"] or 0.5)
-        actual_value = data["actual_value"]
-        notes = data.get("notes", "")
-
-        # 제외 설정 확인
-        exception_info = self.exception_service.is_item_excluded_for_user(user_id, item_id)
-
-        # 검증 로직
-        passed = None
-
-        # 예외 목록에 없는 경우만 검증
-        if item_name not in EXCEPTION_ITEM_NAMES:
-            # 검증 수행
-            passed = 1 if validate_security_item(item_name, actual_value) else 0
-
-            # 검증 결과에 따라 자동으로 notes 생성
-            if notes == "":
-                notes = generate_notes(item_name, passed, actual_value)
-
-        # 제외 설정이 있는 경우 notes에 추가
-        if exception_info["is_excluded"]:
-            if notes:
-                notes += f" [제외사유: {exception_info['exclude_reason']}]"
-            else:
-                notes = f"제외사유: {exception_info['exclude_reason']}"
-
-        # JSON 문자열로 변환
-        actual_value_json = json.dumps(actual_value, ensure_ascii=False)
-
-        # 감점 계산 (제외 설정 반영)
-        if exception_info["is_excluded"]:
-            penalty_applied = 0
-        else:
-            penalty_applied = penalty_weight if passed == 0 else 0
-
-        # 기존 로그 업데이트 또는 새로 생성
-        log_action = self._update_or_create_log(user_id, item_id, actual_value_json,
-                                                passed, notes, exception_info.get('exclude_reason'))
-
-        return {
-            "status": "success",
-            "item_id": item_id,
-            "item_name": item_name,
-            "passed": passed,
-            "penalty_weight": penalty_weight,
-            "penalty_applied": penalty_applied,
-            "is_excluded": exception_info["is_excluded"],
-            "exclude_reason": exception_info.get("exclude_reason"),
-            "log_action": log_action,
         }
 
     def _update_or_create_log(self, user_id: int, item_id: int, actual_value_json: str,
@@ -385,6 +503,16 @@ class AuditService:
             "check_type": check_type,
             "last_audit_date": user_stats.get("lastAuditDate", "")
         }
+
+    def get_manual_check_items(self):
+        """수시 점검 가능한 항목 목록 조회 (감점 가중치 포함)"""
+        return execute_query(
+            """
+            SELECT item_id, category, item_name as name, description, penalty_weight
+            FROM checklist_items
+            WHERE check_type = 'manual'
+            ORDER BY category, item_name
+            """, fetch_all=True)
 
     def get_user_exceptions_summary(self, username: str) -> dict:
         """사용자의 제외 설정 요약"""
