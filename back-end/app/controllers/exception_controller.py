@@ -19,6 +19,28 @@ def get_exception_summary():
     return jsonify(summary)
 
 
+@exception_bp.route("/search-users", methods=["GET"])
+@admin_required
+@handle_exceptions
+def search_users():
+    """사용자 검색 (새로운 엔드포인트)"""
+    search_query = request.args.get("q", "")
+    department = request.args.get("department", "")
+    limit = request.args.get("limit", 50, type=int)
+
+    users = exception_service.search_users(search_query, department, limit)
+    return jsonify(users)
+
+
+@exception_bp.route("/available-items", methods=["GET"])
+@admin_required
+@handle_exceptions
+def get_available_items():
+    """제외 설정 가능한 항목들 조회 (카테고리별)"""
+    items = exception_service.get_available_items()
+    return jsonify(items)
+
+
 @exception_bp.route("/user-exceptions", methods=["GET"])
 @admin_required
 @handle_exceptions
@@ -45,10 +67,10 @@ def get_department_exceptions():
 
 @exception_bp.route("/user-exceptions", methods=["POST"])
 @admin_required
-@validate_json(["user_id", "item_id", "exclude_reason"])
+@validate_json(["user_id", "item_type", "exclude_reason"])
 @handle_exceptions
 def add_user_exception():
-    """사용자별 제외 설정 추가"""
+    """사용자별 제외 설정 추가 (개선된 버전)"""
     data = request.json
     current_user = request.current_user
 
@@ -98,22 +120,10 @@ def add_user_exception():
             HTTP_STATUS["BAD_REQUEST"],
         )
 
-    # 항목 존재 확인
-    item_exists = execute_query(
-        "SELECT item_id FROM checklist_items WHERE item_id = %s",
-        (data["item_id"],),
-        fetch_one=True,
-    )
-
-    if not item_exists:
-        return (
-            jsonify({"error": "존재하지 않는 점검 항목입니다."}),
-            HTTP_STATUS["BAD_REQUEST"],
-        )
-
     result = exception_service.add_user_exception(
         user_id=data["user_id"],
-        item_id=data["item_id"],
+        item_type=data["item_type"],
+        item_name=data["item_name"],
         exclude_reason=data["exclude_reason"],
         exclude_type=data.get("exclude_type", "permanent"),
         start_date=start_date,
@@ -129,14 +139,14 @@ def add_user_exception():
 
 @exception_bp.route("/department-exceptions", methods=["POST"])
 @admin_required
-@validate_json(["department", "item_id", "exclude_reason"])
+@validate_json(["department", "item_type", "exclude_reason"])
 @handle_exceptions
 def add_department_exception():
-    """부서별 제외 설정 추가"""
+    """부서별 제외 설정 추가 (개선된 버전)"""
     data = request.json
     current_user = request.current_user
 
-    # 날짜 변환
+    # 날짜 변환 로직 (위와 동일)
     start_date = None
     end_date = None
 
@@ -158,48 +168,10 @@ def add_department_exception():
                 HTTP_STATUS["BAD_REQUEST"],
             )
 
-    # 임시 제외의 경우 날짜 검증
-    if data.get("exclude_type") == "temporary":
-        if not start_date or not end_date:
-            return (
-                jsonify({"error": "임시 제외의 경우 시작일과 종료일이 필요합니다."}),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
-        if end_date <= start_date:
-            return (
-                jsonify({"error": "종료일은 시작일보다 늦어야 합니다."}),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
-
-    # 부서 존재 확인
-    dept_exists = execute_query(
-        "SELECT COUNT(*) as count FROM users WHERE department = %s",
-        (data["department"],),
-        fetch_one=True,
-    )
-
-    if dept_exists["count"] == 0:
-        return (
-            jsonify({"error": "존재하지 않는 부서입니다."}),
-            HTTP_STATUS["BAD_REQUEST"],
-        )
-
-    # 항목 존재 확인
-    item_exists = execute_query(
-        "SELECT item_id FROM checklist_items WHERE item_id = %s",
-        (data["item_id"],),
-        fetch_one=True,
-    )
-
-    if not item_exists:
-        return (
-            jsonify({"error": "존재하지 않는 점검 항목입니다."}),
-            HTTP_STATUS["BAD_REQUEST"],
-        )
-
     result = exception_service.add_department_exception(
         department=data["department"],
-        item_id=data["item_id"],
+        item_type=data["item_type"],
+        item_name=data["item_name"],
         exclude_reason=data["exclude_reason"],
         exclude_type=data.get("exclude_type", "permanent"),
         start_date=start_date,
@@ -213,12 +185,14 @@ def add_department_exception():
         return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
 
 
-@exception_bp.route("/user-exceptions/<int:user_id>/<int:item_id>", methods=["DELETE"])
+@exception_bp.route(
+    "/user-exceptions/<int:user_id>/<string:item_type>", methods=["DELETE"]
+)
 @admin_required
 @handle_exceptions
-def remove_user_exception(user_id, item_id):
-    """사용자별 제외 설정 제거"""
-    result = exception_service.remove_user_exception(user_id, item_id)
+def remove_user_exception(user_id, item_type):
+    """사용자별 제외 설정 제거 (개선된 버전)"""
+    result = exception_service.remove_user_exception(user_id, item_type)
 
     if result["success"]:
         return jsonify(result)
@@ -227,13 +201,13 @@ def remove_user_exception(user_id, item_id):
 
 
 @exception_bp.route(
-    "/department-exceptions/<string:department>/<int:item_id>", methods=["DELETE"]
+    "/department-exceptions/<string:department>/<string:item_type>", methods=["DELETE"]
 )
 @admin_required
 @handle_exceptions
-def remove_department_exception(department, item_id):
-    """부서별 제외 설정 제거"""
-    result = exception_service.remove_department_exception(department, item_id)
+def remove_department_exception(department, item_type):
+    """부서별 제외 설정 제거 (개선된 버전)"""
+    result = exception_service.remove_department_exception(department, item_type)
 
     if result["success"]:
         return jsonify(result)

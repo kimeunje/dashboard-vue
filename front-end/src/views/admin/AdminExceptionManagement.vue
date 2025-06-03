@@ -23,7 +23,9 @@
           :class="{ active: activeTab === 'user' }"
         >
           <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
+            <path
+              d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"
+            />
           </svg>
           사용자별 제외 설정
           <span class="tab-count">{{ userExceptions.length }}개</span>
@@ -35,7 +37,9 @@
           :class="{ active: activeTab === 'department' }"
         >
           <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-            <path d="m8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l2.404.961L10.404 2l-2.218-.887zm3.564 1.426L5.596 5 8 5.961 14.154 3.5l-2.404-.961zm3.25 1.7-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.629 13.09a1 1 0 0 1-.629-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z"/>
+            <path
+              d="m8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l2.404.961L10.404 2l-2.218-.887zm3.564 1.426L5.596 5 8 5.961 14.154 3.5l-2.404-.961zm3.25 1.7-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.629 13.09a1 1 0 0 1-.629-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z"
+            />
           </svg>
           부서별 제외 설정
           <span class="tab-count">{{ departmentExceptions.length }}개</span>
@@ -47,23 +51,27 @@
           :class="{ active: activeTab === 'summary' }"
         >
           <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
+            <path
+              d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"
+            />
           </svg>
           요약 통계
         </button>
       </div>
     </div>
 
-    <!-- 액션 바 -->
+    <!-- 액션 바 - 검색 기능 개선 -->
     <div v-if="activeTab !== 'summary'" class="action-bar">
       <div class="filters">
         <div class="search-group">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="search-icon">
-            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+            <path
+              d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"
+            />
           </svg>
           <input
             type="text"
-            placeholder="검색..."
+            placeholder="사용자명, ID, 이메일로 검색..."
             v-model="searchQuery"
             class="search-input"
           />
@@ -74,26 +82,32 @@
           <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
         </select>
 
-        <select v-model="filterItem" class="filter-select">
-          <option value="">모든 항목</option>
-          <option v-for="item in checklistItems" :key="item.item_id" :value="item.item_id">
-            {{ item.item_name }} ({{ item.category }})
-          </option>
+        <select v-model="filterCategory" class="filter-select">
+          <option value="">모든 카테고리</option>
+          <option value="정보보안 감사">정보보안 감사</option>
+          <option value="정보보호 교육">정보보호 교육</option>
+          <option value="악성메일 모의훈련">악성메일 모의훈련</option>
         </select>
       </div>
 
       <div class="action-buttons">
         <button @click="showAddModal = true" class="primary-button">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2z"/>
+            <path
+              d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2z"
+            />
           </svg>
           제외 설정 추가
         </button>
 
         <button @click="handleExport('csv')" class="secondary-button">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+            <path
+              d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
+            />
+            <path
+              d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"
+            />
           </svg>
           CSV 내보내기
         </button>
@@ -127,7 +141,11 @@
             <tr v-if="filteredUserExceptions.length === 0">
               <td colspan="8" class="no-data">사용자별 제외 설정이 없습니다.</td>
             </tr>
-            <tr v-for="exc in filteredUserExceptions" :key="`${exc.user_id}-${exc.item_id}`" class="table-row">
+            <tr
+              v-for="exc in filteredUserExceptions"
+              :key="`${exc.user_id}-${exc.item_id}`"
+              class="table-row"
+            >
               <td>
                 <div class="user-info">
                   <div class="user-name">{{ exc.username }}</div>
@@ -155,8 +173,11 @@
                 </div>
               </td>
               <td>
-                {{ exc.exclude_type === 'temporary' && exc.start_date && exc.end_date
-                  ? `${exc.start_date} ~ ${exc.end_date}` : '-' }}
+                {{
+                  exc.exclude_type === 'temporary' && exc.start_date && exc.end_date
+                    ? `${exc.start_date} ~ ${exc.end_date}`
+                    : '-'
+                }}
               </td>
               <td>{{ exc.created_by }}</td>
               <td>
@@ -167,8 +188,13 @@
                     title="삭제"
                   >
                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                      <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                      <path
+                        d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
+                      />
+                      <path
+                        fill-rule="evenodd"
+                        d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -197,7 +223,11 @@
             <tr v-if="filteredDepartmentExceptions.length === 0">
               <td colspan="8" class="no-data">부서별 제외 설정이 없습니다.</td>
             </tr>
-            <tr v-for="exc in filteredDepartmentExceptions" :key="`${exc.department}-${exc.item_id}`" class="table-row">
+            <tr
+              v-for="exc in filteredDepartmentExceptions"
+              :key="`${exc.department}-${exc.item_id}`"
+              class="table-row"
+            >
               <td class="department-name">{{ exc.department }}</td>
               <td>
                 <div class="item-info">
@@ -219,8 +249,11 @@
                 </div>
               </td>
               <td>
-                {{ exc.exclude_type === 'temporary' && exc.start_date && exc.end_date
-                  ? `${exc.start_date} ~ ${exc.end_date}` : '-' }}
+                {{
+                  exc.exclude_type === 'temporary' && exc.start_date && exc.end_date
+                    ? `${exc.start_date} ~ ${exc.end_date}`
+                    : '-'
+                }}
               </td>
               <td>
                 <span class="affected-users">{{ exc.affected_users }}명</span>
@@ -234,8 +267,13 @@
                     title="삭제"
                   >
                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                      <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                      <path
+                        d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
+                      />
+                      <path
+                        fill-rule="evenodd"
+                        d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -254,15 +292,21 @@
             <div class="stats-list">
               <div class="stat-item">
                 <span class="stat-label">총 설정 수:</span>
-                <span class="stat-value">{{ summary.user_exceptions?.total_user_exceptions || 0 }}</span>
+                <span class="stat-value">{{
+                  summary.user_exceptions?.total_user_exceptions || 0
+                }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">영구 제외:</span>
-                <span class="stat-value">{{ summary.user_exceptions?.permanent_user_exceptions || 0 }}</span>
+                <span class="stat-value">{{
+                  summary.user_exceptions?.permanent_user_exceptions || 0
+                }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">임시 제외:</span>
-                <span class="stat-value">{{ summary.user_exceptions?.temporary_user_exceptions || 0 }}</span>
+                <span class="stat-value">{{
+                  summary.user_exceptions?.temporary_user_exceptions || 0
+                }}</span>
               </div>
             </div>
           </div>
@@ -273,33 +317,40 @@
             <div class="stats-list">
               <div class="stat-item">
                 <span class="stat-label">총 설정 수:</span>
-                <span class="stat-value">{{ summary.department_exceptions?.total_dept_exceptions || 0 }}</span>
+                <span class="stat-value">{{
+                  summary.department_exceptions?.total_dept_exceptions || 0
+                }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">영구 제외:</span>
-                <span class="stat-value">{{ summary.department_exceptions?.permanent_dept_exceptions || 0 }}</span>
+                <span class="stat-value">{{
+                  summary.department_exceptions?.permanent_dept_exceptions || 0
+                }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">임시 제외:</span>
-                <span class="stat-value">{{ summary.department_exceptions?.temporary_dept_exceptions || 0 }}</span>
+                <span class="stat-value">{{
+                  summary.department_exceptions?.temporary_dept_exceptions || 0
+                }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">영향받는 부서:</span>
-                <span class="stat-value">{{ summary.department_exceptions?.affected_departments || 0 }}</span>
+                <span class="stat-value">{{
+                  summary.department_exceptions?.affected_departments || 0
+                }}</span>
               </div>
             </div>
           </div>
         </div>
 
         <!-- 가장 많이 제외된 항목들 -->
-        <div v-if="summary.top_excluded_items && summary.top_excluded_items.length > 0" class="top-items-card">
+        <div
+          v-if="summary.top_excluded_items && summary.top_excluded_items.length > 0"
+          class="top-items-card"
+        >
           <h3>가장 많이 제외된 항목</h3>
           <div class="top-items-list">
-            <div
-              v-for="(item, index) in summary.top_excluded_items"
-              :key="index"
-              class="top-item"
-            >
+            <div v-for="(item, index) in summary.top_excluded_items" :key="index" class="top-item">
               <div class="item-info">
                 <span class="item-name">{{ item.item_name }}</span>
                 <span class="item-category">({{ item.category }})</span>
@@ -311,7 +362,7 @@
       </div>
     </div>
 
-    <!-- 제외 설정 추가 모달 -->
+    <!-- 제외 설정 추가 모달 - 개선된 버전 -->
     <div v-if="showAddModal" class="modal-overlay" @click="closeAddModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
@@ -336,15 +387,38 @@
               </div>
             </div>
 
-            <!-- 사용자 선택 (사용자별인 경우) -->
+            <!-- 사용자 검색 (사용자별인 경우) -->
             <div v-if="formData.type === 'user'" class="form-group">
-              <label>사용자:</label>
-              <select v-model="formData.user_id" required class="form-select">
-                <option value="">사용자를 선택하세요</option>
-                <option v-for="user in users" :key="user.uid" :value="user.uid">
-                  {{ user.username }} ({{ user.user_id }}) - {{ user.department }}
-                </option>
-              </select>
+              <label>사용자 검색:</label>
+              <div class="user-search-container">
+                <input
+                  type="text"
+                  v-model="userSearchQuery"
+                  @input="searchUsers"
+                  placeholder="사용자명, ID, 이메일로 검색..."
+                  class="form-input"
+                />
+                <div v-if="searchedUsers.length > 0" class="user-dropdown">
+                  <div
+                    v-for="user in searchedUsers"
+                    :key="user.uid"
+                    @click="selectUser(user)"
+                    class="user-option"
+                    :class="{ selected: formData.user_id === user.uid }"
+                  >
+                    <div class="user-info">
+                      <div class="user-name">{{ user.username }}</div>
+                      <div class="user-details">{{ user.user_id }} - {{ user.department }}</div>
+                    </div>
+                  </div>
+                </div>
+                <div v-if="selectedUser" class="selected-user">
+                  <span
+                    >선택된 사용자: {{ selectedUser.username }} ({{ selectedUser.user_id }})</span
+                  >
+                  <button type="button" @click="clearSelectedUser" class="clear-button">×</button>
+                </div>
+              </div>
             </div>
 
             <!-- 부서 선택 (부서별인 경우) -->
@@ -358,20 +432,64 @@
               </select>
             </div>
 
-            <!-- 점검 항목 선택 -->
+            <!-- 점검 항목 선택 - 개선된 버전 -->
             <div class="form-group">
-              <label>점검 항목:</label>
-              <select v-model="formData.item_id" required class="form-select">
-                <option value="">점검 항목을 선택하세요</option>
-                <optgroup v-for="category in groupedItems" :key="category.name" :label="category.name">
-                  <option v-for="item in category.items" :key="item.item_id" :value="item.item_id">
-                    {{ item.item_name }} ({{ item.check_type === 'daily' ? '정기' : '수시' }})
-                  </option>
-                </optgroup>
+              <label>점검 카테고리:</label>
+              <select
+                v-model="formData.item_category"
+                @change="onCategoryChange"
+                required
+                class="form-select"
+              >
+                <option value="">카테고리를 선택하세요</option>
+                <option value="정보보안 감사">정보보안 감사</option>
+                <option value="정보보호 교육">정보보호 교육</option>
+                <option value="악성메일 모의훈련">악성메일 모의훈련</option>
               </select>
             </div>
 
-            <!-- 제외 사유 -->
+            <!-- 세부 항목 선택 -->
+            <div v-if="formData.item_category" class="form-group">
+              <label>세부 항목:</label>
+              <select v-model="formData.item_type" required class="form-select">
+                <option value="">항목을 선택하세요</option>
+                <optgroup
+                  v-if="formData.item_category === '정보보안 감사'"
+                  v-for="category in auditItemCategories"
+                  :key="category.name"
+                  :label="category.name"
+                >
+                  <option
+                    v-for="item in category.items"
+                    :key="item.item_id"
+                    :value="`audit_${item.item_id}`"
+                    :data-name="item.item_name"
+                  >
+                    {{ item.item_name }} ({{ item.check_type === 'daily' ? '정기' : '수시' }})
+                  </option>
+                </optgroup>
+                <option
+                  v-if="formData.item_category === '정보보호 교육'"
+                  v-for="item in educationItems"
+                  :key="item.item_type"
+                  :value="item.item_type"
+                  :data-name="item.item_name"
+                >
+                  {{ item.item_name }}
+                </option>
+                <option
+                  v-if="formData.item_category === '악성메일 모의훈련'"
+                  v-for="item in trainingItems"
+                  :key="item.item_type"
+                  :value="item.item_type"
+                  :data-name="item.item_name"
+                >
+                  {{ item.item_name }}
+                </option>
+              </select>
+            </div>
+
+            <!-- 나머지 폼 필드들은 기존과 동일 -->
             <div class="form-group">
               <label>제외 사유:</label>
               <textarea
@@ -428,53 +546,57 @@
   </div>
 </template>
 
-// views/admin/AdminExceptionManagement.vue - Script
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 
 // 반응형 데이터
 const loading = ref(false)
-const activeTab = ref('user') // 'user' | 'department' | 'summary'
+const activeTab = ref('user')
 const userExceptions = ref([])
 const departmentExceptions = ref([])
 const summary = ref(null)
 
-// 폼 데이터
-const users = ref([])
+// 폼 데이터 - 개선된 버전
 const departments = ref([])
-const checklistItems = ref([])
+const availableItems = ref({}) // 카테고리별 항목들
+const searchedUsers = ref([]) // 검색된 사용자 목록
+const selectedUser = ref(null) // 선택된 사용자
 
 // 모달 상태
 const showAddModal = ref(false)
-const showBulkModal = ref(false)
 
-// 폼 상태
+// 폼 상태 - 개선된 버전
 const formData = ref({
-  type: 'user', // 'user' | 'department'
+  type: 'user',
   user_id: '',
   department: '',
-  item_id: '',
+  item_category: '', // 새로 추가: 카테고리 선택
+  item_type: '', // 변경: item_id에서 item_type으로
+  item_name: '', // 새로 추가: 항목명 저장
   exclude_reason: '',
   exclude_type: 'permanent',
   start_date: '',
   end_date: ''
 })
 
-// 검색 및 필터
+// 검색 관련
+const userSearchQuery = ref('')
 const searchQuery = ref('')
 const filterDepartment = ref('')
-const filterItem = ref('')
+const filterCategory = ref('') // 새로 추가: 카테고리 필터
 
 // 토스트 메시지
 const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref('success')
 
-// 계산된 속성
-const groupedItems = computed(() => {
+// 계산된 속성 - 개선된 버전
+const auditItemCategories = computed(() => {
+  const auditItems = availableItems.value['정보보안 감사'] || []
   const groups = {}
-  checklistItems.value.forEach(item => {
+
+  auditItems.forEach(item => {
     if (!groups[item.category]) {
       groups[item.category] = {
         name: item.category,
@@ -483,7 +605,16 @@ const groupedItems = computed(() => {
     }
     groups[item.category].items.push(item)
   })
+
   return Object.values(groups)
+})
+
+const educationItems = computed(() => {
+  return availableItems.value['정보보호 교육'] || []
+})
+
+const trainingItems = computed(() => {
+  return availableItems.value['악성메일 모의훈련'] || []
 })
 
 const filteredUserExceptions = computed(() => {
@@ -494,9 +625,9 @@ const filteredUserExceptions = computed(() => {
       exc.item_name.toLowerCase().includes(searchQuery.value.toLowerCase())
 
     const matchesDept = !filterDepartment.value || exc.department === filterDepartment.value
-    const matchesItem = !filterItem.value || exc.item_id.toString() === filterItem.value
+    const matchesCategory = !filterCategory.value || exc.item_category === filterCategory.value
 
-    return matchesSearch && matchesDept && matchesItem
+    return matchesSearch && matchesDept && matchesCategory
   })
 })
 
@@ -507,14 +638,14 @@ const filteredDepartmentExceptions = computed(() => {
       exc.item_name.toLowerCase().includes(searchQuery.value.toLowerCase())
 
     const matchesDept = !filterDepartment.value || exc.department === filterDepartment.value
-    const matchesItem = !filterItem.value || exc.item_id.toString() === filterItem.value
+    const matchesCategory = !filterCategory.value || exc.item_category === filterCategory.value
 
-    return matchesSearch && matchesDept && matchesItem
+    return matchesSearch && matchesDept && matchesCategory
   })
 })
 
 const isFormValid = computed(() => {
-  const basicValid = formData.value.exclude_reason && formData.value.item_id
+  const basicValid = formData.value.exclude_reason && formData.value.item_type
 
   if (formData.value.type === 'user') {
     return basicValid && formData.value.user_id
@@ -523,34 +654,70 @@ const isFormValid = computed(() => {
   }
 })
 
-// 메서드
+// 메서드 - 개선된 버전
 const loadInitialData = async () => {
   try {
-    const [usersRes, deptsRes, itemsRes] = await Promise.all([
-      fetch('/api/exceptions/users', { credentials: 'include' }),
+    const [deptsRes, itemsRes] = await Promise.all([
       fetch('/api/exceptions/departments', { credentials: 'include' }),
-      fetch('/api/exceptions/items', { credentials: 'include' })
+      fetch('/api/exceptions/available-items', { credentials: 'include' })
     ])
 
-    if (usersRes.ok) {
-      users.value = await usersRes.json()
-    }
     if (deptsRes.ok) {
       departments.value = await deptsRes.json()
     }
     if (itemsRes.ok) {
-      checklistItems.value = await itemsRes.json()
+      availableItems.value = await itemsRes.json()
     }
   } catch (error) {
     showToastMessage('초기 데이터 로드 실패: ' + error.message, 'error')
   }
 }
 
+const searchUsers = async () => {
+  if (userSearchQuery.value.length < 2) {
+    searchedUsers.value = []
+    return
+  }
+
+  try {
+    const response = await fetch(
+      `/api/exceptions/search-users?q=${encodeURIComponent(userSearchQuery.value)}&limit=20`,
+      { credentials: 'include' }
+    )
+
+    if (response.ok) {
+      searchedUsers.value = await response.json()
+    }
+  } catch (error) {
+    console.error('사용자 검색 실패:', error)
+  }
+}
+
+const selectUser = (user) => {
+  selectedUser.value = user
+  formData.value.user_id = user.uid
+  userSearchQuery.value = user.username
+  searchedUsers.value = []
+}
+
+const clearSelectedUser = () => {
+  selectedUser.value = null
+  formData.value.user_id = ''
+  userSearchQuery.value = ''
+  searchedUsers.value = []
+}
+
+const onCategoryChange = () => {
+  // 카테고리 변경 시 세부 항목 초기화
+  formData.value.item_type = ''
+  formData.value.item_name = ''
+}
+
 const loadUserExceptions = async () => {
   loading.value = true
   try {
     const response = await fetch('/api/exceptions/user-exceptions', {
-      credentials: 'include'
+      credentials: 'include',
     })
 
     if (response.ok) {
@@ -569,7 +736,7 @@ const loadDepartmentExceptions = async () => {
   loading.value = true
   try {
     const response = await fetch('/api/exceptions/department-exceptions', {
-      credentials: 'include'
+      credentials: 'include',
     })
 
     if (response.ok) {
@@ -588,7 +755,7 @@ const loadSummary = async () => {
   loading.value = true
   try {
     const response = await fetch('/api/exceptions/summary', {
-      credentials: 'include'
+      credentials: 'include',
     })
 
     if (response.ok) {
@@ -613,6 +780,14 @@ const handleAddException = async () => {
     const endpoint = formData.value.type === 'user' ? 'user-exceptions' : 'department-exceptions'
     const payload = { ...formData.value }
 
+    // 선택된 항목의 이름 가져오기
+    const selectedOption = document.querySelector(
+      `select option[value="${formData.value.item_type}"]`,
+    )
+    if (selectedOption) {
+      payload.item_name = selectedOption.getAttribute('data-name') || selectedOption.textContent
+    }
+
     // 필요 없는 필드 제거
     if (formData.value.type === 'user') {
       delete payload.department
@@ -621,8 +796,8 @@ const handleAddException = async () => {
       delete payload.user_id
     }
 
-    payload.item_id = parseInt(payload.item_id)
     delete payload.type
+    delete payload.item_category
 
     // 임시 제외가 아닌 경우 날짜 필드 제거
     if (payload.exclude_type !== 'temporary') {
@@ -633,10 +808,10 @@ const handleAddException = async () => {
     const response = await fetch(`/api/exceptions/${endpoint}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       credentials: 'include',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     })
 
     if (response.ok) {
@@ -666,13 +841,14 @@ const handleDeleteException = async (type, id1, id2) => {
   }
 
   try {
-    const endpoint = type === 'user'
-      ? `user-exceptions/${id1}/${id2}`
-      : `department-exceptions/${encodeURIComponent(id1)}/${id2}`
+    const endpoint =
+      type === 'user'
+        ? `user-exceptions/${id1}/${id2}`
+        : `department-exceptions/${encodeURIComponent(id1)}/${id2}`
 
     const response = await fetch(`/api/exceptions/${endpoint}`, {
       method: 'DELETE',
-      credentials: 'include'
+      credentials: 'include',
     })
 
     if (response.ok) {
@@ -697,7 +873,7 @@ const handleDeleteException = async (type, id1, id2) => {
 const handleExport = async (format = 'json') => {
   try {
     const response = await fetch(`/api/exceptions/export?format=${format}`, {
-      credentials: 'include'
+      credentials: 'include',
     })
 
     if (response.ok) {
@@ -712,7 +888,7 @@ const handleExport = async (format = 'json') => {
       } else {
         const data = await response.json()
         const blob = new Blob([JSON.stringify(data, null, 2)], {
-          type: 'application/json'
+          type: 'application/json',
         })
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
@@ -732,6 +908,7 @@ const handleExport = async (format = 'json') => {
 
 const closeAddModal = () => {
   showAddModal.value = false
+  searchedUsers.value = []
 }
 
 const resetForm = () => {
@@ -739,12 +916,17 @@ const resetForm = () => {
     type: 'user',
     user_id: '',
     department: '',
-    item_id: '',
+    item_category: '',
+    item_type: '',
+    item_name: '',
     exclude_reason: '',
     exclude_type: 'permanent',
     start_date: '',
-    end_date: ''
+    end_date: '',
   }
+  selectedUser.value = null
+  userSearchQuery.value = ''
+  searchedUsers.value = []
 }
 
 const truncateText = (text, maxLength) => {
@@ -773,31 +955,37 @@ watch(activeTab, async (newTab) => {
   }
 })
 
-// 폼 타입 변경시 관련 필드 초기화
-watch(() => formData.value.type, (newType) => {
-  if (newType === 'user') {
-    formData.value.department = ''
-  } else {
-    formData.value.user_id = ''
-  }
-})
+// 감시자 - 개선된 버전
+watch(
+  () => formData.value.type,
+  (newType) => {
+    if (newType === 'user') {
+      formData.value.department = ''
+    } else {
+      formData.value.user_id = ''
+      clearSelectedUser()
+    }
+  },
+)
 
 // 제외 유형 변경시 날짜 필드 초기화
-watch(() => formData.value.exclude_type, (newType) => {
-  if (newType === 'permanent') {
-    formData.value.start_date = ''
-    formData.value.end_date = ''
-  }
-})
+watch(
+  () => formData.value.exclude_type,
+  (newType) => {
+    if (newType === 'permanent') {
+      formData.value.start_date = ''
+      formData.value.end_date = ''
+    }
+  },
+)
 
 // 라이프사이클 훅
 onMounted(async () => {
   await loadInitialData()
-  await loadUserExceptions() // 기본적으로 사용자별 제외 설정 로드
+  await loadUserExceptions()
 })
 </script>
 
-/* views/admin/AdminExceptionManagement.vue - CSS */
 <style scoped>
 .admin-exception-management {
   max-width: 1400px;
@@ -1418,7 +1606,7 @@ onMounted(async () => {
   color: #374151;
 }
 
-.radio-option input[type="radio"] {
+.radio-option input[type='radio'] {
   margin: 0;
 }
 
@@ -1609,5 +1797,334 @@ onMounted(async () => {
     padding: 6px 4px;
     font-size: 11px;
   }
+}
+
+/* 기존 CSS에 추가할 스타일들 */
+
+/* 사용자 검색 관련 스타일 */
+.user-search-container {
+  position: relative;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.user-option {
+  padding: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s ease;
+}
+
+.user-option:hover {
+  background-color: #f9fafb;
+}
+
+.user-option.selected {
+  background-color: #eff6ff;
+  border-color: var(--primary-color);
+}
+
+.user-option:last-child {
+  border-bottom: none;
+}
+
+.user-option .user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-option .user-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.user-option .user-details {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.selected-user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: #eff6ff;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1e40af;
+}
+
+.clear-button {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 18px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.clear-button:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+/* 카테고리 필터 스타일 */
+.filter-category {
+  min-width: 140px;
+}
+
+/* 테이블 내 카테고리 표시 스타일 */
+.item-category-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.item-category-badge.audit {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.item-category-badge.education {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.item-category-badge.training {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+/* 폼 그룹 간격 조정 */
+.exception-form .form-group {
+  margin-bottom: 20px;
+}
+
+.exception-form .form-group:last-child {
+  margin-bottom: 0;
+}
+
+/* 라디오 그룹 스타일 개선 */
+.radio-group {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.radio-option:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.radio-option:has(input:checked) {
+  background-color: #eff6ff;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.radio-option input[type="radio"] {
+  margin: 0;
+  accent-color: var(--primary-color);
+}
+
+/* 셀렉트 박스 개선 */
+.form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 8px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 32px;
+  appearance: none;
+}
+
+.form-select:focus {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%233b82f6' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* 옵션그룹 스타일 */
+.form-select optgroup {
+  font-weight: 600;
+  color: #374151;
+  background-color: #f9fafb;
+  font-style: normal;
+}
+
+.form-select option {
+  padding: 8px 12px;
+  color: #374151;
+}
+
+/* 모달 크기 조정 */
+.modal-content {
+  width: 700px;
+  max-width: 95vw;
+}
+
+/* 반응형 개선 */
+@media (max-width: 768px) {
+  .user-search-container {
+    width: 100%;
+  }
+
+  .radio-group {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .radio-option {
+    justify-content: flex-start;
+  }
+
+  .selected-user {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .clear-button {
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    width: 100%;
+    margin: 10px;
+    max-height: 90vh;
+  }
+
+  .modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* 로딩 상태 스타일 */
+.user-dropdown.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* 검색 결과 없음 스타일 */
+.user-dropdown.no-results {
+  padding: 20px;
+  text-align: center;
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 14px;
+}
+
+/* 필터 컨테이너 간격 조정 */
+.filters {
+  align-items: flex-end;
+  min-width: 0;
+  flex: 1;
+}
+
+.filter-select {
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+/* 테이블 셀 내용 개선 */
+.table-row .item-info {
+  max-width: 250px;
+}
+
+.table-row .item-name {
+  font-weight: 500;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.table-row .item-category {
+  display: inline-block;
+}
+
+/* 액션 버튼 그룹 */
+.action-buttons {
+  gap: 8px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+/* 제외 유형 표시 개선 */
+.exclude-type {
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.exclude-type.permanent {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.exclude-type.temporary {
+  background-color: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+/* 검색 입력창 개선 */
+.search-input {
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  transform: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 </style>

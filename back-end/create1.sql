@@ -82,6 +82,42 @@ INSERT INTO `checklist_items` (`item_id`, `item_name`, `category`, `description`
 	(10, '악성코드 전체 검사', '악성코드', '전체 시스템 악성코드 검사', 'manual', 'daily', 0.5, '2025-06-03 12:44:38', '2025-06-03 13:17:07'),
 	(11, '개인정보 파일 암호화', '개인정보보호', '개인정보 파일 암호화 적용 여부', 'manual', 'daily', 0.5, '2025-06-03 12:44:38', '2025-06-03 12:44:38');
 
+-- 테이블 patch_management.department_extended_exceptions 구조 내보내기
+DROP TABLE IF EXISTS `department_extended_exceptions`;
+CREATE TABLE IF NOT EXISTS `department_extended_exceptions` (
+  `dept_exception_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `department` varchar(100) NOT NULL COMMENT '부서명',
+  `item_id` varchar(100) NOT NULL COMMENT '항목 ID (정수형: 감사항목, 문자형: 교육/훈련)',
+  `item_type` enum('audit_item','training_period','education_period') NOT NULL COMMENT '항목 유형',
+  `item_name` varchar(255) NOT NULL COMMENT '항목명 (비정규화)',
+  `item_category` varchar(100) NOT NULL COMMENT '항목 카테고리 (비정규화)',
+  `exclude_reason` varchar(500) NOT NULL COMMENT '제외 사유',
+  `exclude_type` enum('permanent','temporary') DEFAULT 'permanent' COMMENT '제외 유형',
+  `start_date` date DEFAULT NULL COMMENT '제외 시작일 (temporary인 경우)',
+  `end_date` date DEFAULT NULL COMMENT '제외 종료일 (temporary인 경우)',
+  `created_by` varchar(50) NOT NULL COMMENT '설정한 관리자',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `is_active` tinyint(1) DEFAULT 1 COMMENT '활성 상태',
+  PRIMARY KEY (`dept_exception_id`),
+  UNIQUE KEY `uk_dept_extended_exception` (`department`,`item_id`,`item_type`),
+  KEY `idx_department_extended` (`department`),
+  KEY `idx_item_type_dept_extended` (`item_type`),
+  KEY `idx_active_dept_extended` (`is_active`),
+  KEY `idx_dept_item_category` (`item_category`),
+  KEY `idx_dept_extended_search` (`department`,`item_type`,`is_active`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='부서별 확장 감사 항목 제외 설정 (감사/교육/훈련)';
+
+-- 테이블 데이터 patch_management.department_extended_exceptions:~6 rows (대략적) 내보내기
+DELETE FROM `department_extended_exceptions`;
+INSERT INTO `department_extended_exceptions` (`dept_exception_id`, `department`, `item_id`, `item_type`, `item_name`, `item_category`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
+	(1, '인프라팀', '8', 'audit_item', '원격데스크톱 제한', '접근통제', '인프라팀은 원격 데스크톱 필수 사용', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
+	(2, '개발팀', '7', 'audit_item', '공유폴더 확인', '접근통제', '개발팀은 공유폴더 사용 필요', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
+	(3, 'IT팀', '8', 'audit_item', '원격데스크톱 제한', '접근통제', 'IT팀은 원격 관리 목적으로 원격 데스크톱 필요', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
+	(4, '해외영업팀', 'education_first_half', 'education_period', '상반기 교육', '정보보호 교육', '해외 근무로 인한 시차 문제로 온라인 교육 제외', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
+	(5, '경영진', 'training_first_half', 'training_period', '상반기 모의훈련', '악성메일 모의훈련', '경영진은 별도 보안 교육 실시', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
+	(6, '경영진', 'training_second_half', 'training_period', '하반기 모의훈련', '악성메일 모의훈련', '경영진은 별도 보안 교육 실시', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1);
+
 -- 테이블 patch_management.department_item_exceptions 구조 내보내기
 DROP TABLE IF EXISTS `department_item_exceptions`;
 CREATE TABLE IF NOT EXISTS `department_item_exceptions` (
@@ -96,20 +132,24 @@ CREATE TABLE IF NOT EXISTS `department_item_exceptions` (
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `is_active` tinyint(1) DEFAULT 1 COMMENT '활성 상태',
+  `item_type` varchar(50) DEFAULT 'audit' COMMENT '항목 유형 (audit/education/training)',
+  `item_name` varchar(255) DEFAULT '' COMMENT '항목명 (중복 저장)',
+  `item_category` varchar(100) DEFAULT '' COMMENT '항목 카테고리 (중복 저장)',
   PRIMARY KEY (`dept_exception_id`),
   UNIQUE KEY `uk_dept_item_exception` (`department`,`item_id`),
   KEY `idx_department` (`department`),
   KEY `idx_item_id_dept` (`item_id`),
   KEY `idx_active_dept` (`is_active`),
+  KEY `idx_dept_exceptions_type` (`department`,`item_type`,`is_active`),
   CONSTRAINT `fk_dept_exception_item` FOREIGN KEY (`item_id`) REFERENCES `checklist_items` (`item_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='부서별 감사 항목 제외 설정';
 
 -- 테이블 데이터 patch_management.department_item_exceptions:~3 rows (대략적) 내보내기
 DELETE FROM `department_item_exceptions`;
-INSERT INTO `department_item_exceptions` (`dept_exception_id`, `department`, `item_id`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
-	(1, '인프라팀', 8, '인프라팀은 원격 데스크톱 필수 사용', 'permanent', NULL, NULL, 'admin', '2025-06-03 14:45:53', '2025-06-03 14:45:53', 1),
-	(2, '개발팀', 7, '개발팀은 공유폴더 사용 필요', 'permanent', NULL, NULL, 'admin', '2025-06-03 14:45:53', '2025-06-03 14:45:53', 1),
-	(3, 'IT팀', 8, 'IT팀은 원격 관리 목적으로 원격 데스크톱 필요', 'permanent', NULL, NULL, 'admin', '2025-06-03 14:45:53', '2025-06-03 14:45:53', 1);
+INSERT INTO `department_item_exceptions` (`dept_exception_id`, `department`, `item_id`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`, `item_type`, `item_name`, `item_category`) VALUES
+	(1, '인프라팀', 8, '인프라팀은 원격 데스크톱 필수 사용', 'permanent', NULL, NULL, 'admin', '2025-06-03 14:45:53', '2025-06-03 15:33:51', 1, 'audit', '원격데스크톱 제한', '접근통제'),
+	(2, '개발팀', 7, '개발팀은 공유폴더 사용 필요', 'permanent', NULL, NULL, 'admin', '2025-06-03 14:45:53', '2025-06-03 15:33:51', 1, 'audit', '공유폴더 확인', '접근통제'),
+	(3, 'IT팀', 8, 'IT팀은 원격 관리 목적으로 원격 데스크톱 필요', 'permanent', NULL, NULL, 'admin', '2025-06-03 14:45:53', '2025-06-03 15:33:51', 1, 'audit', '원격데스크톱 제한', '접근통제');
 
 -- 테이블 patch_management.phishing_training 구조 내보내기
 DROP TABLE IF EXISTS `phishing_training`;
@@ -193,9 +233,9 @@ CREATE TABLE IF NOT EXISTS `security_score_summary` (
   UNIQUE KEY `uk_user_year` (`user_id`,`evaluation_year`),
   KEY `idx_evaluation_year` (`evaluation_year`),
   CONSTRAINT `fk_score_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=120 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='KPI 보안 점수 요약 (감점 기준)';
+) ENGINE=InnoDB AUTO_INCREMENT=124 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='KPI 보안 점수 요약 (감점 기준)';
 
--- 테이블 데이터 patch_management.security_score_summary:~5 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.security_score_summary:~8 rows (대략적) 내보내기
 DELETE FROM `security_score_summary`;
 INSERT INTO `security_score_summary` (`summary_id`, `user_id`, `evaluation_year`, `audit_penalty`, `education_penalty`, `training_penalty`, `total_penalty`, `audit_failed_count`, `education_incomplete_count`, `training_failed_count`, `last_calculated`, `created_at`) VALUES
 	(1, 3, 2025, 3.00, 1.00, 0.50, 4.50, 6, 2, 1, '2025-06-03 15:02:29', '2025-06-03 12:52:56'),
@@ -203,9 +243,9 @@ INSERT INTO `security_score_summary` (`summary_id`, `user_id`, `evaluation_year`
 	(3, 3, 2024, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-03 15:02:29', '2025-06-03 12:52:56'),
 	(10, 3, 2022, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 13:46:57', '2025-06-03 12:54:03'),
 	(57, 3, 2026, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 13:47:01', '2025-06-03 13:46:58'),
-	(116, 5, 2025, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 15:02:34', '2025-06-03 15:02:34'),
-	(117, 5, 2023, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 15:02:34', '2025-06-03 15:02:34'),
-	(118, 5, 2024, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 15:02:34', '2025-06-03 15:02:34');
+	(116, 5, 2025, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 15:44:26', '2025-06-03 15:02:34'),
+	(117, 5, 2023, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 15:44:26', '2025-06-03 15:02:34'),
+	(118, 5, 2024, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 15:44:26', '2025-06-03 15:02:34');
 
 -- 테이블 patch_management.users 구조 내보내기
 DROP TABLE IF EXISTS `users`;
@@ -234,6 +274,42 @@ INSERT INTO `users` (`uid`, `user_id`, `username`, `mail`, `department`, `create
 	(5, 'admin', '관리자', 'admin@test.com', 'IT팀', '2025-06-03 11:51:13', '2025-06-03 11:51:13', '2025-06-03 11:51:13'),
 	(6, 'test', '테스터', 'test@test.com', '운영실', '2025-06-03 11:51:13', '2025-06-03 11:51:13', '2025-06-03 11:51:13');
 
+-- 테이블 patch_management.user_extended_exceptions 구조 내보내기
+DROP TABLE IF EXISTS `user_extended_exceptions`;
+CREATE TABLE IF NOT EXISTS `user_extended_exceptions` (
+  `exception_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) NOT NULL COMMENT 'users 테이블의 uid 참조',
+  `item_id` varchar(100) NOT NULL COMMENT '항목 ID (정수형: 감사항목, 문자형: 교육/훈련)',
+  `item_type` enum('audit_item','training_period','education_period') NOT NULL COMMENT '항목 유형',
+  `item_name` varchar(255) NOT NULL COMMENT '항목명 (비정규화)',
+  `item_category` varchar(100) NOT NULL COMMENT '항목 카테고리 (비정규화)',
+  `exclude_reason` varchar(500) NOT NULL COMMENT '제외 사유',
+  `exclude_type` enum('permanent','temporary') DEFAULT 'permanent' COMMENT '제외 유형',
+  `start_date` date DEFAULT NULL COMMENT '제외 시작일 (temporary인 경우)',
+  `end_date` date DEFAULT NULL COMMENT '제외 종료일 (temporary인 경우)',
+  `created_by` varchar(50) NOT NULL COMMENT '설정한 관리자',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `is_active` tinyint(1) DEFAULT 1 COMMENT '활성 상태',
+  PRIMARY KEY (`exception_id`),
+  UNIQUE KEY `uk_user_extended_exception` (`user_id`,`item_id`,`item_type`),
+  KEY `idx_user_id_extended` (`user_id`),
+  KEY `idx_item_type_extended` (`item_type`),
+  KEY `idx_active_extended` (`is_active`),
+  KEY `idx_item_category` (`item_category`),
+  KEY `idx_user_extended_search` (`user_id`,`item_type`,`is_active`),
+  CONSTRAINT `fk_user_extended_exception` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 확장 감사 항목 제외 설정 (감사/교육/훈련)';
+
+-- 테이블 데이터 patch_management.user_extended_exceptions:~5 rows (대략적) 내보내기
+DELETE FROM `user_extended_exceptions`;
+INSERT INTO `user_extended_exceptions` (`exception_id`, `user_id`, `item_id`, `item_type`, `item_name`, `item_category`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
+	(1, 3, '8', 'audit_item', '원격데스크톱 제한', '접근통제', '개발자는 원격 데스크톱 접근이 필요함', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
+	(2, 3, '7', 'audit_item', '공유폴더 확인', '접근통제', '개발 환경에서 공유폴더 필요', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
+	(3, 3, 'training_first_half', 'training_period', '상반기 모의훈련', '악성메일 모의훈련', '2025년 상반기는 신입사원으로 훈련 제외', 'temporary', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
+	(4, 4, 'training_second_half', 'training_period', '하반기 모의훈련', '악성메일 모의훈련', '출산휴가로 인한 훈련 제외', 'temporary', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
+	(5, 5, 'education_first_half', 'education_period', '상반기 교육', '정보보호 교육', '해외 출장으로 인한 교육 제외', 'temporary', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1);
+
 -- 테이블 patch_management.user_item_exceptions 구조 내보내기
 DROP TABLE IF EXISTS `user_item_exceptions`;
 CREATE TABLE IF NOT EXISTS `user_item_exceptions` (
@@ -248,20 +324,24 @@ CREATE TABLE IF NOT EXISTS `user_item_exceptions` (
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `is_active` tinyint(1) DEFAULT 1 COMMENT '활성 상태',
+  `item_type` varchar(50) DEFAULT 'audit' COMMENT '항목 유형 (audit/education/training)',
+  `item_name` varchar(255) DEFAULT '' COMMENT '항목명 (중복 저장)',
+  `item_category` varchar(100) DEFAULT '' COMMENT '항목 카테고리 (중복 저장)',
   PRIMARY KEY (`exception_id`),
   UNIQUE KEY `uk_user_item_exception` (`user_id`,`item_id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_item_id` (`item_id`),
   KEY `idx_active` (`is_active`),
+  KEY `idx_user_exceptions_type` (`user_id`,`item_type`,`is_active`),
   CONSTRAINT `fk_exception_item` FOREIGN KEY (`item_id`) REFERENCES `checklist_items` (`item_id`) ON DELETE CASCADE,
   CONSTRAINT `fk_exception_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 감사 항목 제외 설정';
 
 -- 테이블 데이터 patch_management.user_item_exceptions:~2 rows (대략적) 내보내기
 DELETE FROM `user_item_exceptions`;
-INSERT INTO `user_item_exceptions` (`exception_id`, `user_id`, `item_id`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
-	(1, 3, 8, '개발자는 원격 데스크톱 접근이 필요함', 'permanent', NULL, NULL, 'admin', '2025-06-03 14:45:53', '2025-06-03 14:45:53', 1),
-	(2, 3, 7, '개발 환경에서 공유폴더 필요', 'permanent', NULL, NULL, 'admin', '2025-06-03 14:45:53', '2025-06-03 14:45:53', 1);
+INSERT INTO `user_item_exceptions` (`exception_id`, `user_id`, `item_id`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`, `item_type`, `item_name`, `item_category`) VALUES
+	(1, 3, 8, '개발자는 원격 데스크톱 접근이 필요함', 'permanent', NULL, NULL, 'admin', '2025-06-03 14:45:53', '2025-06-03 15:33:51', 1, 'audit', '원격데스크톱 제한', '접근통제'),
+	(2, 3, 7, '개발 환경에서 공유폴더 필요', 'permanent', NULL, NULL, 'admin', '2025-06-03 14:45:53', '2025-06-03 15:33:51', 1, 'audit', '공유폴더 확인', '접근통제');
 
 -- 뷰 patch_management.v_active_exceptions 구조 내보내기
 DROP VIEW IF EXISTS `v_active_exceptions`;
