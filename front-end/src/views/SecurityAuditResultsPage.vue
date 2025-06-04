@@ -1,4 +1,4 @@
-<!-- SecurityAuditResultsPage.vue Template - KPI 감점 시스템으로 수정 -->
+<!-- SecurityAuditResultsPage.vue Template - 제외 설정 반영 버전 -->
 <template>
   <div class="security-audit-layout">
     <!-- 모바일 메뉴 토글 버튼 -->
@@ -51,7 +51,9 @@
 
       <!-- 인증된 사용자용 콘텐츠 -->
       <div v-else>
-        <h1 class="page-title">보안 감사 결과 및 감점 현황</h1> <!-- 수정: 제목에 감점 추가 -->
+        <div class="page-header">
+          <h1 class="page-title">보안 감사 결과 및 감점 현황</h1>
+        </div>
 
         <!-- 로딩 상태 -->
         <div v-if="loading" class="loading-container">
@@ -121,34 +123,42 @@
             </div>
           </div>
 
-          <!-- 요약 통계 카드 --> <!-- 수정: 감점 중심으로 변경 -->
+          <!-- 요약 통계 카드 (제외 항목 정보 추가) -->
           <div class="section">
             <h2 class="section-title">
-              {{ getTabTitle() }} 감점 요약 <!-- 수정: 요약 통계 -> 감점 요약 -->
+              {{ getTabTitle() }} 감점 요약
               <span v-if="activeTab !== 'all'" class="tab-indicator">{{ getTabSubtitle() }}</span>
             </h2>
             <div class="stats-grid">
               <StatsCard
                 title="총 점검 항목"
                 :value="currentStats.totalChecks"
-                :subtitle="`최근 업데이트: ${formatDate(currentStats.lastCheckedAt)}`"
+                :subtitle="`전체 항목 (제외: ${currentStats.excludedItems || 0}개)`"
+              />
+
+              <!-- 활성 점검 항목 표시 -->
+              <StatsCard
+                title="활성 점검 항목"
+                :value="getActiveChecks()"
+                :subtitle="`실제 점검 대상 항목`"
+                value-color="blue"
               />
 
               <StatsCard
                 title="통과"
                 :value="currentStats.completedChecks"
-                :subtitle="`통과 항목: ${getPassedCount()}개`"
+                :subtitle="`통과 항목 (${getPassRate()}%)`"
                 value-color="green"
               />
 
               <StatsCard
                 title="실패"
                 :value="currentStats.criticalIssues"
-                :subtitle="`실패 항목: ${getFailedCount()}개`"
+                :subtitle="`실패 항목 (${getFailRate()}%)`"
                 value-color="red"
               />
 
-              <!-- 수정: 점수 대신 감점 표시 -->
+              <!-- 감점 표시 -->
               <StatsCard
                 title="총 감점"
                 :value="formatPenalty(currentStats.totalPenalty)"
@@ -158,9 +168,9 @@
             </div>
           </div>
 
-          <!-- 일별 감점 시각화 --> <!-- 수정: 통계 -> 감점 -->
+          <!-- 일별 감점 시각화 -->
           <div class="section" v-if="currentDailyStats.length > 0">
-            <h2 class="section-title">{{ getTabTitle() }} 일별 감점 현황</h2> <!-- 수정 -->
+            <h2 class="section-title">{{ getTabTitle() }} 일별 감점 현황</h2>
             <div class="daily-stats-container">
               <!-- 차트 영역 -->
               <div class="chart-container">
@@ -182,7 +192,6 @@
                         ></div>
                       </div>
                       <div class="chart-label">{{ formatChartDate(day.date) }}</div>
-                      <!-- 수정: 감점 표시 추가 -->
                       <div class="chart-penalty">-{{ day.penalty }}점</div>
                     </div>
                   </div>
@@ -198,7 +207,6 @@
                     <div class="legend-color failed"></div>
                     <span>실패</span>
                   </div>
-                  <!-- 수정: 감점 범례 추가 -->
                   <div class="legend-item">
                     <div class="legend-color penalty"></div>
                     <span>감점</span>
@@ -206,7 +214,7 @@
                 </div>
               </div>
 
-              <!-- 일별 통계 테이블 --> <!-- 수정: 감점 컬럼 추가 -->
+              <!-- 일별 통계 테이블 -->
               <div class="daily-stats-table">
                 <table>
                   <thead>
@@ -215,7 +223,7 @@
                       <th>통과</th>
                       <th>실패</th>
                       <th>통과율</th>
-                      <th>감점</th> <!-- 수정: 감점 컬럼 추가 -->
+                      <th>감점</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -224,7 +232,7 @@
                       <td class="passed-count">{{ day.passed }}</td>
                       <td class="failed-count">{{ day.failed }}</td>
                       <td>{{ day.passRate }}%</td>
-                      <td class="penalty-count">-{{ day.penalty }}점</td> <!-- 수정: 감점 표시 -->
+                      <td class="penalty-count">-{{ day.penalty }}점</td>
                     </tr>
                   </tbody>
                 </table>
@@ -234,17 +242,17 @@
 
           <!-- 데이터 없음 상태 (일별 통계) -->
           <div v-else class="section">
-            <h2 class="section-title">{{ getTabTitle() }} 일별 감점 현황</h2> <!-- 수정 -->
+            <h2 class="section-title">{{ getTabTitle() }} 일별 감점 현황</h2>
             <div class="no-data">
               <p>{{ getTabTitle() }} 검사 결과 데이터가 없습니다.</p>
             </div>
           </div>
 
-          <!-- 항목별 상세 결과 테이블 --> <!-- 수정: 감점 정보 추가 -->
+          <!-- 항목별 상세 결과 테이블 (제외 설정 정보 추가) -->
           <div class="section">
-            <h2 class="section-title">{{ getTabTitle() }} 항목별 검사 결과 및 감점</h2> <!-- 수정 -->
+            <h2 class="section-title">{{ getTabTitle() }} 항목별 검사 결과 및 감점</h2>
             <div v-if="currentItemStats.length > 0" class="items-container">
-              <!-- 테이블 헤더 --> <!-- 수정: 감점 컬럼 추가 -->
+              <!-- 테이블 헤더 -->
               <div class="items-header">
                 <div class="header-cell">ID</div>
                 <div class="header-cell">항목명</div>
@@ -253,13 +261,18 @@
                 <div class="header-cell">통과</div>
                 <div class="header-cell">실패</div>
                 <div class="header-cell">통과율</div>
-                <div class="header-cell">감점</div> <!-- 수정: 감점 컬럼 추가 -->
+                <div class="header-cell">감점</div>
+                <div class="header-cell">제외</div>
+                <!-- 제외 상태 -->
                 <div class="header-cell">상세</div>
               </div>
 
               <div v-for="item in currentItemStats" :key="item.id" class="item-row-container">
-                <!-- 항목 정보 행 --> <!-- 수정: 감점 정보 추가 -->
-                <div class="item-row" :class="{ expanded: selectedItemId === item.id }">
+                <!-- 항목 정보 행 (제외 정보 추가) -->
+                <div
+                  class="item-row"
+                  :class="{ expanded: selectedItemId === item.id, excluded: item.isExcluded }"
+                >
                   <div class="item-cell item-id">{{ item.id }}</div>
                   <div class="item-cell item-name">{{ item.name }}</div>
                   <div class="item-cell item-category">{{ item.category }}</div>
@@ -282,7 +295,7 @@
                       <span class="progress-text">{{ item.passRate }}%</span>
                     </div>
                   </div>
-                  <!-- 수정: 감점 표시 -->
+                  <!-- 감점 표시 -->
                   <div class="item-cell penalty-cell">
                     <span class="penalty-value" :class="getPenaltyClass(item.penalty)">
                       {{ formatPenalty(item.penalty) }}
@@ -290,6 +303,21 @@
                     <div class="penalty-info">
                       ({{ item.penaltyWeight }}점 × {{ item.failed }}개)
                     </div>
+                  </div>
+                  <!-- 제외 상태 표시 -->
+                  <div class="item-cell excluded-cell">
+                    <span v-if="item.isExcluded" class="excluded-badge" :title="item.excludeReason">
+                      <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                          d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"
+                        />
+                        <path
+                          d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"
+                        />
+                      </svg>
+                      제외
+                    </span>
+                    <span v-else class="included-badge">포함</span>
                   </div>
                   <div class="item-cell">
                     <button
@@ -302,7 +330,7 @@
                   </div>
                 </div>
 
-                <!-- 선택된 항목의 상세 정보 (바로 아래 표시) -->
+                <!-- 선택된 항목의 상세 정보 (제외 설정 정보 추가) -->
                 <div v-if="selectedItemId === item.id" class="item-detail-container">
                   <div class="detail-header-inline">
                     <div class="detail-info">
@@ -320,18 +348,24 @@
                         <span class="meta-item">
                           <strong>카테고리:</strong> {{ item.category }}
                         </span>
-                        <!-- 수정: 감점 정보 추가 -->
                         <span class="meta-item">
                           <strong>감점 가중치:</strong> {{ item.penaltyWeight }}점/실패
                         </span>
                         <span class="meta-item">
                           <strong>현재 감점:</strong> {{ formatPenalty(item.penalty) }}
                         </span>
+                        <!-- 제외 설정 정보 -->
+                        <span v-if="item.isExcluded" class="meta-item exclusion-info">
+                          <strong>제외 설정:</strong> {{ item.excludeReason }}
+                          <span class="exclusion-type"
+                            >({{ getExclusionTypeText(item.exclusionType) }})</span
+                          >
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  <!-- 항목 상세 로그 --> <!-- 수정: 감점 정보 추가 -->
+                  <!-- 항목 상세 로그 (제외 정보 추가) -->
                   <div v-if="getItemLogs(item.id).length > 0" class="logs-table-container-inline">
                     <table class="logs-table">
                       <thead>
@@ -339,12 +373,18 @@
                           <th>검사 일시</th>
                           <th>결과</th>
                           <th>실제 값</th>
-                          <th>감점</th> <!-- 수정: 감점 컬럼 추가 -->
+                          <th>감점</th>
+                          <th>제외</th>
+                          <!-- 제외 상태 -->
                           <th>메모</th>
                         </tr>
                       </thead>
                       <tbody>
-                        <tr v-for="log in getItemLogs(item.id)" :key="log.log_id">
+                        <tr
+                          v-for="log in getItemLogs(item.id)"
+                          :key="log.log_id"
+                          :class="{ 'excluded-row': log.is_excluded }"
+                        >
                           <td>{{ formatDate(log.checked_at) }}</td>
                           <td>
                             <span
@@ -362,12 +402,38 @@
                             </div>
                             <span v-else>{{ log.actual_value || '-' }}</span>
                           </td>
-                          <!-- 수정: 감점 표시 -->
+                          <!-- 감점 표시 (제외 설정 반영) -->
                           <td class="penalty-applied">
-                            <span v-if="log.passed === 0" class="penalty-value">
+                            <span
+                              v-if="log.is_excluded"
+                              class="excluded-penalty"
+                              title="제외 설정으로 인해 감점 없음"
+                            >
+                              0점 (제외)
+                            </span>
+                            <span v-else-if="log.passed === 0" class="penalty-value">
                               -{{ log.penalty_applied || log.penalty_weight || 0.5 }}점
                             </span>
                             <span v-else class="no-penalty">0점</span>
+                          </td>
+                          <!-- 제외 상태 -->
+                          <td class="exclusion-status">
+                            <span
+                              v-if="log.is_excluded"
+                              class="excluded-indicator"
+                              :title="log.exclude_reason || '제외 설정 적용'"
+                            >
+                              <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path
+                                  d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"
+                                />
+                                <path
+                                  d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"
+                                />
+                              </svg>
+                              제외
+                            </span>
+                            <span v-else class="included-indicator">포함</span>
                           </td>
                           <td>
                             <pre class="log-notes">{{ log.notes || '-' }}</pre>
@@ -396,7 +462,6 @@
 </template>
 
 <script setup>
-
 import { ref, onMounted, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -413,7 +478,7 @@ const loading = ref(false)
 const error = ref(null)
 const activeTab = ref('daily') // 'daily', 'manual', 'all'
 
-// 수정: 통계 데이터 (감점 기준)
+// 통계 데이터 (제외 설정 정보 포함)
 const stats = ref({
   daily: null,
   manual: null,
@@ -427,7 +492,7 @@ const checklistItems = ref({
   all: [],
 })
 
-// 로그 데이터 (탭별)
+// 로그 데이터 (탭별, 제외 설정 정보 포함)
 const auditLogs = ref({
   daily: [],
   manual: [],
@@ -444,7 +509,7 @@ const dailyStats = ref({
   all: [],
 })
 
-// 항목별 통과/실패 통계 - 탭별
+// 항목별 통과/실패 통계 - 탭별 (제외 설정 정보 포함)
 const itemStats = ref({
   daily: [],
   manual: [],
@@ -461,10 +526,12 @@ const currentStats = computed(() => {
   return (
     stats.value[activeTab.value] || {
       totalChecks: 0,
-      completedChecks: 0,  // 통과 항목
-      criticalIssues: 0,   // 실패 항목 (감점 대상)
+      activeChecks: 0, // 실제 점검 대상 항목 수
+      completedChecks: 0, // 통과 항목
+      criticalIssues: 0, // 실패 항목 (감점 대상)
       lastCheckedAt: '',
-      totalPenalty: 0,     // 수정: 총 감점 추가
+      totalPenalty: 0, // 총 감점
+      excludedItems: 0, // 제외된 항목 수
     }
   )
 })
@@ -477,7 +544,14 @@ const currentItemStats = computed(() => {
   return itemStats.value[activeTab.value] || []
 })
 
-// 수정: 통과율 대신 감점 정보 계산
+// 통계 계산 함수들 (제외 항목 반영)
+const getActiveChecks = () => {
+  return (
+    currentStats.value.activeChecks ||
+    currentStats.value.totalChecks - (currentStats.value.excludedItems || 0)
+  )
+}
+
 const getPassedCount = () => {
   return currentStats.value.completedChecks || 0
 }
@@ -486,15 +560,22 @@ const getFailedCount = () => {
   return currentStats.value.criticalIssues || 0
 }
 
-const getTotalPenalty = () => {
-  return (currentStats.value.totalPenalty || 0).toFixed(1)
+const getPassRate = () => {
+  const activeChecks = getActiveChecks()
+  const passedCount = getPassedCount()
+  if (activeChecks === 0) return 0
+  return Math.round((passedCount / activeChecks) * 100)
 }
 
-const getPenaltyRate = () => {
-  const totalItems = currentStats.value.totalChecks || 0
-  const failedItems = currentStats.value.criticalIssues || 0
-  if (totalItems === 0) return 0
-  return Math.round((failedItems / totalItems) * 100)
+const getFailRate = () => {
+  const activeChecks = getActiveChecks()
+  const failedCount = getFailedCount()
+  if (activeChecks === 0) return 0
+  return Math.round((failedCount / activeChecks) * 100)
+}
+
+const getTotalPenalty = () => {
+  return (currentStats.value.totalPenalty || 0).toFixed(1)
 }
 
 const getMaxValue = () => {
@@ -577,7 +658,7 @@ const fetchData = async () => {
       allChecklistData,
     ] = await Promise.all(responses.map((res) => res.json()))
 
-    // 로그 데이터 설정
+    // 로그 데이터 설정 (제외 설정 정보 포함)
     auditLogs.value = {
       daily: dailyLogsData,
       manual: manualLogsData,
@@ -591,7 +672,7 @@ const fetchData = async () => {
       all: formatChecklistItems(allChecklistData),
     }
 
-    // 각 탭별 통계 계산
+    // 각 탭별 통계 계산 (제외 설정 반영)
     calculateAllStats()
     prepareAllDailyStats()
     prepareAllItemStats()
@@ -613,36 +694,42 @@ const formatChecklistItems = (checklistData) => {
     description: item.description,
     checkType: item.check_type,
     checkFrequency: item.check_frequency,
-    penaltyWeight: item.penalty_weight || 0.5,  // 수정: 감점 가중치 추가
+    penaltyWeight: item.penalty_weight || 0.5, // 감점 가중치
   }))
 }
 
-// 수정: 통계 계산 (감점 기준)
+// 통계 계산 (제외 설정 반영)
 const calculateAllStats = () => {
   ;['daily', 'manual', 'all'].forEach((tabType) => {
     const logs = auditLogs.value[tabType]
     const totalChecks = logs.length
-    const passedChecks = logs.filter((log) => log.passed === 1).length
-    const failedChecks = logs.filter((log) => log.passed === 0).length
+
+    // 제외 설정을 반영한 통과/실패 계산
+    const passedChecks = logs.filter((log) => log.passed === 1 && !log.is_excluded).length
+    const failedChecks = logs.filter((log) => log.passed === 0 && !log.is_excluded).length
+    const excludedChecks = logs.filter((log) => log.is_excluded).length
+    const activeChecks = passedChecks + failedChecks // 제외되지 않은 실제 점검 항목
 
     // 가장 최근 검사 날짜
     const sortedLogs = [...logs].sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at))
     const lastCheckedAt = sortedLogs.length > 0 ? sortedLogs[0].checked_at : ''
 
-    // 수정: 감점 계산 (감점 가중치 적용)
+    // 감점 계산 (제외된 항목은 감점에서 제외)
     let totalPenalty = 0
-    logs.forEach(log => {
-      if (log.passed === 0) {
-        totalPenalty += (log.penalty_weight || 0.5)
+    logs.forEach((log) => {
+      if (log.passed === 0 && !log.is_excluded) {
+        totalPenalty += log.penalty_applied || log.penalty_weight || 0.5
       }
     })
 
     stats.value[tabType] = {
       totalChecks,
+      activeChecks, // 실제 점검 대상 항목 수
       completedChecks: passedChecks,
-      criticalIssues: failedChecks,
+      criticalIssues: failedChecks, // 제외된 항목 제외
       lastCheckedAt,
-      totalPenalty: totalPenalty,  // 수정: 총 감점 추가
+      totalPenalty: totalPenalty,
+      excludedItems: excludedChecks, // 제외된 항목 수
     }
   })
 }
@@ -661,16 +748,17 @@ const prepareAllDailyStats = () => {
           date: dateOnly,
           passed: 0,
           failed: 0,
-          penalty: 0  // 수정: 감점 추가
+          penalty: 0, // 감점 추가
         }
       }
 
-      if (log.passed === 1) {
+      if (log.passed === 1 && !log.is_excluded) {
         groupedByDate[dateOnly].passed += 1
-      } else if (log.passed === 0) {
+      } else if (log.passed === 0 && !log.is_excluded) {
+        // 제외된 항목은 실패로 카운트하지 않음
         groupedByDate[dateOnly].failed += 1
-        // 수정: 감점 누적
-        groupedByDate[dateOnly].penalty += (log.penalty_weight || 0.5)
+        // 감점 누적 (제외된 항목은 감점에서 제외)
+        groupedByDate[dateOnly].penalty += log.penalty_applied || log.penalty_weight || 0.5
       }
     })
 
@@ -688,7 +776,7 @@ const prepareAllDailyStats = () => {
         ...day,
         passRate,
         total,
-        penalty: Math.round(day.penalty * 10) / 10,  // 수정: 감점 반올림
+        penalty: Math.round(day.penalty * 10) / 10, // 감점 반올림
       }
     })
 
@@ -708,8 +796,17 @@ const prepareAllItemStats = () => {
       const totalCount = passedCount + failedCount
       const passRate = totalCount > 0 ? (passedCount / totalCount) * 100 : 0
 
-      // 수정: 감점 계산
-      const penalty = failedCount * (item.penaltyWeight || 0.5)
+      // 제외 설정 정보 확인 (최근 로그 기준)
+      const latestLog = itemLogs.sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at))[0]
+      const isExcluded = latestLog ? latestLog.is_excluded : false
+      const excludeReason = latestLog ? latestLog.exclude_reason : null
+      const exclusionType = latestLog ? latestLog.exception_type : null
+
+      // 감점 계산 (제외된 항목은 감점에서 제외)
+      const actualFailedCount = itemLogs.filter(
+        (log) => log.passed === 0 && !log.is_excluded,
+      ).length
+      const penalty = actualFailedCount * (item.penaltyWeight || 0.5)
 
       return {
         id: item.id,
@@ -717,12 +814,15 @@ const prepareAllItemStats = () => {
         category: item.category,
         description: item.description,
         checkType: item.checkType,
-        penaltyWeight: item.penaltyWeight,  // 수정: 감점 가중치 추가
+        penaltyWeight: item.penaltyWeight,
         total: totalCount,
         passed: passedCount,
         failed: failedCount,
         passRate: Math.round(passRate),
-        penalty: Math.round(penalty * 10) / 10,  // 수정: 감점 추가
+        penalty: Math.round(penalty * 10) / 10,
+        isExcluded: isExcluded, // 제외 설정 여부
+        excludeReason: excludeReason, // 제외 사유
+        exclusionType: exclusionType, // 제외 유형
       }
     })
 
@@ -745,7 +845,7 @@ const getItemLogs = (itemId) => {
     .sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at))
 }
 
-// 수정: 진행률 클래스를 감점 클래스로 변경
+// 진행률 클래스를 감점 클래스로 변경
 const getPenaltyClass = (penalty) => {
   if (penalty === 0) return 'no-penalty'
   if (penalty <= 1.0) return 'low-penalty'
@@ -815,7 +915,7 @@ const formatActualValueValue = (value) => {
   return value
 }
 
-// 수정: 감점 포맷팅 함수 추가
+// 감점 포맷팅 함수
 const formatPenalty = (penalty) => {
   return penalty ? `-${penalty}점` : '0점'
 }
@@ -825,6 +925,22 @@ const getPenaltyDescription = (penalty) => {
   if (penalty <= 1.0) return '경미한 감점'
   if (penalty <= 2.5) return '주의 필요'
   return '즉시 개선 필요'
+}
+
+// 제외 유형 텍스트 변환
+const getExclusionTypeText = (exclusionType) => {
+  switch (exclusionType) {
+    case 'user':
+      return '사용자별 제외'
+    case 'user_extended':
+      return '사용자별 확장 제외'
+    case 'department':
+      return '부서별 제외'
+    case 'department_extended':
+      return '부서별 확장 제외'
+    default:
+      return '제외 설정'
+  }
 }
 
 // 탭 변경 시 선택된 항목 초기화

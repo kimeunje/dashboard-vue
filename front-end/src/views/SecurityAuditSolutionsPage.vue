@@ -51,8 +51,9 @@
 
       <!-- 인증된 사용자용 콘텐츠 -->
       <div v-else>
-        <h1 class="page-title">보안 감사 조치방법</h1>
-
+        <div class="page-header">
+          <h1 class="page-title">보안 감사 조치방법</h1>
+        </div>
         <!-- 조치방법 개요 -->
         <div class="section">
           <h2 class="section-title">조치방법 개요</h2>

@@ -160,7 +160,7 @@
         </div>
 
         <!-- 총 감점 요약 --> <!-- 수정: 새로운 섹션 추가 -->
-        <div class="section" v-if="dashboardStats">
+        <!-- <div class="section" v-if="dashboardStats">
           <div class="total-penalty-summary">
             <h2 class="section-title">감사 항목 총 감점</h2>
             <div class="total-penalty-card">
@@ -176,7 +176,7 @@
               </div>
             </div>
           </div>
-        </div>
+        </div> -->
 
         <!-- 주요 기능 소개 -->
         <div class="section">

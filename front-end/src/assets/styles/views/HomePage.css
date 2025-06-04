@@ -438,26 +438,24 @@
 }
 
 /* 섹션 공통 스타일 */
-.section {
-  margin-bottom: 32px;
-}
 
-.section-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--dark-blue);
-  margin-bottom: 20px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid var(--light-blue);
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e5e7eb;
 }
 
 .page-title {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: 600;
   color: var(--dark-blue);
-  margin-bottom: 32px;
-  text-align: center;
+  margin: 0;
 }
+
 
 /* 반응형 디자인 */
 @media (max-width: 1024px) {
