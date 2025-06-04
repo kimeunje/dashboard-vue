@@ -453,6 +453,8 @@
               <label>세부 항목:</label>
               <select v-model="formData.item_type" required class="form-select">
                 <option value="">항목을 선택하세요</option>
+
+                <!-- 정보보안 감사 항목 -->
                 <optgroup
                   v-if="formData.item_category === '정보보안 감사'"
                   v-for="category in auditItemCategories"
@@ -462,30 +464,46 @@
                   <option
                     v-for="item in category.items"
                     :key="item.item_id"
-                    :value="`audit_${item.item_id}`"
+                    :value="'audit_' + item.item_id"
                     :data-name="item.item_name"
                   >
                     {{ item.item_name }} ({{ item.check_type === 'daily' ? '정기' : '수시' }})
                   </option>
                 </optgroup>
-                <option
+
+                <!-- 정보보호 교육 항목 (연도별) -->
+                <optgroup
                   v-if="formData.item_category === '정보보호 교육'"
-                  v-for="item in educationItems"
-                  :key="item.item_type"
-                  :value="item.item_type"
-                  :data-name="item.item_name"
+                  v-for="(items, year) in educationItems"
+                  :key="year"
+                  :label="year + '년'"
                 >
-                  {{ item.item_name }}
-                </option>
-                <option
+                  <option
+                    v-for="item in items"
+                    :key="item.item_type"
+                    :value="item.item_type"
+                    :data-name="item.item_name"
+                  >
+                    {{ item.item_name }}
+                  </option>
+                </optgroup>
+
+                <!-- 악성메일 모의훈련 항목 (연도별) -->
+                <optgroup
                   v-if="formData.item_category === '악성메일 모의훈련'"
-                  v-for="item in trainingItems"
-                  :key="item.item_type"
-                  :value="item.item_type"
-                  :data-name="item.item_name"
+                  v-for="(items, year) in trainingItems"
+                  :key="year"
+                  :label="year + '년'"
                 >
-                  {{ item.item_name }}
-                </option>
+                  <option
+                    v-for="item in items"
+                    :key="item.item_type"
+                    :value="item.item_type"
+                    :data-name="item.item_name"
+                  >
+                    {{ item.item_name }}
+                  </option>
+                </optgroup>
               </select>
             </div>
 
@@ -610,12 +628,37 @@ const auditItemCategories = computed(() => {
   return Object.values(groups)
 })
 
+// computed 섹션에 추가
 const educationItems = computed(() => {
-  return availableItems.value['정보보호 교육'] || []
+  const baseItems = availableItems.value['정보보호 교육'] || []
+  // 연도별로 그룹화
+  const groupedByYear = {}
+
+  baseItems.forEach((item) => {
+    const year = item.year || new Date().getFullYear()
+    if (!groupedByYear[year]) {
+      groupedByYear[year] = []
+    }
+    groupedByYear[year].push(item)
+  })
+
+  return groupedByYear
 })
 
 const trainingItems = computed(() => {
-  return availableItems.value['악성메일 모의훈련'] || []
+  const baseItems = availableItems.value['악성메일 모의훈련'] || []
+  // 연도별로 그룹화
+  const groupedByYear = {}
+
+  baseItems.forEach((item) => {
+    const year = item.year || new Date().getFullYear()
+    if (!groupedByYear[year]) {
+      groupedByYear[year] = []
+    }
+    groupedByYear[year].push(item)
+  })
+
+  return groupedByYear
 })
 
 const filteredUserExceptions = computed(() => {
@@ -808,6 +851,8 @@ const handleAddException = async () => {
       delete payload.end_date
     }
 
+    console.log('제외 설정 추가 요청:', payload) // 디버깅용
+
     const response = await fetch(`/api/exceptions/${endpoint}`, {
       method: 'POST',
       headers: {
@@ -834,6 +879,7 @@ const handleAddException = async () => {
       showToastMessage(error.error || '추가 실패', 'error')
     }
   } catch (error) {
+    console.error('제외 설정 추가 실패:', error)
     showToastMessage('제외 설정 추가 실패: ' + error.message, 'error')
   }
 }

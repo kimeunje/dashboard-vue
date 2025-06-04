@@ -42,6 +42,99 @@ def get_available_items():
 
 
 @exception_bp.route(
+    "/check-user-training/<int:user_id>/<int:year>/<string:training_period>",
+    methods=["GET"],
+)
+@admin_required
+@handle_exceptions
+def check_user_training_exception_by_year(user_id, year, training_period):
+    """특정 사용자의 특정 연도/기간 모의훈련 제외 설정 확인"""
+    result = exception_service.is_training_excluded_for_user(
+        user_id, year, training_period
+    )
+    return jsonify(result)
+
+
+@exception_bp.route(
+    "/check-user-education/<int:user_id>/<int:year>/<string:education_period>",
+    methods=["GET"],
+)
+@admin_required
+@handle_exceptions
+def check_user_education_exception_by_year(user_id, year, education_period):
+    """특정 사용자의 특정 연도/기간 교육 제외 설정 확인"""
+    result = exception_service.is_education_excluded_for_user(
+        user_id, year, education_period
+    )
+    return jsonify(result)
+
+
+@exception_bp.route("/check-user-item-by-year", methods=["GET"])
+@admin_required
+@handle_exceptions
+def check_user_item_exception_by_year():
+    """특정 사용자의 특정 연도 항목 제외 설정 확인 (다중 조회)"""
+    user_id = request.args.get("user_id", type=int)
+    year = request.args.get("year", type=int)
+    item_type = request.args.get("item_type")  # 'training' 또는 'education'
+
+    if not all([user_id, year, item_type]):
+        return jsonify({"error": "user_id, year, item_type이 모두 필요합니다."}), 400
+
+    results = {}
+
+    if item_type == "training":
+        for period in ["first_half", "second_half"]:
+            result = exception_service.is_training_excluded_for_user(
+                user_id, year, period
+            )
+            results[period] = result
+    elif item_type == "education":
+        for period in ["first_half", "second_half"]:
+            result = exception_service.is_education_excluded_for_user(
+                user_id, year, period
+            )
+            results[period] = result
+    else:
+        return (
+            jsonify({"error": "item_type은 'training' 또는 'education'이어야 합니다."}),
+            400,
+        )
+
+    return jsonify(
+        {"user_id": user_id, "year": year, "item_type": item_type, "results": results}
+    )
+
+
+@exception_bp.route("/available-items-by-year", methods=["GET"])
+@admin_required
+@handle_exceptions
+def get_available_items_by_year():
+    """연도별 제외 설정 가능한 항목들 조회"""
+    year = request.args.get("year", datetime.now().year, type=int)
+
+    # 특정 연도의 항목만 반환
+    items = exception_service.get_available_items()
+
+    # 연도 필터링
+    filtered_items = {}
+
+    # 정보보안 감사는 연도와 무관
+    filtered_items["정보보안 감사"] = items.get("정보보안 감사", [])
+
+    # 교육과 훈련은 해당 연도만 필터링
+    filtered_items["정보보호 교육"] = [
+        item for item in items.get("정보보호 교육", []) if item.get("year") == year
+    ]
+
+    filtered_items["악성메일 모의훈련"] = [
+        item for item in items.get("악성메일 모의훈련", []) if item.get("year") == year
+    ]
+
+    return jsonify(filtered_items)
+
+
+@exception_bp.route(
     "/check-user-training/<int:user_id>/<string:training_period>", methods=["GET"]
 )
 @admin_required
