@@ -41,6 +41,18 @@ def get_available_items():
     return jsonify(items)
 
 
+@exception_bp.route(
+    "/check-user-training/<int:user_id>/<string:training_period>", methods=["GET"]
+)
+@admin_required
+@handle_exceptions
+def check_user_training_exception(user_id, training_period):
+    """특정 사용자-모의훈련 기간의 제외 설정 확인"""
+    item_id = f"training_{training_period}"
+    result = exception_service.is_item_excluded_for_user(user_id, item_id)
+    return jsonify(result)
+
+
 @exception_bp.route("/user-exceptions", methods=["GET"])
 @admin_required
 @handle_exceptions

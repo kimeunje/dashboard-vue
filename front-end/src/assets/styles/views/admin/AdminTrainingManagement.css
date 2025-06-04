@@ -772,3 +772,37 @@
     font-size: 10px;
   }
 }
+
+/* 제외 상태 표시 스타일 */
+.exception-status {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.exception-status.included {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.exception-status.excluded {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* 제외 설정 관리 버튼 스타일 */
+.exception-button {
+  background: none;
+  border: none;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.exception-button:hover {
+  background-color: #fef3c7;
+}

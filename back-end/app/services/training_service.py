@@ -1,10 +1,10 @@
-# app/services/training_service.py
+# app/services/training_service.py - 점수 관련 로직 제거 버전
 from datetime import datetime
 from app.utils.database import execute_query, DatabaseManager
 
 
 class TrainingService:
-    """악성메일 모의훈련 관련 서비스"""
+    """악성메일 모의훈련 관련 서비스 - 점수 관리 제거"""
 
     def get_training_status(self, username: str, year: int = None) -> dict:
         """사용자의 악성메일 모의훈련 현황 조회"""
@@ -34,8 +34,6 @@ class TrainingService:
                 ip_address,
                 training_result,
                 response_time_minutes,
-                training_score,
-                exclude_from_scoring,
                 notes
             FROM phishing_training
             WHERE user_id = %s AND training_year = %s
@@ -76,8 +74,6 @@ class TrainingService:
                     'clicked_or_opened': period_record['log_type'] is not None,
                     'response_time_minutes': response_time
                     or period_record['response_time_minutes'],
-                    'score': period_record['training_score'],
-                    'exclude_from_scoring': bool(period_record['exclude_from_scoring']),
                     'notes': period_record['notes']
                 }
             else:
@@ -94,25 +90,34 @@ class TrainingService:
                     'passed': False,
                     'clicked_or_opened': None,
                     'response_time_minutes': None,
-                    'score': None,
-                    'exclude_from_scoring': False,
                     'notes': '훈련 미실시'
                 }
 
             period_status.append(status)
 
-        # 통계 계산 (점수 계산에서 제외된 것은 제외)
-        scoring_records = [s for s in period_status if not s['exclude_from_scoring']]
-        conducted_count = sum(1 for status in scoring_records
-                              if status['result'] != 'pending')
-        passed_count = sum(1 for status in scoring_records if status['passed'])
-        failed_count = sum(1 for status in scoring_records
-                           if status['result'] == 'fail')
-        clicked_count = sum(1 for status in scoring_records
-                            if status['clicked_or_opened'])
+        # 통계 계산 (제외 설정 확인을 위해 exception_service 사용)
+        from app.services.exception_service import ExceptionService
+        exception_service = ExceptionService()
+        
+        conducted_count = 0
+        passed_count = 0
+        failed_count = 0
+        clicked_count = 0
 
-        # 감점 계산 (실패한 것만)
-        penalty_score = failed_count * 0.5
+        for status in period_status:
+            if status['result'] != 'pending':
+                # 제외 설정 확인
+                item_id = f"training_{status['period']}"
+                exception_result = exception_service.is_item_excluded_for_user(user_id, item_id)
+                
+                if not exception_result.get('is_excluded', False):
+                    conducted_count += 1
+                    if status['passed']:
+                        passed_count += 1
+                    elif status['result'] == 'fail':
+                        failed_count += 1
+                    if status['clicked_or_opened']:
+                        clicked_count += 1
 
         result = {
             'year': year,
@@ -124,16 +129,14 @@ class TrainingService:
                 'failed': failed_count,
                 'clicked_or_opened_count': clicked_count,
                 'pass_rate': round((passed_count / conducted_count *
-                                    100) if conducted_count > 0 else 0, 1),
-                'penalty_score': penalty_score,
-                'excluded_count': len(period_status) - len(scoring_records)
+                                    100) if conducted_count > 0 else 0, 1)
             }
         }
 
         return result
 
     def bulk_update_training(self, records: list) -> dict:
-        """모의훈련 결과 일괄 등록/수정"""
+        """모의훈련 결과 일괄 등록/수정 - 점수 관련 로직 제거"""
         if not records:
             raise ValueError("등록할 훈련 기록이 없습니다.")
 
@@ -203,22 +206,14 @@ class TrainingService:
                     except:
                         response_time_minutes = record.get('response_time_minutes')
 
-                # 점수 계산
-                training_score = record.get('training_score')
-                if not training_score:
-                    if training_result == 'pass':
-                        training_score = 95.0
-                    elif training_result == 'fail':
-                        training_score = 40.0
-
-                # 훈련 기록 등록/수정
+                # 훈련 기록 등록/수정 - 점수 관련 필드 제거
                 execute_query(
                     """
                     INSERT INTO phishing_training 
                     (user_id, training_year, training_period, email_sent_time, action_time,
                      log_type, mail_type, user_email, ip_address, training_result,
-                     response_time_minutes, training_score, exclude_from_scoring, notes)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     response_time_minutes, notes)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                     email_sent_time = VALUES(email_sent_time),
                     action_time = VALUES(action_time),
@@ -228,8 +223,6 @@ class TrainingService:
                     ip_address = VALUES(ip_address),
                     training_result = VALUES(training_result),
                     response_time_minutes = VALUES(response_time_minutes),
-                    training_score = VALUES(training_score),
-                    exclude_from_scoring = VALUES(exclude_from_scoring),
                     notes = VALUES(notes),
                     updated_at = NOW()
                     """,
@@ -237,8 +230,7 @@ class TrainingService:
                      record.get('email_sent_time'), record.get('action_time'),
                      record.get('log_type'), record.get('mail_type'),
                      record['user_email'], record.get('ip_address'), training_result,
-                     response_time_minutes, training_score,
-                     record.get('exclude_from_scoring', 0), record.get('notes', '')))
+                     response_time_minutes, record.get('notes', '')))
 
                 success_count += 1
 
@@ -252,7 +244,7 @@ class TrainingService:
         }
 
     def update_training_record(self, record: dict) -> bool:
-        """단일 훈련 기록 수정"""
+        """단일 훈련 기록 수정 - 점수 관련 필드 제거"""
         try:
             # 사용자 확인
             user = execute_query("SELECT uid FROM users WHERE user_id = %s",
@@ -262,7 +254,7 @@ class TrainingService:
 
             user_uid = user['uid']
 
-            # 기록 수정
+            # 기록 수정 - 점수 관련 필드 제거
             execute_query(
                 """
                 UPDATE phishing_training SET
@@ -274,8 +266,6 @@ class TrainingService:
                 ip_address = %s,
                 training_result = %s,
                 response_time_minutes = %s,
-                training_score = %s,
-                exclude_from_scoring = %s,
                 notes = %s,
                 updated_at = NOW()
                 WHERE user_id = %s AND training_year = %s AND training_period = %s
@@ -283,8 +273,7 @@ class TrainingService:
                       record.get('log_type'), record.get('mail_type'),
                       record.get('user_email'), record.get('ip_address'),
                       record.get('training_result', 'pending'),
-                      record.get('response_time_minutes'), record.get('training_score'),
-                      record.get('exclude_from_scoring', 0), record.get('notes', ''),
+                      record.get('response_time_minutes'), record.get('notes', ''),
                       user_uid, record['training_year'], record['training_period']))
 
             return True
@@ -317,18 +306,18 @@ class TrainingService:
             raise ValueError(f"훈련 기록 삭제 실패: {str(e)}")
 
     def get_training_excel_template(self) -> str:
-        """엑셀 업로드용 템플릿 생성"""
+        """엑셀 업로드용 템플릿 생성 - 점수 관련 필드 제거"""
         template_data = [
-            "user_email,training_year,training_period,email_sent_time,action_time,log_type,mail_type,ip_address,exclude_from_scoring,notes",
-            "test@example.com,2025,상반기,2025-05-15 10:44:25,2025-05-15 10:44:59,스크립트 첨부파일 열람,퇴직연금 운용상품 안내 (HTML),112.111.231.120,0,모의훈련 실패 - 첨부파일 열람",
-            "user1@example.com,2025,상반기,2025-05-15 10:44:25,,,보안 업데이트 안내,,0,모의훈련 통과 - 액션 없음",
-            "user2@example.com,2025,하반기,2025-11-20 14:30:00,2025-11-20 14:35:20,링크 클릭,급여명세서 확인 요청,192.168.1.100,1,모의훈련 실패 - 점수 계산 제외"
+            "user_email,training_year,training_period,email_sent_time,action_time,log_type,mail_type,ip_address,notes",
+            "test@example.com,2025,상반기,2025-05-15 10:44:25,2025-05-15 10:44:59,스크립트 첨부파일 열람,퇴직연금 운용상품 안내 (HTML),112.111.231.120,모의훈련 실패 - 첨부파일 열람",
+            "user1@example.com,2025,상반기,2025-05-15 10:44:25,,,보안 업데이트 안내,,모의훈련 통과 - 액션 없음",
+            "user2@example.com,2025,하반기,2025-11-20 14:30:00,2025-11-20 14:35:20,링크 클릭,급여명세서 확인 요청,192.168.1.100,모의훈련 실패"
         ]
         return "\n".join(template_data)
 
     def get_all_training_records(self, year: int = None, period: str = None,
                                  result: str = None) -> list:
-        """모든 훈련 기록 조회 (관리자용)"""
+        """모든 훈련 기록 조회 (관리자용) - 점수 관련 필드 제거"""
         if year is None:
             year = datetime.now().year
 
@@ -349,8 +338,6 @@ class TrainingService:
                     pt.ip_address,
                     pt.training_result,
                     pt.response_time_minutes,
-                    pt.training_score,
-                    pt.exclude_from_scoring,
                     pt.notes,
                     pt.created_at,
                     pt.updated_at
@@ -388,8 +375,7 @@ class TrainingService:
                     COUNT(*) as total_count,
                     SUM(CASE WHEN training_result = 'pass' THEN 1 ELSE 0 END) as passed_count,
                     SUM(CASE WHEN training_result = 'fail' THEN 1 ELSE 0 END) as failed_count,
-                    SUM(CASE WHEN training_result = 'pending' THEN 1 ELSE 0 END) as pending_count,
-                    SUM(CASE WHEN exclude_from_scoring = 1 THEN 1 ELSE 0 END) as excluded_count
+                    SUM(CASE WHEN training_result = 'pending' THEN 1 ELSE 0 END) as pending_count
                 FROM phishing_training
                 WHERE training_year = %s
                 GROUP BY training_period
@@ -407,7 +393,7 @@ class TrainingService:
                     SUM(CASE WHEN pt.training_result = 'fail' THEN 1 ELSE 0 END) as failed_count
                 FROM phishing_training pt
                 JOIN users u ON pt.user_id = u.uid
-                WHERE pt.training_year = %s AND pt.exclude_from_scoring = 0
+                WHERE pt.training_year = %s
                 GROUP BY u.department
                 ORDER BY u.department
                 """, (year, ))
@@ -434,13 +420,13 @@ class TrainingService:
         }
 
     def export_training_to_csv(self, year: int = None) -> str:
-        """모의훈련 데이터를 CSV 형태로 내보내기"""
+        """모의훈련 데이터를 CSV 형태로 내보내기 - 점수 관련 필드 제거"""
         records = self.get_all_training_records(year)
 
         csv_lines = []
         headers = [
             '사용자ID', '사용자명', '부서', '연도', '기간', '발송시각', '수행시각', '로그유형', '메일유형', '이메일',
-            'IP주소', '결과', '점수', '점수제외', '비고'
+            'IP주소', '결과', '비고'
         ]
         csv_lines.append(','.join(headers))
 
@@ -458,8 +444,6 @@ class TrainingService:
                 str(record.get('user_email', '')),
                 str(record.get('ip_address', '')),
                 str(record.get('training_result', '')),
-                str(record.get('training_score', '')),
-                '제외' if record.get('exclude_from_scoring') else '포함',
                 str(record.get('notes', ''))
             ]
             csv_lines.append(','.join(f'"{item}"' for item in row))

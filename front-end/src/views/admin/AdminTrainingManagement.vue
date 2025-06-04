@@ -1,4 +1,4 @@
-<!-- views/admin/AdminTrainingManagement.vue -->
+<!-- views/admin/AdminTrainingManagement.vue - 점수 관련 기능 제거 버전 -->
 <template>
   <div class="admin-training">
     <div class="admin-header">
@@ -9,6 +9,7 @@
         <RouterLink to="/admin/education" class="nav-item">교육 관리</RouterLink>
         <RouterLink to="/admin/training" class="nav-item active">훈련 관리</RouterLink>
         <RouterLink to="/admin/scores" class="nav-item">점수 관리</RouterLink>
+        <RouterLink to="/admin/exceptions" class="nav-item">제외 설정</RouterLink>
       </div>
     </div>
 
@@ -86,6 +87,16 @@
           </svg>
           템플릿 다운로드
         </button>
+
+        <!-- 제외 설정 관리 버튼 추가 -->
+        <RouterLink to="/admin/exceptions" class="outline-button">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path
+              d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"
+            />
+          </svg>
+          제외 설정 관리
+        </RouterLink>
       </div>
 
       <!-- 모의훈련 데이터 테이블 -->
@@ -118,8 +129,7 @@
                 <th>메일유형</th>
                 <th>IP주소</th>
                 <th>결과</th>
-                <th>점수</th>
-                <th>점수제외</th>
+                <th>제외 상태</th>
                 <th>액션</th>
               </tr>
             </thead>
@@ -152,26 +162,26 @@
                     {{ getResultText(record.training_result) }}
                   </span>
                 </td>
-                <td>{{ record.training_score || '-' }}</td>
                 <td>
-                  <button
-                    @click="toggleScoring(record)"
-                    :class="[
-                      'scoring-toggle',
-                      record.exclude_from_scoring ? 'excluded' : 'included',
-                    ]"
-                    :title="
-                      record.exclude_from_scoring ? '점수 계산에서 제외됨' : '점수 계산에 포함됨'
-                    "
+                  <span
+                    :class="['exception-status', record.is_excluded ? 'excluded' : 'included']"
+                    :title="record.is_excluded ? record.exclude_reason : '점수 계산에 포함됨'"
                   >
-                    {{ record.exclude_from_scoring ? '제외' : '포함' }}
-                  </button>
+                    {{ record.is_excluded ? '제외' : '포함' }}
+                  </span>
                 </td>
                 <td>
                   <div class="action-buttons">
                     <button @click="editRecord(record)" class="edit-button" title="수정">✏️</button>
                     <button @click="deleteRecord(record)" class="delete-button" title="삭제">
                       🗑️
+                    </button>
+                    <button
+                      @click="manageExceptions(record)"
+                      class="exception-button"
+                      title="제외 설정 관리"
+                    >
+                      ⚙️
                     </button>
                   </div>
                 </td>
@@ -205,7 +215,7 @@
       </div>
     </div>
 
-    <!-- 일괄 업로드 모달 -->
+    <!-- 일괄 업로드 모달 - 점수 관련 필드 제거 -->
     <div v-if="showBulkUploadModal" class="modal-overlay" @click="closeBulkUploadModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
@@ -253,6 +263,7 @@
                 <li>첫 번째 행은 헤더로 처리됩니다</li>
                 <li>training_period: 상반기/하반기 또는 first_half/second_half</li>
                 <li>log_type이 있으면 자동으로 실패 처리됩니다</li>
+                <li>점수 관련 필드는 더 이상 지원하지 않습니다</li>
               </ul>
             </div>
           </div>
@@ -270,7 +281,7 @@
                     <th>수행시간</th>
                     <th>로그유형</th>
                     <th>메일유형</th>
-                    <th>점수제외</th>
+                    <th>결과</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -282,7 +293,7 @@
                     <td>{{ record.action_time || '-' }}</td>
                     <td>{{ record.log_type || '-' }}</td>
                     <td>{{ truncateText(record.mail_type, 30) || '-' }}</td>
-                    <td>{{ record.exclude_from_scoring ? '제외' : '포함' }}</td>
+                    <td>{{ getResultText(record.training_result) || '-' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -303,7 +314,7 @@
       </div>
     </div>
 
-    <!-- 편집 모달 -->
+    <!-- 편집 모달 - 점수 관련 필드 제거 -->
     <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
       <div class="modal-content edit-modal" @click.stop>
         <div class="modal-header">
@@ -381,33 +392,12 @@
               />
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label>훈련 결과:</label>
-                <select v-model="editingRecord.training_result" required>
-                  <option value="pass">통과</option>
-                  <option value="fail">실패</option>
-                  <option value="pending">미실시</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label>점수:</label>
-                <input
-                  type="number"
-                  v-model="editingRecord.training_score"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                />
-              </div>
-            </div>
-
             <div class="form-group">
-              <label>점수 계산 제외:</label>
-              <select v-model="editingRecord.exclude_from_scoring">
-                <option :value="false">포함 (점수에 반영)</option>
-                <option :value="true">제외 (점수에 반영 안함)</option>
+              <label>훈련 결과:</label>
+              <select v-model="editingRecord.training_result" required>
+                <option value="pass">통과</option>
+                <option value="fail">실패</option>
+                <option value="pending">미실시</option>
               </select>
             </div>
 
@@ -440,9 +430,11 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import * as XLSX from 'xlsx'
 import '@/assets/styles/views/admin/AdminTrainingManagement.css'
+
+const router = useRouter()
 
 // 반응형 데이터
 const loading = ref(false)
@@ -512,7 +504,30 @@ const loadTrainingData = async () => {
       throw new Error('모의훈련 데이터를 불러올 수 없습니다.')
     }
 
-    trainingRecords.value = await response.json()
+    const rawRecords = await response.json()
+
+    // 제외 상태 확인을 위한 추가 처리
+    for (let record of rawRecords) {
+      try {
+        const excResponse = await fetch(
+          `/api/exceptions/check-user-item/${record.user_id}/training_${record.training_period}`,
+          { credentials: 'include' }
+        )
+        if (excResponse.ok) {
+          const excResult = await excResponse.json()
+          record.is_excluded = excResult.is_excluded
+          record.exclude_reason = excResult.exclude_reason || ''
+        } else {
+          record.is_excluded = false
+          record.exclude_reason = ''
+        }
+      } catch (err) {
+        record.is_excluded = false
+        record.exclude_reason = ''
+      }
+    }
+
+    trainingRecords.value = rawRecords
     applyFilters()
   } catch (err) {
     console.error('모의훈련 데이터 로드 실패:', err)
@@ -585,36 +600,6 @@ const getResultText = (result) => {
     pending: '미실시',
   }
   return texts[result] || '알 수 없음'
-}
-
-const toggleScoring = async (record) => {
-  try {
-    const response = await fetch('/api/admin/toggle-scoring', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        user_id: record.user_id,
-        year: record.training_year,
-        record_type: 'training',
-        period: record.training_period,
-        exclude: !record.exclude_from_scoring,
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error('점수 계산 설정 변경에 실패했습니다.')
-    }
-
-    // 로컬 데이터 업데이트
-    record.exclude_from_scoring = !record.exclude_from_scoring
-    showToastMessage('점수 계산 설정이 변경되었습니다.', 'success')
-  } catch (err) {
-    console.error('점수 계산 설정 변경 실패:', err)
-    showToastMessage(err.message, 'error')
-  }
 }
 
 const editRecord = (record) => {
@@ -695,6 +680,19 @@ const deleteRecord = async (record) => {
   }
 }
 
+const manageExceptions = (record) => {
+  // 제외 설정 관리 페이지로 이동하면서 사용자 정보를 쿼리 파라미터로 전달
+  router.push({
+    path: '/admin/exceptions',
+    query: {
+      tab: 'user',
+      user_id: record.user_id,
+      username: record.username,
+      item_category: '악성메일 모의훈련'
+    }
+  })
+}
+
 const closeBulkUploadModal = () => {
   showBulkUploadModal.value = false
   selectedFile.value = null
@@ -722,8 +720,6 @@ const removeSelectedFile = () => {
   selectedFile.value = null
   uploadPreview.value = []
 }
-
-// AdminTrainingManagement.vue에서 parseFile 메서드의 필드 매핑 부분을 완전히 수정
 
 const parseFile = async (file) => {
   try {
@@ -778,9 +774,9 @@ const parseFile = async (file) => {
   }
 }
 
-// 레코드 후처리 함수 - 완전히 새로 작성
+// 레코드 후처리 함수 - 점수 관련 필드 제거
 const postProcessRecords = (records) => {
-  // 한글-영문 필드명 완전 매핑 테이블
+  // 한글-영문 필드명 매핑 테이블 (점수 관련 필드 제거)
   const fieldMapping = {
     // 기본 필드들
     사용자ID: 'user_id',
@@ -822,15 +818,9 @@ const postProcessRecords = (records) => {
     아이피: 'ip_address',
     아이피주소: 'ip_address',
 
-    // 결과 관련
+    // 결과 관련 (점수 관련 필드 제거됨)
     결과: 'training_result',
     훈련결과: 'training_result',
-    점수: 'training_score',
-    훈련점수: 'training_score',
-    점수제외: 'exclude_from_scoring',
-    '점수 제외': 'exclude_from_scoring',
-    제외여부: 'exclude_from_scoring',
-    채점제외: 'exclude_from_scoring',
     비고: 'notes',
     메모: 'notes',
     노트: 'notes',
@@ -850,8 +840,6 @@ const postProcessRecords = (records) => {
     ip_address: 'ip_address',
     training_result: 'training_result',
     response_time_minutes: 'response_time_minutes',
-    training_score: 'training_score',
-    exclude_from_scoring: 'exclude_from_scoring',
     notes: 'notes',
   }
 
@@ -901,7 +889,7 @@ const postProcessRecords = (records) => {
     })
 }
 
-// 개별 레코드 데이터 처리
+// 개별 레코드 데이터 처리 (점수 관련 로직 제거)
 const processRecordData = (record) => {
   const processedRecord = { ...record }
 
@@ -943,16 +931,7 @@ const processRecordData = (record) => {
     processedRecord.training_period = periodMapping[period] || period
   }
 
-  // 3. exclude_from_scoring을 boolean으로 변환
-  if (processedRecord.exclude_from_scoring !== undefined) {
-    const excludeValue = processedRecord.exclude_from_scoring.toString().toLowerCase().trim()
-    const trueValues = ['true', '1', '제외', 'exclude', 'yes', 'y', '참']
-    processedRecord.exclude_from_scoring = trueValues.includes(excludeValue)
-  } else {
-    processedRecord.exclude_from_scoring = false
-  }
-
-  // 4. training_result 정규화
+  // 3. training_result 정규화
   if (processedRecord.training_result) {
     const result = processedRecord.training_result.toString().trim()
     const resultMapping = {
@@ -973,7 +952,7 @@ const processRecordData = (record) => {
     processedRecord.training_result = resultMapping[result] || result
   }
 
-  // 5. 날짜 형식 정규화
+  // 4. 날짜 형식 정규화
   if (processedRecord.email_sent_time) {
     processedRecord.email_sent_time = normalizeDateTime(processedRecord.email_sent_time)
   }
@@ -981,16 +960,12 @@ const processRecordData = (record) => {
     processedRecord.action_time = normalizeDateTime(processedRecord.action_time)
   }
 
-  // 6. 숫자 필드 처리
-  if (processedRecord.training_score) {
-    processedRecord.training_score = parseFloat(processedRecord.training_score)
-  }
-
+  // 5. 응답시간 처리
   if (processedRecord.response_time_minutes) {
     processedRecord.response_time_minutes = parseInt(processedRecord.response_time_minutes)
   }
 
-  // 7. 응답시간 자동 계산
+  // 6. 응답시간 자동 계산
   if (
     !processedRecord.response_time_minutes &&
     processedRecord.email_sent_time &&
@@ -1007,7 +982,7 @@ const processRecordData = (record) => {
     }
   }
 
-  // 8. training_result 자동 결정
+  // 7. training_result 자동 결정
   if (!processedRecord.training_result) {
     if (processedRecord.log_type && processedRecord.log_type.trim()) {
       processedRecord.training_result = 'fail' // 로그가 있으면 실패
@@ -1018,19 +993,10 @@ const processRecordData = (record) => {
     }
   }
 
-  // 9. 기본 점수 설정
-  if (!processedRecord.training_score) {
-    if (processedRecord.training_result === 'pass') {
-      processedRecord.training_score = 95.0
-    } else if (processedRecord.training_result === 'fail') {
-      processedRecord.training_score = 40.0
-    }
-  }
-
   return processedRecord
 }
 
-// 기존의 유틸리티 함수들은 그대로 유지
+// 유틸리티 함수들
 const extractYearFromDateTime = (dateTimeStr) => {
   if (!dateTimeStr) return null
 

@@ -212,8 +212,6 @@ class AdminService:
                     pt.ip_address,
                     pt.training_result,
                     pt.response_time_minutes,
-                    pt.training_score,
-                    pt.exclude_from_scoring,
                     pt.notes,
                     pt.created_at,
                     pt.updated_at

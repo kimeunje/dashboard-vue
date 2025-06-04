@@ -1,4 +1,4 @@
-# app/controllers/training_controller.py
+# app/controllers/training_controller.py - 점수 관련 기능 제거
 from datetime import datetime
 from flask import Blueprint, request, jsonify, make_response
 from app.services.training_service import TrainingService
