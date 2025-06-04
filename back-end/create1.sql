@@ -14,12 +14,6 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
-
--- patch_management 데이터베이스 구조 내보내기
-DROP DATABASE IF EXISTS `patch_management`;
-CREATE DATABASE IF NOT EXISTS `patch_management` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci */;
-USE `patch_management`;
-
 -- 테이블 patch_management.audit_log 구조 내보내기
 DROP TABLE IF EXISTS `audit_log`;
 CREATE TABLE IF NOT EXISTS `audit_log` (
@@ -131,9 +125,9 @@ INSERT INTO `department_extended_exceptions` (`dept_exception_id`, `department`,
 	(1, '인프라팀', '8', 'audit_item', '원격데스크톱 제한', '접근통제', '인프라팀은 원격 데스크톱 필수 사용', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
 	(2, '개발팀', '7', 'audit_item', '공유폴더 확인', '접근통제', '개발팀은 공유폴더 사용 필요', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
 	(3, 'IT팀', '8', 'audit_item', '원격데스크톱 제한', '접근통제', 'IT팀은 원격 관리 목적으로 원격 데스크톱 필요', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
-	(4, '해외영업팀', 'education_first_half', 'education_period', '상반기 교육', '정보보호 교육', '해외 근무로 인한 시차 문제로 온라인 교육 제외', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
-	(5, '경영진', 'training_first_half', 'training_period', '상반기 모의훈련', '악성메일 모의훈련', '경영진은 별도 보안 교육 실시', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
-	(6, '경영진', 'training_second_half', 'training_period', '하반기 모의훈련', '악성메일 모의훈련', '경영진은 별도 보안 교육 실시', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1);
+	(4, '해외영업팀', 'education_2025_first_half', 'education_period', '상반기 교육', '정보보호 교육', '해외 근무로 인한 시차 문제로 온라인 교육 제외', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-04 16:17:41', 1),
+	(5, '경영진', 'training_2025_first_half', 'training_period', '상반기 모의훈련', '악성메일 모의훈련', '경영진은 별도 보안 교육 실시', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-04 16:17:41', 1),
+	(6, '경영진', 'training_2025_second_half', 'training_period', '하반기 모의훈련', '악성메일 모의훈련', '경영진은 별도 보안 교육 실시', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-04 16:17:41', 1);
 
 -- 테이블 patch_management.department_item_exceptions 구조 내보내기
 DROP TABLE IF EXISTS `department_item_exceptions`;
@@ -183,8 +177,6 @@ CREATE TABLE IF NOT EXISTS `phishing_training` (
   `ip_address` varchar(45) DEFAULT NULL COMMENT 'IP 주소',
   `training_result` enum('pass','fail','pending') DEFAULT 'pending' COMMENT '훈련 결과',
   `response_time_minutes` int(11) DEFAULT NULL COMMENT '응답 시간 (분)',
-  `training_score` decimal(5,2) DEFAULT NULL COMMENT '훈련 점수',
-  `exclude_from_scoring` tinyint(1) DEFAULT 0 COMMENT '점수 계산 제외 여부',
   `notes` text DEFAULT NULL COMMENT '비고',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -194,17 +186,17 @@ CREATE TABLE IF NOT EXISTS `phishing_training` (
   CONSTRAINT `fk_training_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 이력';
 
--- 테이블 데이터 patch_management.phishing_training:~0 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.phishing_training:~8 rows (대략적) 내보내기
 DELETE FROM `phishing_training`;
-INSERT INTO `phishing_training` (`training_id`, `user_id`, `training_year`, `training_period`, `email_sent_time`, `action_time`, `log_type`, `mail_type`, `user_email`, `ip_address`, `training_result`, `response_time_minutes`, `training_score`, `exclude_from_scoring`, `notes`, `created_at`, `updated_at`) VALUES
-	(8, 1, 2025, 'first_half', '2025-04-22 10:44:25', '2025-04-22 10:34:25', '스크립트 첨부파일 열람', '세금계산서 안내', 'test1@test.com', '103.34.21.35', 'fail', -10, 40.00, 0, '', '2025-06-04 07:22:34', '2025-06-04 07:22:34'),
-	(9, 2, 2024, 'second_half', '2024-08-22 16:32:25', '2024-08-22 16:42:25', '스크립트 첨부파일 열람', '세금계산서 안내', 'parkchul@test.com', '50.24.11.35', 'fail', 10, 40.00, 0, '', '2025-06-04 07:22:34', '2025-06-04 07:24:29'),
-	(10, 4, 2025, 'second_half', '2025-10-22 10:44:25', '2025-10-22 10:54:25', '악성 메일 클릭', '운용상품 안내', 'kimeunje@test.com', '1.35.2.62', 'fail', 10, 40.00, 0, '', '2025-06-04 07:22:34', '2025-06-04 07:22:34'),
-	(11, 5, 2024, 'second_half', '2024-08-22 16:32:25', '2024-08-22 16:42:25', '스크립트 첨부파일 열람', '세금계산서 안내', 'admin@test.com', '50.24.11.35', 'fail', 10, 40.00, 0, '', '2025-06-04 07:23:28', '2025-06-04 07:24:29'),
-	(12, 4, 2025, 'first_half', '2025-04-22 10:44:25', '2025-04-22 10:34:25', '스크립트 첨부파일 열람', '세금계산서 안내', 'kimeunje@test.com', '103.34.21.35', 'fail', -10, 40.00, 0, '', '2025-06-04 07:23:28', '2025-06-04 07:24:29'),
-	(14, 3, 2025, 'second_half', '2025-10-22 10:44:25', '2025-10-22 10:54:25', '악성 메일 클릭', '운용상품 안내', 'test@test.com', '1.35.2.62', 'fail', 10, 40.00, 0, '', '2025-06-04 07:23:28', '2025-06-04 07:24:29'),
-	(24, 2, 2025, 'second_half', '2025-10-22 10:44:25', '2025-10-22 10:54:25', '악성 메일 클릭', '운용상품 안내', 'parkchul@test.com', '1.35.2.62', 'fail', 10, 40.00, 0, '', '2025-06-04 07:24:29', '2025-06-04 07:24:29'),
-	(26, 5, 2025, 'second_half', '2025-10-22 10:44:25', '2025-10-22 10:54:25', '악성 메일 클릭', '운용상품 안내', 'admin@test.com', '1.35.2.62', 'fail', 10, 40.00, 0, '', '2025-06-04 07:24:29', '2025-06-04 07:24:29');
+INSERT INTO `phishing_training` (`training_id`, `user_id`, `training_year`, `training_period`, `email_sent_time`, `action_time`, `log_type`, `mail_type`, `user_email`, `ip_address`, `training_result`, `response_time_minutes`, `notes`, `created_at`, `updated_at`) VALUES
+	(8, 1, 2025, 'first_half', '2025-04-22 10:44:25', '2025-04-22 10:34:25', '스크립트 첨부파일 열람', '세금계산서 안내', 'test1@test.com', '103.34.21.35', 'fail', -10, '', '2025-06-04 07:22:34', '2025-06-04 07:22:34'),
+	(9, 2, 2024, 'second_half', '2024-08-22 16:32:25', '2024-08-22 16:42:25', '스크립트 첨부파일 열람', '세금계산서 안내', 'parkchul@test.com', '50.24.11.35', 'fail', 10, '', '2025-06-04 07:22:34', '2025-06-04 07:24:29'),
+	(10, 4, 2025, 'second_half', '2025-10-22 10:44:25', '2025-10-22 10:54:25', '악성 메일 클릭', '운용상품 안내', 'kimeunje@test.com', '1.35.2.62', 'fail', 10, '', '2025-06-04 07:22:34', '2025-06-04 07:22:34'),
+	(11, 5, 2024, 'second_half', '2024-08-22 16:32:25', '2024-08-22 16:42:25', '스크립트 첨부파일 열람', '세금계산서 안내', 'admin@test.com', '50.24.11.35', 'fail', 10, '', '2025-06-04 07:23:28', '2025-06-04 07:24:29'),
+	(12, 4, 2025, 'first_half', '2025-04-22 10:44:25', '2025-04-22 10:34:25', '스크립트 첨부파일 열람', '세금계산서 안내', 'kimeunje@test.com', '103.34.21.35', 'fail', -10, '', '2025-06-04 07:23:28', '2025-06-04 07:24:29'),
+	(14, 3, 2025, 'second_half', '2025-10-22 10:44:25', '2025-10-22 10:54:25', '악성 메일 클릭', '운용상품 안내', 'test@test.com', '1.35.2.62', 'fail', 10, '', '2025-06-04 07:23:28', '2025-06-04 07:24:29'),
+	(24, 2, 2025, 'second_half', '2025-10-22 10:44:25', '2025-10-22 10:54:25', '악성 메일 클릭', '운용상품 안내', 'parkchul@test.com', '1.35.2.62', 'fail', 10, '', '2025-06-04 07:24:29', '2025-06-04 07:24:29'),
+	(26, 5, 2025, 'second_half', '2025-10-22 10:44:25', '2025-10-22 10:54:25', '악성 메일 클릭', '운용상품 안내', 'admin@test.com', '1.35.2.62', 'fail', 10, '', '2025-06-04 07:24:29', '2025-06-04 07:24:29');
 
 -- 테이블 patch_management.security_education 구조 내보내기
 DROP TABLE IF EXISTS `security_education`;
@@ -216,8 +208,6 @@ CREATE TABLE IF NOT EXISTS `security_education` (
   `education_type` varchar(100) DEFAULT '기본교육' COMMENT '교육 유형',
   `education_date` date DEFAULT NULL COMMENT '교육 수료일',
   `completion_status` tinyint(1) DEFAULT 0 COMMENT '이수 여부 (1:이수, 0:미이수)',
-  `score` decimal(5,2) DEFAULT NULL COMMENT '교육 점수',
-  `exclude_from_scoring` tinyint(1) DEFAULT 0 COMMENT '점수 계산 제외 여부',
   `notes` text DEFAULT NULL COMMENT '비고',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -229,11 +219,11 @@ CREATE TABLE IF NOT EXISTS `security_education` (
 
 -- 테이블 데이터 patch_management.security_education:~4 rows (대략적) 내보내기
 DELETE FROM `security_education`;
-INSERT INTO `security_education` (`education_id`, `user_id`, `education_year`, `education_period`, `education_type`, `education_date`, `completion_status`, `score`, `exclude_from_scoring`, `notes`, `created_at`, `updated_at`) VALUES
-	(1, 3, 2025, 'first_half', '기본교육', NULL, 0, NULL, 0, '상반기 교육 미이수', '2025-06-03 12:44:38', '2025-06-03 12:44:38'),
-	(2, 3, 2025, 'second_half', '기본교육', NULL, 0, NULL, 0, '하반기 교육 미실시', '2025-06-03 12:44:38', '2025-06-03 12:44:38'),
-	(3, 3, 2024, 'first_half', '기본교육', NULL, 1, NULL, 0, '상반기 교육 이수 완료', '2025-06-03 12:44:38', '2025-06-03 12:44:38'),
-	(4, 3, 2024, 'second_half', '기본교육', NULL, 1, NULL, 0, '하반기 교육 이수 완료', '2025-06-03 12:44:38', '2025-06-03 12:44:38');
+INSERT INTO `security_education` (`education_id`, `user_id`, `education_year`, `education_period`, `education_type`, `education_date`, `completion_status`, `notes`, `created_at`, `updated_at`) VALUES
+	(1, 3, 2025, 'first_half', '기본교육', NULL, 0, '상반기 교육 미이수', '2025-06-03 12:44:38', '2025-06-03 12:44:38'),
+	(2, 3, 2025, 'second_half', '기본교육', NULL, 0, '하반기 교육 미실시', '2025-06-03 12:44:38', '2025-06-03 12:44:38'),
+	(3, 3, 2024, 'first_half', '기본교육', NULL, 1, '상반기 교육 이수 완료', '2025-06-03 12:44:38', '2025-06-03 12:44:38'),
+	(4, 3, 2024, 'second_half', '기본교육', NULL, 1, '하반기 교육 이수 완료', '2025-06-03 12:44:38', '2025-06-03 12:44:38');
 
 -- 테이블 patch_management.security_score_summary 구조 내보내기
 DROP TABLE IF EXISTS `security_score_summary`;
@@ -324,14 +314,17 @@ CREATE TABLE IF NOT EXISTS `user_extended_exceptions` (
   KEY `idx_item_category` (`item_category`),
   KEY `idx_user_extended_search` (`user_id`,`item_type`,`is_active`),
   CONSTRAINT `fk_user_extended_exception` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 확장 감사 항목 제외 설정 (감사/교육/훈련)';
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 확장 감사 항목 제외 설정 (감사/교육/훈련)';
 
--- 테이블 데이터 patch_management.user_extended_exceptions:~3 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.user_extended_exceptions:~6 rows (대략적) 내보내기
 DELETE FROM `user_extended_exceptions`;
 INSERT INTO `user_extended_exceptions` (`exception_id`, `user_id`, `item_id`, `item_type`, `item_name`, `item_category`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
-	(3, 3, 'training_first_half', 'training_period', '상반기 모의훈련', '악성메일 모의훈련', '2025년 상반기는 신입사원으로 훈련 제외', 'temporary', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
-	(4, 4, 'training_second_half', 'training_period', '하반기 모의훈련', '악성메일 모의훈련', '출산휴가로 인한 훈련 제외', 'temporary', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1),
-	(5, 5, 'education_first_half', 'education_period', '상반기 교육', '정보보호 교육', '해외 출장으로 인한 교육 제외', 'temporary', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-03 15:24:39', 1);
+	(3, 3, 'training_2025_first_half', 'training_period', '상반기 모의훈련', '악성메일 모의훈련', '2025년 상반기는 신입사원으로 훈련 제외', 'temporary', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-04 16:17:41', 0),
+	(4, 4, 'training_2025_second_half', 'training_period', '하반기 모의훈련', '악성메일 모의훈련', '출산휴가로 인한 훈련 제외', 'temporary', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-04 16:17:41', 1),
+	(5, 5, 'education_2025_first_half', 'education_period', '상반기 교육', '정보보호 교육', '해외 출장으로 인한 교육 제외', 'temporary', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-04 16:17:41', 1),
+	(6, 3, 'training_2025_second_half', 'training_period', '2025년 하반기 악성메일 모의훈련', '악성메일 모의훈련', '123123123', 'permanent', NULL, NULL, 'admin', '2025-06-04 16:09:34', '2025-06-04 16:23:11', 1),
+	(7, 3, 'training_2024_first_half', 'training_period', '2024년 상반기 모의훈련', '악성메일 모의훈련', '2024년 상반기는 신입사원으로 훈련 제외', 'permanent', NULL, NULL, 'admin', '2025-06-04 16:17:41', '2025-06-04 16:17:41', 1),
+	(8, 3, 'training_2026_first_half', 'training_period', '2026년 상반기 모의훈련', '악성메일 모의훈련', '2026년 상반기 해외파견 예정', 'permanent', NULL, NULL, 'admin', '2025-06-04 16:17:41', '2025-06-04 16:17:41', 1);
 
 -- 테이블 patch_management.user_item_exceptions 구조 내보내기
 DROP TABLE IF EXISTS `user_item_exceptions`;
