@@ -34,7 +34,6 @@
             <option value="">전체</option>
             <option value="pass">통과</option>
             <option value="fail">실패</option>
-            <option value="pending">미실시</option>
           </select>
         </div>
 
@@ -83,11 +82,15 @@
 
             <div class="card-content">
               <div class="period-info">
-                <p><strong>기간:</strong> {{ period.start_date }} ~ {{ period.end_date }}</p>
+                <p>
+                  <strong>기간:</strong> {{ formatDateRange(period.start_date, period.end_date) }}
+                </p>
+                <p v-if="period.is_completed && period.completed_at">
+                  <strong>완료일:</strong> {{ formatDateTime(period.completed_at) }}
+                </p>
                 <div class="stats">
                   <span class="stat pass">성공: {{ period.pass_count || 0 }}</span>
                   <span class="stat fail">실패: {{ period.fail_count || 0 }}</span>
-                  <span class="stat pending">미실시: {{ period.pending_count || 0 }}</span>
                 </div>
               </div>
 
@@ -376,68 +379,93 @@
     <div v-if="showBulkUploadModal" class="modal-overlay" @click="closeBulkUploadModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h3>모의훈련 데이터 일괄 업로드</h3>
+          <h3>모의훈련 결과 일괄 등록</h3>
           <button @click="closeBulkUploadModal" class="close-button">×</button>
         </div>
 
         <div class="modal-body">
           <div class="upload-section">
             <div class="upload-area" @drop="handleFileDrop" @dragover.prevent @dragenter.prevent>
-              <div class="upload-icon">📁</div>
-              <p>CSV 파일을 여기에 끌어다 놓거나 클릭하여 선택하세요</p>
-              <input type="file" ref="fileInput" @change="handleFileSelect" accept=".csv" hidden />
-              <button type="button" @click="$refs.fileInput.click()" class="browse-button">
-                파일 선택
-              </button>
+              <input
+                type="file"
+                ref="fileInput"
+                @change="handleFileSelect"
+                accept=".csv,.xlsx,.xls"
+                style="display: none"
+              />
+
+              <div v-if="!selectedFile" class="upload-placeholder">
+                <div class="upload-icon">📁</div>
+                <p>CSV 또는 Excel 파일을 드래그하거나 클릭하여 선택하세요</p>
+                <button @click="$refs.fileInput.click()" class="select-file-button">
+                  파일 선택
+                </button>
+              </div>
+
+              <div v-else class="file-selected">
+                <div class="file-info">
+                  <div class="file-icon">📄</div>
+                  <div>
+                    <div class="file-name">{{ selectedFile.name }}</div>
+                    <div class="file-size">{{ formatFileSize(selectedFile.size) }}</div>
+                  </div>
+                </div>
+                <button @click="removeSelectedFile" class="remove-file-button">×</button>
+              </div>
             </div>
 
             <div class="upload-instructions">
               <h4>업로드 형식 안내</h4>
               <ul>
-                <li>CSV 형식만 지원됩니다</li>
-                <li>첫 번째 행은 헤더로 사용됩니다</li>
-                <li>필수 필드: user_email, training_year, training_period</li>
-                <li>
-                  선택 필드: email_sent_time, action_time, log_type, mail_type, ip_address, notes
-                </li>
+                <li>CSV 또는 Excel 파일 형식 지원</li>
+                <li>필수 컬럼: 메일발송시각, 수행시간, 로그유형, 메일유형, 이메일, IP주소</li>
+                <li>첫 번째 행은 헤더로 처리됩니다</li>
               </ul>
-              <button @click="downloadTemplate" class="secondary-button">템플릿 다운로드</button>
             </div>
           </div>
 
-          <!-- 미리보기 -->
           <div v-if="uploadPreview.length > 0" class="preview-section">
-            <h4>업로드 미리보기 (최대 5개 항목)</h4>
+            <h4>미리보기 (처음 5개 레코드)</h4>
             <div class="preview-table">
               <table>
                 <thead>
                   <tr>
-                    <th v-for="header in Object.keys(uploadPreview[0])" :key="header">
-                      {{ header }}
-                    </th>
+                    <th>이메일</th>
+                    <th>연도</th>
+                    <th>기간</th>
+                    <th>발송시각</th>
+                    <th>수행시간</th>
+                    <th>로그유형</th>
+                    <th>메일유형</th>
+                    <th>결과</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(row, index) in uploadPreview.slice(0, 5)" :key="index">
-                    <td v-for="header in Object.keys(row)" :key="header">
-                      {{ row[header] }}
-                    </td>
+                  <tr v-for="(record, index) in uploadPreview.slice(0, 5)" :key="index">
+                    <td>{{ record.user_email || '-' }}</td>
+                    <td>{{ record.training_year || '-' }}</td>
+                    <td>{{ getPeriodName(record.training_period) || '-' }}</td>
+                    <td>{{ record.email_sent_time || '-' }}</td>
+                    <td>{{ record.action_time || '-' }}</td>
+                    <td>{{ record.log_type || '-' }}</td>
+                    <td>{{ truncateText(record.mail_type, 30) || '-' }}</td>
+                    <td>{{ getResultText(record.training_result) || '-' }}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
+        </div>
 
-          <div class="modal-actions">
-            <button @click="closeBulkUploadModal" class="cancel-button">취소</button>
-            <button
-              @click="uploadBulkData"
-              :disabled="!selectedFile || uploading"
-              class="upload-button"
-            >
-              {{ uploading ? '업로드 중...' : '업로드' }}
-            </button>
-          </div>
+        <div class="modal-footer">
+          <button @click="closeBulkUploadModal" class="cancel-button">취소</button>
+          <button
+            @click="processBulkUpload"
+            :disabled="!selectedFile || uploading"
+            class="upload-button"
+          >
+            {{ uploading ? '처리 중...' : '업로드' }}
+          </button>
         </div>
       </div>
     </div>
@@ -779,6 +807,7 @@ const getStatusText = (status) => {
     upcoming: '예정',
     active: '진행중',
     ended: '종료',
+    completed: '완료',
     unknown: '알 수 없음',
   }
   return statusMap[status] || status
@@ -869,6 +898,37 @@ const editRecord = (record) => {
   showEditModal.value = true
 }
 
+const truncateText = (text, maxLength) => {
+  if (!text) return '-'
+  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
+}
+
+const getPeriodName = (period) => {
+  const names = {
+    first_half: '상반기',
+    second_half: '하반기',
+  }
+  return names[period] || period
+}
+
+const getResultClass = (result) => {
+  const classes = {
+    pass: 'success',
+    fail: 'danger',
+    pending: 'warning',
+  }
+  return classes[result] || 'warning'
+}
+
+const getResultText = (result) => {
+  const texts = {
+    pass: '통과',
+    fail: '실패',
+    pending: '미실시',
+  }
+  return texts[result] || '알 수 없음'
+}
+
 const closeEditModal = () => {
   showEditModal.value = false
   editingRecord.value = {}
@@ -880,13 +940,44 @@ const saveRecord = async () => {
   saving.value = true
 
   try {
+    // 수행시간 계산 로직 추가
+    const recordToSave = { ...editingRecord.value }
+
+    // 메일 발송시각과 액션 시각이 모두 있으면 수행시간 자동 계산
+    if (recordToSave.email_sent_time && recordToSave.action_time) {
+      try {
+        const sentTime = new Date(recordToSave.email_sent_time)
+        const actionTime = new Date(recordToSave.action_time)
+
+        if (!isNaN(sentTime.getTime()) && !isNaN(actionTime.getTime())) {
+          // 수행시간을 분 단위로 계산
+          const timeDiffMinutes = Math.round((actionTime - sentTime) / (1000 * 60))
+          recordToSave.response_time_minutes = timeDiffMinutes
+        }
+      } catch (error) {
+        console.warn('수행시간 자동 계산 실패:', error)
+        // 계산 실패 시 기존 값 유지 또는 null 설정
+        if (!recordToSave.response_time_minutes) {
+          recordToSave.response_time_minutes = null
+        }
+      }
+    }
+
+    // 수행시간이 직접 입력된 경우 숫자로 변환
+    if (
+      recordToSave.response_time_minutes !== null &&
+      recordToSave.response_time_minutes !== undefined
+    ) {
+      recordToSave.response_time_minutes = parseInt(recordToSave.response_time_minutes) || null
+    }
+
     const response = await fetch('/api/phishing-training/update', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
-      body: JSON.stringify(editingRecord.value),
+      body: JSON.stringify(recordToSave),
     })
 
     const result = await response.json()
@@ -959,44 +1050,387 @@ const handleFileSelect = (event) => {
   const file = event.target.files[0]
   if (file) {
     selectedFile.value = file
-    previewFile(file)
+    parseFile(file)
   }
 }
 
 const handleFileDrop = (event) => {
   event.preventDefault()
-  const files = event.dataTransfer.files
-  if (files.length > 0) {
-    selectedFile.value = files[0]
-    previewFile(files[0])
+  const file = event.dataTransfer.files[0]
+  if (file) {
+    selectedFile.value = file
+    parseFile(file)
   }
 }
 
-const previewFile = (file) => {
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const csv = e.target.result
-    const lines = csv.split('\n')
-    const headers = lines[0].split(',').map((h) => h.trim())
+const removeSelectedFile = () => {
+  selectedFile.value = null
+  uploadPreview.value = []
+}
 
-    const preview = []
-    for (let i = 1; i < Math.min(6, lines.length); i++) {
-      if (lines[i].trim()) {
-        const values = lines[i].split(',').map((v) => v.trim())
-        const row = {}
-        headers.forEach((header, index) => {
-          row[header] = values[index] || ''
-        })
-        preview.push(row)
+const parseFile = async (file) => {
+  try {
+    const fileName = file.name.toLowerCase()
+
+    if (fileName.endsWith('.csv')) {
+      // CSV 파일 처리
+      const text = await file.text()
+      const lines = text.split('\n')
+      const headers = lines[0].split(',').map((h) => h.trim().replace(/"/g, ''))
+
+      const records = []
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+          const values = lines[i].split(',').map((v) => v.trim().replace(/"/g, ''))
+          const record = {}
+          headers.forEach((header, index) => {
+            record[header] = values[index] || ''
+          })
+          records.push(record)
+        }
       }
+
+      const processedRecords = postProcessRecords(records)
+      uploadPreview.value = processedRecords
+      showToastMessage(`${processedRecords.length}개의 레코드가 파싱되었습니다.`, 'success')
+    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      // Excel 파일 처리
+      const arrayBuffer = await file.arrayBuffer()
+      const XLSX = window.XLSX || (await import('xlsx'))
+
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+
+      // JSON으로 변환 (첫 번째 행을 헤더로 사용)
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+        raw: false,
+        dateNF: 'yyyy-mm-dd hh:mm:ss',
+      })
+
+      const processedRecords = postProcessRecords(jsonData)
+      uploadPreview.value = processedRecords
+      showToastMessage(`${processedRecords.length}개의 레코드가 파싱되었습니다.`, 'success')
+    } else {
+      throw new Error('지원하지 않는 파일 형식입니다. CSV 또는 Excel 파일을 선택해주세요.')
+    }
+  } catch (err) {
+    console.error('파일 파싱 실패:', err)
+    showToastMessage(`파일 파싱에 실패했습니다: ${err.message}`, 'error')
+    uploadPreview.value = []
+  }
+}
+
+// 레코드 후처리 함수 - 점수 관련 필드 제거
+const postProcessRecords = (records) => {
+  // 한글-영문 필드명 매핑 테이블 (점수 관련 필드 제거)
+  const fieldMapping = {
+    // 기본 필드들
+    사용자ID: 'user_id',
+    사용자명: 'username',
+    사용자이름: 'username',
+    이름: 'username',
+    부서: 'department',
+    연도: 'training_year',
+    훈련연도: 'training_year',
+    기간: 'training_period',
+    훈련기간: 'training_period',
+    이메일: 'user_email',
+    사용자이메일: 'user_email',
+    email: 'user_email',
+    mail: 'user_email',
+
+    // 시간 관련
+    메일발송시각: 'email_sent_time',
+    발송시각: 'email_sent_time',
+    메일발송시간: 'email_sent_time',
+    발송시간: 'email_sent_time',
+    수행시각: 'action_time',
+    수행시간: 'action_time',
+    액션시각: 'action_time',
+    액션시간: 'action_time',
+    클릭시간: 'action_time',
+    응답시간: 'response_time_minutes',
+    '응답시간(분)': 'response_time_minutes',
+
+    // 훈련 관련
+    로그유형: 'log_type',
+    로그타입: 'log_type',
+    액션유형: 'log_type',
+    메일유형: 'mail_type',
+    메일타입: 'mail_type',
+    훈련유형: 'mail_type',
+    IP주소: 'ip_address',
+    IP: 'ip_address',
+    아이피: 'ip_address',
+    아이피주소: 'ip_address',
+
+    // 결과 관련 (점수 관련 필드 제거됨)
+    결과: 'training_result',
+    훈련결과: 'training_result',
+    비고: 'notes',
+    메모: 'notes',
+    노트: 'notes',
+    설명: 'notes',
+
+    // 영문 필드들도 그대로 유지
+    user_id: 'user_id',
+    username: 'username',
+    department: 'department',
+    training_year: 'training_year',
+    training_period: 'training_period',
+    user_email: 'user_email',
+    email_sent_time: 'email_sent_time',
+    action_time: 'action_time',
+    log_type: 'log_type',
+    mail_type: 'mail_type',
+    ip_address: 'ip_address',
+    training_result: 'training_result',
+    response_time_minutes: 'response_time_minutes',
+    notes: 'notes',
+  }
+
+  return records
+    .map((originalRecord) => {
+      const mappedRecord = {}
+
+      // 모든 필드를 영문 필드명으로 매핑
+      Object.keys(originalRecord).forEach((originalKey) => {
+        const value = originalRecord[originalKey]
+
+        // 값이 비어있지 않은 경우만 처리
+        if (value !== undefined && value !== null && value !== '') {
+          // 매핑 테이블에서 영문 필드명 찾기
+          const mappedKey = fieldMapping[originalKey.trim()]
+
+          if (mappedKey) {
+            mappedRecord[mappedKey] = value
+          } else {
+            // 매핑되지 않은 필드는 소문자_스네이크케이스로 변환 시도
+            const normalizedKey = originalKey
+              .trim()
+              .toLowerCase()
+              .replace(/\s+/g, '_')
+              .replace(/[()]/g, '')
+
+            if (fieldMapping[normalizedKey]) {
+              mappedRecord[fieldMapping[normalizedKey]] = value
+            } else {
+              // 그래도 매핑되지 않으면 원본 키 사용 (디버깅용)
+              console.warn(`매핑되지 않은 필드: ${originalKey}`)
+              mappedRecord[originalKey] = value
+            }
+          }
+        }
+      })
+
+      // 데이터 후처리
+      return processRecordData(mappedRecord)
+    })
+    .filter((record) => {
+      // 최소 필수 필드가 있는 레코드만 포함
+      const hasEmail = record.user_email && record.user_email.includes('@')
+      const hasValidData = record.training_year || record.email_sent_time || record.log_type
+
+      return hasEmail && hasValidData
+    })
+}
+
+// 개별 레코드 데이터 처리 (점수 관련 로직 제거)
+const processRecordData = (record) => {
+  const processedRecord = { ...record }
+
+  // 1. training_year 처리
+  if (!processedRecord.training_year && processedRecord.email_sent_time) {
+    const year = extractYearFromDateTime(processedRecord.email_sent_time)
+    if (year) {
+      processedRecord.training_year = year
+    }
+  }
+
+  if (processedRecord.training_year) {
+    processedRecord.training_year = parseInt(processedRecord.training_year)
+  }
+
+  // 2. training_period 처리 및 정규화
+  if (!processedRecord.training_period && processedRecord.email_sent_time) {
+    const period = estimatePeriodFromDateTime(processedRecord.email_sent_time)
+    if (period) {
+      processedRecord.training_period = period
+    }
+  }
+
+  if (processedRecord.training_period) {
+    const period = processedRecord.training_period.toString().trim()
+    const periodMapping = {
+      상반기: 'first_half',
+      하반기: 'second_half',
+      '1학기': 'first_half',
+      '2학기': 'second_half',
+      1: 'first_half',
+      2: 'second_half',
+      first_half: 'first_half',
+      second_half: 'second_half',
+      '1반기': 'first_half',
+      '2반기': 'second_half',
     }
 
-    uploadPreview.value = preview
+    processedRecord.training_period = periodMapping[period] || period
   }
-  reader.readAsText(file)
+
+  // 3. training_result 정규화
+  if (processedRecord.training_result) {
+    const result = processedRecord.training_result.toString().trim()
+    const resultMapping = {
+      통과: 'pass',
+      성공: 'pass',
+      합격: 'pass',
+      실패: 'fail',
+      탈락: 'fail',
+      불합격: 'fail',
+      미실시: 'pending',
+      대기: 'pending',
+      보류: 'pending',
+      pass: 'pass',
+      fail: 'fail',
+      pending: 'pending',
+    }
+
+    processedRecord.training_result = resultMapping[result] || result
+  }
+
+  // 4. 날짜 형식 정규화
+  if (processedRecord.email_sent_time) {
+    processedRecord.email_sent_time = normalizeDateTime(processedRecord.email_sent_time)
+  }
+  if (processedRecord.action_time) {
+    processedRecord.action_time = normalizeDateTime(processedRecord.action_time)
+  }
+
+  // 5. 응답시간 처리
+  if (processedRecord.response_time_minutes) {
+    processedRecord.response_time_minutes = parseInt(processedRecord.response_time_minutes)
+  }
+
+  // 6. 응답시간 자동 계산
+  if (
+    !processedRecord.response_time_minutes &&
+    processedRecord.email_sent_time &&
+    processedRecord.action_time
+  ) {
+    try {
+      const sentTime = new Date(processedRecord.email_sent_time)
+      const actionTime = new Date(processedRecord.action_time)
+      if (!isNaN(sentTime.getTime()) && !isNaN(actionTime.getTime())) {
+        processedRecord.response_time_minutes = Math.round((actionTime - sentTime) / (1000 * 60))
+      }
+    } catch (error) {
+      console.warn('응답시간 계산 실패:', error)
+    }
+  }
+
+  // 7. training_result 자동 결정
+  if (!processedRecord.training_result) {
+    if (processedRecord.log_type && processedRecord.log_type.trim()) {
+      processedRecord.training_result = 'fail' // 로그가 있으면 실패
+    } else if (processedRecord.email_sent_time && !processedRecord.action_time) {
+      processedRecord.training_result = 'pass' // 발송했지만 액션이 없으면 통과
+    } else {
+      processedRecord.training_result = 'pending' // 기본값
+    }
+  }
+
+  return processedRecord
 }
 
-const uploadBulkData = async () => {
+// 유틸리티 함수들
+const extractYearFromDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return null
+
+  try {
+    const dateStr = dateTimeStr.toString().trim()
+
+    // YYYY-MM-DD HH:mm:ss 형식
+    const isoMatch = dateStr.match(/(\d{4})-\d{2}-\d{2}/)
+    if (isoMatch) {
+      return parseInt(isoMatch[1])
+    }
+
+    // YYYY/MM/DD 형식
+    const slashMatch = dateStr.match(/(\d{4})\/\d{2}\/\d{2}/)
+    if (slashMatch) {
+      return parseInt(slashMatch[1])
+    }
+
+    // YYYY.MM.DD 형식
+    const dotMatch = dateStr.match(/(\d{4})\.\d{2}\.\d{2}/)
+    if (dotMatch) {
+      return parseInt(dotMatch[1])
+    }
+
+    // Excel 날짜 시리얼 번호 처리
+    const serialNumber = parseFloat(dateStr)
+    if (serialNumber > 40000 && serialNumber < 50000) {
+      const excelStartDate = new Date(1900, 0, 1)
+      const date = new Date(excelStartDate.getTime() + (serialNumber - 2) * 24 * 60 * 60 * 1000)
+      return date.getFullYear()
+    }
+
+    // JavaScript Date 객체로 파싱 시도
+    const date = new Date(dateStr)
+    if (!isNaN(date.getTime())) {
+      return date.getFullYear()
+    }
+
+    return null
+  } catch (error) {
+    console.warn('날짜 파싱 실패:', dateTimeStr, error)
+    return null
+  }
+}
+
+const estimatePeriodFromDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return null
+
+  try {
+    const date = new Date(dateTimeStr)
+    if (isNaN(date.getTime())) return null
+
+    const month = date.getMonth() + 1
+    return month <= 6 ? 'first_half' : 'second_half'
+  } catch (error) {
+    console.warn('기간 추정 실패:', dateTimeStr, error)
+    return null
+  }
+}
+
+const normalizeDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return null
+
+  try {
+    const date = new Date(dateTimeStr)
+    if (isNaN(date.getTime())) return dateTimeStr
+
+    return (
+      date.getFullYear() +
+      '-' +
+      String(date.getMonth() + 1).padStart(2, '0') +
+      '-' +
+      String(date.getDate()).padStart(2, '0') +
+      ' ' +
+      String(date.getHours()).padStart(2, '0') +
+      ':' +
+      String(date.getMinutes()).padStart(2, '0') +
+      ':' +
+      String(date.getSeconds()).padStart(2, '0')
+    )
+  } catch (error) {
+    console.warn('날짜 정규화 실패:', dateTimeStr, error)
+    return dateTimeStr
+  }
+}
+
+const processBulkUpload = async () => {
   if (!selectedFile.value || uploading.value) return
 
   uploading.value = true
@@ -1005,14 +1439,21 @@ const uploadBulkData = async () => {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
 
-    const response = await fetch('/api/phishing-training/bulk-upload', {
+    // const response = await fetch('/api/phishing-training/bulk-upload', {
+    //   method: 'POST',
+    //   headers: {
+    //     Authorization: `Bearer ${localStorage.getItem('token')}`,
+    //   },
+    //   body: formData,
+    // })
+    const response = await fetch('/api/admin/training/bulk-update', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json',
       },
-      body: formData,
+      credentials: 'include',
+      body: JSON.stringify({ records: uploadPreview.value }),
     })
-
     const result = await response.json()
 
     if (!response.ok) {
@@ -1064,46 +1505,102 @@ const exportTrainingData = async () => {
   try {
     const params = new URLSearchParams({
       year: selectedYear.value,
-      ...(selectedPeriod.value && { period: selectedPeriod.value }),
-      ...(selectedResult.value && { result: selectedResult.value }),
+      format: 'csv',
     })
 
-    const response = await fetch(`/api/phishing-training/export?${params}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
+    const response = await fetch(`/api/admin/export/training?${params}`, {
+      credentials: 'include',
     })
 
-    if (!response.ok) throw new Error('내보내기 실패')
+    if (!response.ok) {
+      throw new Error('데이터 내보내기에 실패했습니다.')
+    }
 
-    const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `모의훈련_데이터_${selectedYear.value}.csv`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
+    const result = await response.json()
+
+    // CSV 다운로드
+    const blob = new Blob([result.data], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', result.filename)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
 
     displayToast('데이터가 성공적으로 내보내졌습니다.', 'success')
   } catch (err) {
-    console.error('내보내기 오류:', err)
+    console.error('내보내기 실패:', err)
     displayToast('데이터 내보내기에 실패했습니다.', 'error')
   }
 }
 
-// 유틸리티 함수들
-const formatDateTime = (dateTime) => {
-  if (!dateTime) return '-'
-  return new Date(dateTime).toLocaleString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const showToastMessage = (message, type = 'success') => {
+  toastMessage.value = message
+  toastType.value = type
+  showToast.value = true
+
+  setTimeout(() => {
+    showToast.value = false
+  }, 3000)
+}
+
+// 날짜 포맷팅 함수 추가
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return dateString // 파싱 실패 시 원본 반환
+
+    // YYYY-MM-DD 형식으로 포맷팅
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+
+    return `${year}-${month}-${day}`
+  } catch (error) {
+    console.warn('날짜 포맷팅 실패:', dateString, error)
+    return dateString
+  }
+}
+
+// DateTime 포맷팅 함수 (YYYY-MM-DD HH:mm:ss)
+const formatDateTime = (dateTimeString) => {
+  if (!dateTimeString) return '-'
+
+  try {
+    const date = new Date(dateTimeString)
+    if (isNaN(date.getTime())) return dateTimeString
+
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  } catch (error) {
+    console.warn('날짜시간 포맷팅 실패:', dateTimeString, error)
+    return dateTimeString
+  }
+}
+
+// 기간 카드 템플릿에서 사용할 날짜 표시 개선
+const formatDateRange = (startDate, endDate) => {
+  const start = formatDate(startDate)
+  const end = formatDate(endDate)
+  return `${start} ~ ${end}`
 }
 
 const formatDateTimeForInput = (dateTime) => {

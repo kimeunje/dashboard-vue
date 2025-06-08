@@ -268,6 +268,7 @@ class TrainingPeriodService:
                 training_period,
                 start_date,
                 end_date,
+                completed_at,
                 is_completed,
                 CASE 
                     WHEN %s BETWEEN start_date AND end_date THEN 'active'

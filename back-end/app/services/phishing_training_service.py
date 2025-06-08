@@ -170,7 +170,7 @@ class TrainingService:
         """모의훈련 결과 일괄 등록/수정 - 점수 관련 로직 제거"""
         if not records:
             raise ValueError("등록할 훈련 기록이 없습니다.")
-
+    
         success_count = 0
         error_records = []
 
@@ -298,7 +298,7 @@ class TrainingService:
         }
 
     def update_training_record(self, record: dict) -> bool:
-        """단일 훈련 기록 수정 - 점수 관련 필드 제거"""
+        """단일 훈련 기록 수정 - 프론트엔드에서 계산된 값 사용"""
         try:
             # 사용자 확인
             user = execute_query(
@@ -311,7 +311,10 @@ class TrainingService:
 
             user_uid = user["uid"]
 
-            # 기록 수정 - 점수 관련 필드 제거
+            # 프론트엔드에서 계산해서 보낸 response_time_minutes 값을 그대로 사용
+            response_time_minutes = record.get("response_time_minutes")
+
+            # 기록 수정
             execute_query(
                 """
                 UPDATE phishing_training SET
@@ -335,7 +338,7 @@ class TrainingService:
                     record.get("user_email"),
                     record.get("ip_address"),
                     record.get("training_result", "pending"),
-                    record.get("response_time_minutes"),
+                    response_time_minutes,  # 프론트엔드에서 계산된 값 사용
                     record.get("notes", ""),
                     user_uid,
                     record["training_year"],

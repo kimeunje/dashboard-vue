@@ -108,7 +108,7 @@
               </div>
 
               <div class="period-details">
-                <div class="detail-row">
+                <div class="detail-row" v-if="period.email_sent_time || period.result !== 'pass'">
                   <span class="label">메일 발송시각:</span>
                   <span class="value">{{ period.email_sent_time || '미발송' }}</span>
                 </div>
