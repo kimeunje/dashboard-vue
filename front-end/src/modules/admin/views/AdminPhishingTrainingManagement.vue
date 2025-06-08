@@ -1500,7 +1500,6 @@ const downloadTemplate = async () => {
     displayToast('템플릿 다운로드에 실패했습니다.', 'error')
   }
 }
-
 const exportTrainingData = async () => {
   try {
     const params = new URLSearchParams({
@@ -1508,7 +1507,8 @@ const exportTrainingData = async () => {
       format: 'csv',
     })
 
-    const response = await fetch(`/api/admin/export/training?${params}`, {
+    // ✅ 올바른 API 사용
+    const response = await fetch(`/api/phishing-training/export?${params}`, {
       credentials: 'include',
     })
 
@@ -1516,23 +1516,23 @@ const exportTrainingData = async () => {
       throw new Error('데이터 내보내기에 실패했습니다.')
     }
 
-    const result = await response.json()
+    // ✅ 직접 blob으로 받음 (UTF-8 BOM 포함됨)
+    const blob = await response.blob()
 
-    // CSV 다운로드
-    const blob = new Blob([result.data], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
-    link.setAttribute('download', result.filename)
+    link.setAttribute('download', `phishing_training_data_${selectedYear.value}.csv`)
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    URL.revokeObjectURL(url)
 
-    displayToast('데이터가 성공적으로 내보내졌습니다.', 'success')
+    showToastMessage('데이터가 성공적으로 내보내졌습니다.', 'success')
   } catch (err) {
     console.error('내보내기 실패:', err)
-    displayToast('데이터 내보내기에 실패했습니다.', 'error')
+    showToastMessage('데이터 내보내기에 실패했습니다.', 'error')
   }
 }
 
