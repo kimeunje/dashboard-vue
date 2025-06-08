@@ -70,12 +70,12 @@ def setup_logging(app):
 def register_controllers(app):
     """컨트롤러 등록"""
     from app.controllers.auth_controller import auth_bp
-    from app.controllers.audit_controller import audit_bp
-    from app.controllers.education_controller import education_bp
-    from app.controllers.training_controller import training_bp
-    from app.controllers.score_controller import score_bp
+    from app.controllers.security_audit_controller import audit_bp
+    from app.controllers.security_education_controller import education_bp
+    from app.controllers.phishing_training_controller import training_bp
+    from app.controllers.total_score_controller import score_bp
     from app.controllers.admin_controller import admin_bp
-    from app.controllers.exception_controller import exception_bp
+    from app.controllers.admin_exception_controller import exception_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(audit_bp, url_prefix="/api/security-audit")

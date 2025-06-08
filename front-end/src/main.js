@@ -1,3 +1,4 @@
+// main.js
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 
@@ -8,10 +9,6 @@ const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
-
-// 전역 속성 설정 (필요한 경우)
-app.config.globalProperties.$appName = '나이스디앤비 정보보안 감사 시스템'
-app.config.globalProperties.$version = '1.0.0'
 
 // 에러 핸들링
 app.config.errorHandler = (err, vm, info) => {
@@ -30,9 +27,6 @@ if (import.meta.env.DEV) {
   console.log('🚀 개발 모드로 애플리케이션이 시작되었습니다.')
   console.log('📊 Vue DevTools가 활성화되었습니다.')
 }
-
-// 전역 컴포넌트 등록 (필요한 경우)
-// app.component('GlobalComponent', GlobalComponent)
 
 app.mount('#app')
 

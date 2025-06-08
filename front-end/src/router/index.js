@@ -3,46 +3,38 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 // 컴포넌트 import - 레이지 로딩 적용
-const HomePage = () => import('@/views/HomePage.vue')
-const LoginPage = () => import('@/views/LoginPage.vue')
+const LoginPage = () => import('@/modules/auth/views/LoginPage.vue')
 
 // Security Audit 관련 페이지들
-const SecurityAuditPage = () => import('@/views/SecurityAuditPage.vue')
-const SecurityAuditResultsPage = () => import('@/views/SecurityAuditResultsPage.vue')
-const SecurityAuditSolutionsPage = () => import('@/views/SecurityAuditSolutionsPage.vue')
-const ContactPage = () => import('@/views/ContactPage.vue')
+const SecurityAuditPage = () => import('@/modules/security-audit/views/SecurityAuditPage.vue')
+const SecurityAuditResultsPage = () =>
+  import('@/modules/security-audit/views/SecurityAuditResultsPage.vue')
+const SecurityAuditSolutionsPage = () =>
+  import('@/modules/security-audit/views/SecurityAuditSolutionsPage.vue')
+const ContactPage = () => import('@/modules/contact/views/ContactPage.vue')
 
 // Solutions 하위 페이지들
-const ScreenSaverSolutionPage = () => import('@/views/solutions/ScreenSaverSolutionPage.vue')
-const AntivirusSolutionPage = () => import('@/views/solutions/AntivirusSolutionPage.vue')
-const PasswordPolicySolutionPage = () => import('@/views/solutions/PasswordPolicySolutionPage.vue')
-const SharedFolderSolutionPage = () => import('@/views/solutions/SharedFolderSolutionPage.vue')
-const RemoteDesktopSolutionPage = () => import('@/views/solutions/RemoteDesktopSolutionPage.vue')
+const ScreenSaverSolutionPage = () =>
+  import('@/modules/security-audit/views/solutions/ScreenSaverSolutionPage.vue')
+const AntivirusSolutionPage = () =>
+  import('@/modules/security-audit/views/solutions/AntivirusSolutionPage.vue')
+const PasswordPolicySolutionPage = () =>
+  import('@/modules/security-audit/views/solutions/PasswordPolicySolutionPage.vue')
+const SharedFolderSolutionPage = () =>
+  import('@/modules/security-audit/views/solutions/SharedFolderSolutionPage.vue')
+const RemoteDesktopSolutionPage = () =>
+  import('@/modules/security-audit/views/solutions/RemoteDesktopSolutionPage.vue')
 
-// // 기타 서비스 페이지들 (추후 구현 예정)
-// const WebsiteAllowPage = () => import('@/views/WebsiteAllowPage.vue')
-// const MailPage = () => import('@/views/MailPage.vue')
-// const UsbRequestPage = () => import('@/views/UsbRequestPage.vue')
 
-// // 에러 페이지
-// const NotFoundPage = () => import('@/views/NotFoundPage.vue')
+const SecurityEducationPage = () =>
+  import('@/modules/security-education/views/SecurityEducationPage.vue')
+const PhishingTrainingPage = () =>
+  import('@/modules/phishing-training/views/PhishingTrainingPage.vue')
+const SecurityScorePage = () => import('@/modules/total-score/views/TotalScorePage.vue')
 
-// 새로운 컴포넌트 import 추가 (기존 import 섹션에 추가)
-const SecurityEducationPage = () => import('@/views/SecurityEducationPage.vue')
-const PhishingTrainingPage = () => import('@/views/PhishingTrainingPage.vue')
-const SecurityScorePage = () => import('@/views/SecurityScorePage.vue')
-
-const AdminExceptionManagement = () => import('@/views/admin/AdminExceptionManagement.vue')
-
-// 관리자 페이지 컴포넌트 import (기존 import 섹션에 추가)
-const AdminDashboard = () => import('@/views/admin/AdminDashboard.vue')
-const AdminEducationManagement = () => import('@/views/admin/AdminEducationManagement.vue')
-const AdminTrainingManagement = () => import('@/views/admin/AdminTrainingManagement.vue')
-const AdminUserManagement = () => import('@/views/admin/AdminUserManagement.vue')
-const AdminScoreManagement = () => import('@/views/admin/AdminScoreManagement.vue')
-
-// 보호된 라우트 목록
-const PROTECTED_ROUTES = ['/security-audit', '/website-allow', '/mail', '/usb-request']
+const AdminExceptionManagement = () => import('@/modules/admin/views/AdminExceptionManagement.vue')
+const AdminPhishingTrainingManagement = () =>
+  import('@/modules/admin/views/AdminPhishingTrainingManagement.vue')
 
 // 라우터 설정
 const routes = [
@@ -58,20 +50,10 @@ const routes = [
   },
 
   {
-    path: '/admin',
-    name: 'AdminDashboard',
-    component: AdminDashboard,
-    meta: {
-      title: '관리자 대시보드',
-      requiresAuth: true,
-    },
-  },
-
-  {
     path: '/admin/exceptions',
     name: 'AdminExceptionManagement',
     component: AdminExceptionManagement,
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { requiresAuth: true, requiresAdmin: true },
   },
 
   // 로그인 페이지
@@ -161,59 +143,13 @@ const routes = [
     },
   },
 
-  {
-    path: '/admin',
-    name: 'AdminDashboard',
-    component: AdminDashboard,
-    meta: {
-      title: '관리자 대시보드',
-      requiresAuth: true,
-      requiresAdmin: true, // 관리자 권한 필요
-    },
-  },
-
-  // 정보보호 교육 관리
-  {
-    path: '/admin/education',
-    name: 'AdminEducationManagement',
-    component: AdminEducationManagement,
-    meta: {
-      title: '정보보호 교육 관리',
-      requiresAuth: true,
-      // requiresAdmin: true,
-    },
-  },
-
   // 모의훈련 관리
   {
     path: '/admin/training',
-    name: 'AdminTrainingManagement',
-    component: AdminTrainingManagement,
+    name: 'AdminPhishingTrainingManagement',
+    component: AdminPhishingTrainingManagement,
     meta: {
       title: '모의훈련 관리',
-      requiresAuth: true,
-      requiresAdmin: true,
-    },
-  },
-
-  // 사용자 관리
-  {
-    path: '/admin/users',
-    name: 'AdminUserManagement',
-    component: AdminUserManagement,
-    meta: {
-      title: '사용자 관리',
-      requiresAuth: true,
-      requiresAdmin: true,
-    },
-  },
-
-  {
-    path: '/admin/scores',
-    name: 'AdminScoreManagement',
-    component: AdminScoreManagement,
-    meta: {
-      title: '점수 관리',
       requiresAuth: true,
       requiresAdmin: true,
     },
@@ -267,35 +203,6 @@ const routes = [
       requiresAuth: true,
     },
   },
-
-  // // 기타 서비스 페이지들
-  // {
-  //   path: '/website-allow',
-  //   name: 'WebsiteAllow',
-  //   component: WebsiteAllowPage,
-  //   meta: {
-  //     title: '웹사이트 허용 신청',
-  //     requiresAuth: true,
-  //   },
-  // },
-  // {
-  //   path: '/mail',
-  //   name: 'Mail',
-  //   component: MailPage,
-  //   meta: {
-  //     title: '대용량 메일 작성',
-  //     requiresAuth: true,
-  //   },
-  // },
-  // {
-  //   path: '/usb-request',
-  //   name: 'UsbRequest',
-  //   component: UsbRequestPage,
-  //   meta: {
-  //     title: 'USB 반출 신청',
-  //     requiresAuth: true,
-  //   },
-  // },
 
   // // 404 페이지 - 마지막에 위치해야 함
   // {

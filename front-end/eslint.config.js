@@ -12,6 +12,18 @@ export default defineConfig([
 
   globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
 
+  (module.exports = {
+    extends: ['plugin:vue/vue3-essential'],
+    rules: {
+      'vue/multi-word-component-names': [
+        'error',
+        {
+          ignores: ['index', 'App'], // 예외로 둘 컴포넌트 이름들
+        },
+      ],
+    },
+  }),
+
   {
     languageOptions: {
       globals: {

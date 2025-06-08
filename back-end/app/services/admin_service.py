@@ -1,9 +1,9 @@
 # app/services/admin_service.py
 from datetime import datetime
 from app.utils.database import DatabaseManager, execute_query
-from app.services.score_service import ScoreService
-from app.services.education_service import EducationService
-from app.services.training_service import TrainingService
+from app.services.total_score_service import ScoreService
+from app.services.security_education_service import EducationService
+from app.services.phishing_training_service import TrainingService
 
 
 class AdminService:

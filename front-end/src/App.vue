@@ -158,10 +158,19 @@ a {
 }
 
 .page-title {
-  font-size: 24px;
-  margin-bottom: 20px;
-  font-weight: 500;
+  font-size: 28px;
+  font-weight: 600;
   color: var(--dark-blue);
+  margin: 0;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e5e7eb;
 }
 
 .section {

@@ -231,32 +231,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // 기존 LDAP 인증 메서드는 호환성을 위해 유지 (사용 중단 예정)
-  const checkCredentials = async (username, password) => {
-    console.warn('checkCredentials는 더 이상 사용되지 않습니다. IP 인증을 사용하세요.')
-
-    try {
-      const response = await fetch('/api/auth/check-credentials', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-        credentials: 'include',
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || '로그인에 실패했습니다.')
-      }
-
-      const credentialData = await response.json()
-      return credentialData
-    } catch (error) {
-      return { success: false, error: error.message }
-    }
-  }
-
   return {
     // 상태
     user,
@@ -277,8 +251,5 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     refreshAuthState,
     getCurrentIpInfo, // IP 정보 조회 메서드
-
-    // 호환성을 위한 기존 메서드 (사용 중단 예정)
-    checkCredentials,
   }
 })
