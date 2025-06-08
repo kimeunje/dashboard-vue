@@ -659,43 +659,89 @@ class ExceptionService:
 
     def add_user_exception(
         self,
-        user_id: int,
+        user_uid: int,
+        item_id: str,
         item_type: str,
         item_name: str,
+        item_category: str,
         exclude_reason: str,
         exclude_type: str = "permanent",
         start_date: date = None,
         end_date: date = None,
         created_by: str = "admin",
     ) -> Dict:
-        """사용자별 제외 설정 추가 (확장된 버전)"""
+        """사용자별 제외 설정 추가 (확장된 버전 - 교육/훈련 포함)"""
         try:
-            # item_type에 따라 적절한 테이블과 item_id 결정
-            if item_type.startswith("audit_"):
-                # 감사 항목 처리
-                item_id = int(item_type.replace("audit_", ""))
-                return self._add_user_audit_exception(
-                    user_id,
-                    item_id,
-                    item_name,
-                    exclude_reason,
-                    exclude_type,
-                    start_date,
-                    end_date,
-                    created_by,
+            if item_type in ["training_period", "education_period"]:
+                # 확장 제외 설정 테이블에 추가
+                execute_query(
+                    """
+                    INSERT INTO user_extended_exceptions 
+                    (user_id, item_id, item_type, item_name, item_category, exclude_reason, 
+                    exclude_type, start_date, end_date, created_by, is_active)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
+                    ON DUPLICATE KEY UPDATE
+                    exclude_reason = VALUES(exclude_reason),
+                    exclude_type = VALUES(exclude_type),
+                    start_date = VALUES(start_date),
+                    end_date = VALUES(end_date),
+                    created_by = VALUES(created_by),
+                    is_active = 1,
+                    updated_at = NOW()
+                    """,
+                    (
+                        user_uid,
+                        item_id,
+                        item_type,
+                        item_name,
+                        item_category,
+                        exclude_reason,
+                        exclude_type,
+                        start_date,
+                        end_date,
+                        created_by,
+                    ),
                 )
             else:
-                # 교육/훈련 항목 처리
-                return self._add_user_extended_exception(
-                    user_id,
-                    item_type,
-                    item_name,
-                    exclude_reason,
-                    exclude_type,
-                    start_date,
-                    end_date,
-                    created_by,
+                # 기존 감사 항목 제외 설정
+                item_id_int = int(item_id) if item_id.isdigit() else None
+                if item_id_int is None:
+                    return {"success": False, "message": "유효하지 않은 항목 ID입니다."}
+
+                execute_query(
+                    """
+                    INSERT INTO user_item_exceptions 
+                    (user_id, item_id, exclude_reason, exclude_type, start_date, end_date, 
+                    created_by, is_active, item_type, item_name, item_category)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                    exclude_reason = VALUES(exclude_reason),
+                    exclude_type = VALUES(exclude_type),
+                    start_date = VALUES(start_date),
+                    end_date = VALUES(end_date),
+                    created_by = VALUES(created_by),
+                    is_active = 1,
+                    updated_at = NOW()
+                    """,
+                    (
+                        user_uid,
+                        item_id_int,
+                        exclude_reason,
+                        exclude_type,
+                        start_date,
+                        end_date,
+                        created_by,
+                        item_type,
+                        item_name,
+                        item_category,
+                    ),
                 )
+
+            return {
+                "success": True,
+                "message": "제외 설정이 추가되었습니다.",
+                "action": "created",
+            }
 
         except Exception as e:
             return {"success": False, "message": f"제외 설정 추가 실패: {str(e)}"}

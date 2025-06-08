@@ -113,19 +113,6 @@ def bulk_update_education():
         return jsonify({"error": str(e)}), HTTP_STATUS["BAD_REQUEST"]
 
 
-# 모의훈련 관련 엔드포인트들
-@admin_bp.route("/training", methods=["GET"])
-@admin_required
-@handle_exceptions
-def get_all_training_records():
-    """모든 모의훈련 기록 조회 (관리자용)"""
-    year = request.args.get("year", datetime.now().year, type=int)
-    period = request.args.get("period", None)
-    result = request.args.get("result", None)
-
-    records = admin_service.get_all_training_records(year, period, result)
-    return jsonify(records)
-
 
 @admin_bp.route("/training/update", methods=["POST"])
 @admin_required

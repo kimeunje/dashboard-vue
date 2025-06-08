@@ -195,7 +195,7 @@
                 <th>메일유형</th>
                 <th>IP주소</th>
                 <th>결과</th>
-                <th>제외 상태</th>
+                <th>점수 제외</th>
                 <th>액션</th>
               </tr>
             </thead>
@@ -262,7 +262,7 @@
                       class="exception-status"
                       :class="record.exclude_from_scoring ? 'excluded' : 'included'"
                     >
-                      {{ record.exclude_from_scoring ? '제외' : '포함' }}
+                      {{ record.exclude_from_scoring ? '포함' : '통과' }}
                     </span>
                   </button>
                 </td>
@@ -834,6 +834,7 @@ const loadTrainingData = async () => {
     if (!response.ok) throw new Error('데이터 조회 실패')
 
     const data = await response.json()
+    console.log(data)
     trainingData.value = data
     applyFilters()
   } catch (err) {
@@ -1035,10 +1036,53 @@ const deleteRecord = async (record) => {
 }
 
 const toggleExceptionStatus = async (record) => {
-  // 제외 상태 토글 로직 (기존 예외 관리 시스템과 연동)
-  displayToast('제외 설정 기능은 제외 설정 페이지에서 관리할 수 있습니다.', 'info')
-}
+  if (
+    !confirm(
+      `${record.username}의 ${record.training_year}년 ${record.training_period === 'first_half' ? '상반기' : '하반기'} 모의훈련 제외 상태를 변경하시겠습니까?`,
+    )
+  ) {
+    return
+  }
 
+  try {
+    // 현재 제외 상태의 반대로 설정
+    const newExcludeStatus = !record.exclude_from_scoring
+
+    // API 호출하여 제외 상태 변경
+    const response = await fetch('/api/phishing-training/toggle-training-exception', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify({
+        user_id: record.user_id,
+        training_year: record.training_year,
+        training_period: record.training_period,
+        exclude: newExcludeStatus,
+        exclude_reason: newExcludeStatus ? '관리자 설정' : '', // 제외할 때만 사유 입력
+      }),
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || '제외 상태 변경 실패')
+    }
+
+    // 로컬 상태 업데이트
+    record.exclude_from_scoring = newExcludeStatus
+    record.exclude_reason = newExcludeStatus ? '관리자 설정' : ''
+
+    displayToast(result.message || '제외 상태가 변경되었습니다.', 'success')
+
+    // 데이터 새로고침
+    await loadTrainingData()
+  } catch (err) {
+    console.error('제외 상태 변경 오류:', err)
+    displayToast(err.message || '제외 상태 변경에 실패했습니다.', 'error')
+  }
+}
 // 일괄 업로드 관련 메서드
 const closeBulkUploadModal = () => {
   showBulkUploadModal.value = false

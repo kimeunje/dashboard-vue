@@ -5,6 +5,7 @@ from app.services.phishing_training_service import TrainingService
 from app.utils.decorators import token_required, admin_required, handle_exceptions
 from app.utils.constants import HTTP_STATUS
 from urllib.parse import quote
+from app.utils.database import execute_query, DatabaseManager
 
 training_bp = Blueprint("training", __name__)
 training_service = TrainingService()
@@ -221,3 +222,86 @@ def get_training_results():
         {"value": "pending", "label": "미실시"},
     ]
     return jsonify(results)
+
+
+# admin_controller.py에 추가할 엔드포인트
+
+
+@training_bp.route("/toggle-training-exception", methods=["POST"])
+@admin_required
+@handle_exceptions
+def toggle_training_exception():
+    """모의훈련 제외 상태 토글"""
+    data = request.json
+
+    user_id = data["user_id"]
+    training_year = data["training_year"]
+    training_period = data["training_period"]
+    exclude = data["exclude"]  # True: 제외, False: 포함
+    exclude_reason = data.get("exclude_reason", "")
+
+    try:
+        # ExceptionService 인스턴스 생성
+        from app.services.admin_exception_service import ExceptionService
+
+        exception_service = ExceptionService()
+
+        # 사용자 uid 조회
+        user = execute_query(
+            "SELECT uid FROM users WHERE user_id = %s", (user_id,), fetch_one=True
+        )
+
+        if not user:
+            return (
+                jsonify({"error": "사용자를 찾을 수 없습니다."}),
+                HTTP_STATUS["NOT_FOUND"],
+            )
+
+        user_uid = user["uid"]
+
+        if exclude:
+            # 제외 설정 추가
+            item_id = f"training_{training_year}_{training_period}"
+            item_name = f"{training_year}년 {training_period}({'상반기' if training_period == 'first_half' else '하반기'}) 모의훈련"
+
+            result = exception_service.add_user_exception(
+                user_uid=user_uid,
+                item_id=item_id,
+                item_type="training_period",
+                item_name=item_name,
+                item_category="모의훈련",
+                exclude_reason=exclude_reason or "관리자 설정",
+                exclude_type="permanent",
+                created_by=request.current_user.get("username", "admin"),
+            )
+        else:
+            # 제외 설정 제거
+            item_id = f"training_{training_year}_{training_period}"
+            result = exception_service.remove_user_exception(user_uid, item_id)
+
+        if result.get("success", False):
+            action = "제외" if exclude else "포함"
+            return jsonify(
+                {
+                    "message": f"모의훈련이 점수 계산에서 {action}되었습니다.",
+                    "success": True,
+                }
+            )
+        else:
+            return (
+                jsonify(
+                    {
+                        "error": result.get(
+                            "message", "제외 상태 변경에 실패했습니다."
+                        ),
+                        "success": False,
+                    }
+                ),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
+
+    except Exception as e:
+        return (
+            jsonify({"error": f"제외 상태 변경 실패: {str(e)}", "success": False}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )

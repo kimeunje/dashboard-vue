@@ -392,7 +392,7 @@ class TrainingService:
     def get_all_training_records(
         self, year: int = None, period: str = None, result: str = None
     ) -> list:
-        """모든 훈련 기록 조회 (관리자용) - 점수 관련 필드 제거"""
+        """모든 훈련 기록 조회 (관리자용) - 제외 상태 포함"""
         if year is None:
             year = datetime.now().year
 
@@ -434,7 +434,49 @@ class TrainingService:
             base_query += " ORDER BY u.username, pt.training_period"
 
             cursor.execute(base_query, params)
-            return cursor.fetchall()
+            records = cursor.fetchall()
+
+        # ExceptionService 인스턴스 생성하여 제외 상태 확인
+        from app.services.admin_exception_service import ExceptionService
+
+        exception_service = ExceptionService()
+
+        # 각 기록에 제외 상태 추가
+        enriched_records = []
+        for record in records:
+            # 사용자 uid 가져오기
+            user_uid_query = execute_query(
+                "SELECT uid FROM users WHERE user_id = %s",
+                (record["user_id"],),
+                fetch_one=True,
+            )
+
+            if user_uid_query:
+                user_uid = user_uid_query["uid"]
+
+                # 제외 설정 확인
+                exclude_result = exception_service.is_training_excluded_for_user(
+                    user_uid, record["training_year"], record["training_period"]
+                )
+
+                # 기존 record에 제외 상태 정보 추가
+                record_dict = dict(record)
+                record_dict["exclude_from_scoring"] = exclude_result.get(
+                    "is_excluded", False
+                )
+                record_dict["exclude_reason"] = exclude_result.get("exclude_reason", "")
+                record_dict["exclude_type"] = exclude_result.get("exclude_type", "")
+
+                enriched_records.append(record_dict)
+            else:
+                # 사용자 정보가 없는 경우 기본값 설정
+                record_dict = dict(record)
+                record_dict["exclude_from_scoring"] = False
+                record_dict["exclude_reason"] = ""
+                record_dict["exclude_type"] = ""
+                enriched_records.append(record_dict)
+
+        return enriched_records
 
     def get_training_statistics(self, year: int = None) -> dict:
         """모의훈련 통계 조회"""
