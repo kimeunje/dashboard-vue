@@ -14,12 +14,6 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
-
--- patch_management 데이터베이스 구조 내보내기
-DROP DATABASE IF EXISTS `patch_management`;
-CREATE DATABASE IF NOT EXISTS `patch_management` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci */;
-USE `patch_management`;
-
 -- 테이블 patch_management.audit_log 구조 내보내기
 DROP TABLE IF EXISTS `audit_log`;
 CREATE TABLE IF NOT EXISTS `audit_log` (
@@ -190,19 +184,13 @@ CREATE TABLE IF NOT EXISTS `phishing_training` (
   UNIQUE KEY `uk_user_training` (`user_id`,`training_year`,`training_period`),
   KEY `idx_training_year` (`training_year`),
   CONSTRAINT `fk_training_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=306 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 이력';
+) ENGINE=InnoDB AUTO_INCREMENT=329 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 이력';
 
--- 테이블 데이터 patch_management.phishing_training:~5 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.phishing_training:~18 rows (대략적) 내보내기
 DELETE FROM `phishing_training`;
 INSERT INTO `phishing_training` (`training_id`, `user_id`, `training_year`, `training_period`, `email_sent_time`, `action_time`, `log_type`, `mail_type`, `user_email`, `ip_address`, `training_result`, `response_time_minutes`, `notes`, `created_at`, `updated_at`) VALUES
 	(47, 5, 2024, 'first_half', '2024-04-22 10:44:25', '2024-10-22 10:45:25', '스크립트 첨부파일 열람', '퇴직연금 운용상품 안내 (HTML)', 'admin@test.com', '1.34.52.46', 'fail', 263521, '', '2025-06-05 07:35:40', '2025-06-05 07:35:40'),
 	(49, 3, 2024, 'second_half', '2024-11-20 10:44:25', '2025-04-22 10:34:25', '스크립트 첨부파일 열람', '세금계산서 안내', 'test@test.com', '103.34.21.35', 'fail', 220310, '', '2025-06-05 07:35:40', '2025-06-05 07:35:40'),
-	(286, 2, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '퇴직연금 운용', 'parkchul@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-08 10:35:42', '2025-06-08 10:35:42'),
-	(287, 3, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '세금계산서', 'eunjekim8@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-08 10:35:42', '2025-06-08 10:35:42'),
-	(288, 5, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '이메일 열람', '카카오톡', 'admin@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-08 10:35:42', '2025-06-08 10:35:42'),
-	(289, 4, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:35:48', '2025-06-08 10:35:48'),
-	(290, 6, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:35:48', '2025-06-08 10:35:48'),
-	(291, 1, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:35:48', '2025-06-08 10:35:48'),
 	(292, 3, 2024, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:35:59', '2025-06-08 10:35:59'),
 	(293, 4, 2024, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:35:59', '2025-06-08 10:35:59'),
 	(294, 2, 2024, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:35:59', '2025-06-08 10:35:59'),
@@ -212,7 +200,13 @@ INSERT INTO `phishing_training` (`training_id`, `user_id`, `training_year`, `tra
 	(300, 4, 2024, 'second_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:36:00', '2025-06-08 10:36:00'),
 	(301, 2, 2024, 'second_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:36:00', '2025-06-08 10:36:00'),
 	(302, 6, 2024, 'second_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:36:00', '2025-06-08 10:36:00'),
-	(303, 1, 2024, 'second_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:36:00', '2025-06-08 10:36:00');
+	(303, 1, 2024, 'second_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:36:00', '2025-06-08 10:36:00'),
+	(319, 5, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '이메일 열람', '카카오톡', 'admin@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-08 12:31:57', '2025-06-08 12:32:15'),
+	(320, 3, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '세금계산서', 'eunjekim8@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-08 12:31:57', '2025-06-08 12:32:15'),
+	(321, 4, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 12:31:57', '2025-06-08 12:31:57'),
+	(322, 2, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '퇴직연금 운용', 'parkchul@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-08 12:31:57', '2025-06-08 12:32:15'),
+	(323, 6, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 12:31:57', '2025-06-08 12:31:57'),
+	(324, 1, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 12:31:57', '2025-06-08 12:31:57');
 
 -- 테이블 patch_management.phishing_training_periods 구조 내보내기
 DROP TABLE IF EXISTS `phishing_training_periods`;
@@ -235,16 +229,13 @@ CREATE TABLE IF NOT EXISTS `phishing_training_periods` (
   KEY `idx_training_year` (`training_year`),
   KEY `idx_is_completed` (`is_completed`),
   KEY `idx_active` (`is_active`)
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 기간 설정';
+) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 기간 설정';
 
--- 테이블 데이터 patch_management.phishing_training_periods:~5 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.phishing_training_periods:~2 rows (대략적) 내보내기
 DELETE FROM `phishing_training_periods`;
 INSERT INTO `phishing_training_periods` (`period_id`, `training_year`, `training_period`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
-	(1, 2024, 'first_half', '2024-01-01', '2024-06-30', 1, '2025-06-08 10:35:59', 'admin', '2024년 상반기 악성메일 모의훈련', 'admin', '2025-06-08 04:27:35', '2025-06-08 10:35:59', 1),
-	(2, 2024, 'second_half', '2024-07-01', '2024-12-31', 1, '2025-06-08 10:36:00', 'admin', '2024년 하반기 악성메일 모의훈련', 'admin', '2025-06-08 04:27:35', '2025-06-08 10:36:00', 1),
-	(4, 2025, 'second_half', '2025-07-01', '2025-12-31', 0, NULL, NULL, '2025년 하반기 악성메일 모의훈련', 'admin', '2025-06-08 04:27:35', '2025-06-08 04:27:35', 1),
-	(5, 2026, 'first_half', '2026-02-10', '2026-05-08', 0, NULL, NULL, '', 'admin', '2025-06-08 05:20:44', '2025-06-08 09:17:48', 0),
-	(20, 2025, 'first_half', '2025-06-02', '2025-06-07', 1, '2025-06-08 10:35:48', 'admin', '', 'admin', '2025-06-08 09:38:30', '2025-06-08 10:35:48', 1);
+	(24, 2025, 'second_half', '2025-07-02', '2025-08-09', 0, NULL, NULL, '', 'admin', '2025-06-08 12:29:43', '2025-06-08 12:29:43', 1),
+	(25, 2025, 'first_half', '2025-06-02', '2025-06-04', 1, '2025-06-08 12:31:57', 'admin', '', 'admin', '2025-06-08 12:31:46', '2025-06-08 12:31:57', 1);
 
 -- 테이블 patch_management.security_education 구조 내보내기
 DROP TABLE IF EXISTS `security_education`;

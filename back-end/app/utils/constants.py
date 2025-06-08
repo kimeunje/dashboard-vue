@@ -129,14 +129,7 @@ IP_AUTH_CONFIG = {
 # 기존 설정들 유지
 DEFAULT_VERIFICATION_CODE = "123456"
 
-HTTP_STATUS = {
-    "OK": 200,
-    "BAD_REQUEST": 400,
-    "UNAUTHORIZED": 401,
-    "FORBIDDEN": 403,
-    "NOT_FOUND": 404,
-    "INTERNAL_SERVER_ERROR": 500,
-}
+
 
 MESSAGES = {
     "LOGIN_SUCCESS": "로그인에 성공했습니다.",

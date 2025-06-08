@@ -99,17 +99,39 @@ class TrainingPeriodService:
             raise ValueError(f"기간 수정 실패: {str(e)}")
 
     def delete_training_period(self, period_id: int) -> bool:
-        """훈련 기간 삭제 (소프트 삭제)"""
+        """훈련 기간 삭제 (하드 삭제로 변경)"""
         try:
-            result = execute_query(
-                """
-                UPDATE phishing_training_periods
-                SET is_active = 0, updated_at = NOW()
-                WHERE period_id = %s
-                """,
-                (period_id,),
-            )
-            return result > 0
+            with DatabaseManager.get_db_cursor() as cursor:
+                # 1. 기간 정보 조회
+                cursor.execute(
+                    """
+                    SELECT training_year, training_period
+                    FROM phishing_training_periods
+                    WHERE period_id = %s AND is_active = 1
+                    """,
+                    (period_id,),
+                )
+                period_info = cursor.fetchone()
+
+                if not period_info:
+                    raise ValueError("해당 기간을 찾을 수 없습니다.")
+
+                # 2. 관련 훈련 기록 삭제
+                cursor.execute(
+                    """
+                    DELETE FROM phishing_training
+                    WHERE training_year = %s AND training_period = %s
+                    """,
+                    (period_info["training_year"], period_info["training_period"]),
+                )
+
+                # 3. 기간 레코드 하드 삭제
+                cursor.execute(
+                    "DELETE FROM phishing_training_periods WHERE period_id = %s",
+                    (period_id,),
+                )
+
+                return True
         except Exception as e:
             raise ValueError(f"기간 삭제 실패: {str(e)}")
 
