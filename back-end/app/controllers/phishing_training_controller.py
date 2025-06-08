@@ -154,15 +154,25 @@ def get_user_training_status(user_id):
 @admin_required
 @handle_exceptions
 def export_training_data():
-    """모의훈련 데이터 내보내기 - 한글 파일명 인코딩 문제 해결"""
+    """모의훈련 데이터 내보내기 - 한글 인코딩 문제 완전 해결"""
     year = request.args.get("year", datetime.now().year, type=int)
     format_type = request.args.get("format", "csv")
 
     try:
         if format_type == "csv":
             csv_data = training_service.export_training_to_csv(year)
-            response = make_response(csv_data)
+
+            # UTF-8로 인코딩된 바이트 데이터로 변환
+            csv_bytes = csv_data.encode("utf-8")
+            response = make_response(csv_bytes)
+
+            # 올바른 Content-Type 설정
             response.headers["Content-Type"] = "text/csv; charset=utf-8"
+
+            # 브라우저 캐시 방지
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
 
             # 한글 파일명을 RFC 5987 방식으로 인코딩
             filename = f"모의훈련_데이터_{year}.csv"
@@ -181,10 +191,9 @@ def export_training_data():
                 jsonify({"error": "지원하지 않는 형식입니다."}),
                 HTTP_STATUS["BAD_REQUEST"],
             )
-
     except Exception as e:
         return (
-            jsonify({"error": f"데이터 내보내기 실패: {str(e)}"}),
+            jsonify({"error": f"내보내기 실패: {str(e)}"}),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 

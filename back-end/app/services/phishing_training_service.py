@@ -170,7 +170,7 @@ class TrainingService:
         """모의훈련 결과 일괄 등록/수정 - 점수 관련 로직 제거"""
         if not records:
             raise ValueError("등록할 훈련 기록이 없습니다.")
-    
+
         success_count = 0
         error_records = []
 
@@ -501,10 +501,14 @@ class TrainingService:
         }
 
     def export_training_to_csv(self, year: int = None) -> str:
-        """모의훈련 데이터를 CSV 형태로 내보내기 - 점수 관련 필드 제거"""
+        """모의훈련 데이터를 CSV 형태로 내보내기 - UTF-8 BOM 포함"""
         records = self.get_all_training_records(year)
 
         csv_lines = []
+
+        # UTF-8 BOM 추가 (Excel에서 한글 인식용)
+        bom = "\ufeff"
+
         headers = [
             "사용자ID",
             "사용자명",
@@ -520,24 +524,28 @@ class TrainingService:
             "결과",
             "비고",
         ]
-        csv_lines.append(",".join(headers))
+
+        # BOM과 함께 헤더 추가
+        csv_lines.append(bom + ",".join(headers))
 
         for record in records:
+            # 한글 데이터 안전하게 처리
             row = [
-                str(record.get("user_id", "")),
-                str(record.get("username", "")),
-                str(record.get("department", "")),
-                str(record.get("training_year", "")),
+                str(record.get("user_id", "")).replace('"', '""'),
+                str(record.get("username", "")).replace('"', '""'),
+                str(record.get("department", "")).replace('"', '""'),
+                str(record.get("training_year", "")).replace('"', '""'),
                 "상반기" if record.get("training_period") == "first_half" else "하반기",
-                str(record.get("email_sent_time", "")),
-                str(record.get("action_time", "")),
-                str(record.get("log_type", "")),
-                str(record.get("mail_type", "")),
-                str(record.get("user_email", "")),
-                str(record.get("ip_address", "")),
-                str(record.get("training_result", "")),
-                str(record.get("notes", "")),
+                str(record.get("email_sent_time", "")).replace('"', '""'),
+                str(record.get("action_time", "")).replace('"', '""'),
+                str(record.get("log_type", "")).replace('"', '""'),
+                str(record.get("mail_type", "")).replace('"', '""'),
+                str(record.get("user_email", "")).replace('"', '""'),
+                str(record.get("ip_address", "")).replace('"', '""'),
+                str(record.get("training_result", "")).replace('"', '""'),
+                str(record.get("notes", "")).replace('"', '""'),
             ]
+            # CSV RFC 4180 표준에 따라 필드를 따옴표로 감싸기
             csv_lines.append(",".join(f'"{item}"' for item in row))
 
         return "\n".join(csv_lines)
