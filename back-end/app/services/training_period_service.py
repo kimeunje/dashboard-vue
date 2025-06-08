@@ -42,11 +42,17 @@ class TrainingPeriodService:
             if period["end_date"]:
                 period["end_date"] = period["end_date"].strftime("%Y-%m-%d")
             if period["completed_at"]:
-                period["completed_at"] = period["completed_at"].strftime("%Y-%m-%d %H:%M:%S")
+                period["completed_at"] = period["completed_at"].strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
             if period["created_at"]:
-                period["created_at"] = period["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+                period["created_at"] = period["created_at"].strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
             if period["updated_at"]:
-                period["updated_at"] = period["updated_at"].strftime("%Y-%m-%d %H:%M:%S")
+                period["updated_at"] = period["updated_at"].strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
 
         return periods
 
@@ -121,10 +127,10 @@ class TrainingPeriodService:
                     (period_id,),
                 )
                 period_info = cursor.fetchone()
-                
+
                 if not period_info:
                     raise ValueError("해당 기간을 찾을 수 없습니다.")
-                
+
                 if period_info["is_completed"]:
                     raise ValueError("이미 완료된 기간입니다.")
 
@@ -138,18 +144,54 @@ class TrainingPeriodService:
                     (completed_by, period_id),
                 )
 
-                # 3. 해당 기간의 미실시 사용자들을 성공 처리
+                # 3. 기존 pending 레코드들을 pass로 변경
                 cursor.execute(
                     """
-                    UPDATE phishing_training pt
-                    INNER JOIN users u ON pt.user_id = u.uid
-                    SET pt.training_result = 'pass', pt.updated_at = NOW()
-                    WHERE pt.training_year = %s 
-                      AND pt.training_period = %s 
-                      AND pt.training_result = 'pending'
-                      AND pt.log_type IS NULL
+                    UPDATE phishing_training
+                    SET training_result = 'pass', updated_at = NOW()
+                    WHERE training_year = %s 
+                    AND training_period = %s 
+                    AND training_result = 'pending'
+                    AND log_type IS NULL
                     """,
                     (period_info["training_year"], period_info["training_period"]),
+                )
+
+                # 4. 🔥 NEW: 훈련 기록이 없는 사용자들을 위해 pass 레코드 생성
+                cursor.execute(
+                    """
+                    INSERT INTO phishing_training 
+                    (user_id, training_year, training_period, training_result, notes, created_at, updated_at)
+                    SELECT 
+                        u.uid,
+                        %s,
+                        %s,
+                        'pass',
+                        '기간 완료로 인한 자동 통과 처리',
+                        NOW(),
+                        NOW()
+                    FROM users u
+                    WHERE u.uid NOT IN (
+                        SELECT DISTINCT pt.user_id 
+                        FROM phishing_training pt 
+                        WHERE pt.training_year = %s 
+                        AND pt.training_period = %s
+                    )
+                    AND u.uid NOT IN (
+                        SELECT uee.user_id 
+                        FROM user_extended_exceptions uee 
+                        WHERE uee.item_id = CONCAT('training_', %s, '_', %s)
+                        AND uee.is_active = 1
+                    )
+                    """,
+                    (
+                        period_info["training_year"],
+                        period_info["training_period"],
+                        period_info["training_year"],
+                        period_info["training_period"],
+                        period_info["training_year"],
+                        period_info["training_period"],
+                    ),
                 )
 
                 return True
@@ -159,15 +201,43 @@ class TrainingPeriodService:
     def reopen_training_period(self, period_id: int) -> bool:
         """훈련 기간 재개 (완료 상태 취소)"""
         try:
-            result = execute_query(
-                """
-                UPDATE phishing_training_periods
-                SET is_completed = 0, completed_at = NULL, completed_by = NULL, updated_at = NOW()
-                WHERE period_id = %s AND is_active = 1
-                """,
-                (period_id,),
-            )
-            return result > 0
+            with DatabaseManager.get_db_cursor() as cursor:
+                # 기간 정보 조회
+                cursor.execute(
+                    """
+                    SELECT training_year, training_period, is_completed
+                    FROM phishing_training_periods
+                    WHERE period_id = %s AND is_active = 1
+                    """,
+                    (period_id,),
+                )
+                period_info = cursor.fetchone()
+
+                if not period_info:
+                    raise ValueError("해당 기간을 찾을 수 없습니다.")
+
+                # 완료 처리로 생성된 레코드들만 삭제
+                cursor.execute(
+                    """
+                    DELETE FROM phishing_training
+                    WHERE training_year = %s 
+                    AND training_period = %s 
+                    AND notes = '기간 완료로 인한 자동 통과 처리'
+                    """,
+                    (period_info["training_year"], period_info["training_period"]),
+                )
+
+                # 기간 상태 되돌리기
+                cursor.execute(
+                    """
+                    UPDATE phishing_training_periods
+                    SET is_completed = 0, completed_at = NULL, completed_by = NULL, updated_at = NOW()
+                    WHERE period_id = %s
+                    """,
+                    (period_id,),
+                )
+
+                return True
         except Exception as e:
             raise ValueError(f"재개 처리 실패: {str(e)}")
 
@@ -190,7 +260,7 @@ class TrainingPeriodService:
             year = datetime.now().year
 
         today = date.today()
-        
+
         periods = execute_query(
             """
             SELECT 
@@ -239,12 +309,14 @@ class TrainingPeriodService:
             if period_key in stats_dict:
                 period.update(stats_dict[period_key])
             else:
-                period.update({
-                    "total_records": 0,
-                    "pass_count": 0,
-                    "fail_count": 0,
-                    "pending_count": 0,
-                })
+                period.update(
+                    {
+                        "total_records": 0,
+                        "pass_count": 0,
+                        "fail_count": 0,
+                        "pending_count": 0,
+                    }
+                )
 
         return {
             "year": year,

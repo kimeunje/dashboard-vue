@@ -15,6 +15,7 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 -- 테이블 patch_management.audit_log 구조 내보내기
+DROP TABLE IF EXISTS `audit_log`;
 CREATE TABLE IF NOT EXISTS `audit_log` (
   `log_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `user_id` bigint(20) NOT NULL COMMENT 'users 테이블의 uid 참조',
@@ -71,6 +72,7 @@ INSERT INTO `audit_log` (`log_id`, `user_id`, `item_id`, `actual_value`, `passed
 	(52, 3, 11, '{"status": "pending", "message": "검사 대기 중"}', 0, '검사 대기 중', NULL, '2025-06-05 06:53:34');
 
 -- 테이블 patch_management.checklist_items 구조 내보내기
+DROP TABLE IF EXISTS `checklist_items`;
 CREATE TABLE IF NOT EXISTS `checklist_items` (
   `item_id` int(11) NOT NULL AUTO_INCREMENT,
   `item_name` varchar(255) NOT NULL COMMENT '점검 항목명',
@@ -103,6 +105,7 @@ INSERT INTO `checklist_items` (`item_id`, `item_name`, `category`, `description`
 	(11, '개인정보 파일 암호화', '개인정보보호', '개인정보 파일 암호화 적용 여부', 'manual', 'daily', 0.5, '2025-06-03 12:44:38', '2025-06-03 12:44:38');
 
 -- 테이블 patch_management.department_extended_exceptions 구조 내보내기
+DROP TABLE IF EXISTS `department_extended_exceptions`;
 CREATE TABLE IF NOT EXISTS `department_extended_exceptions` (
   `dept_exception_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `department` varchar(100) NOT NULL COMMENT '부서명',
@@ -139,6 +142,7 @@ INSERT INTO `department_extended_exceptions` (`dept_exception_id`, `department`,
 	(7, 'IT팀', 'training_2025_first_half', 'training_period', '2025년 상반기 악성메일 모의훈련', '악성메일 모의훈련', '12312321', 'permanent', NULL, NULL, 'admin', '2025-06-05 07:12:59', '2025-06-05 07:38:05', 1);
 
 -- 테이블 patch_management.department_item_exceptions 구조 내보내기
+DROP TABLE IF EXISTS `department_item_exceptions`;
 CREATE TABLE IF NOT EXISTS `department_item_exceptions` (
   `dept_exception_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `department` varchar(100) NOT NULL COMMENT '부서명',
@@ -171,6 +175,7 @@ INSERT INTO `department_item_exceptions` (`dept_exception_id`, `department`, `it
 	(3, 'IT팀', 8, 'IT팀은 원격 관리 목적으로 원격 데스크톱 필요', 'permanent', NULL, NULL, 'admin', '2025-06-03 14:45:53', '2025-06-03 15:33:51', 1, 'audit', '원격데스크톱 제한', '접근통제');
 
 -- 테이블 patch_management.phishing_training 구조 내보내기
+DROP TABLE IF EXISTS `phishing_training`;
 CREATE TABLE IF NOT EXISTS `phishing_training` (
   `training_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `user_id` bigint(20) NOT NULL COMMENT 'users 테이블의 uid 참조',
@@ -200,10 +205,11 @@ INSERT INTO `phishing_training` (`training_id`, `user_id`, `training_year`, `tra
 	(48, 3, 2024, 'first_half', '2024-04-22 10:44:25', '2024-10-22 10:45:25', '스크립트 첨부파일 열람', '퇴직연금 운용상품 안내 (HTML)', 'test@test.com', '1.34.52.46', 'fail', 263521, '', '2025-06-05 07:35:40', '2025-06-05 07:35:40'),
 	(49, 3, 2024, 'second_half', '2024-11-20 10:44:25', '2025-04-22 10:34:25', '스크립트 첨부파일 열람', '세금계산서 안내', 'test@test.com', '103.34.21.35', 'fail', 220310, '', '2025-06-05 07:35:40', '2025-06-05 07:35:40'),
 	(50, 5, 2025, 'first_half', '2025-01-10 15:44:25', '2025-01-10 15:54:25', '악성 메일 클릭', '퇴직연금 운용상품 안내 (HTML)', 'admin@test.com', '10.3.52.12', 'fail', 10, '', '2025-06-05 07:35:48', '2025-06-05 07:35:48'),
-	(51, 2, 2025, 'second_half', '2025-07-22 16:32:25', '2024-08-22 16:42:25', '스크립트 첨부파일 열람', '세금계산서 안내', 'parkchul@test.com', '50.24.11.35', 'fail', -480950, '', '2025-06-05 07:35:48', '2025-06-05 07:35:48'),
+	(51, 2, 2025, 'second_half', '2025-07-22 16:32:25', '2025-07-25 16:42:25', '스크립트 첨부파일 열람', '세금계산서 안내', 'parkchul@test.com', '50.24.11.35', 'fail', -480950, '', '2025-06-05 07:35:48', '2025-06-08 07:40:34'),
 	(52, 2, 2025, 'first_half', '2025-01-10 15:44:25', '2025-10-22 10:54:25', '악성 메일 클릭', '운용상품 안내', 'parkchul@test.com', '1.35.2.62', 'fail', 410110, '', '2025-06-05 07:35:48', '2025-06-05 07:35:48');
 
 -- 테이블 patch_management.phishing_training_periods 구조 내보내기
+DROP TABLE IF EXISTS `phishing_training_periods`;
 CREATE TABLE IF NOT EXISTS `phishing_training_periods` (
   `period_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `training_year` int(11) NOT NULL COMMENT '훈련 연도',
@@ -230,11 +236,12 @@ DELETE FROM `phishing_training_periods`;
 INSERT INTO `phishing_training_periods` (`period_id`, `training_year`, `training_period`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
 	(1, 2024, 'first_half', '2024-01-01', '2024-06-30', 0, NULL, NULL, '2024년 상반기 악성메일 모의훈련', 'admin', '2025-06-08 04:27:35', '2025-06-08 04:27:35', 1),
 	(2, 2024, 'second_half', '2024-07-01', '2024-12-31', 0, NULL, NULL, '2024년 하반기 악성메일 모의훈련', 'admin', '2025-06-08 04:27:35', '2025-06-08 04:27:35', 1),
-	(3, 2025, 'first_half', '2025-06-03', '2025-06-07', 1, '2025-06-08 05:54:55', 'admin', '', 'admin', '2025-06-08 04:27:35', '2025-06-08 05:54:55', 1),
+	(3, 2025, 'first_half', '2025-06-03', '2025-06-07', 0, NULL, NULL, '', 'admin', '2025-06-08 04:27:35', '2025-06-08 07:41:33', 1),
 	(4, 2025, 'second_half', '2025-07-01', '2025-12-31', 0, NULL, NULL, '2025년 하반기 악성메일 모의훈련', 'admin', '2025-06-08 04:27:35', '2025-06-08 04:27:35', 1),
 	(5, 2026, 'first_half', '2026-02-10', '2026-05-08', 0, NULL, NULL, '', 'admin', '2025-06-08 05:20:44', '2025-06-08 05:20:44', 1);
 
 -- 테이블 patch_management.security_education 구조 내보내기
+DROP TABLE IF EXISTS `security_education`;
 CREATE TABLE IF NOT EXISTS `security_education` (
   `education_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `user_id` bigint(20) NOT NULL COMMENT 'users 테이블의 uid 참조',
@@ -261,6 +268,7 @@ INSERT INTO `security_education` (`education_id`, `user_id`, `education_year`, `
 	(4, 3, 2024, 'second_half', '기본교육', NULL, 1, '하반기 교육 이수 완료', '2025-06-03 12:44:38', '2025-06-03 12:44:38');
 
 -- 테이블 patch_management.security_score_summary 구조 내보내기
+DROP TABLE IF EXISTS `security_score_summary`;
 CREATE TABLE IF NOT EXISTS `security_score_summary` (
   `summary_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `user_id` bigint(20) NOT NULL COMMENT 'users 테이블의 uid 참조',
@@ -297,6 +305,7 @@ INSERT INTO `security_score_summary` (`summary_id`, `user_id`, `evaluation_year`
 	(137, 1, 2025, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-04 04:54:38', '2025-06-03 04:46:55');
 
 -- 테이블 patch_management.users 구조 내보내기
+DROP TABLE IF EXISTS `users`;
 CREATE TABLE IF NOT EXISTS `users` (
   `uid` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'JPA에서 Long 타입으로 매핑',
   `user_id` varchar(50) NOT NULL COMMENT '사용자 로그인 ID',
@@ -323,6 +332,7 @@ INSERT INTO `users` (`uid`, `user_id`, `username`, `mail`, `department`, `create
 	(6, 'test', '테스터', 'test@test.com', '운영실', '2025-06-03 11:51:13', '2025-06-03 11:51:13', '2025-06-03 11:51:13');
 
 -- 테이블 patch_management.user_extended_exceptions 구조 내보내기
+DROP TABLE IF EXISTS `user_extended_exceptions`;
 CREATE TABLE IF NOT EXISTS `user_extended_exceptions` (
   `exception_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `user_id` bigint(20) NOT NULL COMMENT 'users 테이블의 uid 참조',
@@ -351,7 +361,7 @@ CREATE TABLE IF NOT EXISTS `user_extended_exceptions` (
 -- 테이블 데이터 patch_management.user_extended_exceptions:~7 rows (대략적) 내보내기
 DELETE FROM `user_extended_exceptions`;
 INSERT INTO `user_extended_exceptions` (`exception_id`, `user_id`, `item_id`, `item_type`, `item_name`, `item_category`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
-	(3, 3, 'training_2025_first_half', 'training_period', '2025년 상반기 악성메일 모의훈련', '악성메일 모의훈련', '1132', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-08 05:54:45', 0),
+	(3, 3, 'training_2025_first_half', 'training_period', '2025년 상반기 악성메일 모의훈련', '악성메일 모의훈련', 'qweqwe', 'permanent', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-08 07:42:01', 0),
 	(4, 4, 'training_2025_second_half', 'training_period', '하반기 모의훈련', '악성메일 모의훈련', '출산휴가로 인한 훈련 제외', 'temporary', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-05 06:57:10', 0),
 	(5, 5, 'education_2025_first_half', 'education_period', '상반기 교육', '정보보호 교육', '해외 출장으로 인한 교육 제외', 'temporary', NULL, NULL, 'admin', '2025-06-03 15:24:39', '2025-06-05 06:57:15', 0),
 	(6, 3, 'training_2025_second_half', 'training_period', '2025년 하반기 악성메일 모의훈련', '악성메일 모의훈련', '123123123', 'permanent', NULL, NULL, 'admin', '2025-06-04 16:09:34', '2025-06-05 06:57:11', 0),
@@ -360,6 +370,7 @@ INSERT INTO `user_extended_exceptions` (`exception_id`, `user_id`, `item_id`, `i
 	(9, 5, 'training_2025_first_half', 'training_period', '2025년 상반기 악성메일 모의훈련', '악성메일 모의훈련', 'qwd', 'permanent', NULL, NULL, 'admin', '2025-06-05 07:11:38', '2025-06-05 07:12:37', 0);
 
 -- 테이블 patch_management.user_item_exceptions 구조 내보내기
+DROP TABLE IF EXISTS `user_item_exceptions`;
 CREATE TABLE IF NOT EXISTS `user_item_exceptions` (
   `exception_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `user_id` bigint(20) NOT NULL COMMENT 'users 테이블의 uid 참조',
@@ -385,7 +396,7 @@ CREATE TABLE IF NOT EXISTS `user_item_exceptions` (
   CONSTRAINT `fk_exception_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 감사 항목 제외 설정';
 
--- 테이블 데이터 patch_management.user_item_exceptions:~6 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.user_item_exceptions:~7 rows (대략적) 내보내기
 DELETE FROM `user_item_exceptions`;
 INSERT INTO `user_item_exceptions` (`exception_id`, `user_id`, `item_id`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`, `item_type`, `item_name`, `item_category`) VALUES
 	(5, 3, 11, 'dwqdwqd', 'permanent', NULL, NULL, 'admin', '2025-06-04 01:12:18', '2025-06-04 01:30:17', 1, 'audit', '개인정보 파일 암호화', '개인정보보호'),
