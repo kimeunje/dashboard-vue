@@ -49,6 +49,15 @@ const routes = [
     },
   },
 
+
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: AdminExceptionManagement,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+
+
   {
     path: '/admin/exceptions',
     name: 'AdminExceptionManagement',

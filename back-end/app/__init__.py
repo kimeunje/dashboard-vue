@@ -76,6 +76,7 @@ def register_controllers(app):
     from app.controllers.total_score_controller import score_bp
     from app.controllers.admin_controller import admin_bp
     from app.controllers.admin_exception_controller import exception_bp
+    from app.controllers.training_period_controller import training_period_bp  # 추가
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(audit_bp, url_prefix="/api/security-audit")
@@ -84,6 +85,7 @@ def register_controllers(app):
     app.register_blueprint(score_bp, url_prefix="/api/security-score")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
     app.register_blueprint(exception_bp, url_prefix="/api/exceptions")
+    app.register_blueprint(training_period_bp, url_prefix="/api/phishing-training")
 
 
 def register_error_handlers(app):
