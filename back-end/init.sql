@@ -190,7 +190,7 @@ CREATE TABLE IF NOT EXISTS `phishing_training` (
   UNIQUE KEY `uk_user_training` (`user_id`,`training_year`,`training_period`),
   KEY `idx_training_year` (`training_year`),
   CONSTRAINT `fk_training_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=329 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 이력';
+) ENGINE=InnoDB AUTO_INCREMENT=335 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 이력';
 
 -- 테이블 데이터 patch_management.phishing_training:~18 rows (대략적) 내보내기
 DELETE FROM `phishing_training`;
@@ -209,10 +209,10 @@ INSERT INTO `phishing_training` (`training_id`, `user_id`, `training_year`, `tra
 	(303, 1, 2024, 'second_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:36:00', '2025-06-08 10:36:00'),
 	(319, 5, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '이메일 열람', '카카오톡', 'admin@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-08 12:31:57', '2025-06-08 12:32:15'),
 	(320, 3, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '세금계산서', 'eunjekim8@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-08 12:31:57', '2025-06-08 12:32:15'),
-	(321, 4, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 12:31:57', '2025-06-08 12:31:57'),
-	(322, 2, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '퇴직연금 운용', 'parkchul@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-08 12:31:57', '2025-06-08 12:32:15'),
-	(323, 6, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 12:31:57', '2025-06-08 12:31:57'),
-	(324, 1, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 12:31:57', '2025-06-08 12:31:57');
+	(322, 2, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '퇴직연금 운용', 'parkchul@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-08 12:31:57', '2025-06-09 00:18:57'),
+	(332, 4, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-09 05:10:44', '2025-06-09 05:10:44'),
+	(333, 6, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-09 05:10:44', '2025-06-09 05:10:44'),
+	(334, 1, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-09 05:10:44', '2025-06-09 05:10:44');
 
 -- 테이블 patch_management.phishing_training_periods 구조 내보내기
 DROP TABLE IF EXISTS `phishing_training_periods`;
@@ -241,7 +241,7 @@ CREATE TABLE IF NOT EXISTS `phishing_training_periods` (
 DELETE FROM `phishing_training_periods`;
 INSERT INTO `phishing_training_periods` (`period_id`, `training_year`, `training_period`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
 	(24, 2025, 'second_half', '2025-07-02', '2025-08-09', 0, NULL, NULL, '', 'admin', '2025-06-08 12:29:43', '2025-06-08 12:29:43', 1),
-	(25, 2025, 'first_half', '2025-06-02', '2025-06-04', 1, '2025-06-08 12:31:57', 'admin', '', 'admin', '2025-06-08 12:31:46', '2025-06-08 12:31:57', 1);
+	(25, 2025, 'first_half', '2025-06-02', '2025-06-04', 1, '2025-06-09 05:10:44', 'admin', '', 'admin', '2025-06-08 12:31:46', '2025-06-09 05:10:44', 1);
 
 -- 테이블 patch_management.security_education 구조 내보내기
 DROP TABLE IF EXISTS `security_education`;
@@ -318,21 +318,21 @@ CREATE TABLE IF NOT EXISTS `users` (
   `created_at` timestamp NULL DEFAULT current_timestamp() COMMENT '생성일시',
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT '수정일시',
   `last_updated` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT '최종 업데이트 (기존 호환)',
+  `ip` text DEFAULT NULL COMMENT 'IP 주소 (여러개인 경우 쉼표로 구분)',
+  `mac` text DEFAULT NULL COMMENT 'MAC 주소 (여러개인 경우 쉼표로 구분)',
   PRIMARY KEY (`uid`),
   UNIQUE KEY `uk_user_id` (`user_id`),
   KEY `idx_username` (`username`),
   KEY `idx_department` (`department`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자 정보';
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자 정보';
 
--- 테이블 데이터 patch_management.users:~6 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.users:~4 rows (대략적) 내보내기
 DELETE FROM `users`;
-INSERT INTO `users` (`uid`, `user_id`, `username`, `mail`, `department`, `created_at`, `updated_at`, `last_updated`) VALUES
-	(1, 'test1', '테스터1', 'test1@test.com', '운영실', '2025-06-03 11:51:13', '2025-06-03 11:51:13', '2025-06-03 11:51:13'),
-	(2, 'parkchul', '박철희', 'parkchul@test.com', '개발팀', '2025-06-03 11:51:13', '2025-06-03 11:51:13', '2025-06-03 11:51:13'),
-	(3, 'eunjekim8', '김은제', 'eunjekim8@test.com', '운영실', '2025-06-03 11:51:13', '2025-06-08 10:29:34', '2025-06-08 10:29:34'),
-	(4, 'kimeunje', '김은제2', 'kimeunje@test.com', '운영실', '2025-06-03 11:51:13', '2025-06-03 11:51:13', '2025-06-03 11:51:13'),
-	(5, 'admin', '관리자', 'admin@test.com', 'IT팀', '2025-06-03 11:51:13', '2025-06-03 11:51:13', '2025-06-03 11:51:13'),
-	(6, 'test', '테스터', 'test@test.com', '운영실', '2025-06-03 11:51:13', '2025-06-03 11:51:13', '2025-06-03 11:51:13');
+INSERT INTO `users` (`uid`, `user_id`, `username`, `mail`, `department`, `created_at`, `updated_at`, `last_updated`, `ip`, `mac`) VALUES
+	(1, 'eunjekim8', '김은제', 'eunjekim8@test.com', '운영실', '2025-06-09 06:39:36', '2025-06-09 06:42:14', '2025-06-09 06:42:14', '10.101.21.32, 10.106.15.129', NULL),
+	(2, 'penguin', '펭귄', 'penguin@test.com', '남극', '2025-06-09 06:39:36', '2025-06-09 06:43:14', '2025-06-09 06:43:14', '10.24.13.24', NULL),
+	(3, 'dog', '강아지', 'dog@test.com', '동물원', '2025-06-09 06:39:36', '2025-06-09 06:43:19', '2025-06-09 06:43:19', '10.11.42.13', NULL),
+	(4, 'admin', '관리자', 'admin@test.com', '관리실', '2025-06-09 06:39:36', '2025-06-09 06:41:07', '2025-06-09 06:41:07', '127.0.0.1', NULL);
 
 -- 테이블 patch_management.user_extended_exceptions 구조 내보내기
 DROP TABLE IF EXISTS `user_extended_exceptions`;
@@ -359,12 +359,12 @@ CREATE TABLE IF NOT EXISTS `user_extended_exceptions` (
   KEY `idx_item_category` (`item_category`),
   KEY `idx_user_extended_search` (`user_id`,`item_type`,`is_active`),
   CONSTRAINT `fk_user_extended_exception` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 확장 감사 항목 제외 설정 (감사/교육/훈련)';
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 확장 감사 항목 제외 설정 (감사/교육/훈련)';
 
--- 테이블 데이터 patch_management.user_extended_exceptions:~1 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.user_extended_exceptions:~2 rows (대략적) 내보내기
 DELETE FROM `user_extended_exceptions`;
 INSERT INTO `user_extended_exceptions` (`exception_id`, `user_id`, `item_id`, `item_type`, `item_name`, `item_category`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
-	(11, 2, 'training_2025_first_half', 'training_period', '2025년 상반기 악성메일 모의훈련', '악성메일 모의훈련', '관리자 설정', 'permanent', NULL, NULL, 'admin', '2025-06-08 13:26:43', '2025-06-08 14:44:14', 1),
+	(11, 2, 'training_2025_first_half', 'training_period', '2025년 상반기 악성메일 모의훈련', '악성메일 모의훈련', '관리자 설정', 'permanent', NULL, NULL, 'admin', '2025-06-08 13:26:43', '2025-06-09 00:18:47', 0),
 	(13, 4, 'training_2025_first_half', 'training_period', '2025년 first_half(상반기) 모의훈련', '모의훈련', '관리자 설정', 'permanent', NULL, NULL, 'admin', '2025-06-08 14:43:00', '2025-06-08 14:44:18', 0);
 
 -- 테이블 patch_management.user_item_exceptions 구조 내보내기

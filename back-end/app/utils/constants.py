@@ -67,46 +67,7 @@ MESSAGES = {
 DEFAULT_VERIFICATION_CODE = "123456"
 
 # 기존 TEST_USERS를 IP 기반으로 확장
-TEST_USERS = {
-    "eunjekim8": {
-        "password": "1234",  # IP 인증으로 변경 후에도 유지 (호환성)
-        "name": "김은제",
-        "dept": "운영실",
-        "email": "eunjekim8@nicednb.com",
-        "allowed_ips": [
-            "10.106.15.129",
-            "172.19.48.1",
-            # "172.30.1.63",
-            # "127.0.0.1",
-        ],  # 허용된 IP 목록
-    },
-    "parkchul": {
-        "password": "1234",
-        "name": "박철희",
-        "dept": "개발팀",
-        "email": "parkchul@test.com",
-        "allowed_ips": [
-            "192.168.1.101",
-            "10.106.25.130",
-            "172.30.1.63",
-        ],
-    },
-    "test": {
-        "password": "1234",
-        "name": "테스터",
-        "dept": "운영실",
-        "email": "test@test.com",
-        "allowed_ips": ["192.168.1.102", "10.106.25.131"],
-    },
-    "admin": {
-        "password": "admin123",
-        "name": "관리자",
-        "dept": "IT팀",
-        "email": "admin@test.com",
-        "role": "admin",
-        "allowed_ips": ["127.0.0.1"],
-    },
-}
+TEST_USERS = {}
 
 # IP 대역 화이트리스트 (추가 보안 레이어)
 ALLOWED_IP_RANGES = [
@@ -128,7 +89,6 @@ IP_AUTH_CONFIG = {
 
 # 기존 설정들 유지
 DEFAULT_VERIFICATION_CODE = "123456"
-
 
 
 MESSAGES = {
