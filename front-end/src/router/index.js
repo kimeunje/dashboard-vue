@@ -36,6 +36,9 @@ const AdminExceptionManagement = () => import('@/modules/admin/views/AdminExcept
 const AdminPhishingTrainingManagement = () =>
   import('@/modules/admin/views/AdminPhishingTrainingManagement.vue')
 
+const ManualCheckManagement = () => import('@/modules/admin/views/ManualCheckManagement.vue')
+
+
 // 라우터 설정
 const routes = [
   // 홈 페이지
@@ -49,6 +52,16 @@ const routes = [
     },
   },
 
+  {
+    path: '/admin/manual-check',
+    name: 'AdminManualCheck',
+    component: ManualCheckManagement,
+    meta: {
+      title: '수시 점검 관리',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
 
   {
     path: '/admin',

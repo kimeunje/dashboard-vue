@@ -52,16 +52,33 @@ def get_db_connection():
 
 
 def execute_query(query, params=None, fetch_one=False, fetch_all=False):
-    """쿼리 실행 헬퍼 함수"""
-    with DatabaseManager.get_db_cursor() as cursor:
-        cursor.execute(query, params)
+    """수정된 쿼리 실행 헬퍼 함수"""
+    print(f"[DB_DEBUG] 쿼리: {query}")
+    print(f"[DB_DEBUG] 파라미터: {params}")
 
-        if fetch_one:
-            return cursor.fetchone()
-        elif fetch_all:
-            return cursor.fetchall()
+    with DatabaseManager.get_db_cursor() as cursor:
+        cursor.execute(query, params or [])
+
+        query_type = query.strip().upper()
+
+        if query_type.startswith('SELECT'):
+            if fetch_one:
+                result = cursor.fetchone()
+                print(f"[DB_DEBUG] fetchone 결과: {result}")
+                return result
+            elif fetch_all:  # 이 조건 추가!
+                result = cursor.fetchall()
+                print(f"[DB_DEBUG] fetchall 결과: {len(result) if result else 0}건")
+                return result
+            else:
+                # 기본적으로 fetchall() 실행
+                result = cursor.fetchall()
+                print(f"[DB_DEBUG] fetchall 결과: {len(result) if result else 0}건")
+                return result
         else:
-            return cursor.rowcount
+            affected_rows = cursor.rowcount
+            print(f"[DB_DEBUG] 영향받은 행 수: {affected_rows}")
+            return affected_rows
 
 
 def execute_many(query, params_list):
