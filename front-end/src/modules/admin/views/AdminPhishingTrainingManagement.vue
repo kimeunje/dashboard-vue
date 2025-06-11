@@ -4,7 +4,8 @@
     <div class="admin-header">
       <h1>악성메일 모의훈련 관리</h1>
       <div class="admin-nav">
-        <RouterLink to="/admin/training" class="nav-item active">훈련 관리</RouterLink>
+        <RouterLink to="/admin/training" class="nav-item active">모의훈련 관리</RouterLink>
+        <RouterLink to="/admin/manual-check" class="nav-item">수시 점검 관리</RouterLink>
         <RouterLink to="/admin/exceptions" class="nav-item">제외 설정</RouterLink>
       </div>
     </div>

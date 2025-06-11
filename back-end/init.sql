@@ -187,6 +187,42 @@ INSERT INTO `manual_check_items` (`item_id`, `item_code`, `item_name`, `item_cat
 	(2, 'malware_scan', '악성코드 전체 검사', '악성코드', '전체 시스템 악성코드 검사', 0.5, 1, '2025-06-11 00:33:57'),
 	(3, 'file_encryption', '개인정보 파일 암호화', '개인정보보호', '개인정보 파일 암호화 적용 여부', 0.5, 1, '2025-06-11 00:33:57');
 
+-- 테이블 patch_management.manual_check_periods 구조 내보내기
+DROP TABLE IF EXISTS `manual_check_periods`;
+CREATE TABLE IF NOT EXISTS `manual_check_periods` (
+  `period_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `check_type` enum('screen_saver','antivirus','patch_update') NOT NULL COMMENT '점검 유형',
+  `period_year` int(11) NOT NULL COMMENT '점검 연도',
+  `period_name` varchar(50) NOT NULL COMMENT '기간명 (Q1, Q2, 상반기 등)',
+  `start_date` date NOT NULL COMMENT '점검 시작일',
+  `end_date` date NOT NULL COMMENT '점검 종료일',
+  `is_completed` tinyint(1) DEFAULT 0 COMMENT '완료 여부 (0: 미완료, 1: 완료)',
+  `completed_at` timestamp NULL DEFAULT NULL COMMENT '완료 처리 시각',
+  `completed_by` varchar(50) DEFAULT NULL COMMENT '완료 처리한 관리자',
+  `description` text DEFAULT NULL COMMENT '기간 설명',
+  `auto_pass_setting` tinyint(1) DEFAULT 1 COMMENT '자동 통과 처리 여부',
+  `created_by` varchar(50) NOT NULL COMMENT '생성한 관리자',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `is_active` tinyint(1) DEFAULT 1 COMMENT '활성 상태',
+  PRIMARY KEY (`period_id`),
+  UNIQUE KEY `uk_type_year_period` (`check_type`,`period_year`,`period_name`),
+  KEY `idx_check_type` (`check_type`),
+  KEY `idx_period_year` (`period_year`),
+  KEY `idx_is_completed` (`is_completed`),
+  KEY `idx_active` (`is_active`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 기간 설정';
+
+-- 테이블 데이터 patch_management.manual_check_periods:~6 rows (대략적) 내보내기
+DELETE FROM `manual_check_periods`;
+INSERT INTO `manual_check_periods` (`period_id`, `check_type`, `period_year`, `period_name`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `auto_pass_setting`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
+	(1, 'screen_saver', 2025, 'Q1', '2025-01-01', '2025-03-31', 0, NULL, NULL, '2025년 1분기 화면보호기 점검', 1, 'admin', '2025-06-11 14:10:37', '2025-06-11 14:10:37', 1),
+	(2, 'screen_saver', 2025, 'Q2', '2025-04-01', '2025-06-30', 0, NULL, NULL, '2025년 2분기 화면보호기 점검', 1, 'admin', '2025-06-11 14:10:37', '2025-06-11 14:10:37', 1),
+	(3, 'antivirus', 2025, 'Q1', '2025-01-15', '2025-04-15', 0, NULL, NULL, '2025년 1분기 백신 점검', 1, 'admin', '2025-06-11 14:10:37', '2025-06-11 14:10:37', 1),
+	(4, 'antivirus', 2025, 'Q2', '2025-04-15', '2025-07-15', 0, NULL, NULL, '2025년 2분기 백신 점검', 1, 'admin', '2025-06-11 14:10:37', '2025-06-11 14:10:37', 1),
+	(5, 'patch_update', 2025, 'Q1', '2025-02-01', '2025-05-01', 0, NULL, NULL, '2025년 1분기 패치 점검', 1, 'admin', '2025-06-11 14:10:37', '2025-06-11 14:10:37', 1),
+	(6, 'patch_update', 2025, 'Q2', '2025-05-01', '2025-08-01', 0, NULL, NULL, '2025년 2분기 패치 점검', 1, 'admin', '2025-06-11 14:10:37', '2025-06-11 14:10:37', 1);
+
 -- 테이블 patch_management.manual_check_results 구조 내보내기
 DROP TABLE IF EXISTS `manual_check_results`;
 CREATE TABLE IF NOT EXISTS `manual_check_results` (
@@ -217,21 +253,24 @@ CREATE TABLE IF NOT EXISTS `manual_check_results` (
   `exclude_reason` varchar(500) DEFAULT NULL COMMENT '제외 사유',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `period_id` bigint(20) DEFAULT NULL COMMENT '연결된 기간 ID',
   PRIMARY KEY (`check_id`),
   KEY `idx_user_period` (`user_id`,`check_year`,`check_period`),
   KEY `idx_check_date` (`check_date`),
   KEY `idx_overall_result` (`overall_result`),
-  CONSTRAINT `manual_check_results_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
+  KEY `period_id` (`period_id`),
+  CONSTRAINT `manual_check_results_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`),
+  CONSTRAINT `manual_check_results_ibfk_2` FOREIGN KEY (`period_id`) REFERENCES `manual_check_periods` (`period_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 결과';
 
 -- 테이블 데이터 patch_management.manual_check_results:~5 rows (대략적) 내보내기
 DELETE FROM `manual_check_results`;
-INSERT INTO `manual_check_results` (`check_id`, `user_id`, `check_year`, `check_period`, `check_date`, `checker_name`, `seal_status`, `seal_number`, `seal_notes`, `malware_scan_result`, `threats_found`, `threats_cleaned`, `antivirus_version`, `malware_notes`, `encryption_status`, `files_scanned`, `unencrypted_files`, `encryption_completed`, `encryption_notes`, `overall_result`, `total_score`, `penalty_points`, `notes`, `exclude_from_scoring`, `exclude_reason`, `created_at`, `updated_at`) VALUES
-	(16, 1, 2025, 'first_half', '2025-06-01 09:30:00', '김점검관', 'normal', 'SEAL-2025-001', '정상 상태 확인', 'clean', 0, 1, 'V3 Engine 2025.06.01', '검사 완료, 이상 없음', 'fully_encrypted', 25, 0, 1, '모든 개인정보 파일 암호화 완료', 'pass', 100.00, 0.00, '모든 항목 정상, 우수한 보안 상태 유지', 0, NULL, '2025-06-11 00:51:23', '2025-06-11 00:51:23'),
-	(17, 2, 2025, 'first_half', '2025-06-01 10:15:00', '김점검관', 'normal', 'SEAL-2025-002', '정상', 'clean', 0, 1, 'V3 Engine 2025.06.01', '정상', 'fully_encrypted', 18, 0, 1, '암호화 완료', 'pass', 100.00, 0.00, '전체 점검 완료', 0, NULL, '2025-06-11 00:52:03', '2025-06-11 00:52:03'),
-	(18, 3, 2025, 'first_half', '2025-06-01 11:00:00', '이보안관', 'normal', 'SEAL-2025-003', '양호', 'clean', 0, 1, 'Kaspersky 2025.05.30', '깨끗함', 'fully_encrypted', 32, 0, 1, '모든 파일 보안 처리됨', 'pass', 100.00, 0.00, '우수', 0, NULL, '2025-06-11 00:52:03', '2025-06-11 00:52:03'),
-	(29, 1, 2025, 'first_half', '2025-06-07 09:00:00', '자동점검', 'normal', 'SEAL-2025-014', '정상', 'clean', 0, 1, 'V3 2025.06.07', '정상', 'fully_encrypted', 20, 0, 1, '완료', 'pass', 100.00, 0.00, 'IT팀 정기점검', 0, NULL, '2025-06-11 00:53:06', '2025-06-11 00:53:06'),
-	(30, 1, 2025, 'first_half', '2025-06-08 09:00:00', '자동점검', 'normal', 'SEAL-2025-015', '정상', 'clean', 0, 1, 'V3 2025.06.08', '정상', 'fully_encrypted', 18, 0, 1, '완료', 'pass', 100.00, 0.00, 'IT팀 정기점검', 0, NULL, '2025-06-11 00:53:06', '2025-06-11 00:53:06');
+INSERT INTO `manual_check_results` (`check_id`, `user_id`, `check_year`, `check_period`, `check_date`, `checker_name`, `seal_status`, `seal_number`, `seal_notes`, `malware_scan_result`, `threats_found`, `threats_cleaned`, `antivirus_version`, `malware_notes`, `encryption_status`, `files_scanned`, `unencrypted_files`, `encryption_completed`, `encryption_notes`, `overall_result`, `total_score`, `penalty_points`, `notes`, `exclude_from_scoring`, `exclude_reason`, `created_at`, `updated_at`, `period_id`) VALUES
+	(16, 1, 2025, 'first_half', '2025-06-01 09:30:00', '김점검관', 'normal', 'SEAL-2025-001', '정상 상태 확인', 'clean', 0, 1, 'V3 Engine 2025.06.01', '검사 완료, 이상 없음', 'fully_encrypted', 25, 0, 1, '모든 개인정보 파일 암호화 완료', 'pass', 100.00, 0.00, '모든 항목 정상, 우수한 보안 상태 유지', 0, NULL, '2025-06-11 00:51:23', '2025-06-11 00:51:23', NULL),
+	(17, 2, 2025, 'first_half', '2025-06-01 10:15:00', '김점검관', 'normal', 'SEAL-2025-002', '정상', 'clean', 0, 1, 'V3 Engine 2025.06.01', '정상', 'fully_encrypted', 18, 0, 1, '암호화 완료', 'pass', 100.00, 0.00, '전체 점검 완료', 0, NULL, '2025-06-11 00:52:03', '2025-06-11 00:52:03', NULL),
+	(18, 3, 2025, 'first_half', '2025-06-01 11:00:00', '이보안관', 'normal', 'SEAL-2025-003', '양호', 'clean', 0, 1, 'Kaspersky 2025.05.30', '깨끗함', 'fully_encrypted', 32, 0, 1, '모든 파일 보안 처리됨', 'pass', 100.00, 0.00, '우수', 0, NULL, '2025-06-11 00:52:03', '2025-06-11 00:52:03', NULL),
+	(29, 1, 2025, 'first_half', '2025-06-07 09:00:00', '자동점검', 'normal', 'SEAL-2025-014', '정상', 'clean', 0, 1, 'V3 2025.06.07', '정상', 'fully_encrypted', 20, 0, 1, '완료', 'pass', 100.00, 0.00, 'IT팀 정기점검', 0, NULL, '2025-06-11 00:53:06', '2025-06-11 00:53:06', NULL),
+	(30, 1, 2025, 'first_half', '2025-06-08 09:00:00', '자동점검', 'normal', 'SEAL-2025-015', '정상', 'clean', 0, 1, 'V3 2025.06.08', '정상', 'fully_encrypted', 18, 0, 1, '완료', 'pass', 100.00, 0.00, 'IT팀 정기점검', 0, NULL, '2025-06-11 00:53:06', '2025-06-11 00:53:06', NULL);
 
 -- 테이블 patch_management.phishing_training 구조 내보내기
 DROP TABLE IF EXISTS `phishing_training`;

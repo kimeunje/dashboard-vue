@@ -5,7 +5,8 @@
       <h1>제외 설정 관리</h1>
       <p>사용자별/부서별 보안 감사 항목 제외 설정을 관리합니다.</p>
       <div class="admin-nav">
-        <RouterLink to="/admin/training" class="nav-item">훈련 관리</RouterLink>
+        <RouterLink to="/admin/training" class="nav-item">모의훈련 관리</RouterLink>
+        <RouterLink to="/admin/manual-check" class="nav-item">수시 점검 관리</RouterLink>
         <RouterLink to="/admin/exceptions" class="nav-item active">제외 설정</RouterLink>
       </div>
     </div>
