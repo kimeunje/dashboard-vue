@@ -171,128 +171,6 @@ CREATE TABLE IF NOT EXISTS `department_item_exceptions` (
 -- 테이블 데이터 patch_management.department_item_exceptions:~0 rows (대략적) 내보내기
 DELETE FROM `department_item_exceptions`;
 
--- 테이블 patch_management.encryption_scan_details 구조 내보내기
-DROP TABLE IF EXISTS `encryption_scan_details`;
-CREATE TABLE IF NOT EXISTS `encryption_scan_details` (
-  `detail_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `batch_id` varchar(50) NOT NULL COMMENT '배치 ID',
-  `local_ip` varchar(15) NOT NULL COMMENT '로컬 IP',
-  `latest_round` int(11) NOT NULL COMMENT '최신 회차 (예: 161)',
-  `ssn_detected_count` int(11) DEFAULT 0 COMMENT '주민등록번호 탐지 건수',
-  `scan_status` enum('정상','탐지','미검사','오류') NOT NULL COMMENT '검사 상태',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`detail_id`),
-  KEY `idx_batch_id` (`batch_id`),
-  KEY `idx_local_ip` (`local_ip`),
-  KEY `idx_latest_round` (`latest_round`),
-  CONSTRAINT `encryption_scan_details_ibfk_1` FOREIGN KEY (`batch_id`) REFERENCES `excel_upload_batches` (`batch_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
-
--- 테이블 데이터 patch_management.encryption_scan_details:~0 rows (대략적) 내보내기
-DELETE FROM `encryption_scan_details`;
-
--- 테이블 patch_management.encryption_scan_results 구조 내보내기
-DROP TABLE IF EXISTS `encryption_scan_results`;
-CREATE TABLE IF NOT EXISTS `encryption_scan_results` (
-  `scan_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `local_ip` varchar(15) NOT NULL COMMENT '로컬 IP',
-  `latest_round` int(11) NOT NULL COMMENT '최신 회차 (예: 161)',
-  `ssn_detected_count` int(11) DEFAULT 0 COMMENT '주민등록번호 탐지 건수',
-  `scan_status` enum('정상','탐지','미검사','오류') NOT NULL COMMENT '검사 상태',
-  `upload_date` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` varchar(50) NOT NULL COMMENT '업로드한 관리자',
-  `batch_id` varchar(50) DEFAULT NULL COMMENT '일괄 업로드 배치 ID',
-  PRIMARY KEY (`scan_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
-
--- 테이블 데이터 patch_management.encryption_scan_results:~0 rows (대략적) 내보내기
-DELETE FROM `encryption_scan_results`;
-
--- 테이블 patch_management.excel_parsing_config 구조 내보내기
-DROP TABLE IF EXISTS `excel_parsing_config`;
-CREATE TABLE IF NOT EXISTS `excel_parsing_config` (
-  `config_id` int(11) NOT NULL AUTO_INCREMENT,
-  `check_type` enum('seal_check','malware_scan','file_encryption') NOT NULL,
-  `config_name` varchar(100) NOT NULL COMMENT '설정명',
-  `required_columns` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '필수 컬럼 매핑' CHECK (json_valid(`required_columns`)),
-  `optional_columns` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '선택 컬럼 매핑' CHECK (json_valid(`optional_columns`)),
-  `parsing_rules` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '파싱 규칙' CHECK (json_valid(`parsing_rules`)),
-  `is_active` tinyint(1) DEFAULT 1,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`config_id`),
-  UNIQUE KEY `uk_check_type_name` (`check_type`,`config_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
-
--- 테이블 데이터 patch_management.excel_parsing_config:~3 rows (대략적) 내보내기
-DELETE FROM `excel_parsing_config`;
-INSERT INTO `excel_parsing_config` (`config_id`, `check_type`, `config_name`, `required_columns`, `optional_columns`, `parsing_rules`, `is_active`, `created_at`, `updated_at`) VALUES
-	(1, 'malware_scan', 'default', '{"scan_date": "일시", "ip_address": "IP", "malware_name": "악성코드명", "malware_category": "악성코드 분류", "file_path": "경로", "detection_item": "탐지 항목"}', '{"user_name": "사용자명", "department": "부서명"}', '{"date_format": "YYYY-MM-DD HH:mm:ss", "skip_empty_rows": true}', 1, '2025-06-11 16:02:16', '2025-06-11 16:02:16'),
-	(2, 'seal_check', 'default', '{"check_date": "일시", "user_name": "이름", "department": "부서", "seal_status": "봉인씰 확인"}', NULL, '{"date_format": "YYYY-MM-DD HH:mm:ss", "skip_empty_rows": true, "seal_status_mapping": {"정상": "정상", "훼손": "훼손", "미부착": "미부착", "교체필요": "교체필요"}}', 1, '2025-06-11 16:02:16', '2025-06-11 16:02:16'),
-	(3, 'file_encryption', 'default', '{"local_ip": "로컬 IP", "latest_round_pattern": "\\d+회차"}', NULL, '{"find_latest_round": true, "ssn_column_suffix": "주민등록번호", "skip_empty_rows": true}', 1, '2025-06-11 16:02:16', '2025-06-11 16:02:16');
-
--- 테이블 patch_management.excel_upload_batches 구조 내보내기
-DROP TABLE IF EXISTS `excel_upload_batches`;
-CREATE TABLE IF NOT EXISTS `excel_upload_batches` (
-  `batch_id` varchar(50) NOT NULL COMMENT '배치 ID (UUID)',
-  `check_type` enum('seal_check','malware_scan','file_encryption') NOT NULL COMMENT '점검 유형',
-  `filename` varchar(255) NOT NULL COMMENT '원본 파일명',
-  `upload_date` timestamp NULL DEFAULT current_timestamp() COMMENT '업로드 일시',
-  `uploaded_by` varchar(50) NOT NULL COMMENT '업로드한 관리자',
-  `total_records` int(11) DEFAULT 0 COMMENT '총 레코드 수',
-  `success_records` int(11) DEFAULT 0 COMMENT '성공 레코드 수',
-  `failed_records` int(11) DEFAULT 0 COMMENT '실패 레코드 수',
-  `status` enum('processing','completed','failed') DEFAULT 'processing' COMMENT '처리 상태',
-  `error_log` text DEFAULT NULL COMMENT '오류 로그',
-  PRIMARY KEY (`batch_id`),
-  KEY `idx_check_type_date` (`check_type`,`upload_date`),
-  KEY `idx_uploaded_by` (`uploaded_by`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
-
--- 테이블 데이터 patch_management.excel_upload_batches:~0 rows (대략적) 내보내기
-DELETE FROM `excel_upload_batches`;
-
--- 테이블 patch_management.malware_scan_details 구조 내보내기
-DROP TABLE IF EXISTS `malware_scan_details`;
-CREATE TABLE IF NOT EXISTS `malware_scan_details` (
-  `detail_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `batch_id` varchar(50) NOT NULL COMMENT '배치 ID',
-  `scan_date` datetime NOT NULL COMMENT '검사 일시',
-  `ip_address` varchar(15) NOT NULL COMMENT 'IP 주소',
-  `malware_name` varchar(255) NOT NULL COMMENT '악성코드명',
-  `malware_category` varchar(100) NOT NULL COMMENT '악성코드 분류',
-  `file_path` text NOT NULL COMMENT '파일 경로',
-  `detection_item` varchar(255) NOT NULL COMMENT '탐지 항목',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`detail_id`),
-  KEY `idx_batch_id` (`batch_id`),
-  KEY `idx_scan_date` (`scan_date`),
-  KEY `idx_ip_address` (`ip_address`),
-  CONSTRAINT `malware_scan_details_ibfk_1` FOREIGN KEY (`batch_id`) REFERENCES `excel_upload_batches` (`batch_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
-
--- 테이블 데이터 patch_management.malware_scan_details:~0 rows (대략적) 내보내기
-DELETE FROM `malware_scan_details`;
-
--- 테이블 patch_management.malware_scan_results 구조 내보내기
-DROP TABLE IF EXISTS `malware_scan_results`;
-CREATE TABLE IF NOT EXISTS `malware_scan_results` (
-  `scan_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `scan_date` datetime NOT NULL COMMENT '검사 일시',
-  `ip_address` varchar(15) NOT NULL COMMENT 'IP 주소',
-  `malware_name` varchar(255) NOT NULL COMMENT '악성코드명',
-  `malware_category` varchar(100) NOT NULL COMMENT '악성코드 분류',
-  `file_path` text NOT NULL COMMENT '파일 경로',
-  `detection_item` varchar(255) NOT NULL COMMENT '탐지 항목',
-  `upload_date` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` varchar(50) NOT NULL COMMENT '업로드한 관리자',
-  `batch_id` varchar(50) DEFAULT NULL COMMENT '일괄 업로드 배치 ID',
-  PRIMARY KEY (`scan_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
-
--- 테이블 데이터 patch_management.malware_scan_results:~0 rows (대략적) 내보내기
-DELETE FROM `malware_scan_results`;
-
 -- 테이블 patch_management.manual_check_items 구조 내보내기
 DROP TABLE IF EXISTS `manual_check_items`;
 CREATE TABLE IF NOT EXISTS `manual_check_items` (
@@ -339,16 +217,21 @@ CREATE TABLE IF NOT EXISTS `manual_check_periods` (
   KEY `idx_period_year` (`period_year`),
   KEY `idx_is_completed` (`is_completed`),
   KEY `idx_active` (`is_active`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 기간 설정';
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 기간 설정';
 
--- 테이블 데이터 patch_management.manual_check_periods:~0 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.manual_check_periods:~2 rows (대략적) 내보내기
 DELETE FROM `manual_check_periods`;
+INSERT INTO `manual_check_periods` (`period_id`, `check_type`, `period_year`, `period_name`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `auto_pass_setting`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
+	(7, 'file_encryption', 2025, '3월', '2025-05-02', '2025-05-04', 1, '2025-06-12 13:06:15', 'admin', '테스트', 1, 'admin', '2025-06-12 13:01:42', '2025-06-12 13:06:15', 1),
+	(8, 'malware_scan', 2025, '3월', '2025-05-04', '2025-05-20', 1, '2025-06-12 13:07:26', 'admin', '', 1, 'admin', '2025-06-12 13:07:12', '2025-06-12 13:07:26', 1);
 
 -- 테이블 patch_management.manual_check_results 구조 내보내기
 DROP TABLE IF EXISTS `manual_check_results`;
 CREATE TABLE IF NOT EXISTS `manual_check_results` (
   `check_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `user_id` bigint(20) NOT NULL COMMENT 'users 테이블 참조',
+  `check_item_code` varchar(50) NOT NULL DEFAULT 'seal_check' COMMENT '점검 항목 코드 (seal_check, malware_scan, file_encryption)',
+  `source_ip` varchar(45) DEFAULT NULL COMMENT '출처 IP (악성코드/암호화에서 사용)',
   `check_year` int(11) NOT NULL COMMENT '점검 연도',
   `check_period` varchar(20) NOT NULL COMMENT '점검 기간',
   `check_date` datetime NOT NULL COMMENT '점검 실시 일시',
@@ -361,11 +244,17 @@ CREATE TABLE IF NOT EXISTS `manual_check_results` (
   `threats_cleaned` tinyint(1) DEFAULT 0 COMMENT '치료 완료 여부',
   `antivirus_version` varchar(100) DEFAULT NULL COMMENT '백신 엔진 버전',
   `malware_notes` text DEFAULT NULL COMMENT '악성코드 검사 관련 비고',
+  `malware_name` varchar(255) DEFAULT NULL COMMENT '악성코드명',
+  `malware_classification` varchar(100) DEFAULT NULL COMMENT '악성코드 분류',
+  `malware_path` text DEFAULT NULL COMMENT '악성코드 경로',
+  `detection_item` varchar(255) DEFAULT NULL COMMENT '탐지 항목',
   `encryption_status` enum('fully_encrypted','not_encrypted','partially_encrypted','not_applicable') DEFAULT NULL COMMENT '암호화 상태',
   `files_scanned` int(11) DEFAULT 0 COMMENT '검사된 파일 수',
   `unencrypted_files` int(11) DEFAULT 0 COMMENT '미암호화 파일 수',
   `encryption_completed` tinyint(1) DEFAULT 0 COMMENT '암호화 조치 완료 여부',
   `encryption_notes` text DEFAULT NULL COMMENT '암호화 관련 비고',
+  `round_number` varchar(20) DEFAULT NULL COMMENT '회차 정보 (161회차 등)',
+  `ssn_included` tinyint(1) DEFAULT 0 COMMENT '주민등록번호 포함 여부',
   `overall_result` enum('pass','fail','partial') NOT NULL COMMENT '종합 점검 결과',
   `total_score` decimal(5,2) DEFAULT 0.00 COMMENT '총점',
   `penalty_points` decimal(5,2) DEFAULT 0.00 COMMENT '감점',
@@ -375,19 +264,34 @@ CREATE TABLE IF NOT EXISTS `manual_check_results` (
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `period_id` bigint(20) DEFAULT NULL COMMENT '연결된 기간 ID',
-  `batch_id` varchar(50) DEFAULT NULL COMMENT '엑셀 업로드 배치 ID',
   PRIMARY KEY (`check_id`),
   KEY `idx_user_period` (`user_id`,`check_year`,`check_period`),
   KEY `idx_check_date` (`check_date`),
   KEY `idx_overall_result` (`overall_result`),
   KEY `period_id` (`period_id`),
-  KEY `idx_batch_id` (`batch_id`),
+  KEY `idx_check_item_code` (`check_item_code`),
+  KEY `idx_check_type_year_period` (`check_item_code`,`check_year`,`check_period`),
+  KEY `idx_check_type_result` (`check_item_code`,`overall_result`),
   CONSTRAINT `manual_check_results_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`),
   CONSTRAINT `manual_check_results_ibfk_2` FOREIGN KEY (`period_id`) REFERENCES `manual_check_periods` (`period_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=51 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 결과';
+) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 결과';
 
--- 테이블 데이터 patch_management.manual_check_results:~5 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.manual_check_results:~13 rows (대략적) 내보내기
 DELETE FROM `manual_check_results`;
+INSERT INTO `manual_check_results` (`check_id`, `user_id`, `check_item_code`, `source_ip`, `check_year`, `check_period`, `check_date`, `checker_name`, `seal_status`, `seal_number`, `seal_notes`, `malware_scan_result`, `threats_found`, `threats_cleaned`, `antivirus_version`, `malware_notes`, `malware_name`, `malware_classification`, `malware_path`, `detection_item`, `encryption_status`, `files_scanned`, `unencrypted_files`, `encryption_completed`, `encryption_notes`, `round_number`, `ssn_included`, `overall_result`, `total_score`, `penalty_points`, `notes`, `exclude_from_scoring`, `exclude_reason`, `created_at`, `updated_at`, `period_id`) VALUES
+	(16, 1, 'seal_check', NULL, 2025, 'first_half', '2025-06-01 09:30:00', '김점검관', 'normal', 'SEAL-2025-001', '정상 상태 확인', 'clean', 0, 1, 'V3 Engine 2025.06.01', '검사 완료, 이상 없음', NULL, NULL, NULL, NULL, 'fully_encrypted', 25, 0, 1, '모든 개인정보 파일 암호화 완료', NULL, 0, 'pass', 100.00, 0.00, '모든 항목 정상, 우수한 보안 상태 유지', 0, NULL, '2025-06-11 00:51:23', '2025-06-11 00:51:23', NULL),
+	(17, 2, 'seal_check', NULL, 2025, 'first_half', '2025-06-01 10:15:00', '김점검관', 'normal', 'SEAL-2025-002', '정상', 'clean', 0, 1, 'V3 Engine 2025.06.01', '정상', NULL, NULL, NULL, NULL, 'fully_encrypted', 18, 0, 1, '암호화 완료', NULL, 0, 'pass', 100.00, 0.00, '전체 점검 완료', 0, NULL, '2025-06-11 00:52:03', '2025-06-11 00:52:03', NULL),
+	(18, 3, 'seal_check', NULL, 2025, 'first_half', '2025-06-01 11:00:00', '이보안관', 'normal', 'SEAL-2025-003', '양호', 'clean', 0, 1, 'Kaspersky 2025.05.30', '깨끗함', NULL, NULL, NULL, NULL, 'fully_encrypted', 32, 0, 1, '모든 파일 보안 처리됨', NULL, 0, 'pass', 100.00, 0.00, '우수', 0, NULL, '2025-06-11 00:52:03', '2025-06-11 00:52:03', NULL),
+	(29, 1, 'seal_check', NULL, 2025, 'first_half', '2025-06-07 09:00:00', '자동점검', 'normal', 'SEAL-2025-014', '정상', 'clean', 0, 1, 'V3 2025.06.07', '정상', NULL, NULL, NULL, NULL, 'fully_encrypted', 20, 0, 1, '완료', NULL, 0, 'pass', 100.00, 0.00, 'IT팀 정기점검', 0, NULL, '2025-06-11 00:53:06', '2025-06-11 00:53:06', NULL),
+	(30, 1, 'seal_check', NULL, 2025, 'first_half', '2025-06-08 09:00:00', '자동점검', 'normal', 'SEAL-2025-015', '정상', 'clean', 0, 1, 'V3 2025.06.08', '정상', NULL, NULL, NULL, NULL, 'fully_encrypted', 18, 0, 1, '완료', NULL, 0, 'pass', 100.00, 0.00, 'IT팀 정기점검', 0, NULL, '2025-06-11 00:53:06', '2025-06-11 00:53:06', NULL),
+	(31, 4, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-12 22:06:15', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-12 13:06:15', '2025-06-12 13:06:15', 7),
+	(32, 3, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-12 22:06:15', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-12 13:06:15', '2025-06-12 13:06:15', 7),
+	(33, 1, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-12 22:06:15', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-12 13:06:15', '2025-06-12 13:06:15', 7),
+	(34, 2, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-12 22:06:15', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-12 13:06:15', '2025-06-12 13:06:15', 7),
+	(38, 4, 'malware_scan', NULL, 2025, 'auto_complete', '2025-06-12 22:07:26', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-12 13:07:26', '2025-06-12 13:07:26', 8),
+	(39, 3, 'malware_scan', NULL, 2025, 'auto_complete', '2025-06-12 22:07:26', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-12 13:07:26', '2025-06-12 13:07:26', 8),
+	(40, 1, 'malware_scan', NULL, 2025, 'auto_complete', '2025-06-12 22:07:26', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-12 13:07:26', '2025-06-12 13:07:26', 8),
+	(41, 2, 'malware_scan', NULL, 2025, 'auto_complete', '2025-06-12 22:07:26', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-12 13:07:26', '2025-06-12 13:07:26', 8);
 
 -- 테이블 patch_management.phishing_training 구조 내보내기
 DROP TABLE IF EXISTS `phishing_training`;
@@ -463,43 +367,6 @@ DELETE FROM `phishing_training_periods`;
 INSERT INTO `phishing_training_periods` (`period_id`, `training_year`, `training_period`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
 	(24, 2025, 'second_half', '2025-07-02', '2025-08-09', 0, NULL, NULL, '', 'admin', '2025-06-08 12:29:43', '2025-06-08 12:29:43', 1),
 	(25, 2025, 'first_half', '2025-06-02', '2025-06-04', 1, '2025-06-09 05:10:44', 'admin', '', 'admin', '2025-06-08 12:31:46', '2025-06-09 05:10:44', 1);
-
--- 테이블 patch_management.seal_check_details 구조 내보내기
-DROP TABLE IF EXISTS `seal_check_details`;
-CREATE TABLE IF NOT EXISTS `seal_check_details` (
-  `detail_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `batch_id` varchar(50) NOT NULL COMMENT '배치 ID',
-  `check_date` datetime NOT NULL COMMENT '점검 일시',
-  `user_name` varchar(100) NOT NULL COMMENT '사용자 이름',
-  `department` varchar(100) NOT NULL COMMENT '부서명',
-  `seal_status` enum('정상','훼손','미부착','교체필요') NOT NULL COMMENT '봉인씰 상태',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`detail_id`),
-  KEY `idx_batch_id` (`batch_id`),
-  KEY `idx_check_date` (`check_date`),
-  KEY `idx_department` (`department`),
-  CONSTRAINT `seal_check_details_ibfk_1` FOREIGN KEY (`batch_id`) REFERENCES `excel_upload_batches` (`batch_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
-
--- 테이블 데이터 patch_management.seal_check_details:~0 rows (대략적) 내보내기
-DELETE FROM `seal_check_details`;
-
--- 테이블 patch_management.seal_check_results 구조 내보내기
-DROP TABLE IF EXISTS `seal_check_results`;
-CREATE TABLE IF NOT EXISTS `seal_check_results` (
-  `check_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `check_date` datetime NOT NULL COMMENT '점검 일시',
-  `user_name` varchar(100) NOT NULL COMMENT '사용자 이름',
-  `department` varchar(100) NOT NULL COMMENT '부서명',
-  `seal_status` enum('정상','훼손','미부착','교체필요') NOT NULL COMMENT '봉인씰 상태',
-  `upload_date` timestamp NULL DEFAULT current_timestamp(),
-  `uploaded_by` varchar(50) NOT NULL COMMENT '업로드한 관리자',
-  `batch_id` varchar(50) DEFAULT NULL COMMENT '일괄 업로드 배치 ID',
-  PRIMARY KEY (`check_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
-
--- 테이블 데이터 patch_management.seal_check_results:~0 rows (대략적) 내보내기
-DELETE FROM `seal_check_results`;
 
 -- 테이블 patch_management.security_education 구조 내보내기
 DROP TABLE IF EXISTS `security_education`;

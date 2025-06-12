@@ -77,7 +77,9 @@ def register_controllers(app):
     from app.controllers.admin_controller import admin_bp
     from app.controllers.admin_exception_controller import exception_bp
     from app.controllers.training_period_controller import training_period_bp
-    from app.controllers.manual_check_controller import manual_check_bp  # 새로 추가
+    from app.controllers.manual_check_controller import manual_check_bp
+    from app.controllers.manual_check_period_controller import manual_check_period_bp  # 추가
+
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(audit_bp, url_prefix="/api/security-audit")
@@ -88,7 +90,7 @@ def register_controllers(app):
     app.register_blueprint(exception_bp, url_prefix="/api/exceptions")
     app.register_blueprint(training_period_bp, url_prefix="/api/phishing-training")
     app.register_blueprint(manual_check_bp, url_prefix="/api/manual-check")  # 새로 추가
-
+    app.register_blueprint(manual_check_period_bp, url_prefix="/api/manual-check")  # 추가
 
 def register_error_handlers(app):
     """에러 핸들러 등록"""
