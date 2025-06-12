@@ -1,4 +1,4 @@
-<!-- ManualCheckManagement.vue - Template 부분 (기존 레이아웃 유지) -->
+<!-- ManualCheckManagement.vue - Template 부분 -->
 <template>
   <div class="admin-training">
     <div class="admin-header">
@@ -11,63 +11,63 @@
     </div>
 
     <div class="management-content">
-      <!-- 필터 및 검색 (점검 유형만 수정) -->
-      <div class="filter-section">
-        <div class="filter-group">
-          <label>연도:</label>
-          <select v-model="selectedYear" @change="loadCheckData">
-            <option v-for="year in availableYears" :key="year" :value="year">{{ year }}년</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label>점검 유형:</label>
-          <select v-model="selectedCheckType" @change="loadCheckData">
-            <option value="">전체</option>
-            <!-- 새로운 점검 유형으로 변경 -->
-            <option value="seal_check">PC 봉인씰 확인</option>
-            <option value="malware_scan">악성코드 전체 검사</option>
-            <option value="file_encryption">개인정보 파일 암호화</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label>결과:</label>
-          <select v-model="selectedResult" @change="loadCheckData">
-            <option value="">전체</option>
-            <option value="pass">통과</option>
-            <option value="fail">실패</option>
-          </select>
-        </div>
-
-        <div class="search-group">
-          <input
-            type="text"
-            v-model="searchQuery"
-            @input="searchCheckData"
-            placeholder="사용자명, ID 또는 이메일 검색..."
-            class="search-input"
-          />
-        </div>
-      </div>
-
-      <!-- 점검 결과 목록 (테이블 컬럼 수정) -->
-      <div class="results-section">
+      <!-- 통합된 점검 결과 섹션 (필터 + 결과) -->
+      <div class="integrated-results-section">
         <div class="section-header">
-          <h3>📋 점검 결과</h3>
+          <h3>📋 점검 결과 관리</h3>
           <div class="section-actions">
             <button @click="downloadTemplate" class="secondary-button">📄 템플릿 다운로드</button>
             <button @click="openBulkUploadModal" class="primary-button">📤 엑셀 업로드</button>
           </div>
         </div>
 
-        <!-- 선택 및 액션 (기존과 동일) -->
+        <!-- 필터 섹션을 내부로 이동 -->
+        <div class="filter-section">
+          <div class="filter-group">
+            <label>연도:</label>
+            <select v-model="selectedYear" @change="loadCheckData">
+              <option v-for="year in availableYears" :key="year" :value="year">{{ year }}년</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>점검 유형:</label>
+            <select v-model="selectedCheckType" @change="loadCheckData">
+              <option value="">전체</option>
+              <option value="seal_check">PC 봉인씰 확인</option>
+              <option value="malware_scan">악성코드 전체 검사</option>
+              <option value="file_encryption">개인정보 파일 암호화</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>결과:</label>
+            <select v-model="selectedResult" @change="loadCheckData">
+              <option value="">전체</option>
+              <option value="pass">통과</option>
+              <option value="fail">실패</option>
+            </select>
+          </div>
+
+          <div class="search-group">
+            <label>검색:</label>
+            <input
+              type="text"
+              v-model="searchQuery"
+              @input="searchCheckData"
+              placeholder="사용자명, ID 또는 이메일 검색..."
+              class="search-input"
+            />
+          </div>
+        </div>
+
+        <!-- 선택 및 액션 -->
         <div class="bulk-actions" v-if="selectedRecords.length > 0">
           <span>{{ selectedRecords.length }}개 선택됨</span>
           <button @click="bulkDelete" class="danger-button">선택 삭제</button>
         </div>
 
-        <!-- 결과 테이블 (IP 주소, 점수 컬럼 추가) -->
+        <!-- 결과 테이블 -->
         <div class="table-container">
           <table class="results-table">
             <thead>
@@ -110,7 +110,6 @@
                   </span>
                 </td>
                 <td>{{ record.period_name }}</td>
-                <!-- 새로 추가된 IP 주소 컬럼 -->
                 <td>
                   <span class="ip-address">{{ record.source_ip || '-' }}</span>
                 </td>
@@ -122,7 +121,6 @@
                     {{ getResultText(record.check_result || record.overall_result) }}
                   </span>
                 </td>
-                <!-- 새로 추가된 점수 컬럼 -->
                 <td>
                   <span class="score-badge" :class="getScoreClass(record.total_score)">
                     {{ record.total_score || 0 }}점
@@ -145,7 +143,7 @@
           </table>
         </div>
 
-        <!-- 페이지네이션 (기존과 동일) -->
+        <!-- 페이지네이션 -->
         <div class="pagination" v-if="totalPages > 1">
           <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1">이전</button>
           <span class="page-info">
@@ -156,133 +154,144 @@
           </button>
         </div>
       </div>
-    </div>
 
-    <!-- 기간 설정 섹션 (기존과 동일) -->
-    <div class="period-management-section">
-      <div class="section-header">
-        <h3>🗓️ 점검 기간 관리</h3>
-        <button @click="openPeriodModal" class="primary-button">
-          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path
-              d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"
-            />
-          </svg>
-          기간 추가
-        </button>
-      </div>
+      <!-- 토글형 기간 설정 섹션 -->
+      <div class="period-management-section">
+        <div class="section-header toggleable" @click="togglePeriodSection">
+          <h3>
+            <span class="toggle-icon" :class="{ collapsed: !showPeriodSection }">▼</span>
+            🗓️ 점검 기간 관리
+            <span class="section-subtitle">{{ getPeriodsCountText() }}</span>
+          </h3>
+          <button @click.stop="openPeriodModal" class="primary-button" v-if="showPeriodSection">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path
+                d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"
+              />
+            </svg>
+            기간 추가
+          </button>
+        </div>
 
-      <!-- 점검 유형별 기간 현황 카드 (기존과 동일) -->
-      <div class="check-types-grid" v-if="periodStatus.check_types">
-        <div
-          v-for="(typeData, checkType) in periodStatus.check_types"
-          :key="checkType"
-          class="check-type-section"
-        >
-          <div class="type-header">
-            <h4>{{ getCheckTypeName(checkType) }} 점검</h4>
-            <div class="type-summary">
-              <span class="summary-badge"> {{ typeData.periods?.length || 0 }}개 기간 </span>
-            </div>
-          </div>
-
-          <!-- 기간 카드들 (기존과 동일) -->
-          <div class="period-cards-container">
+        <!-- 토글 가능한 기간 관리 컨텐츠 -->
+        <div class="period-content" v-show="showPeriodSection">
+          <!-- 점검 유형별 기간 현황 카드 -->
+          <div class="check-types-grid" v-if="periodStatus.check_types">
             <div
-              v-for="period in typeData.periods"
-              :key="period.period_id"
-              class="period-card"
-              :class="[`status-${period.status}`, { completed: period.is_completed }]"
+              v-for="(typeData, checkType) in periodStatus.check_types"
+              :key="checkType"
+              class="check-type-section"
             >
-              <div class="card-header">
-                <h5>{{ period.period_name }}</h5>
-                <div class="card-actions">
-                  <button
-                    @click="editPeriod(period)"
-                    class="icon-button edit-button"
-                    :disabled="period.is_completed"
-                    title="수정"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    @click="deletePeriod(period)"
-                    class="icon-button delete-button"
-                    :disabled="period.is_completed || period.total_users > 0"
-                    title="삭제"
-                  >
-                    🗑️
-                  </button>
+              <div class="type-header">
+                <h4>{{ getCheckTypeName(checkType) }} 점검</h4>
+                <div class="type-summary">
+                  <span class="summary-badge"> {{ typeData.periods?.length || 0 }}개 기간 </span>
                 </div>
               </div>
 
-              <div class="card-content">
-                <div class="period-info">
-                  <span class="date-range">
-                    {{ formatDate(period.start_date) }} ~ {{ formatDate(period.end_date) }}
-                  </span>
-                  <span class="status-badge" :class="period.status">
-                    {{ getStatusText(period.status) }}
-                  </span>
-                </div>
+              <!-- 기간 카드들 -->
+              <div class="period-cards-container">
+                <div
+                  v-for="period in typeData.periods"
+                  :key="period.period_id"
+                  class="period-card"
+                  :class="[`status-${period.status}`, { completed: period.is_completed }]"
+                >
+                  <div class="card-header">
+                    <h5>{{ period.period_name }}</h5>
+                    <div class="card-actions">
+                      <button
+                        @click="editPeriod(period)"
+                        class="icon-button edit-button"
+                        :disabled="period.is_completed"
+                        title="수정"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        @click="deletePeriod(period)"
+                        class="icon-button delete-button"
+                        :disabled="period.is_completed || period.total_users > 0"
+                        title="삭제"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
 
-                <div class="period-stats" v-if="period.total_users > 0">
-                  <div class="stats-grid">
-                    <div class="stat-item">
-                      <span class="stat-value">{{ period.total_users }}</span>
-                      <span class="stat-label">참여자</span>
+                  <div class="card-content">
+                    <div class="period-info">
+                      <span class="date-range">
+                        {{ formatDate(period.start_date) }} ~ {{ formatDate(period.end_date) }}
+                      </span>
+                      <span class="status-badge" :class="period.status">
+                        {{ getStatusText(period.status) }}
+                      </span>
                     </div>
-                    <div class="stat-item success">
-                      <span class="stat-value">{{ period.pass_count || 0 }}</span>
-                      <span class="stat-label">통과</span>
+
+                    <div class="period-stats" v-if="period.total_users > 0">
+                      <div class="stats-grid">
+                        <div class="stat-item">
+                          <span class="stat-value">{{ period.total_users }}</span>
+                          <span class="stat-label">참여자</span>
+                        </div>
+                        <div class="stat-item success">
+                          <span class="stat-value">{{ period.pass_count || 0 }}</span>
+                          <span class="stat-label">통과</span>
+                        </div>
+                        <div class="stat-item danger">
+                          <span class="stat-value">{{ period.fail_count || 0 }}</span>
+                          <span class="stat-label">실패</span>
+                        </div>
+                      </div>
                     </div>
-                    <div class="stat-item danger">
-                      <span class="stat-value">{{ period.fail_count || 0 }}</span>
-                      <span class="stat-label">실패</span>
+
+                    <div class="period-stats" v-else>
+                      <span class="no-data">아직 참여자가 없습니다</span>
+                    </div>
+                  </div>
+
+                  <div class="card-footer">
+                    <div v-if="period.is_completed" class="completion-info">
+                      <span class="completed-badge">✅ 완료됨</span>
+                      <small>{{ formatDateTime(period.completed_at) }}</small>
+                    </div>
+                    <div v-else class="action-buttons">
+                      <button
+                        v-if="period.status === 'ended'"
+                        @click="completePeriod(period)"
+                        class="complete-button"
+                        :disabled="completing"
+                      >
+                        {{ completing ? '처리 중...' : '완료 처리' }}
+                      </button>
+                      <button
+                        v-if="period.is_completed"
+                        @click="reopenPeriod(period)"
+                        class="reopen-button"
+                        :disabled="reopening"
+                      >
+                        {{ reopening ? '처리 중...' : '재개' }}
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                <div class="period-stats" v-else>
-                  <span class="no-data">아직 참여자가 없습니다</span>
-                </div>
-              </div>
-
-              <div class="card-footer">
-                <div v-if="period.is_completed" class="completion-info">
-                  <span class="completed-badge">✅ 완료됨</span>
-                  <small>{{ formatDateTime(period.completed_at) }}</small>
-                </div>
-                <div v-else class="action-buttons">
-                  <button
-                    v-if="period.status === 'ended'"
-                    @click="completePeriod(period)"
-                    class="complete-button"
-                    :disabled="completing"
-                  >
-                    {{ completing ? '처리 중...' : '완료 처리' }}
-                  </button>
-                  <button
-                    v-if="period.is_completed"
-                    @click="reopenPeriod(period)"
-                    class="reopen-button"
-                    :disabled="reopening"
-                  >
-                    {{ reopening ? '처리 중...' : '재개' }}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- 기간이 없는 경우 (기존과 동일) -->
-            <div v-if="!typeData.periods || typeData.periods.length === 0" class="no-periods-card">
-              <div class="no-periods-content">
-                <span
-                  >{{ selectedYear }}년 {{ getCheckTypeName(checkType) }} 점검 기간이 없습니다</span
+                <!-- 기간이 없는 경우 -->
+                <div
+                  v-if="!typeData.periods || typeData.periods.length === 0"
+                  class="no-periods-card"
                 >
-                <button @click="openPeriodModal(checkType)" class="add-period-link">
-                  기간 추가하기
-                </button>
+                  <div class="no-periods-content">
+                    <span
+                      >{{ selectedYear }}년 {{ getCheckTypeName(checkType) }} 점검 기간이
+                      없습니다</span
+                    >
+                    <button @click="openPeriodModal(checkType)" class="add-period-link">
+                      기간 추가하기
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -290,7 +299,7 @@
       </div>
     </div>
 
-    <!-- 기간 추가/수정 모달 (점검 유형 옵션 수정) -->
+    <!-- 기간 추가/수정 모달 -->
     <div v-if="showPeriodModal" class="modal-overlay" @click="closePeriodModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
@@ -304,7 +313,6 @@
               <label>점검 유형 *</label>
               <select v-model="periodForm.check_type" :disabled="editingPeriod" required>
                 <option value="">선택하세요</option>
-                <!-- 새로운 점검 유형으로 변경 -->
                 <option value="seal_check">PC 봉인씰 확인</option>
                 <option value="malware_scan">악성코드 전체 검사</option>
                 <option value="file_encryption">개인정보 파일 암호화</option>
@@ -374,7 +382,7 @@
       </div>
     </div>
 
-    <!-- 일괄 업로드 모달 (엑셀 업로드 개선) -->
+    <!-- 일괄 업로드 모달 -->
     <div v-if="showBulkUploadModal" class="modal-overlay" @click="closeBulkUploadModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
@@ -466,7 +474,7 @@
       </div>
     </div>
 
-    <!-- 수정 모달 (점검 유형 표시 부분만 수정) -->
+    <!-- 수정 모달 -->
     <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
@@ -522,18 +530,19 @@
       </div>
     </div>
 
-    <!-- 토스트 메시지 (기존과 동일) -->
+    <!-- 토스트 메시지 -->
     <div v-if="showToast" :class="['toast-message', toastType]">
       {{ toastMessage }}
     </div>
   </div>
 </template>
-// ManualCheckManagement.vue - Script Setup 부분 (기존 구조 유지하며 수정)
+
+// ManualCheckManagement.vue - Script Setup 부분
 <script setup>
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 
-// 기존 반응형 데이터 (그대로 유지)
+// 기존 반응형 데이터
 const selectedYear = ref(new Date().getFullYear())
 const selectedCheckType = ref('')
 const selectedResult = ref('')
@@ -545,11 +554,14 @@ const selectAll = ref(false)
 const loading = ref(false)
 const error = ref('')
 
-// 페이지네이션 (그대로 유지)
+// 새로 추가: 기간 섹션 토글 상태
+const showPeriodSection = ref(false)
+
+// 페이지네이션
 const currentPage = ref(1)
 const itemsPerPage = ref(20)
 
-// 모달 상태 (그대로 유지)
+// 모달 상태
 const showBulkUploadModal = ref(false)
 const showEditModal = ref(false)
 const showPeriodModal = ref(false)
@@ -559,19 +571,19 @@ const uploading = ref(false)
 const editingRecord = ref({})
 const saving = ref(false)
 
-// 기간 관리 관련 (그대로 유지)
+// 기간 관리 관련
 const editingPeriod = ref(null)
 const savingPeriod = ref(false)
 const completing = ref(false)
 const reopening = ref(false)
 const periodStatus = ref({ check_types: {} })
 
-// 토스트 (그대로 유지)
+// 토스트
 const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref('success')
 
-// 기간 폼 (그대로 유지)
+// 기간 폼
 const periodForm = reactive({
   check_type: '',
   period_year: new Date().getFullYear(),
@@ -582,7 +594,7 @@ const periodForm = reactive({
   auto_pass_setting: true,
 })
 
-// 계산된 속성 (그대로 유지)
+// 계산된 속성
 const availableYears = computed(() => {
   const currentYear = new Date().getFullYear()
   return Array.from({ length: 11 }, (_, i) => currentYear - 5 + i)
@@ -598,8 +610,30 @@ const totalPages = computed(() => {
   return Math.ceil(filteredRecords.value.length / itemsPerPage.value)
 })
 
-// 주요 데이터 로딩 메서드 (API 엔드포인트만 수정)
-// 주요 데이터 로딩 메서드 (API 엔드포인트 수정)
+// 새로 추가: 기간 섹션 토글 관련
+const togglePeriodSection = () => {
+  showPeriodSection.value = !showPeriodSection.value
+}
+
+const getPeriodsCountText = () => {
+  if (!periodStatus.value.check_types) return ''
+
+  let totalPeriods = 0
+  let activePeriods = 0
+
+  Object.values(periodStatus.value.check_types).forEach((typeData) => {
+    if (typeData.periods) {
+      totalPeriods += typeData.periods.length
+      activePeriods += typeData.periods.filter((p) => p.status === 'active').length
+    }
+  })
+
+  if (totalPeriods === 0) return '(기간 없음)'
+  if (activePeriods > 0) return `(${totalPeriods}개 기간, ${activePeriods}개 진행중)`
+  return `(${totalPeriods}개 기간)`
+}
+
+// 주요 데이터 로딩 메서드
 const loadCheckData = async () => {
   try {
     loading.value = true
@@ -616,7 +650,7 @@ const loadCheckData = async () => {
     console.log(`[DEBUG] API 요청: /api/manual-check/results?${params}`)
 
     const response = await fetch(`/api/manual-check/results?${params}`, {
-      credentials: 'include', // 쿠키 포함
+      credentials: 'include',
     })
 
     console.log(`[DEBUG] API 응답 상태: ${response.status}`)
@@ -633,7 +667,6 @@ const loadCheckData = async () => {
     if (result.success) {
       checkData.value = result.data || []
       filteredRecords.value = result.data || []
-      // 페이지네이션 정보 업데이트
       if (result.pagination) {
         totalPages.value = result.pagination.total_pages
         currentPage.value = result.pagination.current_page
@@ -656,9 +689,7 @@ const loadCheckData = async () => {
 const loadPeriodStatus = async () => {
   try {
     const response = await fetch(`/api/manual-check/periods/status?year=${selectedYear.value}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
+      credentials: 'include',
     })
 
     if (!response.ok) throw new Error('기간 상태 조회 실패')
@@ -675,22 +706,19 @@ const loadPeriodStatus = async () => {
   }
 }
 
-// 검색 및 필터링 (그대로 유지)
+// 검색 및 필터링
 const searchCheckData = () => {
-  // 디바운싱 구현
   setTimeout(() => {
     loadCheckData()
   }, 300)
 }
 
-// 유틸리티 함수들 (점검 유형 매핑만 수정)
+// 유틸리티 함수들
 const getCheckTypeName = (type) => {
   const names = {
-    // 새로운 점검 유형
     seal_check: 'PC 봉인씰 확인',
     malware_scan: '악성코드 전체 검사',
     file_encryption: '개인정보 파일 암호화',
-    // 기존 유형 호환성 유지
     screen_saver: '화면보호기',
     antivirus: '백신',
     patch_update: '패치',
@@ -723,7 +751,6 @@ const getResultText = (result) => {
   return texts[result] || '알 수 없음'
 }
 
-// 새로 추가된 점수 관련 함수
 const getScoreClass = (score) => {
   if (!score) return 'score-unknown'
   if (score >= 90) return 'score-excellent'
@@ -747,7 +774,7 @@ const truncateText = (text, maxLength) => {
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
 }
 
-// 기간 관리 메서드 (기존과 동일)
+// 기간 관리 메서드
 const openPeriodModal = (checkType = '') => {
   editingPeriod.value = null
   periodForm.check_type = checkType
@@ -781,8 +808,8 @@ const savePeriod = async () => {
       method,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
+      credentials: 'include',
       body: JSON.stringify(periodForm),
     })
 
@@ -821,9 +848,7 @@ const deletePeriod = async (period) => {
   try {
     const response = await fetch(`/api/manual-check/periods/${period.period_id}`, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
+      credentials: 'include',
     })
 
     const result = await response.json()
@@ -854,9 +879,7 @@ const completePeriod = async (period) => {
   try {
     const response = await fetch(`/api/manual-check/periods/${period.period_id}/complete`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
+      credentials: 'include',
     })
 
     const result = await response.json()
@@ -889,9 +912,7 @@ const reopenPeriod = async (period) => {
   try {
     const response = await fetch(`/api/manual-check/periods/${period.period_id}/reopen`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
+      credentials: 'include',
     })
 
     const result = await response.json()
@@ -911,7 +932,7 @@ const reopenPeriod = async (period) => {
   }
 }
 
-// 점검 결과 관리 메서드 (API 엔드포인트 수정)
+// 점검 결과 관리 메서드
 const editRecord = (record) => {
   editingRecord.value = { ...record }
   showEditModal.value = true
@@ -932,8 +953,8 @@ const saveRecord = async () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
+      credentials: 'include',
       body: JSON.stringify({
         check_id: editingRecord.value.check_id || editingRecord.value.result_id,
         check_result: editingRecord.value.check_result || editingRecord.value.overall_result,
@@ -968,9 +989,7 @@ const deleteRecord = async (record) => {
   try {
     const response = await fetch(`/api/manual-check/results/${checkId}`, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
+      credentials: 'include',
     })
 
     const result = await response.json()
@@ -987,7 +1006,7 @@ const deleteRecord = async (record) => {
   }
 }
 
-// 일괄 처리 메서드 (API 엔드포인트 수정)
+// 일괄 처리 메서드
 const toggleSelectAll = () => {
   if (selectAll.value) {
     selectedRecords.value = paginatedRecords.value.map(
@@ -1006,8 +1025,8 @@ const bulkDelete = async () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
+      credentials: 'include',
       body: JSON.stringify({ result_ids: selectedRecords.value }),
     })
 
@@ -1027,7 +1046,7 @@ const bulkDelete = async () => {
   }
 }
 
-// 파일 업로드 관련 메서드 (엑셀 업로드로 변경)
+// 파일 업로드 관련 메서드
 const openBulkUploadModal = () => {
   showBulkUploadModal.value = true
   selectedFile.value = null
@@ -1046,7 +1065,6 @@ const handleFileSelect = (event) => {
 
   selectedFile.value = file
 
-  // 간단한 파일 정보만 표시 (실제 파싱은 서버에서)
   uploadPreview.value = [
     {
       fileName: file.name,
@@ -1109,9 +1127,7 @@ const uploadFile = async () => {
 
     const response = await fetch('/api/manual-check/upload', {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
+      credentials: 'include',
       body: formData,
     })
 
@@ -1143,9 +1159,7 @@ const uploadFile = async () => {
 const downloadTemplate = async () => {
   try {
     const response = await fetch('/api/manual-check/template', {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
+      credentials: 'include',
     })
 
     if (!response.ok) throw new Error('템플릿 다운로드 실패')
@@ -1167,7 +1181,7 @@ const downloadTemplate = async () => {
   }
 }
 
-// 페이지네이션 (그대로 유지)
+// 페이지네이션
 const changePage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
@@ -1175,7 +1189,7 @@ const changePage = (page) => {
   }
 }
 
-// 토스트 메시지 (그대로 유지)
+// 토스트 메시지
 const displayToast = (message, type = 'success') => {
   toastMessage.value = message
   toastType.value = type
@@ -1185,7 +1199,7 @@ const displayToast = (message, type = 'success') => {
   }, 3000)
 }
 
-// 감시자 (그대로 유지)
+// 감시자
 watch(selectedYear, () => {
   currentPage.value = 1
   loadPeriodStatus()
@@ -1202,15 +1216,35 @@ watch(selectedResult, () => {
   loadCheckData()
 })
 
-// 생명주기 (그대로 유지)
+// 생명주기
 onMounted(() => {
   loadPeriodStatus()
   loadCheckData()
 })
 </script>
 
+/* ManualCheckManagement.vue - Style 부분 1/3 (기본 레이아웃) */
 <style scoped>
-/* 기존 스타일 그대로 유지 */
+/* CSS 변수 정의 */
+:root {
+  --primary-color: #3b82f6;
+  --dark-blue: #2563eb;
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+}
+
+/* 기본 레이아웃 */
 .admin-training {
   max-width: 1400px;
   margin: 0 auto;
@@ -1269,13 +1303,22 @@ onMounted(() => {
   gap: 20px;
 }
 
-/* 필터 섹션 */
-.filter-section {
+/* 통합된 결과 섹션 */
+.integrated-results-section {
   background-color: white;
   border-radius: 12px;
-  padding: 20px;
+  padding: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   border: 1px solid #e5e7eb;
+}
+
+/* 필터 섹션 (이제 통합 섹션 내부) */
+.filter-section {
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid #e2e8f0;
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
@@ -1306,6 +1349,15 @@ onMounted(() => {
 .search-group {
   flex: 1;
   min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.search-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
 }
 
 .search-input {
@@ -1322,16 +1374,73 @@ onMounted(() => {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
-/* 기간 관리 섹션 */
-.period-management-section {
-  background-color: white;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e5e7eb;
+/* 버튼 스타일 */
+.primary-button,
+.secondary-button,
+.outline-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  text-decoration: none;
 }
 
+.primary-button {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.primary-button:hover:not(:disabled) {
+  background-color: var(--dark-blue);
+}
+
+.primary-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.secondary-button {
+  background-color: #10b981;
+  color: white;
+}
+
+.secondary-button:hover {
+  background-color: #059669;
+}
+
+.outline-button {
+  background-color: white;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.outline-button:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.danger-button {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.danger-button:hover {
+  background: #dc2626;
+}
+
+/* 섹션 헤더 */
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -1341,11 +1450,90 @@ onMounted(() => {
   border-bottom: 1px solid #f3f4f6;
 }
 
+.section-header.toggleable {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.section-header.toggleable:hover {
+  background-color: #f8fafc;
+  margin: -8px -12px 20px -12px;
+  padding: 8px 12px 24px 12px;
+  border-radius: 8px;
+}
+
 .section-header h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
   color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-icon {
+  font-size: 12px;
+  transition: transform 0.2s ease;
+  color: #6b7280;
+}
+
+.toggle-icon.collapsed {
+  transform: rotate(-90deg);
+}
+
+.section-subtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: #6b7280;
+  margin-left: 8px;
+}
+
+.section-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* 일괄 액션 */
+.bulk-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+/* 애니메이션 */
+.period-content {
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 2000px;
+    transform: translateY(0);
+  }
+}
+
+/* ManualCheckManagement.vue - Style 부분 2/3 (테이블 및 기간 관리) */
+
+/* 기간 관리 섹션 (토글 가능) */
+.period-management-section {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
 }
 
 /* 점검 유형별 그리드 */
@@ -1664,98 +1852,6 @@ onMounted(() => {
   background: #2563eb;
 }
 
-/* 버튼 스타일 */
-.primary-button,
-.secondary-button,
-.outline-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-  text-decoration: none;
-}
-
-.primary-button {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.primary-button:hover:not(:disabled) {
-  background-color: var(--dark-blue);
-}
-
-.primary-button:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
-.secondary-button {
-  background-color: #10b981;
-  color: white;
-}
-
-.secondary-button:hover {
-  background-color: #059669;
-}
-
-.outline-button {
-  background-color: white;
-  color: #6b7280;
-  border: 1px solid #d1d5db;
-}
-
-.outline-button:hover {
-  background-color: #f9fafb;
-  border-color: #9ca3af;
-}
-
-.danger-button {
-  background: #ef4444;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.danger-button:hover {
-  background: #dc2626;
-}
-
-/* 결과 섹션 */
-.results-section {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e5e7eb;
-}
-
-.section-actions {
-  display: flex;
-  gap: 12px;
-}
-
-/* 일괄 액션 */
-.bulk-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f8fafc;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  font-size: 14px;
-}
-
 /* 테이블 스타일 */
 .table-container {
   overflow-x: auto;
@@ -1783,6 +1879,12 @@ onMounted(() => {
   font-size: 14px;
 }
 
+.results-table td {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
 .results-table tr:hover {
   background: #f8fafc;
 }
@@ -1806,7 +1908,7 @@ onMounted(() => {
   font-size: 12px;
 }
 
-/* 새로운 점검 유형별 배지 색상 */
+/* 점검 유형별 배지 색상 */
 .check-type-badge {
   padding: 4px 8px;
   border-radius: 12px;
@@ -1849,7 +1951,7 @@ onMounted(() => {
   color: #92400e;
 }
 
-/* 새로 추가된 IP 주소 스타일 */
+/* IP 주소 스타일 */
 .ip-address {
   font-family: 'Courier New', monospace;
   font-size: 13px;
@@ -1859,7 +1961,7 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-/* 새로 추가된 점수 배지 스타일 */
+/* 점수 배지 스타일 */
 .score-badge {
   padding: 4px 8px;
   border-radius: 12px;
@@ -1939,7 +2041,42 @@ onMounted(() => {
   background: #fee2e2;
 }
 
-/* 업로드 관련 새로운 스타일 */
+/* 페이지네이션 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 16px;
+}
+
+.pagination button {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ManualCheckManagement.vue - Style 부분 3/3 (모달 및 반응형) */
+
+/* 업로드 관련 스타일 */
 .upload-section {
   margin-bottom: 30px;
 }
@@ -2161,39 +2298,6 @@ onMounted(() => {
   box-shadow: none;
 }
 
-/* 페이지네이션 */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-  margin-top: 20px;
-  padding: 16px;
-}
-
-.pagination button {
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.pagination button:hover:not(:disabled) {
-  background: #e5e7eb;
-}
-
-.pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.page-info {
-  font-size: 14px;
-  color: #6b7280;
-}
-
 /* 모달 스타일 */
 .modal-overlay {
   position: fixed;
@@ -2384,25 +2488,6 @@ onMounted(() => {
   }
 }
 
-/* CSS 변수 정의 */
-:root {
-  --primary-color: #3b82f6;
-  --dark-blue: #2563eb;
-  --success-color: #10b981;
-  --danger-color: #ef4444;
-  --warning-color: #f59e0b;
-  --gray-50: #f9fafb;
-  --gray-100: #f3f4f6;
-  --gray-200: #e5e7eb;
-  --gray-300: #d1d5db;
-  --gray-400: #9ca3af;
-  --gray-500: #6b7280;
-  --gray-600: #4b5563;
-  --gray-700: #374151;
-  --gray-800: #1f2937;
-  --gray-900: #111827;
-}
-
 /* 반응형 디자인 */
 @media (max-width: 768px) {
   .admin-training {
@@ -2495,5 +2580,99 @@ onMounted(() => {
     align-items: stretch;
     gap: 8px;
   }
+
+  .admin-nav {
+    flex-direction: column;
+  }
+
+  .nav-item {
+    text-align: center;
+  }
+
+  .filter-section {
+    padding: 16px;
+  }
+
+  .filter-group,
+  .search-group {
+    min-width: auto;
+  }
+
+  .type-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .section-header.toggleable:hover {
+    margin: -4px -8px 16px -8px;
+    padding: 4px 8px 20px 8px;
+  }
+
+  .modal-header {
+    padding: 20px;
+  }
+
+  .modal-body {
+    padding: 20px;
+  }
+
+  .modal-footer {
+    padding: 20px;
+    flex-direction: column;
+  }
+
+  .cancel-button,
+  .upload-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* 액세서빌리티 개선 */
+@media (prefers-reduced-motion: reduce) {
+  .toggle-icon,
+  .period-content,
+  .modal-content,
+  .toast-message {
+    animation: none;
+    transition: none;
+  }
+
+  .period-card:hover {
+    transform: none;
+  }
+
+  .select-file-button:hover,
+  .upload-button:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* 다크 모드 지원 (선택사항) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary-color: #60a5fa;
+    --dark-blue: #3b82f6;
+    --success-color: #34d399;
+    --danger-color: #f87171;
+    --warning-color: #fbbf24;
+  }
+}
+
+/* 포커스 표시 개선 */
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.danger-button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.search-input:focus-visible,
+.form-group input:focus-visible,
+.form-group select:focus-visible,
+.form-group textarea:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
 }
 </style>
