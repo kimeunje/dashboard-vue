@@ -292,25 +292,12 @@
         </div>
 
         <!-- 페이지네이션 -->
-        <div v-if="!loading && paginatedRecords.length > 0" class="pagination">
-          <button
-            @click="changePage(currentPage - 1)"
-            :disabled="currentPage <= 1"
-            class="pagination-button"
-          >
-            이전
-          </button>
-          <span class="pagination-info">
-            {{ (currentPage - 1) * pageSize + 1 }}~{{
-              Math.min(currentPage * pageSize, totalRecords)
-            }}
-            / {{ totalRecords }}개
+        <div class="pagination" v-if="totalPages > 1">
+          <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1">이전</button>
+          <span class="page-info">
+            {{ currentPage }} / {{ totalPages }} (총 {{ totalRecords }}건)
           </span>
-          <button
-            @click="changePage(currentPage + 1)"
-            :disabled="currentPage >= totalPages"
-            class="pagination-button"
-          >
+          <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages">
             다음
           </button>
         </div>
@@ -577,7 +564,9 @@ const showPeriodSection = ref(false)
 
 // 페이지네이션
 const currentPage = ref(1)
-const itemsPerPage = ref(20)
+const itemsPerPage = ref(5)
+const totalPages = ref(1) // computed에서 ref로 변경
+const totalRecords = ref(0) // 전체 레코드 수 추가
 
 // 모달 상태
 const showBulkUploadModal = ref(false)
@@ -619,13 +608,7 @@ const availableYears = computed(() => {
 })
 
 const paginatedRecords = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  const end = start + itemsPerPage.value
-  return filteredRecords.value.slice(start, end)
-})
-
-const totalPages = computed(() => {
-  return Math.ceil(filteredRecords.value.length / itemsPerPage.value)
+  return filteredRecords.value
 })
 
 // 새로 추가: 기간 섹션 토글 관련
@@ -655,6 +638,7 @@ const getPeriodsCountText = () => {
 const loadCheckData = async () => {
   try {
     loading.value = true
+
     const params = new URLSearchParams({
       year: selectedYear.value,
       page: currentPage.value,
@@ -683,22 +667,45 @@ const loadCheckData = async () => {
     console.log(`[DEBUG] API 응답 데이터:`, result)
 
     if (result.success) {
+      // 데이터 설정
       checkData.value = result.data || []
       filteredRecords.value = result.data || []
+
+      // 페이지네이션 정보 설정 - 수정된 부분
       if (result.pagination) {
         totalPages.value = result.pagination.total_pages
+      } else {
+        totalPages.value = Math.ceil((result.data.total || 0) / itemsPerPage.value)
+      }
+
+      if (result.data.page) {
         currentPage.value = result.pagination.current_page
       }
+
+      if (result.data.total !== undefined) {
+        totalRecords.value = result.data.total
+      }
+
+      console.log(`[DEBUG] 페이지네이션 설정 완료:`, {
+        currentPage: currentPage.value,
+        totalPages: totalPages.value,
+        totalRecords: totalRecords.value,
+        itemsPerPage: itemsPerPage.value,
+      })
     } else {
-      console.warn(`[DEBUG] API 성공하지만 success=false:`, result)
+      console.warn(`[DEBUG] API 성공하지만 success=false 또는 data 없음:`, result)
       checkData.value = result.data || []
       filteredRecords.value = result.data || []
+      totalPages.value = 1
+      totalRecords.value = 0
     }
   } catch (err) {
     console.error('점검 결과 조회 오류:', err)
     displayToast('점검 결과 조회에 실패했습니다.', 'error')
     checkData.value = []
     filteredRecords.value = []
+    totalPages.value = 1
+    totalRecords.value = 0
   } finally {
     loading.value = false
   }
@@ -1201,9 +1208,13 @@ const downloadTemplate = async () => {
 
 // 페이지네이션
 const changePage = (page) => {
+  console.log(`[DEBUG] changePage 호출: ${page}, 현재 totalPages: ${totalPages.value}`)
+
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
     loadCheckData()
+  } else {
+    console.warn(`[DEBUG] 유효하지 않은 페이지: ${page}`)
   }
 }
 
