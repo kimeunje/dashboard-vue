@@ -589,3 +589,25 @@ class ManualCheckService:
             "result": {"pass": "통과", "fail": "실패", "partial": "부분통과"},
         }
         return mappings.get(status_type, {}).get(status, status or "")
+
+
+    def get_check_type_mapping(self):
+        """점검 유형 코드와 이름 매핑 반환"""
+        return {
+            "seal_check": "PC 봉인씰 확인",
+            "malware_scan": "악성코드 전체 검사",
+            "file_encryption": "개인정보 파일 암호화",
+            # 기존 호환성을 위한 매핑도 포함
+            "screen_saver": "화면보호기",
+            "antivirus": "백신",
+            "patch_update": "패치",
+        }
+
+
+    def get_check_types(self):
+        """지원되는 점검 유형 목록 반환 (period_service와 일관성 유지)"""
+        return {
+            "seal_check": "PC 봉인씰 확인",
+            "malware_scan": "악성코드 전체 검사",
+            "file_encryption": "개인정보 파일 암호화",
+        }
