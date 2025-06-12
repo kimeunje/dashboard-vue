@@ -9,7 +9,148 @@
         <RouterLink to="/admin/exceptions" class="nav-item">제외 설정</RouterLink>
       </div>
     </div>
+    <!-- 토글형 기간 설정 섹션 -->
+    <div class="period-management-section">
+      <div class="section-header toggleable" @click="togglePeriodSection">
+        <h3>
+          <span class="toggle-icon" :class="{ collapsed: !showPeriodSection }">▼</span>
+          🗓️ 점검 기간 관리
+          <span class="section-subtitle">{{ getPeriodsCountText() }}</span>
+        </h3>
+        <button @click.stop="openPeriodModal" class="primary-button" v-if="showPeriodSection">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path
+              d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"
+            />
+          </svg>
+          기간 추가
+        </button>
+      </div>
 
+      <!-- 토글 가능한 기간 관리 컨텐츠 -->
+      <div class="period-content" v-show="showPeriodSection">
+        <!-- 점검 유형별 기간 현황 카드 -->
+        <div class="check-types-grid" v-if="periodStatus.check_types">
+          <div
+            v-for="(typeData, checkType) in periodStatus.check_types"
+            :key="checkType"
+            class="check-type-section"
+          >
+            <div class="type-header">
+              <h4>{{ getCheckTypeName(checkType) }} 점검</h4>
+              <div class="type-summary">
+                <span class="summary-badge"> {{ typeData.periods?.length || 0 }}개 기간 </span>
+              </div>
+            </div>
+
+            <!-- 기간 카드들 -->
+            <div class="period-cards-container">
+              <div
+                v-for="period in typeData.periods"
+                :key="period.period_id"
+                class="period-card"
+                :class="[`status-${period.status}`, { completed: period.is_completed }]"
+              >
+                <div class="card-header">
+                  <h5>{{ period.period_name }}</h5>
+                  <div class="card-actions">
+                    <button
+                      @click="editPeriod(period)"
+                      class="icon-button edit-button"
+                      :disabled="period.is_completed"
+                      title="수정"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      @click="deletePeriod(period)"
+                      class="icon-button delete-button"
+                      :disabled="period.is_completed || period.total_users > 0"
+                      title="삭제"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+
+                <div class="card-content">
+                  <div class="period-info">
+                    <span class="date-range">
+                      {{ formatDate(period.start_date) }} ~ {{ formatDate(period.end_date) }}
+                    </span>
+                    <span class="status-badge" :class="period.status">
+                      {{ getStatusText(period.status) }}
+                    </span>
+                  </div>
+
+                  <div class="period-stats" v-if="period.total_users > 0">
+                    <div class="stats-grid">
+                      <div class="stat-item">
+                        <span class="stat-value">{{ period.total_users }}</span>
+                        <span class="stat-label">참여자</span>
+                      </div>
+                      <div class="stat-item success">
+                        <span class="stat-value">{{ period.pass_count || 0 }}</span>
+                        <span class="stat-label">통과</span>
+                      </div>
+                      <div class="stat-item danger">
+                        <span class="stat-value">{{ period.fail_count || 0 }}</span>
+                        <span class="stat-label">실패</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="period-stats" v-else>
+                    <span class="no-data">아직 참여자가 없습니다</span>
+                  </div>
+                </div>
+
+                <div class="card-footer">
+                  <div v-if="period.is_completed" class="completion-info">
+                    <span class="completed-badge">✅ 완료됨</span>
+                    <small>{{ formatDateTime(period.completed_at) }}</small>
+                  </div>
+                  <div v-else class="action-buttons">
+                    <button
+                      v-if="period.status === 'ended'"
+                      @click="completePeriod(period)"
+                      class="complete-button"
+                      :disabled="completing"
+                    >
+                      {{ completing ? '처리 중...' : '완료 처리' }}
+                    </button>
+                    <button
+                      v-if="period.is_completed"
+                      @click="reopenPeriod(period)"
+                      class="reopen-button"
+                      :disabled="reopening"
+                    >
+                      {{ reopening ? '처리 중...' : '재개' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 기간이 없는 경우 -->
+              <div
+                v-if="!typeData.periods || typeData.periods.length === 0"
+                class="no-periods-card"
+              >
+                <div class="no-periods-content">
+                  <span
+                    >{{ selectedYear }}년 {{ getCheckTypeName(checkType) }} 점검 기간이
+                    없습니다</span
+                  >
+                  <button @click="openPeriodModal(checkType)" class="add-period-link">
+                    기간 추가하기
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="management-content">
       <!-- 통합된 점검 결과 섹션 (필터 + 결과) -->
       <div class="integrated-results-section">
@@ -68,8 +209,8 @@
         </div>
 
         <!-- 결과 테이블 -->
-        <div class="table-container">
-          <table class="results-table">
+        <div v-else class="table-container">
+          <table class="training-table">
             <thead>
               <tr>
                 <th>
@@ -110,6 +251,7 @@
                   </span>
                 </td>
                 <td>{{ record.period_name }}</td>
+                <!-- 새로 추가된 IP 주소 컬럼 -->
                 <td>
                   <span class="ip-address">{{ record.source_ip || '-' }}</span>
                 </td>
@@ -121,6 +263,7 @@
                     {{ getResultText(record.check_result || record.overall_result) }}
                   </span>
                 </td>
+                <!-- 새로 추가된 점수 컬럼 -->
                 <td>
                   <span class="score-badge" :class="getScoreClass(record.total_score)">
                     {{ record.total_score || 0 }}점
@@ -141,160 +284,35 @@
               </tr>
             </tbody>
           </table>
+
+          <!-- 데이터가 없을 때 -->
+          <div v-if="!loading && paginatedRecords.length === 0" class="no-data">
+            <p>조건에 맞는 점검 결과가 없습니다.</p>
+          </div>
         </div>
 
         <!-- 페이지네이션 -->
-        <div class="pagination" v-if="totalPages > 1">
-          <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1">이전</button>
-          <span class="page-info">
-            {{ currentPage }} / {{ totalPages }} (총 {{ filteredRecords.length }}건)
+        <div v-if="!loading && paginatedRecords.length > 0" class="pagination">
+          <button
+            @click="changePage(currentPage - 1)"
+            :disabled="currentPage <= 1"
+            class="pagination-button"
+          >
+            이전
+          </button>
+          <span class="pagination-info">
+            {{ (currentPage - 1) * pageSize + 1 }}~{{
+              Math.min(currentPage * pageSize, totalRecords)
+            }}
+            / {{ totalRecords }}개
           </span>
-          <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages">
+          <button
+            @click="changePage(currentPage + 1)"
+            :disabled="currentPage >= totalPages"
+            class="pagination-button"
+          >
             다음
           </button>
-        </div>
-      </div>
-
-      <!-- 토글형 기간 설정 섹션 -->
-      <div class="period-management-section">
-        <div class="section-header toggleable" @click="togglePeriodSection">
-          <h3>
-            <span class="toggle-icon" :class="{ collapsed: !showPeriodSection }">▼</span>
-            🗓️ 점검 기간 관리
-            <span class="section-subtitle">{{ getPeriodsCountText() }}</span>
-          </h3>
-          <button @click.stop="openPeriodModal" class="primary-button" v-if="showPeriodSection">
-            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path
-                d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"
-              />
-            </svg>
-            기간 추가
-          </button>
-        </div>
-
-        <!-- 토글 가능한 기간 관리 컨텐츠 -->
-        <div class="period-content" v-show="showPeriodSection">
-          <!-- 점검 유형별 기간 현황 카드 -->
-          <div class="check-types-grid" v-if="periodStatus.check_types">
-            <div
-              v-for="(typeData, checkType) in periodStatus.check_types"
-              :key="checkType"
-              class="check-type-section"
-            >
-              <div class="type-header">
-                <h4>{{ getCheckTypeName(checkType) }} 점검</h4>
-                <div class="type-summary">
-                  <span class="summary-badge"> {{ typeData.periods?.length || 0 }}개 기간 </span>
-                </div>
-              </div>
-
-              <!-- 기간 카드들 -->
-              <div class="period-cards-container">
-                <div
-                  v-for="period in typeData.periods"
-                  :key="period.period_id"
-                  class="period-card"
-                  :class="[`status-${period.status}`, { completed: period.is_completed }]"
-                >
-                  <div class="card-header">
-                    <h5>{{ period.period_name }}</h5>
-                    <div class="card-actions">
-                      <button
-                        @click="editPeriod(period)"
-                        class="icon-button edit-button"
-                        :disabled="period.is_completed"
-                        title="수정"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        @click="deletePeriod(period)"
-                        class="icon-button delete-button"
-                        :disabled="period.is_completed || period.total_users > 0"
-                        title="삭제"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="card-content">
-                    <div class="period-info">
-                      <span class="date-range">
-                        {{ formatDate(period.start_date) }} ~ {{ formatDate(period.end_date) }}
-                      </span>
-                      <span class="status-badge" :class="period.status">
-                        {{ getStatusText(period.status) }}
-                      </span>
-                    </div>
-
-                    <div class="period-stats" v-if="period.total_users > 0">
-                      <div class="stats-grid">
-                        <div class="stat-item">
-                          <span class="stat-value">{{ period.total_users }}</span>
-                          <span class="stat-label">참여자</span>
-                        </div>
-                        <div class="stat-item success">
-                          <span class="stat-value">{{ period.pass_count || 0 }}</span>
-                          <span class="stat-label">통과</span>
-                        </div>
-                        <div class="stat-item danger">
-                          <span class="stat-value">{{ period.fail_count || 0 }}</span>
-                          <span class="stat-label">실패</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="period-stats" v-else>
-                      <span class="no-data">아직 참여자가 없습니다</span>
-                    </div>
-                  </div>
-
-                  <div class="card-footer">
-                    <div v-if="period.is_completed" class="completion-info">
-                      <span class="completed-badge">✅ 완료됨</span>
-                      <small>{{ formatDateTime(period.completed_at) }}</small>
-                    </div>
-                    <div v-else class="action-buttons">
-                      <button
-                        v-if="period.status === 'ended'"
-                        @click="completePeriod(period)"
-                        class="complete-button"
-                        :disabled="completing"
-                      >
-                        {{ completing ? '처리 중...' : '완료 처리' }}
-                      </button>
-                      <button
-                        v-if="period.is_completed"
-                        @click="reopenPeriod(period)"
-                        class="reopen-button"
-                        :disabled="reopening"
-                      >
-                        {{ reopening ? '처리 중...' : '재개' }}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 기간이 없는 경우 -->
-                <div
-                  v-if="!typeData.periods || typeData.periods.length === 0"
-                  class="no-periods-card"
-                >
-                  <div class="no-periods-content">
-                    <span
-                      >{{ selectedYear }}년 {{ getCheckTypeName(checkType) }} 점검 기간이
-                      없습니다</span
-                    >
-                    <button @click="openPeriodModal(checkType)" class="add-period-link">
-                      기간 추가하기
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -1852,45 +1870,40 @@ onMounted(() => {
   background: #2563eb;
 }
 
-/* 테이블 스타일 */
 .table-container {
   overflow-x: auto;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
 }
 
-.results-table {
+.training-table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
+  font-size: 12px;
 }
 
-.results-table th,
-.results-table td {
-  padding: 12px;
+.training-table th,
+.training-table td {
+  padding: 8px 6px;
   text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #f3f4f6;
+  white-space: nowrap;
 }
 
-.results-table th {
-  background: #f8fafc;
+.training-table th {
+  background-color: #f9fafb;
   font-weight: 600;
   color: #374151;
-  font-size: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  font-size: 11px;
 }
 
-.results-table td {
-  font-size: 14px;
-  font-weight: 500;
-  color: #374151;
+.training-table tbody tr:hover {
+  background-color: #f9fafb;
 }
 
-.results-table tr:hover {
-  background: #f8fafc;
-}
-
-.results-table tr.selected {
-  background: #eff6ff;
+.training-table tr.selected {
+  background-color: #eff6ff;
 }
 
 .user-info {
@@ -1905,7 +1918,123 @@ onMounted(() => {
 
 .user-info small {
   color: #6b7280;
-  font-size: 12px;
+  font-size: 10px;
+}
+
+.period-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.ip-address {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #6b7280;
+  background: #f8fafc;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.exception-status {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.exception-status.included {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.exception-status.excluded {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.score-text {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.score-text.unknown {
+  color: #9ca3af;
+}
+
+.remarks {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.action-buttons .edit-button,
+.action-buttons .delete-button {
+  background: none;
+  border: none;
+  padding: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #94a3b8;
+}
+
+.action-buttons .edit-button:hover {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.action-buttons .delete-button:hover {
+  background-color: #fef7f7;
+  color: #ef4444;
+}
+
+.no-data {
+  padding: 40px 20px;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* 페이지네이션 - AdminPhishingTrainingManagement와 동일 */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.pagination-button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.pagination-button:hover:not(:disabled) {
+  background-color: var(--dark-blue);
+}
+
+.pagination-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: #6b7280;
 }
 
 /* 점검 유형별 배지 색상 */
