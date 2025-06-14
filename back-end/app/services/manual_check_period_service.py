@@ -288,7 +288,7 @@ class ManualCheckPeriodService:
             return {"success": False, "message": f"기간 삭제 실패: {str(e)}"}
 
     def complete_period(self, period_id: int, completed_by: str) -> dict:
-        """점검 기간 완료 처리"""
+        """점검 기간 완료 처리 - 중복 점수 반영 방지"""
         try:
             with DatabaseManager.get_db_cursor() as cursor:
                 # 기간 정보 조회
@@ -323,8 +323,12 @@ class ManualCheckPeriodService:
 
                 # 자동 통과 처리가 활성화된 경우
                 if period_info["auto_pass_setting"]:
-                    # ⭐ 핵심 수정: 점검 결과가 없는 사용자들만 자동 통과 처리
-                    # 이미 실패한 사용자는 통과시키지 않음
+                    print(
+                        f"[DEBUG] 자동 통과 처리 시작 - 점검 유형: {period_info['check_type']}"
+                    )
+
+                    # 🔥 핵심 수정: 해당 기간과 점검 유형에 대해 이미 결과가 있는 사용자 제외
+                    # period_id가 있는 경우와 없는 경우를 모두 고려
                     cursor.execute(
                         """
                         INSERT INTO manual_check_results
@@ -343,11 +347,28 @@ class ManualCheckPeriodService:
                             %s
                         FROM users u
                         WHERE u.uid NOT IN (
-                            SELECT DISTINCT user_id 
-                            FROM manual_check_results 
-                            WHERE period_id = %s
+                            -- 해당 기간(period_id)에 이미 결과가 있는 사용자 제외
+                            SELECT DISTINCT mcr1.user_id 
+                            FROM manual_check_results mcr1 
+                            WHERE mcr1.period_id = %s
                         )
                         AND u.uid NOT IN (
+                            -- 같은 점검 유형, 연도, 기간에 이미 결과가 있는 사용자도 제외 (period_id가 없는 경우 대비)
+                            SELECT DISTINCT mcr2.user_id 
+                            FROM manual_check_results mcr2 
+                            WHERE mcr2.check_item_code = %s 
+                            AND mcr2.check_year = %s
+                            AND (mcr2.period_id = %s OR (
+                                mcr2.period_id IS NULL 
+                                AND DATE(mcr2.check_date) BETWEEN (
+                                    SELECT start_date FROM manual_check_periods WHERE period_id = %s
+                                ) AND (
+                                    SELECT end_date FROM manual_check_periods WHERE period_id = %s
+                                )
+                            ))
+                        )
+                        AND u.uid NOT IN (
+                            -- 예외 설정된 사용자 제외
                             SELECT uee.user_id 
                             FROM user_extended_exceptions uee 
                             WHERE uee.item_id = CONCAT('manual_', %s, '_', %s, '_', %s)
@@ -355,22 +376,40 @@ class ManualCheckPeriodService:
                         )
                         """,
                         (
-                            period_info["check_type"],
-                            period_info["period_year"],
-                            period_id,
-                            period_id,
-                            period_info["check_type"],
-                            period_info["period_year"],
-                            period_info["period_name"],
+                            period_info["check_type"],  # check_item_code
+                            period_info["period_year"],  # check_year
+                            period_id,  # period_id (INSERT용)
+                            period_id,  # period_id 조건 1
+                            period_info["check_type"],  # check_item_code 조건
+                            period_info["period_year"],  # check_year 조건
+                            period_id,  # period_id 조건 2
+                            period_id,  # start_date 조회용
+                            period_id,  # end_date 조회용
+                            period_info["check_type"],  # 예외 설정 확인용
+                            period_info["period_year"],  # 예외 설정 확인용
+                            period_info["period_name"],  # 예외 설정 확인용
                         ),
                     )
 
-                return {
-                    "success": True,
-                    "message": f"{period_info['period_name']} 기간이 완료 처리되었습니다.",
-                }
+                    # 영향받은 행 수 확인
+                    affected_rows = cursor.rowcount
+                    print(f"[DEBUG] 자동 통과 처리 완료 - {affected_rows}명 처리")
+
+                    return {
+                        "success": True,
+                        "message": f"{period_info['period_name']} 기간이 완료 처리되었습니다. ({affected_rows}명 자동 통과)",
+                    }
+                else:
+                    return {
+                        "success": True,
+                        "message": f"{period_info['period_name']} 기간이 완료 처리되었습니다.",
+                    }
 
         except Exception as e:
+            print(f"[ERROR] 기간 완료 처리 오류: {str(e)}")
+            import traceback
+
+            traceback.print_exc()
             return {"success": False, "message": f"완료 처리 실패: {str(e)}"}
 
     def reopen_period(self, period_id: int) -> dict:
