@@ -323,12 +323,13 @@ class ManualCheckPeriodService:
 
                 # 자동 통과 처리가 활성화된 경우
                 if period_info["auto_pass_setting"]:
-                    # 해당 기간에 점검 결과가 없는 사용자들을 자동 통과 처리
+                    # ⭐ 핵심 수정: 점검 결과가 없는 사용자들만 자동 통과 처리
+                    # 이미 실패한 사용자는 통과시키지 않음
                     cursor.execute(
                         """
                         INSERT INTO manual_check_results
                         (user_id, check_item_code, check_year, check_period, check_date, 
-                         checker_name, overall_result, total_score, notes, period_id)
+                        checker_name, overall_result, total_score, notes, period_id)
                         SELECT 
                             u.uid,
                             %s,
@@ -346,12 +347,21 @@ class ManualCheckPeriodService:
                             FROM manual_check_results 
                             WHERE period_id = %s
                         )
+                        AND u.uid NOT IN (
+                            SELECT uee.user_id 
+                            FROM user_extended_exceptions uee 
+                            WHERE uee.item_id = CONCAT('manual_', %s, '_', %s, '_', %s)
+                            AND uee.is_active = 1
+                        )
                         """,
                         (
                             period_info["check_type"],
                             period_info["period_year"],
                             period_id,
                             period_id,
+                            period_info["check_type"],
+                            period_info["period_year"],
+                            period_info["period_name"],
                         ),
                     )
 

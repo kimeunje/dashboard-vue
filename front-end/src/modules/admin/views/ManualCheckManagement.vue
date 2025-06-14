@@ -44,7 +44,7 @@
             </div>
 
             <!-- 기간 카드들 -->
-            <div class="period-cards-container">
+            <div class="periods-grid">
               <div
                 v-for="period in typeData.periods"
                 :key="period.period_id"
@@ -53,97 +53,106 @@
               >
                 <div class="card-header">
                   <h5>{{ period.period_name }}</h5>
-                  <div class="card-actions">
-                    <button
-                      @click="editPeriod(period)"
-                      class="icon-button edit-button"
-                      :disabled="period.is_completed"
-                      title="수정"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      @click="deletePeriod(period)"
-                      class="icon-button delete-button"
-                      :disabled="period.is_completed || period.total_users > 0"
-                      title="삭제"
-                    >
-                      🗑️
-                    </button>
+                  <div class="status-badges">
+                    <span class="status-badge" :class="period.status">
+                      {{ getStatusText(period.status) }}
+                    </span>
+                    <span v-if="period.is_completed" class="completion-badge">완료</span>
                   </div>
                 </div>
 
                 <div class="card-content">
                   <div class="period-info">
-                    <span class="date-range">
-                      {{ formatDate(period.start_date) }} ~ {{ formatDate(period.end_date) }}
-                    </span>
-                    <span class="status-badge" :class="period.status">
-                      {{ getStatusText(period.status) }}
-                    </span>
+                    <p><strong>기간:</strong> {{ period.start_date }} ~ {{ period.end_date }}</p>
+                    <p v-if="period.description"><strong>설명:</strong> {{ period.description }}</p>
+                    <p v-if="period.completed_at">
+                      <strong>완료 시각:</strong> {{ formatDateTime(period.completed_at) }}
+                    </p>
+                    <p v-if="period.completed_by">
+                      <strong>완료 처리자:</strong> {{ period.completed_by }}
+                    </p>
                   </div>
 
-                  <div class="period-stats" v-if="period.total_users > 0">
-                    <div class="stats-grid">
-                      <div class="stat-item">
-                        <span class="stat-value">{{ period.total_users }}</span>
-                        <span class="stat-label">참여자</span>
-                      </div>
-                      <div class="stat-item success">
-                        <span class="stat-value">{{ period.pass_count || 0 }}</span>
-                        <span class="stat-label">통과</span>
-                      </div>
-                      <div class="stat-item danger">
-                        <span class="stat-value">{{ period.fail_count || 0 }}</span>
-                        <span class="stat-label">실패</span>
-                      </div>
+                  <div class="stats" v-if="period.stats">
+                    <div class="stat pass">
+                      <span>통과</span>
+                      <strong>{{ period.stats.pass_count || 0 }}</strong>
+                    </div>
+                    <div class="stat fail">
+                      <span>실패</span>
+                      <strong>{{ period.stats.fail_count || 0 }}</strong>
+                    </div>
+                    <div class="stat total">
+                      <span>전체</span>
+                      <strong>{{ period.stats.total_users || 0 }}</strong>
                     </div>
                   </div>
 
-                  <div class="period-stats" v-else>
-                    <span class="no-data">아직 참여자가 없습니다</span>
-                  </div>
-                </div>
-
-                <div class="card-footer">
-                  <div v-if="period.is_completed" class="completion-info">
-                    <span class="completed-badge">✅ 완료됨</span>
-                    <small>{{ formatDateTime(period.completed_at) }}</small>
-                  </div>
-                  <div v-else class="action-buttons">
+                  <!-- 새로 추가되는 액션 버튼들 -->
+                  <div class="card-actions">
+                    <!-- 수정 버튼 -->
                     <button
-                      v-if="period.status === 'ended'"
-                      @click="completePeriod(period)"
-                      class="complete-button"
-                      :disabled="completing"
+                      @click="editPeriod(period)"
+                      class="edit-button"
+                      :disabled="period.is_completed"
+                      title="기간 수정"
                     >
-                      {{ completing ? '처리 중...' : '완료 처리' }}
+                      <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                          d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L14.5 5.207l-3-3L12.146.146zM11.207 1.5L1.5 11.207V14.5h3.293L14.5 4.793l-3.293-3.293z"
+                        />
+                      </svg>
+                      수정
                     </button>
+
+                    <!-- 완료 버튼 (종료된 기간에만 표시) -->
+                    <button
+                      v-if="!period.is_completed && period.status === 'ended'"
+                      @click="completePeriod(period.period_id)"
+                      class="complete-button"
+                      title="기간 완료 처리"
+                    >
+                      <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                          d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"
+                        />
+                      </svg>
+                      완료
+                    </button>
+
+                    <!-- 재개 버튼 (완료된 기간에만 표시) -->
                     <button
                       v-if="period.is_completed"
-                      @click="reopenPeriod(period)"
+                      @click="reopenPeriod(period.period_id)"
                       class="reopen-button"
-                      :disabled="reopening"
+                      title="완료 상태 취소"
                     >
-                      {{ reopening ? '처리 중...' : '재개' }}
+                      <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+                        <path
+                          d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"
+                        />
+                      </svg>
+                      재개
+                    </button>
+
+                    <!-- 삭제 버튼 -->
+                    <button
+                      @click="deletePeriod(period.period_id)"
+                      class="delete-button"
+                      :disabled="
+                        period.is_completed && period.stats && period.stats.total_users > 0
+                      "
+                      title="기간 삭제"
+                    >
+                      <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                          d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84L14.962 3.5H15.5a.5.5 0 0 0 0-1h-1.004a.58.58 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"
+                        />
+                      </svg>
+                      삭제
                     </button>
                   </div>
-                </div>
-              </div>
-
-              <!-- 기간이 없는 경우 -->
-              <div
-                v-if="!typeData.periods || typeData.periods.length === 0"
-                class="no-periods-card"
-              >
-                <div class="no-periods-content">
-                  <span
-                    >{{ selectedYear }}년 {{ getCheckTypeName(checkType) }} 점검 기간이
-                    없습니다</span
-                  >
-                  <button @click="openPeriodModal(checkType)" class="add-period-link">
-                    기간 추가하기
-                  </button>
                 </div>
               </div>
             </div>
@@ -305,43 +314,59 @@
     </div>
 
     <!-- 기간 추가/수정 모달 -->
-    <div v-if="showPeriodModal" class="modal-overlay" @click="closePeriodModal">
-      <div class="modal-content" @click.stop>
+    <!-- ManualCheckManagement.vue에 추가할 기간 수정 모달 -->
+    <div v-if="showPeriodModal" class="modal-overlay" @click.self="closePeriodModal">
+      <div class="modal-container">
         <div class="modal-header">
           <h3>{{ editingPeriod ? '기간 수정' : '기간 추가' }}</h3>
-          <button @click="closePeriodModal" class="close-button">✕</button>
+          <button @click="closePeriodModal" class="close-button">×</button>
         </div>
 
         <div class="modal-body">
           <form @submit.prevent="savePeriod">
-            <div class="form-group">
-              <label>점검 유형 *</label>
-              <select v-model="periodForm.check_type" :disabled="editingPeriod" required>
-                <option value="">선택하세요</option>
-                <option value="seal_check">PC 봉인씰 확인</option>
-                <option value="malware_scan">악성코드 전체 검사</option>
-                <option value="file_encryption">개인정보 파일 암호화</option>
-              </select>
+            <div class="form-row">
+              <div class="form-group">
+                <label>점검 유형 *</label>
+                <select v-model="periodForm.check_type" :disabled="editingPeriod" required>
+                  <option value="">선택하세요</option>
+                  <option value="seal_check">PC 봉인씰 확인</option>
+                  <option value="malware_scan">악성코드 전체 검사</option>
+                  <option value="file_encryption">개인정보 파일 암호화</option>
+                </select>
+                <small v-if="editingPeriod" class="form-help">
+                  수정 시에는 점검 유형을 변경할 수 없습니다.
+                </small>
+              </div>
+
+              <div class="form-group">
+                <label>연도 *</label>
+                <input
+                  type="number"
+                  v-model.number="periodForm.period_year"
+                  :disabled="editingPeriod"
+                  min="2020"
+                  max="2030"
+                  required
+                />
+                <small v-if="editingPeriod" class="form-help">
+                  수정 시에는 연도를 변경할 수 없습니다.
+                </small>
+              </div>
             </div>
 
             <div class="form-row">
-              <div class="form-group">
-                <label>연도 *</label>
-                <select v-model="periodForm.period_year" :disabled="editingPeriod" required>
-                  <option v-for="year in availableYears" :key="year" :value="year">
-                    {{ year }}
-                  </option>
-                </select>
-              </div>
-
               <div class="form-group">
                 <label>기간명 *</label>
                 <input
                   type="text"
                   v-model="periodForm.period_name"
-                  placeholder="예: Q1, 상반기, 3월 등"
+                  :disabled="editingPeriod"
+                  placeholder="예: 1월, Q1, 상반기 등"
                   required
                 />
+                <small v-if="editingPeriod" class="form-help">
+                  수정 시에는 기간명을 변경할 수 없습니다.
+                </small>
               </div>
             </div>
 
@@ -358,28 +383,36 @@
             </div>
 
             <div class="form-group">
-              <label>설명</label>
-              <textarea
-                v-model="periodForm.description"
-                placeholder="기간에 대한 설명을 입력하세요"
-                rows="3"
-              ></textarea>
-            </div>
-
-            <div class="form-group">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="periodForm.auto_pass_setting" />
-                기간 종료 시 자동 통과 처리
-              </label>
-              <small class="help-text">
-                체크 시 기간 종료 후 완료 처리할 때 미실시 사용자들을 자동으로 통과 처리합니다.
+              <label>자동 통과 처리</label>
+              <div class="checkbox-wrapper">
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="periodForm.auto_pass_setting" />
+                  <span class="checkmark"></span>
+                  <span class="checkbox-text">
+                    기간 완료 시 미실시 사용자를 자동으로 통과 처리
+                  </span>
+                </label>
+              </div>
+              <small class="form-help">
+                체크 시 기간 완료 처리할 때 점검을 실시하지 않은 사용자들을 자동으로 통과
+                처리합니다.
               </small>
             </div>
 
-            <div class="modal-footer">
-              <button type="button" @click="closePeriodModal" class="secondary-button">취소</button>
-              <button type="submit" class="primary-button" :disabled="savingPeriod">
-                {{ savingPeriod ? '저장 중...' : '저장' }}
+            <div class="form-group">
+              <label>설명</label>
+              <textarea
+                v-model="periodForm.description"
+                rows="3"
+                placeholder="기간에 대한 설명을 입력하세요..."
+              ></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" @click="closePeriodModal" class="cancel-button">취소</button>
+              <button type="submit" class="save-button" :disabled="savingPeriod">
+                <span v-if="savingPeriod" class="loading-spinner"></span>
+                {{ savingPeriod ? '저장 중...' : editingPeriod ? '수정' : '추가' }}
               </button>
             </div>
           </form>
@@ -751,13 +784,16 @@ const getCheckTypeName = (type) => {
   return names[type] || type
 }
 
+// 상태 텍스트 변환 (기존에 없다면 추가)
 const getStatusText = (status) => {
-  const texts = {
-    active: '진행 중',
+  const statusMap = {
     upcoming: '예정',
+    active: '진행중',
     ended: '종료',
+    completed: '완료',
+    unknown: '알 수 없음',
   }
-  return texts[status] || status
+  return statusMap[status] || status
 }
 
 const getResultClass = (result) => {
@@ -789,9 +825,21 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('ko-KR')
 }
 
-const formatDateTime = (dateTimeString) => {
-  if (!dateTimeString) return ''
-  return new Date(dateTimeString).toLocaleString('ko-KR')
+// const formatDateTime = (dateTimeString) => {
+//   if (!dateTimeString) return ''
+//   return new Date(dateTimeString).toLocaleString('ko-KR')
+// }
+
+// 날짜시간 포맷팅 (기존에 없다면 추가)
+const formatDateTime = (datetime) => {
+  if (!datetime) return ''
+  return new Date(datetime).toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 const truncateText = (text, maxLength) => {
@@ -801,24 +849,36 @@ const truncateText = (text, maxLength) => {
 
 // 기간 관리 메서드
 const openPeriodModal = (checkType = '') => {
+  resetPeriodForm()
   editingPeriod.value = null
-  periodForm.check_type = checkType
-  periodForm.period_year = selectedYear.value
-  periodForm.period_name = ''
-  periodForm.start_date = ''
-  periodForm.end_date = ''
-  periodForm.description = ''
-  periodForm.auto_pass_setting = true
   showPeriodModal.value = true
 }
 
 const closePeriodModal = () => {
   showPeriodModal.value = false
   editingPeriod.value = null
+  resetPeriodForm()
 }
 
+const resetPeriodForm = () => {
+  periodForm.check_type = ''
+  periodForm.period_year = new Date().getFullYear()
+  periodForm.period_name = ''
+  periodForm.start_date = ''
+  periodForm.end_date = ''
+  periodForm.description = ''
+  periodForm.auto_pass_setting = true
+}
+
+// 기간 저장 메서드 (기존 메서드 수정)
 const savePeriod = async () => {
   if (savingPeriod.value) return
+
+  // 유효성 검사
+  if (new Date(periodForm.start_date) >= new Date(periodForm.end_date)) {
+    displayToast('종료일은 시작일보다 늦어야 합니다.', 'error')
+    return
+  }
 
   savingPeriod.value = true
 
@@ -855,6 +915,7 @@ const savePeriod = async () => {
   }
 }
 
+// 기간 수정 메서드
 const editPeriod = (period) => {
   editingPeriod.value = period
   periodForm.check_type = period.check_type
@@ -867,11 +928,14 @@ const editPeriod = (period) => {
   showPeriodModal.value = true
 }
 
-const deletePeriod = async (period) => {
-  if (!confirm(`${period.period_name} 기간을 삭제하시겠습니까?`)) return
+// 기간 삭제
+const deletePeriod = async (periodId) => {
+  if (!confirm('이 기간을 삭제하시겠습니까? 관련된 모든 점검 결과도 함께 삭제됩니다.')) {
+    return
+  }
 
   try {
-    const response = await fetch(`/api/manual-check/periods/${period.period_id}`, {
+    const response = await fetch(`/api/manual-check/periods/${periodId}`, {
       method: 'DELETE',
       credentials: 'include',
     })
@@ -884,25 +948,21 @@ const deletePeriod = async (period) => {
 
     displayToast(result.message, 'success')
     await loadPeriodStatus()
+    await loadCheckData()
   } catch (err) {
-    console.error('기간 삭제 오류:', err)
+    console.error('삭제 오류:', err)
     displayToast(err.message, 'error')
   }
 }
 
-const completePeriod = async (period) => {
-  if (
-    !confirm(
-      `${period.period_name} 기간을 완료 처리하시겠습니까?\n\n` +
-        `자동 통과 설정이 켜져있어 미실시 사용자들이 자동으로 통과 처리됩니다.`,
-    )
-  )
+// 기간 완료 처리
+const completePeriod = async (periodId) => {
+  if (!confirm('이 기간을 완료 처리하시겠습니까? 미실시 사용자들이 모두 통과로 처리됩니다.')) {
     return
-
-  completing.value = true
+  }
 
   try {
-    const response = await fetch(`/api/manual-check/periods/${period.period_id}/complete`, {
+    const response = await fetch(`/api/manual-check/periods/${periodId}/complete`, {
       method: 'POST',
       credentials: 'include',
     })
@@ -915,27 +975,21 @@ const completePeriod = async (period) => {
 
     displayToast(result.message, 'success')
     await loadPeriodStatus()
-    await loadCheckData()
+    await loadCheckData() // 점검 데이터도 새로고침
   } catch (err) {
     console.error('완료 처리 오류:', err)
     displayToast(err.message, 'error')
-  } finally {
-    completing.value = false
   }
 }
 
-const reopenPeriod = async (period) => {
-  if (
-    !confirm(
-      `${period.period_name} 기간을 재개하시겠습니까?\n\n` + `자동 통과 처리된 결과가 삭제됩니다.`,
-    )
-  )
+// 기간 재개 처리
+const reopenPeriod = async (periodId) => {
+  if (!confirm('이 기간의 완료 상태를 취소하시겠습니까?')) {
     return
-
-  reopening.value = true
+  }
 
   try {
-    const response = await fetch(`/api/manual-check/periods/${period.period_id}/reopen`, {
+    const response = await fetch(`/api/manual-check/periods/${periodId}/reopen`, {
       method: 'POST',
       credentials: 'include',
     })
@@ -952,8 +1006,6 @@ const reopenPeriod = async (period) => {
   } catch (err) {
     console.error('재개 처리 오류:', err)
     displayToast(err.message, 'error')
-  } finally {
-    reopening.value = false
   }
 }
 
