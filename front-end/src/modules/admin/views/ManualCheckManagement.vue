@@ -420,7 +420,7 @@
       </div>
     </div>
 
-    <!-- 일괄 업로드 모달 -->
+    vue<!-- 일괄 업로드 모달 - 개선된 버전 -->
     <div v-if="showBulkUploadModal" class="modal-overlay" @click="closeBulkUploadModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
@@ -460,52 +460,96 @@
               </div>
             </div>
 
+            <!-- 파일 미리보기 정보 -->
+            <div v-if="filePreviewInfo" class="preview-info">
+              <div class="preview-header">
+                <h4>📄 파일 분석 결과</h4>
+                <span class="detected-type">{{ filePreviewInfo.type_name }}</span>
+              </div>
+
+              <div class="preview-stats">
+                <div class="stat-item">
+                  <span class="stat-label">총 레코드:</span>
+                  <span class="stat-value">{{ filePreviewInfo.total_records }}건</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">예상 통과:</span>
+                  <span class="stat-value success"
+                    >{{ filePreviewInfo.expected_results?.expected_pass || 0 }}건</span
+                  >
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">예상 실패:</span>
+                  <span class="stat-value danger"
+                    >{{ filePreviewInfo.expected_results?.expected_fail || 0 }}건</span
+                  >
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">통과율:</span>
+                  <span class="stat-value"
+                    >{{ filePreviewInfo.expected_results?.pass_rate || 0 }}%</span
+                  >
+                </div>
+              </div>
+
+              <!-- 개인정보 암호화 추가 정보 -->
+              <div v-if="filePreviewInfo.additional_info?.detected_rounds" class="encryption-info">
+                <h5>🔍 회차별 검증 정보</h5>
+                <p>
+                  <strong>감지된 회차:</strong>
+                  {{ filePreviewInfo.additional_info.detected_rounds.join(', ') }}
+                </p>
+                <p>
+                  <strong>최신 회차:</strong> {{ filePreviewInfo.additional_info.latest_round }}회차
+                </p>
+                <p>
+                  <strong>검증 방식:</strong> {{ filePreviewInfo.additional_info.validation_logic }}
+                </p>
+              </div>
+
+              <!-- 분석 상세 내용 -->
+              <div
+                v-if="filePreviewInfo.expected_results?.analysis_details?.length > 0"
+                class="analysis-details"
+              >
+                <h5>📊 분석 상세 (처음 5개)</h5>
+                <ul>
+                  <li
+                    v-for="detail in filePreviewInfo.expected_results.analysis_details.slice(0, 5)"
+                    :key="detail"
+                  >
+                    {{ detail }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+
             <div class="upload-instructions">
               <h4>💡 업로드 가이드</h4>
               <ul>
-                <li><strong>PC 봉인씰 확인:</strong> 일시, 이름, 부서, 봉인씰 확인</li>
+                <li>
+                  <strong>개인정보 파일 암호화:</strong> 로컬 IP, XXX회차에서 주민등록번호(수정)
+                </li>
+                <li><strong>PC 봉인씰 확인:</strong> 일시, 이름, 부서, 훼손여부</li>
                 <li>
                   <strong>악성코드 전체 검사:</strong> 일시, IP, 악성코드명, 분류, 경로, 탐지항목
                 </li>
-                <li>
-                  <strong>개인정보 파일 암호화:</strong> 로컬IP, 최신회차 주민등록번호 포함여부
-                </li>
-                <li>파일 내용을 기반으로 점검 유형을 자동 감지합니다</li>
+                <li>엑셀 파일의 멀티 헤더(1-2행 합성) 구조를 자동으로 처리합니다</li>
+                <li>데이터는 3행부터 시작되어야 합니다</li>
                 <li>동일한 사용자/날짜의 기존 데이터는 자동 업데이트됩니다</li>
               </ul>
-            </div>
-          </div>
-
-          <div v-if="uploadPreview.length > 0" class="preview-section">
-            <h4>📄 미리보기 (처음 5개 레코드)</h4>
-            <div class="preview-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>사용자ID</th>
-                    <th>점검유형</th>
-                    <th>결과</th>
-                    <th>기간</th>
-                    <th>비고</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(record, index) in uploadPreview.slice(0, 5)" :key="index">
-                    <td>{{ record.user_id || '-' }}</td>
-                    <td>{{ getCheckTypeName(record.check_type) || '-' }}</td>
-                    <td>{{ getResultText(record.check_result) || '-' }}</td>
-                    <td>{{ record.period_name || '-' }}</td>
-                    <td>{{ truncateText(record.notes, 20) || '-' }}</td>
-                  </tr>
-                </tbody>
-              </table>
             </div>
           </div>
         </div>
 
         <div class="modal-footer">
           <button @click="closeBulkUploadModal" class="cancel-button">취소</button>
-          <button @click="uploadFile" :disabled="!selectedFile || uploading" class="upload-button">
+          <button
+            @click="uploadFile"
+            :disabled="!selectedFile || uploading || !filePreviewInfo"
+            class="upload-button"
+          >
+            <span v-if="uploading" class="loading-spinner"></span>
             {{ uploading ? '업로드 중...' : '업로드 시작' }}
           </button>
         </div>
@@ -618,6 +662,9 @@ const periodStatus = ref({ check_types: {} })
 const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref('success')
+
+// 기존 변수에 추가
+const filePreviewInfo = ref(null)
 
 // 기간 폼
 const periodForm = reactive({
@@ -1085,17 +1132,20 @@ const openBulkUploadModal = () => {
 const closeBulkUploadModal = () => {
   showBulkUploadModal.value = false
   selectedFile.value = null
+  filePreviewInfo.value = null
   uploadPreview.value = []
 }
 
-const handleFileSelect = (event) => {
+// 파일 업로드 관련 메서드 수정
+const handleFileSelect = async (event) => {
   const file = event.target.files[0]
   if (!file) return
 
   selectedFile.value = file
+  await previewFile(file)
 }
 
-const handleFileDrop = (event) => {
+const handleFileDrop = async (event) => {
   event.preventDefault()
   const files = event.dataTransfer.files
   if (files.length > 0) {
@@ -1113,14 +1163,67 @@ const handleFileDrop = (event) => {
       file.name.endsWith('.csv')
     ) {
       selectedFile.value = file
+      await previewFile(file)
     } else {
       displayToast('Excel 또는 CSV 파일만 업로드 가능합니다.', 'error')
     }
   }
 }
 
+const previewFile = async (file) => {
+  if (!file) return
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch('/api/manual-check/upload/preview', {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    })
+
+    const result = await response.json()
+
+    if (result.success) {
+      filePreviewInfo.value = result.data
+      console.log('[DEBUG] 파일 미리보기 성공:', result.data)
+
+      // 성공 메시지 표시
+      if (result.data.additional_info?.detected_rounds) {
+        displayToast(
+          `${result.data.type_name} 파일 인식 완료! ${result.data.additional_info.detected_rounds.length}개 회차 감지`,
+          'success',
+        )
+      } else {
+        displayToast(`${result.data.type_name} 파일이 인식되었습니다.`, 'success')
+      }
+    } else {
+      filePreviewInfo.value = null
+      console.error('[DEBUG] 파일 미리보기 실패:', result)
+
+      // 상세한 오류 정보 표시
+      let errorMessage = result.error || '파일 분석에 실패했습니다.'
+
+      if (result.found_columns) {
+        errorMessage += `\n\n발견된 컬럼: ${result.found_columns.join(', ')}`
+      }
+
+      if (result.suggestions) {
+        errorMessage += `\n\n필요한 컬럼:\n${result.suggestions.join('\n')}`
+      }
+
+      displayToast(errorMessage, 'error')
+    }
+  } catch (err) {
+    console.error('파일 미리보기 오류:', err)
+    filePreviewInfo.value = null
+    displayToast('파일 미리보기 중 오류가 발생했습니다.', 'error')
+  }
+}
 const removeSelectedFile = () => {
   selectedFile.value = null
+  filePreviewInfo.value = null
   uploadPreview.value = []
 }
 
@@ -1133,7 +1236,7 @@ const formatFileSize = (bytes) => {
 }
 
 const uploadFile = async () => {
-  if (!selectedFile.value || uploading.value) return
+  if (!selectedFile.value || uploading.value || !filePreviewInfo.value) return
 
   uploading.value = true
 
@@ -1151,10 +1254,16 @@ const uploadFile = async () => {
 
     if (result.success) {
       const data = result.data
-      let message = `업로드 완료! 총 ${data.total_records}건 중 ${data.success_count}건 성공`
+      let message = `업로드 완료! ${data.file_type}`
+      message += `\n총 ${data.total_records}건 중 ${data.success_count}건 성공`
 
       if (data.error_count > 0) {
         message += `, ${data.error_count}건 실패`
+
+        // 오류 상세 정보가 있으면 표시
+        if (data.errors && data.errors.length > 0) {
+          console.log('업로드 오류 상세:', data.errors)
+        }
       }
 
       displayToast(message, 'success')
@@ -1171,23 +1280,35 @@ const uploadFile = async () => {
   }
 }
 
+// 템플릿 다운로드 개선
 const downloadTemplate = async () => {
   try {
-    const response = await fetch('/api/manual-check/template', {
+    // 특정 유형별 템플릿 다운로드 옵션 제공
+    const templateType = selectedCheckType.value || 'all'
+    const url =
+      templateType === 'all'
+        ? '/api/manual-check/template'
+        : `/api/manual-check/template?type=${templateType}`
+
+    const response = await fetch(url, {
       credentials: 'include',
     })
 
     if (!response.ok) throw new Error('템플릿 다운로드 실패')
 
     const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
+    const downloadUrl = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url
-    a.download = 'manual_check_template.csv'
+    a.href = downloadUrl
+
+    const filename =
+      templateType === 'all' ? 'manual_check_templates.txt' : `${templateType}_template.csv`
+
+    a.download = filename
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    window.URL.revokeObjectURL(url)
+    window.URL.revokeObjectURL(downloadUrl)
 
     displayToast('템플릿이 다운로드되었습니다.', 'success')
   } catch (err) {
