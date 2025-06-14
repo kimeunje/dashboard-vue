@@ -374,19 +374,24 @@ class ManualCheckService:
             file.seek(0)
             return pd.read_excel(file)
 
-    # ✅ 개선된 사용자 찾기 함수
-    # ✅ 수정된 사용자 찾기 함수
     def _find_user_id(self, data, check_type):
-        """사용자 ID 찾기 - 수정된 버전"""
+        """사용자 ID 찾기 - IP 주소나 사용자명으로 검색"""
         try:
-            print(
-                f"[DEBUG] 사용자 찾기 시작: {data.get('username')}, IP: {data.get('source_ip')}"
-            )
+            # 1. IP 주소로 사용자 찾기 (우선순위)
+            source_ip = data.get("source_ip")
+            if source_ip:
+                user = execute_query(
+                    "SELECT uid FROM users WHERE last_ip = %s LIMIT 1",
+                    (source_ip,),
+                    fetch_one=True,
+                )
+                if user:
+                    print(f"[DEBUG] IP {source_ip}로 사용자 {user['uid']} 찾음")
+                    return user["uid"]
 
-            # 1. 사용자명으로 찾기 (우선순위)
+            # 2. 사용자명으로 찾기
             username = data.get("username")
             if username:
-                # 정확한 매칭
                 user = execute_query(
                     "SELECT uid FROM users WHERE username = %s OR user_id = %s LIMIT 1",
                     (username, username),
@@ -396,30 +401,7 @@ class ManualCheckService:
                     print(f"[DEBUG] 사용자명 {username}으로 사용자 {user['uid']} 찾음")
                     return user["uid"]
 
-                # 부분 매칭 시도
-                user = execute_query(
-                    "SELECT uid FROM users WHERE username LIKE %s OR user_id LIKE %s LIMIT 1",
-                    (f"%{username}%", f"%{username}%"),
-                    fetch_one=True,
-                )
-                if user:
-                    print(f"[DEBUG] 사용자명 부분매칭으로 사용자 {user['uid']} 찾음")
-                    return user["uid"]
-
-            # 2. IP 주소로 사용자 찾기 (✅ ip 컬럼으로 수정)
-            source_ip = data.get("source_ip")
-            if source_ip:
-                # ip 컬럼으로 검색 (last_ip 대신)
-                user = execute_query(
-                    "SELECT uid FROM users WHERE ip LIKE %s LIMIT 1",
-                    (f"%{source_ip}%",),
-                    fetch_one=True,
-                )
-                if user:
-                    print(f"[DEBUG] IP {source_ip}로 사용자 {user['uid']} 찾음")
-                    return user["uid"]
-
-            # 3. 부서와 사용자명 조합으로 찾기
+            # 3. 부서 정보로 추가 검색 시도
             department = data.get("department")
             if department and username:
                 user = execute_query(
@@ -431,38 +413,16 @@ class ManualCheckService:
                     print(f"[DEBUG] 사용자명+부서로 사용자 {user['uid']} 찾음")
                     return user["uid"]
 
-            # ✅ 4. 사용자를 찾지 못한 경우 - 기본 사용자 생성 또는 사용
-            if username or source_ip:
-                print(f"[WARNING] 사용자를 찾을 수 없어서 기본 사용자 생성 시도")
-
-                # 4-1. 먼저 기본 관리자 사용자가 있는지 확인
-                admin_user = execute_query(
-                    "SELECT uid FROM users WHERE user_id = 'admin' OR username = 'admin' LIMIT 1",
-                    fetch_one=True,
-                )
-                if admin_user:
-                    print(f"[DEBUG] 기본 관리자 사용자 {admin_user['uid']} 사용")
-                    return admin_user["uid"]
-
-                # 4-2. 첫 번째 사용자 사용
-                first_user = execute_query(
-                    "SELECT uid FROM users ORDER BY uid LIMIT 1", fetch_one=True
-                )
-                if first_user:
-                    print(f"[DEBUG] 첫 번째 사용자 {first_user['uid']} 사용")
-                    return first_user["uid"]
-
-                # 4-3. 마지막 수단: 사용자 생성 (옵션)
-                # return self._create_default_user(username, source_ip)
-
             print(
-                f"[ERROR] 사용자를 찾을 수 없음 - 사용자명: {username}, IP: {source_ip}"
+                f"[DEBUG] 사용자를 찾을 수 없음 - IP: {source_ip}, 사용자명: {username}"
             )
             return None
 
         except Exception as e:
             print(f"[ERROR] 사용자 검색 오류: {str(e)}")
             return None
+
+        # ✅ 2단계: 봉인씰 데이터 처리 로직 수정
 
     def _process_seal_check_data(self, df, uploaded_by):
         """PC 봉인씰 확인 데이터 처리 - 기간 매칭 로직 추가"""
@@ -662,136 +622,23 @@ class ManualCheckService:
 
         return processed_data
 
-    # ✅ 유연한 컬럼 매핑 함수 (멀티헤더 지원)
-    def _find_column_mapping_flexible(self, columns, mapping_dict):
-        """컬럼명 매핑 찾기 - 멀티헤더 및 부분 매칭 지원"""
-        result = {}
-
-        for key, candidates in mapping_dict.items():
-            result[key] = None
-
-            # 정확한 매칭 우선
-            for candidate in candidates:
-                for col in columns:
-                    if candidate in str(col):
-                        result[key] = col
-                        break
-                if result[key]:
-                    break
-
-            # 정확한 매칭이 없으면 부분 매칭 시도
-            if not result[key]:
-                for col in columns:
-                    col_str = str(col).lower()
-                    for candidate in candidates:
-                        candidate_lower = candidate.lower()
-                        if candidate_lower in col_str or any(
-                            word in col_str for word in candidate_lower.split()
-                        ):
-                            result[key] = col
-                            break
-                    if result[key]:
-                        break
-
-        return result
-
-    # ✅ 안전한 날짜 파싱 함수
-    def _parse_datetime_safe(self, value):
-        """안전한 날짜시간 파싱"""
-        try:
-            if pd.isna(value):
-                return datetime.now()
-
-            if isinstance(value, datetime):
-                return value
-
-            # 엑셀 시리얼 번호인 경우
-            if isinstance(value, (int, float)):
-                try:
-                    excel_date = datetime(1900, 1, 1) + pd.Timedelta(days=value - 2)
-                    return excel_date
-                except:
-                    return datetime.now()
-
-            # 문자열인 경우
-            str_value = str(value).strip()
-
-            # 빈 문자열 체크
-            if not str_value or str_value == "nan":
-                return datetime.now()
-
-            # 한국어 오전/오후 형식 처리
-            if "오후" in str_value or "오전" in str_value:
-                try:
-                    # 오후/오전을 AM/PM으로 변경
-                    str_value = str_value.replace("오전", "AM").replace("오후", "PM")
-
-                    # 정규식으로 날짜 시간 추출
-                    import re
-
-                    time_pattern = (
-                        r"(\d{4}-\d{2}-\d{2})\s+(AM|PM)\s+(\d{1,2}):(\d{2}):(\d{2})"
-                    )
-                    match = re.match(time_pattern, str_value)
-
-                    if match:
-                        date_part = match.group(1)
-                        am_pm = match.group(2)
-                        hour = int(match.group(3))
-                        minute = match.group(4)
-                        second = match.group(5)
-
-                        # 12시간 형식을 24시간 형식으로 변환
-                        if am_pm == "PM" and hour != 12:
-                            hour += 12
-                        elif am_pm == "AM" and hour == 12:
-                            hour = 0
-
-                        formatted_time = f"{date_part} {hour:02d}:{minute}:{second}"
-                        return pd.to_datetime(formatted_time)
-                except Exception as e:
-                    print(f"[DEBUG] 한국어 날짜 파싱 실패: {str_value}, 오류: {str(e)}")
-
-            # 일반적인 날짜 형식 시도
-            try:
-                return pd.to_datetime(str_value)
-            except:
-                # 마지막 시도: 날짜 부분만 추출
-                import re
-
-                date_match = re.search(r"(\d{4}-\d{2}-\d{2})", str_value)
-                if date_match:
-                    return pd.to_datetime(date_match.group(1))
-
-                return datetime.now()
-
-        except Exception as e:
-            print(f"[ERROR] 날짜 파싱 오류: {value}, 오류: {str(e)}")
-            return datetime.now()
-
     # ✅ 4단계: 개인정보 암호화 데이터 처리 로직 수정 (회차별 날짜 계산 포함)
     def _process_file_encryption_data(self, df, uploaded_by):
-        """개인정보 파일 암호화 데이터 처리 - 회차별 날짜 계산 포함 (수정된 버전)"""
+        """개인정보 파일 암호화 데이터 처리 - 회차별 날짜 계산 포함"""
         processed_data = []
 
         # 업로드 날짜 (현재 시점)
         upload_date = datetime.now()
 
-        print(f"[DEBUG] === 개인정보 암호화 처리 시작 ===")
-        print(f"[DEBUG] 총 데이터프레임 행 수: {len(df)}")
-        print(f"[DEBUG] 컬럼명: {list(df.columns)}")
-
         # 로컬 IP 컬럼 찾기
         local_ip_col = self._find_local_ip_column(df.columns)
         if not local_ip_col:
             raise ValueError("로컬 IP 컬럼을 찾을 수 없습니다.")
-        print(f"[DEBUG] 로컬 IP 컬럼: {local_ip_col}")
 
         # 회차별 주민등록번호 컬럼 감지
         round_columns = self._detect_round_columns(df.columns)
         if not round_columns:
             raise ValueError("회차별 주민등록번호 컬럼을 찾을 수 없습니다.")
-        print(f"[DEBUG] 감지된 회차 컬럼: {round_columns}")
 
         # ✅ 최신 회차 번호 찾기 (가장 큰 회차 번호)
         latest_round_number = max(round_info["round"] for round_info in round_columns)
@@ -800,37 +647,19 @@ class ManualCheckService:
         # 사용자명, 소속 컬럼 찾기
         username_col = self._find_username_column(df.columns)
         department_col = self._find_department_column(df.columns)
-        print(f"[DEBUG] 사용자명 컬럼: {username_col}")
-        print(f"[DEBUG] 부서 컬럼: {department_col}")
 
-        # ✅ 개선된 데이터 행 판단 로직
-        valid_data_rows = 0
         for idx, row in df.iterrows():
-            print(f"[DEBUG] === 행 {idx+1} 처리 시작 ===")
-
-            # IP 주소가 있는지 확인하여 실제 데이터 행인지 판단
-            ip_address = ""
-            if local_ip_col and pd.notna(row[local_ip_col]):
-                ip_address = str(row[local_ip_col]).strip()
-
-            print(f"[DEBUG] 행 {idx+1} IP 주소: '{ip_address}'")
-
-            # IP 주소가 없거나 유효하지 않으면 헤더 행으로 간주
-            if not ip_address or ip_address in ["", "nan", "None"]:
-                print(f"[DEBUG] 행 {idx+1}: IP 주소가 없어 헤더 행으로 건너뜀")
+            if idx < 2:  # 헤더 행 건너뛰기
                 continue
-
-            # 유효한 IP 형식인지 간단 체크 (숫자와 점으로 구성)
-            import re
-
-            if not re.match(r"^[\d\.]+$", ip_address):
-                print(f"[DEBUG] 행 {idx+1}: 유효하지 않은 IP 형식으로 건너뜀")
-                continue
-
-            valid_data_rows += 1
-            print(f"[DEBUG] 유효한 데이터 행 #{valid_data_rows}")
 
             try:
+                # IP 주소 추출
+                ip_address = (
+                    str(row[local_ip_col]) if pd.notna(row[local_ip_col]) else ""
+                )
+                if not ip_address:
+                    continue
+
                 # 사용자명 추출
                 username = ""
                 if username_col and pd.notna(row[username_col]):
@@ -841,16 +670,10 @@ class ManualCheckService:
                 if department_col and pd.notna(row[department_col]):
                     department = str(row[department_col]).strip()
 
-                print(
-                    f"[DEBUG] 행 {idx+1} 사용자 정보: 이름='{username}', 부서='{department}'"
-                )
-
                 # ✅ 회차별 주민등록번호 확인 및 최신 회차 기준 날짜 계산
                 ssn_found = False
                 latest_round_with_ssn = None
                 latest_round_ssn_count = 0
-
-                print(f"[DEBUG] 행 {idx+1} 회차별 SSN 검사 시작")
 
                 # 최신 회차부터 역순으로 검사
                 sorted_rounds = sorted(
@@ -863,9 +686,6 @@ class ManualCheckService:
 
                     if pd.notna(row[round_col]):
                         ssn_value = row[round_col]
-                        print(
-                            f"[DEBUG] 행 {idx+1} {round_num}회차 값: '{ssn_value}' (타입: {type(ssn_value)})"
-                        )
 
                         # 숫자 형태의 SSN 개수
                         if isinstance(ssn_value, (int, float)) and ssn_value > 0:
@@ -875,9 +695,6 @@ class ManualCheckService:
                                 ssn_found = True
                                 latest_round_with_ssn = round_num
                                 latest_round_ssn_count = int(ssn_value)
-                                print(
-                                    f"[DEBUG] 행 {idx+1} {round_num}회차에서 SSN 발견: {latest_round_ssn_count}건"
-                                )
 
                         # 문자열 형태의 SSN (-, 0 제외)
                         elif isinstance(ssn_value, str) and ssn_value.strip() not in [
@@ -892,9 +709,6 @@ class ManualCheckService:
                                     latest_round_ssn_count = int(float(ssn_value))
                                 except:
                                     latest_round_ssn_count = 1
-                                print(
-                                    f"[DEBUG] 행 {idx+1} {round_num}회차에서 SSN 발견: {latest_round_ssn_count}건"
-                                )
 
                 # ✅ 최신 회차 정보를 기반으로 대표 날짜 계산
                 if latest_round_with_ssn:
@@ -907,14 +721,12 @@ class ManualCheckService:
                         upload_date, latest_round_number, latest_round_number
                     )
 
-                print(f"[DEBUG] 행 {idx+1} 대표 날짜: {representative_date}")
-
                 # ✅ 계산된 날짜를 기반으로 적절한 기간 찾기
                 period_id, period_name = self._find_appropriate_period(
                     representative_date, "file_encryption"
                 )
                 print(
-                    f"[DEBUG] 행 {idx+1} 매칭된 기간: {period_name} (ID: {period_id})"
+                    f"[DEBUG] 개인정보 - 행 {idx+1}: 대표날짜 = {representative_date.strftime('%Y-%m-%d')}, 매칭된 기간 = {period_name}"
                 )
 
                 # 암호화 상태 결정
@@ -927,15 +739,13 @@ class ManualCheckService:
                     overall_result = "pass"
                     notes = f"검증 결과: 모든 회차에서 주민등록번호 미발견으로 통과"
 
-                print(f"[DEBUG] 행 {idx+1} 처리 완료 - 결과: {overall_result}")
-
                 processed_row = {
                     "check_item_code": "file_encryption",
                     "source_ip": ip_address,
-                    "check_year": representative_date.year,
-                    "check_period": period_name,
-                    "period_id": period_id,
-                    "check_date": representative_date,
+                    "check_year": representative_date.year,  # ✅ 계산된 연도 사용
+                    "check_period": period_name,  # ✅ 동적 기간명 사용
+                    "period_id": period_id,  # ✅ 기간 ID 설정
+                    "check_date": representative_date,  # ✅ 회차 기반 계산된 날짜
                     "checker_name": uploaded_by,
                     "encryption_status": encryption_status,
                     "unencrypted_files": latest_round_ssn_count,
@@ -950,15 +760,10 @@ class ManualCheckService:
                 }
 
                 processed_data.append(processed_row)
-                print(f"[DEBUG] === 행 {idx+1} 처리 완료 ===")
 
             except Exception as e:
                 print(f"개인정보 파일 암호화 데이터 처리 오류 (행 {idx + 1}): {str(e)}")
                 continue
-
-        print(f"[DEBUG] === 개인정보 암호화 처리 완료 ===")
-        print(f"[DEBUG] 총 처리된 데이터 행: {valid_data_rows}")
-        print(f"[DEBUG] 생성된 processed_data: {len(processed_data)}개")
 
         return processed_data
 
@@ -1081,31 +886,22 @@ class ManualCheckService:
             }
 
     def _save_to_existing_table(self, processed_data, check_type, uploaded_by):
-        """기존 manual_check_results 테이블에 저장 - 상세 디버그 추가"""
+        """기존 manual_check_results 테이블에 저장 - 중복 체크 및 업데이트"""
         success_count = 0
         error_count = 0
         update_count = 0
         errors = []
 
-        print(f"[DEBUG] 저장 시작 - 총 {len(processed_data)}개 데이터 처리 예정")
-
-        for i, data in enumerate(processed_data):
+        for data in processed_data:
             try:
-                print(f"[DEBUG] === 데이터 {i+1}/{len(processed_data)} 처리 시작 ===")
-                print(
-                    f"[DEBUG] 데이터 내용: 사용자명={data.get('username')}, IP={data.get('source_ip')}, 기간={data.get('check_period')}"
-                )
-
                 # 사용자 정보 조회 (IP나 이름으로)
                 user_id = self._find_user_id(data, check_type)
                 if not user_id:
                     error_count += 1
-                    error_msg = f"행 {data.get('row_index', '?')}: 사용자를 찾을 수 없습니다 (사용자명: {data.get('username')}, IP: {data.get('source_ip')})"
-                    errors.append(error_msg)
-                    print(f"[DEBUG] {error_msg}")
+                    errors.append(
+                        f"행 {data.get('row_index', '?')}: 사용자를 찾을 수 없습니다."
+                    )
                     continue
-
-                print(f"[DEBUG] 사용자 ID 찾음: {user_id}")
 
                 # ✅ 중복 체크: 동일한 사용자, 점검유형, 연도, 기간의 결과가 있는지 확인
                 existing_check = execute_query(
@@ -1124,10 +920,6 @@ class ManualCheckService:
                 )
 
                 if existing_check:
-                    print(
-                        f"[DEBUG] 기존 데이터 발견 - check_id: {existing_check['check_id']}, 업데이트 진행"
-                    )
-
                     # ✅ 기존 결과가 있으면 업데이트
                     update_query = """
                         UPDATE manual_check_results SET
@@ -1186,7 +978,7 @@ class ManualCheckService:
                         existing_check["check_id"],
                     )
 
-                    result = execute_query(update_query, update_data)
+                    execute_query(update_query, update_data)
                     update_count += 1
                     print(
                         f"[DEBUG] 업데이트 완료 - 행 {data.get('row_index')}: "
@@ -1194,8 +986,6 @@ class ManualCheckService:
                     )
 
                 else:
-                    print(f"[DEBUG] 기존 데이터 없음 - 신규 삽입 진행")
-
                     # ✅ 기존 결과가 없으면 새로 삽입
                     insert_query = """
                         INSERT INTO manual_check_results (
@@ -1252,28 +1042,18 @@ class ManualCheckService:
                         data.get("notes"),
                     )
 
-                    print(f"[DEBUG] INSERT 데이터: {insert_data}")
-                    result = execute_query(insert_query, insert_data)
+                    execute_query(insert_query, insert_data)
                     success_count += 1
                     print(
                         f"[DEBUG] 신규 저장 완료 - 행 {data.get('row_index')}: "
                         f"사용자 {user_id}, 기간 {data.get('check_period')}({data.get('period_id')})"
                     )
 
-                print(f"[DEBUG] === 데이터 {i+1} 처리 완료 ===")
-
             except Exception as e:
                 error_count += 1
                 error_msg = f"행 {data.get('row_index', '?')}: {str(e)}"
                 errors.append(error_msg)
                 print(f"[ERROR] 저장 실패 - {error_msg}")
-                import traceback
-
-                traceback.print_exc()
-
-        print(
-            f"[DEBUG] 저장 완료 - 성공: {success_count}, 업데이트: {update_count}, 오류: {error_count}"
-        )
 
         return {
             "success_count": success_count,
@@ -1282,14 +1062,12 @@ class ManualCheckService:
             "errors": errors[:10],  # 최대 10개 오류만 반환
         }
 
-    # 업로드 결과 메시지도 수정
 
-    # ✅ 메인 업로드 처리 함수에도 디버그 추가
+    # 업로드 결과 메시지도 수정
     def process_bulk_upload(self, file, uploaded_by):
-        """엑셀/CSV 파일 일괄 업로드 처리 - 디버그 강화"""
+        """엑셀/CSV 파일 일괄 업로드 처리 - 중복 체크 및 업데이트 지원"""
         try:
             filename = file.filename
-            print(f"[DEBUG] 업로드 시작 - 파일명: {filename}, 업로더: {uploaded_by}")
 
             # 파일 읽기 - 멀티 헤더 처리
             if filename.lower().endswith(".csv"):
@@ -1304,7 +1082,7 @@ class ManualCheckService:
             if df.empty:
                 raise ValueError("파일에 데이터가 없습니다.")
 
-            print(f"[DEBUG] 파일 읽기 완료 - 총 {len(df)}행, 컬럼: {list(df.columns)}")
+            print(f"[DEBUG] 처리된 컬럼명: {list(df.columns)}")
 
             # 점검 유형 자동 감지
             check_type = self.detect_file_type(df, filename)
@@ -1313,24 +1091,13 @@ class ManualCheckService:
                     "점검 유형을 자동으로 감지할 수 없습니다. 파일명이나 컬럼을 확인해주세요."
                 )
 
-            print(f"[DEBUG] 점검 유형 감지 완료: {check_type}")
-
             # 파일 구조 검증
             is_valid, message = self.validate_file_structure(df, check_type)
             if not is_valid:
                 raise ValueError(message)
 
-            print(f"[DEBUG] 파일 구조 검증 완료: {message}")
-
             # 데이터 처리
             processed_data = self._process_check_data(df, check_type, uploaded_by)
-            print(f"[DEBUG] 데이터 처리 완료 - {len(processed_data)}개 데이터 생성")
-
-            # 처리된 데이터 중 일부 샘플 출력
-            for i, data in enumerate(processed_data[:2]):  # 처음 2개만
-                print(
-                    f"[DEBUG] 샘플 데이터 {i+1}: 사용자={data.get('username')}, IP={data.get('source_ip')}, 기간={data.get('check_period')}"
-                )
 
             # 데이터베이스 저장 (중복 체크 및 업데이트)
             save_result = self._save_to_existing_table(
@@ -1339,13 +1106,11 @@ class ManualCheckService:
 
             # ✅ 결과 메시지 개선
             total_processed = save_result["success_count"] + save_result["update_count"]
-
+            
             if save_result["update_count"] > 0:
                 message = f"{self.get_check_type_name(check_type)} 업로드 완료 (신규: {save_result['success_count']}건, 업데이트: {save_result['update_count']}건)"
             else:
                 message = f"{self.get_check_type_name(check_type)} 업로드 완료"
-
-            print(f"[DEBUG] 최종 결과: {message}")
 
             return {
                 "success": True,
@@ -1360,11 +1125,7 @@ class ManualCheckService:
 
         except Exception as e:
             print(f"파일 업로드 처리 오류: {str(e)}")
-            import traceback
-
-            traceback.print_exc()
             raise ValueError(f"파일 처리 중 오류가 발생했습니다: {str(e)}")
-
     # 기타 유틸리티 함수들
     def get_check_type_name(self, check_type):
         """점검 유형명 반환"""

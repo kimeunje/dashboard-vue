@@ -141,6 +141,29 @@ class ManualCheckPeriodService:
         except Exception as e:
             return {"success": False, "message": f"기간 생성 실패: {str(e)}"}
 
+    def check_period_exists(self, year: int, period_name: str, check_type: str) -> bool:
+        """기간 중복 체크"""
+        try:
+            result = execute_query(
+                """
+                SELECT COUNT(*) as count 
+                FROM manual_check_periods 
+                WHERE period_year = %s 
+                AND period_name = %s 
+                AND check_type = %s 
+                AND is_active = 1
+                """,
+                (year, period_name, check_type),
+                fetch_one=True,
+            )
+
+            count = result["count"] if isinstance(result, dict) else result[0]
+            return count > 0
+
+        except Exception as e:
+            print(f"[ERROR] 기간 중복 체크 오류: {str(e)}")
+            return False
+
     def update_period(self, period_id: int, period_data: dict) -> dict:
         """기간 수정 (auto_pass_setting 필드 제거)"""
         try:

@@ -107,17 +107,43 @@ def preview_upload_file():
             df, check_type
         )
 
-        # 개인정보 암호화의 경우 추가 정보 제공
+        # ✅ 개인정보 암호화의 경우 추가 정보 제공 (수정된 부분)
         additional_info = {}
         if check_type == "file_encryption":
-            round_columns = manual_check_service._detect_round_columns(df.columns)
-            additional_info = {
-                "detected_rounds": [
-                    f"{round_num}회차" for round_num, _ in round_columns
-                ],
-                "latest_round": round_columns[0][0] if round_columns else None,
-                "validation_logic": "최신 회차부터 역순으로 확인하여 0건 발견 시 통과",
-            }
+            try:
+                round_columns = manual_check_service._detect_round_columns(df.columns)
+                print(f"[DEBUG] 감지된 회차 컬럼: {round_columns}")
+
+                detected_rounds = []
+                latest_round = None
+
+                if round_columns:
+                    # round_columns는 [{"column": col, "round": round_number}, ...] 형식
+                    detected_rounds = [
+                        f"{round_info['round']}회차" for round_info in round_columns
+                    ]
+                    # 가장 큰 회차 번호 찾기
+                    latest_round = max(
+                        round_info["round"] for round_info in round_columns
+                    )
+
+                additional_info = {
+                    "detected_rounds": detected_rounds,
+                    "latest_round": latest_round,
+                    "validation_logic": "최신 회차부터 역순으로 확인하여 0건 발견 시 통과",
+                    "round_count": len(round_columns),
+                }
+
+                print(f"[DEBUG] 추가 정보 생성 완료: {additional_info}")
+
+            except Exception as e:
+                print(f"[ERROR] 개인정보 암호화 추가 정보 생성 오류: {str(e)}")
+                additional_info = {
+                    "detected_rounds": [],
+                    "latest_round": None,
+                    "validation_logic": "회차별 주민등록번호 검증",
+                    "error": f"회차 정보 분석 중 오류 발생: {str(e)}",
+                }
 
         return jsonify(
             {

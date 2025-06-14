@@ -107,9 +107,12 @@ def create_period():
         print(f"[DEBUG] 기간 생성 요청 데이터: {data}")
         print(f"[DEBUG] 생성자: {current_user['username']}")
 
-        result = manual_check_period_service.create_period(
-            data, current_user["username"]
-        )
+        # ✅ created_by를 데이터에 추가
+        period_data = data.copy()
+        period_data["created_by"] = current_user["username"]
+
+        # ✅ 수정된 호출 방식 (인자 1개만 전달)
+        result = manual_check_period_service.create_period(period_data)
 
         print(f"[DEBUG] 서비스 응답: {result}")
 
