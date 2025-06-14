@@ -12,18 +12,24 @@ class ManualCheckService:
 
     def __init__(self):
         self.check_type_patterns = {
-            'file_encryption': {
-                'required_columns': ['일시', '로컬 IP', '주민등록번호'],
-                'keywords': ['개인정보', '암호화', '주민등록번호']
+            "file_encryption": {
+                "required_columns": ["일시", "로컬 IP", "주민등록번호"],
+                "keywords": ["개인정보", "암호화", "주민등록번호"],
             },
-            'seal_check': {
-                'required_columns': ['일시', '이름', '부서', '훼손여부'],
-                'keywords': ['봉인씰', '확인', '훼손']
+            "seal_check": {
+                "required_columns": ["일시", "이름", "부서", "훼손여부"],
+                "keywords": ["봉인씰", "확인", "훼손"],
             },
-            'malware_scan': {
-                'required_columns': ['IP', '악성코드명', '악성코드 분류', '경로', '탐지 항목'],
-                'keywords': ['악성코드', '검사', '탐지']
-            }
+            "malware_scan": {
+                "required_columns": [
+                    "IP",
+                    "악성코드명",
+                    "악성코드 분류",
+                    "경로",
+                    "탐지 항목",
+                ],
+                "keywords": ["악성코드", "검사", "탐지"],
+            },
         }
 
     def detect_file_type(self, df, filename):
@@ -32,18 +38,19 @@ class ManualCheckService:
         filename_lower = filename.lower()
 
         # 파일명 기반 1차 판별
-        if '개인정보' in filename or '암호화' in filename:
-            return 'file_encryption'
-        elif '봉인씰' in filename:
-            return 'seal_check'
-        elif '악성코드' in filename:
-            return 'malware_scan'
+        if "개인정보" in filename or "암호화" in filename:
+            return "file_encryption"
+        elif "봉인씰" in filename:
+            return "seal_check"
+        elif "악성코드" in filename:
+            return "malware_scan"
 
         # 컬럼 기반 2차 판별
         for check_type, config in self.check_type_patterns.items():
-            required_cols = config['required_columns']
-            matched_cols = sum(1 for col in required_cols
-                               if any(req in col for req in columns))
+            required_cols = config["required_columns"]
+            matched_cols = sum(
+                1 for col in required_cols if any(req in col for req in columns)
+            )
 
             if matched_cols >= len(required_cols) * 0.8:  # 80% 이상 일치
                 return check_type
@@ -55,7 +62,7 @@ class ManualCheckService:
         if check_type not in self.check_type_patterns:
             return False, f"알 수 없는 점검 유형: {check_type}"
 
-        required_cols = self.check_type_patterns[check_type]['required_columns']
+        required_cols = self.check_type_patterns[check_type]["required_columns"]
         columns = [col.strip() for col in df.columns]
 
         missing_cols = []
@@ -83,9 +90,9 @@ class ManualCheckService:
             filename = file.filename
 
             # 파일 읽기
-            if filename.lower().endswith('.csv'):
-                df = pd.read_csv(file, encoding='utf-8-sig')
-            elif filename.lower().endswith(('.xlsx', '.xls')):
+            if filename.lower().endswith(".csv"):
+                df = pd.read_csv(file, encoding="utf-8-sig")
+            elif filename.lower().endswith((".xlsx", ".xls")):
                 df = pd.read_excel(file)
             else:
                 raise ValueError("지원하지 않는 파일 형식입니다. (Excel, CSV만 지원)")
@@ -97,7 +104,9 @@ class ManualCheckService:
             # 점검 유형 자동 감지
             check_type = self.detect_file_type(df, filename)
             if not check_type:
-                raise ValueError("점검 유형을 자동으로 감지할 수 없습니다. 파일명이나 컬럼을 확인해주세요.")
+                raise ValueError(
+                    "점검 유형을 자동으로 감지할 수 없습니다. 파일명이나 컬럼을 확인해주세요."
+                )
 
             # 파일 구조 검증
             is_valid, message = self.validate_file_structure(df, check_type)
@@ -108,8 +117,9 @@ class ManualCheckService:
             processed_data = self._process_check_data(df, check_type, uploaded_by)
 
             # 데이터베이스 저장 (기존 테이블 구조 사용)
-            save_result = self._save_to_existing_table(processed_data, check_type,
-                                                       uploaded_by)
+            save_result = self._save_to_existing_table(
+                processed_data, check_type, uploaded_by
+            )
 
             return {
                 "success": True,
@@ -118,7 +128,7 @@ class ManualCheckService:
                 "total_records": len(processed_data),
                 "success_count": save_result["success_count"],
                 "error_count": save_result["error_count"],
-                "errors": save_result["errors"]
+                "errors": save_result["errors"],
             }
 
         except Exception as e:
@@ -129,11 +139,11 @@ class ManualCheckService:
         """점검 유형별 데이터 처리 (기존 테이블 구조에 맞게)"""
         processed_data = []
 
-        if check_type == 'file_encryption':
+        if check_type == "file_encryption":
             processed_data = self._process_file_encryption_data(df, uploaded_by)
-        elif check_type == 'seal_check':
+        elif check_type == "seal_check":
             processed_data = self._process_seal_check_data(df, uploaded_by)
-        elif check_type == 'malware_scan':
+        elif check_type == "malware_scan":
             processed_data = self._process_malware_scan_data(df, uploaded_by)
 
         return processed_data
@@ -144,52 +154,66 @@ class ManualCheckService:
 
         # 컬럼 매핑
         col_mapping = self._find_column_mapping(
-            df.columns, {
-                'datetime': ['일시', '점검일시', '날짜'],
-                'local_ip': ['로컬 IP', 'IP', '로컬IP'],
-                'ssn_count': ['주민등록번호', '주민번호', '00회차에서 주민등록번호']
-            })
+            df.columns,
+            {
+                "datetime": ["일시", "점검일시", "날짜"],
+                "local_ip": ["로컬 IP", "IP", "로컬IP"],
+                "ssn_count": ["주민등록번호", "주민번호", "00회차에서 주민등록번호"],
+            },
+        )
 
         for idx, row in df.iterrows():
             try:
                 # 로컬 IP로 사용자 찾기
-                local_ip = str(row[
-                    col_mapping['local_ip']]) if col_mapping['local_ip'] and pd.notna(
-                        row[col_mapping['local_ip']]) else ''
+                local_ip = (
+                    str(row[col_mapping["local_ip"]])
+                    if col_mapping["local_ip"]
+                    and pd.notna(row[col_mapping["local_ip"]])
+                    else ""
+                )
 
                 # 주민등록번호 건수 확인
                 ssn_count = 0
-                if col_mapping['ssn_count']:
-                    ssn_value = row[col_mapping['ssn_count']]
+                if col_mapping["ssn_count"]:
+                    ssn_value = row[col_mapping["ssn_count"]]
                     if pd.notna(ssn_value):
                         if isinstance(ssn_value, (int, float)):
                             ssn_count = int(ssn_value)
                         else:
-                            numbers = re.findall(r'\d+', str(ssn_value))
+                            numbers = re.findall(r"\d+", str(ssn_value))
                             ssn_count = int(numbers[0]) if numbers else 0
 
                 # 결과 판정: 주민등록번호가 0건 이상이면 불합격
-                overall_result = 'fail' if ssn_count > 0 else 'pass'
-                encryption_status = 'not_encrypted' if ssn_count > 0 else 'fully_encrypted'
+                overall_result = "fail" if ssn_count > 0 else "pass"
+                encryption_status = (
+                    "not_encrypted" if ssn_count > 0 else "fully_encrypted"
+                )
 
                 processed_row = {
-                    'check_item_code': 'file_encryption',
-                    'source_ip': local_ip,
-                    'check_year': datetime.now().year,
-                    'check_period': 'first_half',  # 기본값, 나중에 기간 설정으로 수정 가능
-                    'check_date': self._parse_datetime(row[col_mapping['datetime']])
-                    if col_mapping['datetime'] else datetime.now(),
-                    'checker_name': uploaded_by,
-                    'encryption_status': encryption_status,
-                    'unencrypted_files': ssn_count,
-                    'encryption_completed': 1 if ssn_count == 0 else 0,
-                    'encryption_notes': f"주민등록번호 {ssn_count}건 발견"
-                    if ssn_count > 0 else "정상",
-                    'ssn_included': 1 if ssn_count > 0 else 0,
-                    'overall_result': overall_result,
-                    'notes': f"개인정보 파일 암호화 점검: {ssn_count}건 미암호화"
-                    if ssn_count > 0 else "모든 개인정보 파일 암호화 완료",
-                    'row_index': idx + 2
+                    "check_item_code": "file_encryption",
+                    "source_ip": local_ip,
+                    "check_year": datetime.now().year,
+                    "check_period": "first_half",  # 기본값, 나중에 기간 설정으로 수정 가능
+                    "check_date": (
+                        self._parse_datetime(row[col_mapping["datetime"]])
+                        if col_mapping["datetime"]
+                        else datetime.now()
+                    ),
+                    "checker_name": uploaded_by,
+                    "encryption_status": encryption_status,
+                    "unencrypted_files": ssn_count,
+                    "encryption_completed": 1 if ssn_count == 0 else 0,
+                    "encryption_notes": (
+                        f"주민등록번호 {ssn_count}건 발견" if ssn_count > 0 else "정상"
+                    ),
+                    "ssn_included": 1 if ssn_count > 0 else 0,
+                    "overall_result": overall_result,
+                    "notes": (
+                        f"개인정보 파일 암호화 점검: {ssn_count}건 미암호화"
+                        if ssn_count > 0
+                        else "모든 개인정보 파일 암호화 완료"
+                    ),
+                    "row_index": idx + 2,
                 }
 
                 processed_data.append(processed_row)
@@ -251,15 +275,8 @@ class ManualCheckService:
                 "부분암호화": "partially_encrypted",
                 "해당없음": "not_applicable",
             },
-            "overall_result": {
-                "통과": "pass",
-                "실패": "fail",
-                "부분통과": "partial"
-            },
-            "check_period": {
-                "상반기": "first_half",
-                "하반기": "second_half"
-            },
+            "overall_result": {"통과": "pass", "실패": "fail", "부분통과": "partial"},
+            "check_period": {"상반기": "first_half", "하반기": "second_half"},
         }
 
         processed_data = []
@@ -275,8 +292,9 @@ class ManualCheckService:
                     processed_row[field] = value if not pd.isna(value) else None
 
                 # Y/N을 boolean으로 변환
-                if field in ["threats_cleaned", "encryption_completed"
-                             ] and not pd.isna(value):
+                if field in ["threats_cleaned", "encryption_completed"] and not pd.isna(
+                    value
+                ):
                     processed_row[field] = str(value).upper() in ["Y", "1", "TRUE"]
 
             processed_data.append(processed_row)
@@ -294,7 +312,7 @@ class ManualCheckService:
                 # 사용자 정보 조회
                 user_info = execute_query(
                     "SELECT uid, username, department FROM users WHERE user_id = %s",
-                    (data["user_id"], ),
+                    (data["user_id"],),
                     fetch_one=True,
                 )
 
@@ -432,7 +450,8 @@ class ManualCheckService:
 
             if search:
                 base_query += (
-                    " AND (u.username LIKE %s OR u.user_id LIKE %s OR u.mail LIKE %s)")
+                    " AND (u.username LIKE %s OR u.user_id LIKE %s OR u.mail LIKE %s)"
+                )
                 search_pattern = f"%{search}%"
                 params.extend([search_pattern, search_pattern, search_pattern])
 
@@ -467,28 +486,37 @@ class ManualCheckService:
                     processed_result = dict(result)
 
                     # 날짜 포맷팅
-                    if (processed_result.get("check_date")
-                            and processed_result["check_date"] is not None):
+                    if (
+                        processed_result.get("check_date")
+                        and processed_result["check_date"] is not None
+                    ):
                         if hasattr(processed_result["check_date"], "strftime"):
                             processed_result["check_date"] = processed_result[
-                                "check_date"].strftime("%Y-%m-%d %H:%M:%S")
+                                "check_date"
+                            ].strftime("%Y-%m-%d %H:%M:%S")
                         else:
                             processed_result["check_date"] = str(
-                                processed_result["check_date"])
+                                processed_result["check_date"]
+                            )
 
-                    if (processed_result.get("created_at")
-                            and processed_result["created_at"] is not None):
+                    if (
+                        processed_result.get("created_at")
+                        and processed_result["created_at"] is not None
+                    ):
                         if hasattr(processed_result["created_at"], "strftime"):
                             processed_result["created_at"] = processed_result[
-                                "created_at"].strftime("%Y-%m-%d %H:%M:%S")
+                                "created_at"
+                            ].strftime("%Y-%m-%d %H:%M:%S")
                         else:
                             processed_result["created_at"] = str(
-                                processed_result["created_at"])
+                                processed_result["created_at"]
+                            )
 
                     # 프론트엔드 호환성을 위한 필드 추가
                     processed_result["result_id"] = processed_result["check_id"]
                     processed_result["check_result"] = processed_result[
-                        "overall_result"]
+                        "overall_result"
+                    ]
                     processed_result["check_type"] = processed_result["check_item_code"]
 
                     # 기간명 생성
@@ -591,7 +619,8 @@ class ManualCheckService:
         """점검 결과 삭제"""
         try:
             result = execute_query(
-                "DELETE FROM manual_check_results WHERE check_id = %s", (check_id, ))
+                "DELETE FROM manual_check_results WHERE check_id = %s", (check_id,)
+            )
 
             if result > 0:
                 return {"success": True, "message": "점검 결과가 삭제되었습니다."}
@@ -730,11 +759,7 @@ class ManualCheckService:
                 "partially_encrypted": "부분암호화",
                 "not_applicable": "해당없음",
             },
-            "result": {
-                "pass": "통과",
-                "fail": "실패",
-                "partial": "부분통과"
-            },
+            "result": {"pass": "통과", "fail": "실패", "partial": "부분통과"},
         }
         return mappings.get(status_type, {}).get(status, status or "")
 
@@ -762,11 +787,11 @@ class ManualCheckService:
         """점검 유형별 데이터 처리 (기존 테이블 구조에 맞게)"""
         processed_data = []
 
-        if check_type == 'file_encryption':
+        if check_type == "file_encryption":
             processed_data = self._process_file_encryption_data(df, uploaded_by)
-        elif check_type == 'seal_check':
+        elif check_type == "seal_check":
             processed_data = self._process_seal_check_data(df, uploaded_by)
-        elif check_type == 'malware_scan':
+        elif check_type == "malware_scan":
             processed_data = self._process_malware_scan_data(df, uploaded_by)
 
         return processed_data
@@ -777,52 +802,66 @@ class ManualCheckService:
 
         # 컬럼 매핑
         col_mapping = self._find_column_mapping(
-            df.columns, {
-                'datetime': ['일시', '점검일시', '날짜'],
-                'local_ip': ['로컬 IP', 'IP', '로컬IP'],
-                'ssn_count': ['주민등록번호', '주민번호', '00회차에서 주민등록번호']
-            })
+            df.columns,
+            {
+                "datetime": ["일시", "점검일시", "날짜"],
+                "local_ip": ["로컬 IP", "IP", "로컬IP"],
+                "ssn_count": ["주민등록번호", "주민번호", "00회차에서 주민등록번호"],
+            },
+        )
 
         for idx, row in df.iterrows():
             try:
                 # 로컬 IP로 사용자 찾기
-                local_ip = str(row[
-                    col_mapping['local_ip']]) if col_mapping['local_ip'] and pd.notna(
-                        row[col_mapping['local_ip']]) else ''
+                local_ip = (
+                    str(row[col_mapping["local_ip"]])
+                    if col_mapping["local_ip"]
+                    and pd.notna(row[col_mapping["local_ip"]])
+                    else ""
+                )
 
                 # 주민등록번호 건수 확인
                 ssn_count = 0
-                if col_mapping['ssn_count']:
-                    ssn_value = row[col_mapping['ssn_count']]
+                if col_mapping["ssn_count"]:
+                    ssn_value = row[col_mapping["ssn_count"]]
                     if pd.notna(ssn_value):
                         if isinstance(ssn_value, (int, float)):
                             ssn_count = int(ssn_value)
                         else:
-                            numbers = re.findall(r'\d+', str(ssn_value))
+                            numbers = re.findall(r"\d+", str(ssn_value))
                             ssn_count = int(numbers[0]) if numbers else 0
 
                 # 결과 판정: 주민등록번호가 0건 이상이면 불합격
-                overall_result = 'fail' if ssn_count > 0 else 'pass'
-                encryption_status = 'not_encrypted' if ssn_count > 0 else 'fully_encrypted'
+                overall_result = "fail" if ssn_count > 0 else "pass"
+                encryption_status = (
+                    "not_encrypted" if ssn_count > 0 else "fully_encrypted"
+                )
 
                 processed_row = {
-                    'check_item_code': 'file_encryption',
-                    'source_ip': local_ip,
-                    'check_year': datetime.now().year,
-                    'check_period': 'first_half',  # 기본값, 나중에 기간 설정으로 수정 가능
-                    'check_date': self._parse_datetime(row[col_mapping['datetime']])
-                    if col_mapping['datetime'] else datetime.now(),
-                    'checker_name': uploaded_by,
-                    'encryption_status': encryption_status,
-                    'unencrypted_files': ssn_count,
-                    'encryption_completed': 1 if ssn_count == 0 else 0,
-                    'encryption_notes': f"주민등록번호 {ssn_count}건 발견"
-                    if ssn_count > 0 else "정상",
-                    'ssn_included': 1 if ssn_count > 0 else 0,
-                    'overall_result': overall_result,
-                    'notes': f"개인정보 파일 암호화 점검: {ssn_count}건 미암호화"
-                    if ssn_count > 0 else "모든 개인정보 파일 암호화 완료",
-                    'row_index': idx + 2
+                    "check_item_code": "file_encryption",
+                    "source_ip": local_ip,
+                    "check_year": datetime.now().year,
+                    "check_period": "first_half",  # 기본값, 나중에 기간 설정으로 수정 가능
+                    "check_date": (
+                        self._parse_datetime(row[col_mapping["datetime"]])
+                        if col_mapping["datetime"]
+                        else datetime.now()
+                    ),
+                    "checker_name": uploaded_by,
+                    "encryption_status": encryption_status,
+                    "unencrypted_files": ssn_count,
+                    "encryption_completed": 1 if ssn_count == 0 else 0,
+                    "encryption_notes": (
+                        f"주민등록번호 {ssn_count}건 발견" if ssn_count > 0 else "정상"
+                    ),
+                    "ssn_included": 1 if ssn_count > 0 else 0,
+                    "overall_result": overall_result,
+                    "notes": (
+                        f"개인정보 파일 암호화 점검: {ssn_count}건 미암호화"
+                        if ssn_count > 0
+                        else "모든 개인정보 파일 암호화 완료"
+                    ),
+                    "row_index": idx + 2,
                 }
 
                 processed_data.append(processed_row)
@@ -839,51 +878,65 @@ class ManualCheckService:
 
         # 컬럼 매핑
         col_mapping = self._find_column_mapping(
-            df.columns, {
-                'datetime': ['일시', '점검일시', '날짜'],
-                'name': ['이름', '사용자명', '성명'],
-                'department': ['부서', '부서명', '소속'],
-                'damage_status': ['훼손여부', '봉인씰 확인', '상태']
-            })
+            df.columns,
+            {
+                "datetime": ["일시", "점검일시", "날짜"],
+                "name": ["이름", "사용자명", "성명"],
+                "department": ["부서", "부서명", "소속"],
+                "damage_status": ["훼손여부", "봉인씰 확인", "상태"],
+            },
+        )
 
         for idx, row in df.iterrows():
             try:
                 # 사용자 정보
-                username = str(
-                    row[col_mapping['name']]) if col_mapping['name'] and pd.notna(
-                        row[col_mapping['name']]) else ''
-                department = str(row[col_mapping['department']]
-                                 ) if col_mapping['department'] and pd.notna(
-                                     row[col_mapping['department']]) else ''
+                username = (
+                    str(row[col_mapping["name"]])
+                    if col_mapping["name"] and pd.notna(row[col_mapping["name"]])
+                    else ""
+                )
+                department = (
+                    str(row[col_mapping["department"]])
+                    if col_mapping["department"]
+                    and pd.notna(row[col_mapping["department"]])
+                    else ""
+                )
 
                 # 훼손여부 확인
-                damage_status = ''
-                if col_mapping['damage_status']:
-                    damage_value = row[col_mapping['damage_status']]
+                damage_status = ""
+                if col_mapping["damage_status"]:
+                    damage_value = row[col_mapping["damage_status"]]
                     if pd.notna(damage_value):
                         damage_status = str(damage_value).strip()
 
                 # 봉인씰 상태 매핑
-                seal_status_map = {'훼손': 'damaged', '정상': 'normal', '미부착': 'missing'}
-                seal_status = seal_status_map.get(damage_status, 'normal')
+                seal_status_map = {
+                    "훼손": "damaged",
+                    "정상": "normal",
+                    "미부착": "missing",
+                }
+                seal_status = seal_status_map.get(damage_status, "normal")
 
                 # 결과 판정: 훼손이면 불합격
-                overall_result = 'fail' if '훼손' in damage_status else 'pass'
+                overall_result = "fail" if "훼손" in damage_status else "pass"
 
                 processed_row = {
-                    'check_item_code': 'seal_check',
-                    'check_year': datetime.now().year,
-                    'check_period': 'first_half',
-                    'check_date': self._parse_datetime(row[col_mapping['datetime']])
-                    if col_mapping['datetime'] else datetime.now(),
-                    'checker_name': uploaded_by,
-                    'seal_status': seal_status,
-                    'seal_notes': f"봉인씰 상태: {damage_status}",
-                    'overall_result': overall_result,
-                    'notes': f"PC 봉인씰 확인: {damage_status}",
-                    'username': username,
-                    'department': department,
-                    'row_index': idx + 2
+                    "check_item_code": "seal_check",
+                    "check_year": datetime.now().year,
+                    "check_period": "first_half",
+                    "check_date": (
+                        self._parse_datetime(row[col_mapping["datetime"]])
+                        if col_mapping["datetime"]
+                        else datetime.now()
+                    ),
+                    "checker_name": uploaded_by,
+                    "seal_status": seal_status,
+                    "seal_notes": f"봉인씰 상태: {damage_status}",
+                    "overall_result": overall_result,
+                    "notes": f"PC 봉인씰 확인: {damage_status}",
+                    "username": username,
+                    "department": department,
+                    "row_index": idx + 2,
                 }
 
                 processed_data.append(processed_row)
@@ -895,69 +948,98 @@ class ManualCheckService:
         return processed_data
 
     def _process_malware_scan_data(self, df, uploaded_by):
-        """악성코드 전체 검사 데이터 처리"""
+        """악성코드 전체 검사 데이터 처리 - 엑셀 파일의 일시 컬럼 사용"""
         processed_data = []
 
-        # 컬럼 매핑
+        # 컬럼 매핑 - 일시 컬럼 추가
         col_mapping = self._find_column_mapping(
-            df.columns, {
-                'ip': ['IP', '로컬 IP', 'IP주소'],
-                'malware_name': ['악성코드명', '악성코드', '위협명'],
-                'malware_type': ['악성코드 분류', '분류', '유형'],
-                'path': ['경로', '파일경로', '위치'],
-                'detection_item': ['탐지 항목', '탐지항목', '탐지']
-            })
+            df.columns,
+            {
+                "datetime": ["일시", "점검일시", "날짜", "검사일시"],  # 일시 컬럼 추가
+                "ip": ["IP", "로컬 IP", "IP주소"],
+                "username": ["사용자명", "사용자", "이름"],
+                "malware_name": ["악성코드명", "악성코드", "위협명"],
+                "malware_type": ["악성코드 분류", "분류", "유형"],
+                "path": ["경로", "파일경로", "위치"],
+                "detection_item": ["탐지 항목", "탐지항목", "탐지"],
+            },
+        )
 
         for idx, row in df.iterrows():
             try:
+                # 일시 정보 추출 - 엑셀 파일의 실제 일시 사용
+                check_date = datetime.now()  # 기본값
+                if col_mapping["datetime"] and pd.notna(row[col_mapping["datetime"]]):
+                    check_date = self._parse_datetime(row[col_mapping["datetime"]])
+
+                # 사용자명 추출
+                username = ""
+                if col_mapping["username"] and pd.notna(row[col_mapping["username"]]):
+                    username = str(row[col_mapping["username"]]).strip()
+
                 # IP 주소
-                ip_address = str(
-                    row[col_mapping['ip']]) if col_mapping['ip'] and pd.notna(
-                        row[col_mapping['ip']]) else ''
+                ip_address = (
+                    str(row[col_mapping["ip"]])
+                    if col_mapping["ip"] and pd.notna(row[col_mapping["ip"]])
+                    else ""
+                )
 
                 # 악성코드 정보
-                malware_name = str(row[col_mapping['malware_name']]
-                                   ) if col_mapping['malware_name'] and pd.notna(
-                                       row[col_mapping['malware_name']]) else ''
-                malware_type = str(row[col_mapping['malware_type']]
-                                   ) if col_mapping['malware_type'] and pd.notna(
-                                       row[col_mapping['malware_type']]) else ''
-                file_path = str(
-                    row[col_mapping['path']]) if col_mapping['path'] and pd.notna(
-                        row[col_mapping['path']]) else ''
+                malware_name = (
+                    str(row[col_mapping["malware_name"]])
+                    if col_mapping["malware_name"]
+                    and pd.notna(row[col_mapping["malware_name"]])
+                    else ""
+                )
+                malware_type = (
+                    str(row[col_mapping["malware_type"]])
+                    if col_mapping["malware_type"]
+                    and pd.notna(row[col_mapping["malware_type"]])
+                    else ""
+                )
+                file_path = (
+                    str(row[col_mapping["path"]])
+                    if col_mapping["path"] and pd.notna(row[col_mapping["path"]])
+                    else ""
+                )
 
                 # 탐지 항목 확인
-                detection_item = ''
-                if col_mapping['detection_item']:
-                    detection_value = row[col_mapping['detection_item']]
+                detection_item = ""
+                if col_mapping["detection_item"]:
+                    detection_value = row[col_mapping["detection_item"]]
                     if pd.notna(detection_value):
                         detection_item = str(detection_value).strip()
 
                 # 결과 판정: 탐지 항목이 있으면 불합격
-                overall_result = 'fail' if detection_item else 'pass'
-                malware_scan_result = 'infected' if detection_item else 'clean'
+                overall_result = "fail" if detection_item else "pass"
+                malware_scan_result = "infected" if detection_item else "clean"
                 threats_found = 1 if detection_item else 0
 
                 processed_row = {
-                    'check_item_code': 'malware_scan',
-                    'source_ip': ip_address,
-                    'check_year': datetime.now().year,
-                    'check_period': 'first_half',
-                    'check_date': datetime.now(),
-                    'checker_name': uploaded_by,
-                    'malware_scan_result': malware_scan_result,
-                    'threats_found': threats_found,
-                    'threats_cleaned': 0 if threats_found > 0 else 1,
-                    'malware_name': malware_name,
-                    'malware_classification': malware_type,
-                    'malware_path': file_path,
-                    'detection_item': detection_item,
-                    'malware_notes': f"탐지 항목: {detection_item}"
-                    if detection_item else "정상",
-                    'overall_result': overall_result,
-                    'notes': f"악성코드 검사: {detection_item}"
-                    if detection_item else "악성코드 미발견",
-                    'row_index': idx + 2
+                    "check_item_code": "malware_scan",
+                    "source_ip": ip_address,
+                    "check_year": check_date.year,  # 엑셀 파일의 일시에서 연도 추출
+                    "check_period": "first_half",
+                    "check_date": check_date,  # 엑셀 파일의 실제 일시 사용
+                    "checker_name": uploaded_by,
+                    "malware_scan_result": malware_scan_result,
+                    "threats_found": threats_found,
+                    "threats_cleaned": 0 if threats_found > 0 else 1,
+                    "malware_name": malware_name,
+                    "malware_classification": malware_type,
+                    "malware_path": file_path,
+                    "detection_item": detection_item,
+                    "malware_notes": (
+                        f"탐지 항목: {detection_item}" if detection_item else "정상"
+                    ),
+                    "overall_result": overall_result,
+                    "notes": (
+                        f"악성코드 검사: {detection_item}"
+                        if detection_item
+                        else "악성코드 미발견"
+                    ),
+                    "username": username,  # 사용자명도 추가
+                    "row_index": idx + 2,
                 }
 
                 processed_data.append(processed_row)
@@ -984,8 +1066,9 @@ class ManualCheckService:
 
         return result
 
+    # _parse_datetime 함수도 한국어 날짜 형식을 더 잘 처리하도록 개선
     def _parse_datetime(self, value):
-        """날짜시간 파싱"""
+        """날짜시간 파싱 - 한국어 형식 지원 강화"""
         if pd.isna(value):
             return datetime.now()
 
@@ -1003,9 +1086,42 @@ class ManualCheckService:
 
         # 문자열인 경우
         try:
-            return pd.to_datetime(str(value))
-        except:
+            # 한국어 오전/오후 형식 처리
+            str_value = str(value).strip()
+            
+            # "2025-05-31 오후 1:02:53" 형식 처리
+            if '오후' in str_value or '오전' in str_value:
+                # 오후/오전을 AM/PM으로 변경
+                str_value = str_value.replace('오전', 'AM').replace('오후', 'PM')
+                
+                # 시간 형식을 표준화 (1:02:53 -> 01:02:53)
+                import re
+                time_pattern = r'(\d{4}-\d{2}-\d{2})\s+(AM|PM)\s+(\d{1,2}):(\d{2}):(\d{2})'
+                match = re.match(time_pattern, str_value)
+                
+                if match:
+                    date_part = match.group(1)
+                    am_pm = match.group(2)
+                    hour = int(match.group(3))
+                    minute = match.group(4)
+                    second = match.group(5)
+                    
+                    # 12시간 형식을 24시간 형식으로 변환
+                    if am_pm == 'PM' and hour != 12:
+                        hour += 12
+                    elif am_pm == 'AM' and hour == 12:
+                        hour = 0
+                    
+                    formatted_time = f"{date_part} {hour:02d}:{minute}:{second}"
+                    return pd.to_datetime(formatted_time)
+            
+            # 일반적인 날짜 형식 시도
+            return pd.to_datetime(str_value)
+            
+        except Exception as e:
+            print(f"날짜 파싱 오류: {str_value}, 오류: {str(e)}")
             return datetime.now()
+
 
     def _save_to_existing_table(self, processed_data, check_type, uploaded_by):
         """기존 manual_check_results 테이블에 저장"""
@@ -1020,7 +1136,9 @@ class ManualCheckService:
                 if not user_id:
                     # 사용자를 찾을 수 없는 경우 기본 사용자 생성 또는 건너뛰기
                     error_count += 1
-                    errors.append(f"행 {data.get('row_index', '?')}: 사용자를 찾을 수 없습니다.")
+                    errors.append(
+                        f"행 {data.get('row_index', '?')}: 사용자를 찾을 수 없습니다."
+                    )
                     continue
 
                 # 기존 데이터 확인 (동일 사용자/날짜/점검유형 업데이트)
@@ -1032,8 +1150,9 @@ class ManualCheckService:
 
                 existing_result = execute_query(
                     existing_query,
-                    (user_id, data['check_item_code'], data['check_date']),
-                    fetch_one=True)
+                    (user_id, data["check_item_code"], data["check_date"]),
+                    fetch_one=True,
+                )
 
                 if existing_result:
                     # 업데이트
@@ -1049,15 +1168,24 @@ class ManualCheckService:
 
                     execute_query(
                         update_query,
-                        (data.get('seal_status'), data.get('malware_scan_result'),
-                         data.get('encryption_status'), data.get('threats_found', 0),
-                         data.get('threats_cleaned', 0), data.get(
-                             'unencrypted_files', 0), data.get(
-                                 'encryption_completed', 0), data.get('malware_name'),
-                         data.get('malware_classification'), data.get('malware_path'),
-                         data.get('detection_item'), data.get(
-                             'ssn_included', 0), data['overall_result'], data['notes'],
-                         existing_result['check_id']))
+                        (
+                            data.get("seal_status"),
+                            data.get("malware_scan_result"),
+                            data.get("encryption_status"),
+                            data.get("threats_found", 0),
+                            data.get("threats_cleaned", 0),
+                            data.get("unencrypted_files", 0),
+                            data.get("encryption_completed", 0),
+                            data.get("malware_name"),
+                            data.get("malware_classification"),
+                            data.get("malware_path"),
+                            data.get("detection_item"),
+                            data.get("ssn_included", 0),
+                            data["overall_result"],
+                            data["notes"],
+                            existing_result["check_id"],
+                        ),
+                    )
                 else:
                     # 신규 삽입
                     insert_query = """
@@ -1076,18 +1204,33 @@ class ManualCheckService:
 
                     execute_query(
                         insert_query,
-                        (user_id, data['check_item_code'], data.get('source_ip'),
-                         data['check_year'], data['check_period'], data['check_date'],
-                         data['checker_name'], data.get('seal_status'),
-                         data.get('seal_notes'), data.get('malware_scan_result'),
-                         data.get('threats_found', 0), data.get('threats_cleaned', 0),
-                         data.get('malware_notes'), data.get('malware_name'),
-                         data.get('malware_classification'), data.get('malware_path'),
-                         data.get('detection_item'), data.get('encryption_status'),
-                         data.get('unencrypted_files',
-                                  0), data.get('encryption_completed', 0),
-                         data.get('encryption_notes'), data.get(
-                             'ssn_included', 0), data['overall_result'], data['notes']))
+                        (
+                            user_id,
+                            data["check_item_code"],
+                            data.get("source_ip"),
+                            data["check_year"],
+                            data["check_period"],
+                            data["check_date"],
+                            data["checker_name"],
+                            data.get("seal_status"),
+                            data.get("seal_notes"),
+                            data.get("malware_scan_result"),
+                            data.get("threats_found", 0),
+                            data.get("threats_cleaned", 0),
+                            data.get("malware_notes"),
+                            data.get("malware_name"),
+                            data.get("malware_classification"),
+                            data.get("malware_path"),
+                            data.get("detection_item"),
+                            data.get("encryption_status"),
+                            data.get("unencrypted_files", 0),
+                            data.get("encryption_completed", 0),
+                            data.get("encryption_notes"),
+                            data.get("ssn_included", 0),
+                            data["overall_result"],
+                            data["notes"],
+                        ),
+                    )
 
                 success_count += 1
 
@@ -1100,70 +1243,84 @@ class ManualCheckService:
         return {
             "success_count": success_count,
             "error_count": error_count,
-            "errors": errors
+            "errors": errors,
         }
 
     def _find_user_id(self, data, check_type):
         """점검 유형에 따라 사용자 ID 찾기"""
         try:
-            if check_type == 'file_encryption':
-                # IP로 사용자 찾기
-                source_ip = data.get('source_ip')
+            if check_type == "file_encryption":
+                # IP로 사용자 찾기 (올바른 컬럼 사용)
+                source_ip = data.get("source_ip")
                 if source_ip:
                     user = execute_query(
-                        "SELECT uid FROM users WHERE user_id LIKE %s OR username LIKE %s LIMIT 1",
-                        (f"%{source_ip}%", f"%{source_ip}%"), fetch_one=True)
+                        "SELECT uid FROM users WHERE ip LIKE %s LIMIT 1",
+                        (f"%{source_ip}%",),
+                        fetch_one=True,
+                    )
                     if user:
-                        return user['uid']
+                        return user["uid"]
 
-            elif check_type == 'seal_check':
+            elif check_type == "seal_check":
                 # 이름으로 사용자 찾기
-                username = data.get('username')
+                username = data.get("username")
                 if username:
                     user = execute_query(
                         "SELECT uid FROM users WHERE username = %s OR user_id = %s LIMIT 1",
-                        (username, username), fetch_one=True)
+                        (username, username),
+                        fetch_one=True,
+                    )
                     if user:
-                        return user['uid']
+                        return user["uid"]
 
-            elif check_type == 'malware_scan':
-                # IP로 사용자 찾기
-                source_ip = data.get('source_ip')
+            elif check_type == "malware_scan":
+                # 1. 사용자명으로 먼저 검색 (악성코드 파일에 사용자명이 있음)
+                username = data.get("username")  # 사용자명 컬럼
+                if username:
+                    user = execute_query(
+                        "SELECT uid FROM users WHERE username = %s OR user_id = %s LIMIT 1",
+                        (username, username),
+                        fetch_one=True,
+                    )
+                    if user:
+                        return user["uid"]
+
+                # 2. IP로 사용자 찾기 (올바른 컬럼 사용)
+                source_ip = data.get("source_ip")
                 if source_ip:
                     user = execute_query(
-                        "SELECT uid FROM users WHERE user_id LIKE %s OR username LIKE %s LIMIT 1",
-                        (f"%{source_ip}%", f"%{source_ip}%"), fetch_one=True)
+                        "SELECT uid FROM users WHERE ip LIKE %s LIMIT 1",
+                        (f"%{source_ip}%",),
+                        fetch_one=True,
+                    )
                     if user:
-                        return user['uid']
+                        return user["uid"]
 
-            # 기본적으로 admin 사용자 반환 (테스트용)
-            admin_user = execute_query(
-                "SELECT uid FROM users WHERE user_id = 'admin' OR username = 'admin' LIMIT 1",
-                fetch_one=True)
-            return admin_user['uid'] if admin_user else 1
+            # 3. 사용자를 찾지 못한 경우 None 반환 (admin 반환하지 않음)
+            return None
 
         except Exception as e:
             print(f"사용자 ID 찾기 오류: {str(e)}")
-            return 1  # 기본값
+            return None  # 오류 시에도 admin 반환하지 않음
 
     def get_check_type_name(self, check_type):
         """점검 유형명 반환"""
         type_names = {
-            'file_encryption': '개인정보 파일 암호화',
-            'seal_check': 'PC 봉인씰 확인',
-            'malware_scan': '악성코드 전체 검사'
+            "file_encryption": "개인정보 파일 암호화",
+            "seal_check": "PC 봉인씰 확인",
+            "malware_scan": "악성코드 전체 검사",
         }
         return type_names.get(check_type, check_type)
 
     def get_check_type_mapping(self):
         """점검 유형 매핑 정보 반환"""
         return {
-            'file_encryption': '개인정보 파일 암호화',
-            'seal_check': 'PC 봉인씰 확인',
-            'malware_scan': '악성코드 전체 검사',
-            'screen_saver': '화면보호기',
-            'antivirus': '백신',
-            'patch_update': '패치'
+            "file_encryption": "개인정보 파일 암호화",
+            "seal_check": "PC 봉인씰 확인",
+            "malware_scan": "악성코드 전체 검사",
+            "screen_saver": "화면보호기",
+            "antivirus": "백신",
+            "patch_update": "패치",
         }
 
     def _analyze_expected_results(self, df, check_type):
@@ -1174,84 +1331,107 @@ class ManualCheckService:
             expected_fail = 0
             analysis_details = []
 
-            if check_type == 'file_encryption':
+            if check_type == "file_encryption":
                 # 개인정보 파일 암호화 분석
                 col_mapping = self._find_column_mapping(
-                    df.columns, {'ssn_count': ['주민등록번호', '주민번호', '00회차에서 주민등록번호']})
+                    df.columns,
+                    {
+                        "ssn_count": [
+                            "주민등록번호",
+                            "주민번호",
+                            "00회차에서 주민등록번호",
+                        ]
+                    },
+                )
 
-                if col_mapping['ssn_count']:
+                if col_mapping["ssn_count"]:
                     for idx, row in df.iterrows():
-                        ssn_value = row[col_mapping['ssn_count']]
+                        ssn_value = row[col_mapping["ssn_count"]]
                         if pd.notna(ssn_value):
                             if isinstance(ssn_value, (int, float)):
                                 ssn_count = int(ssn_value)
                             else:
-                                numbers = re.findall(r'\d+', str(ssn_value))
+                                numbers = re.findall(r"\d+", str(ssn_value))
                                 ssn_count = int(numbers[0]) if numbers else 0
 
                             if ssn_count > 0:
                                 expected_fail += 1
                                 analysis_details.append(
-                                    f"행 {idx + 2}: 주민등록번호 {ssn_count}건 → 실패")
+                                    f"행 {idx + 2}: 주민등록번호 {ssn_count}건 → 실패"
+                                )
                             else:
                                 expected_pass += 1
                         else:
                             expected_pass += 1
                 else:
-                    analysis_details.append("주민등록번호 컬럼을 찾을 수 없어 정확한 분석이 어렵습니다.")
+                    analysis_details.append(
+                        "주민등록번호 컬럼을 찾을 수 없어 정확한 분석이 어렵습니다."
+                    )
 
-            elif check_type == 'seal_check':
+            elif check_type == "seal_check":
                 # PC 봉인씰 확인 분석
                 col_mapping = self._find_column_mapping(
-                    df.columns, {'damage_status': ['훼손여부', '봉인씰 확인', '상태']})
+                    df.columns, {"damage_status": ["훼손여부", "봉인씰 확인", "상태"]}
+                )
 
-                if col_mapping['damage_status']:
+                if col_mapping["damage_status"]:
                     for idx, row in df.iterrows():
-                        damage_value = row[col_mapping['damage_status']]
+                        damage_value = row[col_mapping["damage_status"]]
                         if pd.notna(damage_value):
                             damage_status = str(damage_value).strip()
-                            if '훼손' in damage_status:
+                            if "훼손" in damage_status:
                                 expected_fail += 1
                                 analysis_details.append(
-                                    f"행 {idx + 2}: {damage_status} → 실패")
+                                    f"행 {idx + 2}: {damage_status} → 실패"
+                                )
                             else:
                                 expected_pass += 1
                                 analysis_details.append(
-                                    f"행 {idx + 2}: {damage_status} → 통과")
+                                    f"행 {idx + 2}: {damage_status} → 통과"
+                                )
                         else:
                             expected_pass += 1
                 else:
-                    analysis_details.append("훼손여부 컬럼을 찾을 수 없어 정확한 분석이 어렵습니다.")
+                    analysis_details.append(
+                        "훼손여부 컬럼을 찾을 수 없어 정확한 분석이 어렵습니다."
+                    )
 
-            elif check_type == 'malware_scan':
+            elif check_type == "malware_scan":
                 # 악성코드 검사 분석
                 col_mapping = self._find_column_mapping(
-                    df.columns, {'detection_item': ['탐지 항목', '탐지항목', '탐지']})
+                    df.columns, {"detection_item": ["탐지 항목", "탐지항목", "탐지"]}
+                )
 
-                if col_mapping['detection_item']:
+                if col_mapping["detection_item"]:
                     for idx, row in df.iterrows():
-                        detection_value = row[col_mapping['detection_item']]
+                        detection_value = row[col_mapping["detection_item"]]
                         if pd.notna(detection_value):
                             detection_item = str(detection_value).strip()
-                            if detection_item and detection_item != '':
+                            if detection_item and detection_item != "":
                                 expected_fail += 1
                                 analysis_details.append(
-                                    f"행 {idx + 2}: {detection_item} 탐지 → 실패")
+                                    f"행 {idx + 2}: {detection_item} 탐지 → 실패"
+                                )
                             else:
                                 expected_pass += 1
                         else:
                             expected_pass += 1
                 else:
-                    analysis_details.append("탐지 항목 컬럼을 찾을 수 없어 정확한 분석이 어렵습니다.")
+                    analysis_details.append(
+                        "탐지 항목 컬럼을 찾을 수 없어 정확한 분석이 어렵습니다."
+                    )
 
             return {
                 "total_records": total_records,
                 "expected_pass": expected_pass,
                 "expected_fail": expected_fail,
-                "pass_rate": round((expected_pass / total_records) *
-                                   100, 1) if total_records > 0 else 0,
+                "pass_rate": (
+                    round((expected_pass / total_records) * 100, 1)
+                    if total_records > 0
+                    else 0
+                ),
                 "analysis_details": analysis_details[:10],  # 최대 10개까지만
-                "summary": f"총 {total_records}건 중 통과 예상 {expected_pass}건, 실패 예상 {expected_fail}건"
+                "summary": f"총 {total_records}건 중 통과 예상 {expected_pass}건, 실패 예상 {expected_fail}건",
             }
 
         except Exception as e:
@@ -1262,31 +1442,37 @@ class ManualCheckService:
                 "expected_fail": 0,
                 "pass_rate": 0,
                 "analysis_details": ["분석 중 오류가 발생했습니다."],
-                "summary": "분석 실패"
+                "summary": "분석 실패",
             }
 
     def generate_file_encryption_template(self):
         """개인정보 파일 암호화 템플릿 생성"""
         template_data = [
-            "일시,로컬 IP,주민등록번호", "2025-06-13 14:30:00,192.168.1.100,0",
-            "2025-06-13 14:35:00,192.168.1.101,2", "2025-06-13 14:40:00,192.168.1.102,0"
+            "일시,로컬 IP,주민등록번호",
+            "2025-06-13 14:30:00,192.168.1.100,0",
+            "2025-06-13 14:35:00,192.168.1.101,2",
+            "2025-06-13 14:40:00,192.168.1.102,0",
         ]
         return "\n".join(template_data)
 
     def generate_seal_check_template(self):
         """PC 봉인씰 확인 템플릿 생성"""
         template_data = [
-            "일시,이름,부서,훼손여부", "2025-06-13 09:00:00,홍길동,개발팀,정상",
-            "2025-06-13 09:15:00,김철수,운영팀,훼손", "2025-06-13 09:30:00,이영희,기획팀,정상"
+            "일시,이름,부서,훼손여부",
+            "2025-06-13 09:00:00,홍길동,개발팀,정상",
+            "2025-06-13 09:15:00,김철수,운영팀,훼손",
+            "2025-06-13 09:30:00,이영희,기획팀,정상",
         ]
         return "\n".join(template_data)
 
+    # 악성코드 템플릿도 일시 컬럼을 포함하도록 수정
     def generate_malware_scan_template(self):
-        """악성코드 전체 검사 템플릿 생성"""
+        """악성코드 전체 검사 템플릿 생성 - 일시 컬럼 포함"""
         template_data = [
-            "IP,악성코드명,악성코드 분류,경로,탐지 항목", "192.168.1.100,,,C:\\Users\\user1,",
-            "192.168.1.101,Trojan.Generic,트로이목마,C:\\Users\\user2,virus.exe",
-            "192.168.1.102,,,C:\\Users\\user3,"
+            "일시,IP,사용자명,악성코드명,악성코드 분류,경로,탐지 항목",
+            "2025-06-13 14:30:00,192.168.1.100,홍길동,,,C:\\Users\\user1,",
+            "2025-06-13 14:35:00,192.168.1.101,김철수,Trojan.Generic,트로이목마,C:\\Users\\user2,virus.exe",
+            "2025-06-13 14:40:00,192.168.1.102,이영희,,,C:\\Users\\user3,"
         ]
         return "\n".join(template_data)
 
