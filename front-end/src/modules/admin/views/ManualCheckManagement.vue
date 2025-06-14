@@ -107,10 +107,10 @@
 
                     <!-- 완료 버튼 (종료된 기간에만 표시) -->
                     <button
-                      v-if="!period.is_completed && period.status === 'ended'"
                       @click="completePeriod(period.period_id)"
-                      class="complete-button"
-                      title="기간 완료 처리"
+                      class="btn btn-success btn-sm"
+                      :disabled="period.is_completed"
+                      title="기간을 완료하고 미실시 사용자를 자동 통과 처리합니다"
                     >
                       <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                         <path
@@ -380,23 +380,6 @@
                 <label>종료일 *</label>
                 <input type="date" v-model="periodForm.end_date" required />
               </div>
-            </div>
-
-            <div class="form-group">
-              <label>자동 통과 처리</label>
-              <div class="checkbox-wrapper">
-                <label class="checkbox-label">
-                  <input type="checkbox" v-model="periodForm.auto_pass_setting" />
-                  <span class="checkmark"></span>
-                  <span class="checkbox-text">
-                    기간 완료 시 미실시 사용자를 자동으로 통과 처리
-                  </span>
-                </label>
-              </div>
-              <small class="form-help">
-                체크 시 기간 완료 처리할 때 점검을 실시하지 않은 사용자들을 자동으로 통과
-                처리합니다.
-              </small>
             </div>
 
             <div class="form-group">
@@ -872,7 +855,6 @@ const resetPeriodForm = () => {
   periodForm.start_date = ''
   periodForm.end_date = ''
   periodForm.description = ''
-  periodForm.auto_pass_setting = true
 }
 
 const savePeriod = async () => {
@@ -926,7 +908,6 @@ const editPeriod = (period) => {
   periodForm.start_date = period.start_date
   periodForm.end_date = period.end_date
   periodForm.description = period.description || ''
-  periodForm.auto_pass_setting = period.auto_pass_setting
   showPeriodModal.value = true
 }
 
@@ -955,9 +936,8 @@ const deletePeriod = async (periodId) => {
     displayToast(err.message, 'error')
   }
 }
-
 const completePeriod = async (periodId) => {
-  if (!confirm('이 기간을 완료 처리하시겠습니까?')) {
+  if (!confirm('이 기간을 완료 처리하시겠습니까? 미실시 사용자들이 자동으로 통과 처리됩니다.')) {
     return
   }
 

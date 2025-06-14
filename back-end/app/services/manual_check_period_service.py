@@ -97,143 +97,80 @@ class ManualCheckPeriodService:
 
         return result
 
-    def create_period(self, data: dict, created_by: str) -> dict:
-        """새로운 점검 기간 생성"""
+    def create_period(self, period_data: dict) -> dict:
+        """기간 생성 (auto_pass_setting 필드 제거)"""
         try:
-            print(f"[DEBUG] 서비스 create_period 시작: {data}")
-
             # 중복 체크
-            existing = execute_query(
-                """
-                SELECT period_id FROM manual_check_periods
-                WHERE check_type = %s AND period_year = %s AND period_name = %s AND is_active = 1
-                """,
-                (data["check_type"], data["period_year"], data["period_name"]),
-                fetch_one=True,
-            )
-
-            if existing:
-                print(f"[DEBUG] 중복 기간 발견")
+            if self.check_period_exists(
+                period_data["period_year"],
+                period_data["period_name"],
+                period_data["check_type"],
+            ):
                 return {
                     "success": False,
-                    "message": f"{data['period_year']}년 {data['period_name']} 기간이 이미 존재합니다.",
-                }
-
-            # 날짜 유효성 검사
-            start_date = datetime.strptime(data["start_date"], "%Y-%m-%d").date()
-            end_date = datetime.strptime(data["end_date"], "%Y-%m-%d").date()
-            print(f"[DEBUG] 날짜 파싱 완료: {start_date} ~ {end_date}")
-
-            if end_date <= start_date:
-                print(f"[DEBUG] 날짜 유효성 검사 실패")
-                return {
-                    "success": False,
-                    "message": "종료일은 시작일보다 늦어야 합니다.",
+                    "message": f"{period_data['period_year']}년 {period_data['period_name']} {period_data['check_type']} 기간이 이미 존재합니다.",
                 }
 
             # 기간 생성
-            result = execute_query(
-                """
-                INSERT INTO manual_check_periods 
-                (check_type, period_year, period_name, start_date, end_date, 
-                 description, auto_pass_setting, created_by)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (
-                    data["check_type"],
-                    data["period_year"],
-                    data["period_name"],
-                    start_date,
-                    end_date,
-                    data.get("description", ""),
-                    data.get("auto_pass_setting", True),
-                    created_by,
-                ),
-            )
+            with DatabaseManager.get_db_cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO manual_check_periods
+                    (check_type, period_year, period_name, start_date, end_date, 
+                     description, created_by)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        period_data["check_type"],
+                        period_data["period_year"],
+                        period_data["period_name"],
+                        period_data["start_date"],
+                        period_data["end_date"],
+                        period_data.get("description", ""),
+                        period_data["created_by"],
+                    ),
+                )
+                period_id = cursor.lastrowid
 
-            print(f"[DEBUG] INSERT 결과: {result}")
-
-            # INSERT 성공 여부 확인
-            if result <= 0:
-                print(f"[DEBUG] INSERT 실패")
-                return {"success": False, "message": "기간 생성에 실패했습니다."}
-
-            print(f"[DEBUG] 기간 생성 성공")
             return {
                 "success": True,
-                "message": "점검 기간이 성공적으로 생성되었습니다.",
-                "affected_rows": result,
+                "message": "기간이 생성되었습니다.",
+                "period_id": period_id,
             }
 
-        except ValueError as e:
-            print(f"[DEBUG] ValueError: {str(e)}")
-            return {
-                "success": False,
-                "message": f"날짜 형식이 올바르지 않습니다: {str(e)}",
-            }
         except Exception as e:
-            print(f"[DEBUG] Exception: {str(e)}")
-            import traceback
-
-            traceback.print_exc()
             return {"success": False, "message": f"기간 생성 실패: {str(e)}"}
 
-    def update_period(self, period_id: int, data: dict) -> dict:
-        """점검 기간 수정"""
+    def update_period(self, period_id: int, period_data: dict) -> dict:
+        """기간 수정 (auto_pass_setting 필드 제거)"""
         try:
-            # 기간 존재 확인
+            # 기간 존재 여부 확인
             existing = execute_query(
-                "SELECT period_id, is_completed FROM manual_check_periods WHERE period_id = %s AND is_active = 1",
+                "SELECT period_id FROM manual_check_periods WHERE period_id = %s AND is_active = 1",
                 (period_id,),
                 fetch_one=True,
             )
 
             if not existing:
-                return {"success": False, "message": "해당 기간을 찾을 수 없습니다."}
-
-            if existing["is_completed"]:
-                return {
-                    "success": False,
-                    "message": "완료된 기간은 수정할 수 없습니다.",
-                }
-
-            # 날짜 유효성 검사
-            start_date = datetime.strptime(data["start_date"], "%Y-%m-%d").date()
-            end_date = datetime.strptime(data["end_date"], "%Y-%m-%d").date()
-
-            if end_date <= start_date:
-                return {
-                    "success": False,
-                    "message": "종료일은 시작일보다 늦어야 합니다.",
-                }
+                return {"success": False, "message": "기간을 찾을 수 없습니다."}
 
             # 기간 수정
             execute_query(
                 """
-                UPDATE manual_check_periods 
-                SET start_date = %s, end_date = %s, description = %s, 
-                    auto_pass_setting = %s, updated_at = NOW()
+                UPDATE manual_check_periods
+                SET start_date = %s, end_date = %s, description = %s, updated_at = NOW()
                 WHERE period_id = %s
                 """,
                 (
-                    start_date,
-                    end_date,
-                    data.get("description", ""),
-                    data.get("auto_pass_setting", True),
+                    period_data["start_date"],
+                    period_data["end_date"],
+                    period_data.get("description", ""),
                     period_id,
                 ),
             )
 
-            return {
-                "success": True,
-                "message": "점검 기간이 성공적으로 수정되었습니다.",
-            }
+            return {"success": True, "message": "기간이 수정되었습니다."}
 
-        except ValueError as e:
-            return {
-                "success": False,
-                "message": f"날짜 형식이 올바르지 않습니다: {str(e)}",
-            }
         except Exception as e:
             return {"success": False, "message": f"기간 수정 실패: {str(e)}"}
 
@@ -288,13 +225,14 @@ class ManualCheckPeriodService:
             return {"success": False, "message": f"기간 삭제 실패: {str(e)}"}
 
     def complete_period(self, period_id: int, completed_by: str) -> dict:
-        """점검 기간 완료 처리 - 중복 점수 반영 방지"""
+        """기간 완료 처리 (자동 통과 처리 항상 실행) - 단순화된 버전"""
         try:
             with DatabaseManager.get_db_cursor() as cursor:
-                # 기간 정보 조회
+                # 1. 기간 정보 조회
                 cursor.execute(
                     """
-                    SELECT check_type, period_year, period_name, is_completed, auto_pass_setting
+                    SELECT period_id, check_type, period_year, period_name, 
+                        start_date, end_date, is_completed
                     FROM manual_check_periods
                     WHERE period_id = %s AND is_active = 1
                     """,
@@ -303,15 +241,12 @@ class ManualCheckPeriodService:
                 period_info = cursor.fetchone()
 
                 if not period_info:
-                    return {
-                        "success": False,
-                        "message": "해당 기간을 찾을 수 없습니다.",
-                    }
+                    return {"success": False, "message": "기간을 찾을 수 없습니다."}
 
                 if period_info["is_completed"]:
                     return {"success": False, "message": "이미 완료된 기간입니다."}
 
-                # 기간 완료 처리
+                # 2. 기간 완료 처리
                 cursor.execute(
                     """
                     UPDATE manual_check_periods
@@ -321,92 +256,53 @@ class ManualCheckPeriodService:
                     (completed_by, period_id),
                 )
 
-                # 자동 통과 처리가 활성화된 경우
-                if period_info["auto_pass_setting"]:
-                    print(
-                        f"[DEBUG] 자동 통과 처리 시작 - 점검 유형: {period_info['check_type']}"
+                print(
+                    f"[DEBUG] 자동 통과 처리 시작 - 점검 유형: {period_info['check_type']}"
+                )
+
+                # 3. 단순화된 자동 통과 처리 - 이미 결과가 있는 사용자 제외하고 모든 사용자를 통과 처리
+                cursor.execute(
+                    """
+                    INSERT INTO manual_check_results
+                    (user_id, check_item_code, check_year, check_period, check_date, 
+                    checker_name, overall_result, total_score, notes, period_id)
+                    SELECT 
+                        u.uid,
+                        %s,
+                        %s,
+                        'auto_complete',
+                        NOW(),
+                        '자동완료',
+                        'pass',
+                        100.0,
+                        '기간 완료로 인한 자동 통과 처리',
+                        %s
+                    FROM users u
+                    WHERE u.uid NOT IN (
+                        SELECT DISTINCT mcr.user_id 
+                        FROM manual_check_results mcr 
+                        WHERE mcr.period_id = %s
                     )
+                    """,
+                    (
+                        period_info["check_type"],  # check_item_code
+                        period_info["period_year"],  # check_year
+                        period_id,  # period_id (INSERT용)
+                        period_id,  # period_id 조건 (이미 결과가 있는 사용자 제외)
+                    ),
+                )
 
-                    # 🔥 핵심 수정: 해당 기간과 점검 유형에 대해 이미 결과가 있는 사용자 제외
-                    # period_id가 있는 경우와 없는 경우를 모두 고려
-                    cursor.execute(
-                        """
-                        INSERT INTO manual_check_results
-                        (user_id, check_item_code, check_year, check_period, check_date, 
-                        checker_name, overall_result, total_score, notes, period_id)
-                        SELECT 
-                            u.uid,
-                            %s,
-                            %s,
-                            'auto_complete',
-                            NOW(),
-                            '자동완료',
-                            'pass',
-                            100.0,
-                            '기간 완료로 인한 자동 통과 처리',
-                            %s
-                        FROM users u
-                        WHERE u.uid NOT IN (
-                            -- 해당 기간(period_id)에 이미 결과가 있는 사용자 제외
-                            SELECT DISTINCT mcr1.user_id 
-                            FROM manual_check_results mcr1 
-                            WHERE mcr1.period_id = %s
-                        )
-                        AND u.uid NOT IN (
-                            -- 같은 점검 유형, 연도, 기간에 이미 결과가 있는 사용자도 제외 (period_id가 없는 경우 대비)
-                            SELECT DISTINCT mcr2.user_id 
-                            FROM manual_check_results mcr2 
-                            WHERE mcr2.check_item_code = %s 
-                            AND mcr2.check_year = %s
-                            AND (mcr2.period_id = %s OR (
-                                mcr2.period_id IS NULL 
-                                AND DATE(mcr2.check_date) BETWEEN (
-                                    SELECT start_date FROM manual_check_periods WHERE period_id = %s
-                                ) AND (
-                                    SELECT end_date FROM manual_check_periods WHERE period_id = %s
-                                )
-                            ))
-                        )
-                        AND u.uid NOT IN (
-                            -- 예외 설정된 사용자 제외
-                            SELECT uee.user_id 
-                            FROM user_extended_exceptions uee 
-                            WHERE uee.item_id = CONCAT('manual_', %s, '_', %s, '_', %s)
-                            AND uee.is_active = 1
-                        )
-                        """,
-                        (
-                            period_info["check_type"],  # check_item_code
-                            period_info["period_year"],  # check_year
-                            period_id,  # period_id (INSERT용)
-                            period_id,  # period_id 조건 1
-                            period_info["check_type"],  # check_item_code 조건
-                            period_info["period_year"],  # check_year 조건
-                            period_id,  # period_id 조건 2
-                            period_id,  # start_date 조회용
-                            period_id,  # end_date 조회용
-                            period_info["check_type"],  # 예외 설정 확인용
-                            period_info["period_year"],  # 예외 설정 확인용
-                            period_info["period_name"],  # 예외 설정 확인용
-                        ),
-                    )
+                # 4. 자동 통과 처리된 사용자 수 확인
+                auto_passed_count = cursor.rowcount
+                print(f"[DEBUG] 자동 통과 처리 완료 - {auto_passed_count}명")
 
-                    # 영향받은 행 수 확인
-                    affected_rows = cursor.rowcount
-                    print(f"[DEBUG] 자동 통과 처리 완료 - {affected_rows}명 처리")
-
-                    return {
-                        "success": True,
-                        "message": f"{period_info['period_name']} 기간이 완료 처리되었습니다. ({affected_rows}명 자동 통과)",
-                    }
-                else:
-                    return {
-                        "success": True,
-                        "message": f"{period_info['period_name']} 기간이 완료 처리되었습니다.",
-                    }
+                return {
+                    "success": True,
+                    "message": f"{period_info['period_name']} 기간이 완료되었습니다. (자동 통과: {auto_passed_count}명)",
+                }
 
         except Exception as e:
-            print(f"[ERROR] 기간 완료 처리 오류: {str(e)}")
+            print(f"[ERROR] 완료 처리 실패: {str(e)}")
             import traceback
 
             traceback.print_exc()
