@@ -361,35 +361,54 @@ class ManualCheckService:
         round_details = []
         total_violations = 0
 
+        print(f"[DEBUG] 분석 시작 - 최신 회차: {latest_round}")
+        print(f"[DEBUG] 회차 컬럼들: {[(num, col) for num, col in round_columns]}")
+
         # 최신 회차부터 역순으로 확인
         for round_number, column_name in round_columns:
-            value = row[column_name] if pd.notna(row[column_name]) else None
+            raw_value = row[column_name] if column_name in row.index else None
+            value = raw_value if pd.notna(raw_value) else None
+
+            print(
+                f"[DEBUG] {round_number}회차 - 컬럼: '{column_name}', 원본값: '{raw_value}', 처리값: '{value}'"
+            )
 
             if value is None:
                 round_details.append(f"{round_number}회차: 데이터 없음")
+                print(f"[DEBUG] {round_number}회차: 데이터 없음으로 스킵")
                 continue
 
             value_str = str(value).strip()
+            print(f"[DEBUG] {round_number}회차 - 문자열 변환: '{value_str}'")
 
-            # "-" 값 처리
-            if value_str == "-" or value_str == "":
+            # "-" 값 처리 - 최신 회차 여부를 먼저 확인
+            if value_str == "-" or value_str == "" or value_str.lower() == "nan":
+                print(f"[DEBUG] {round_number}회차에서 '-' 또는 빈값 감지")
+                round_details.append(f"{round_number}회차: 미확인(-)")
+
                 if round_number == latest_round:
                     # 최신 회차에서 "-"이면 실패
+                    print(
+                        f"[DEBUG] 최신 회차({latest_round})에서 '-' 감지 -> 실패 처리"
+                    )
                     return {
                         "overall_result": "fail",
                         "encryption_status": "not_encrypted",
                         "total_violations": 1,
                         "notes": f"{latest_round}회차에서 미확인(-) 상태로 실패",
-                        "detailed_notes": f"최신 회차({latest_round}회차)에서 주민등록번호 확인 불가",
+                        "detailed_notes": f"검증 결과: {', '.join(round_details)} - 최신 회차({latest_round}회차)에서 주민등록번호 확인 불가로 실패",
                     }
                 else:
                     # 과거 회차에서 "-"이면 통과 (모든 조건 무시)
+                    print(
+                        f"[DEBUG] 과거 회차({round_number})에서 '-' 감지 -> 통과 처리"
+                    )
                     return {
                         "overall_result": "pass",
                         "encryption_status": "fully_encrypted",
                         "total_violations": 0,
                         "notes": f"{round_number}회차 미확인으로 통과",
-                        "detailed_notes": f"{round_number}회차에서 미확인(-) 상태이므로 자동 통과",
+                        "detailed_notes": f"검증 결과: {', '.join(round_details)} - {round_number}회차에서 미확인(-) 상태이므로 자동 통과",
                     }
 
             # 숫자 값 처리
@@ -401,14 +420,19 @@ class ManualCheckService:
                     numbers = re.findall(r"\d+", value_str)
                     count = int(numbers[0]) if numbers else 0
 
+                print(f"[DEBUG] {round_number}회차 - 숫자 처리 결과: {count}건")
                 round_details.append(f"{round_number}회차: {count}건")
 
                 if count > 0:
                     total_violations += count
+                    print(
+                        f"[DEBUG] {round_number}회차에서 {count}건 발견, 다음 회차 확인 계속"
+                    )
                     # 1건 이상이면 다음 회차 확인을 위해 계속 진행
                     continue
                 else:
                     # 0건이면 통과
+                    print(f"[DEBUG] {round_number}회차에서 0건 -> 통과 처리")
                     return {
                         "overall_result": "pass",
                         "encryption_status": "fully_encrypted",
@@ -419,10 +443,11 @@ class ManualCheckService:
 
             except (ValueError, IndexError) as e:
                 round_details.append(f"{round_number}회차: 형식 오류")
-                print(f"회차 데이터 파싱 오류: {value_str}, 오류: {str(e)}")
+                print(f"[DEBUG] 회차 데이터 파싱 오류: {value_str}, 오류: {str(e)}")
                 continue
 
         # 모든 회차를 확인했는데 모두 1건 이상이면 실패
+        print(f"[DEBUG] 모든 회차 확인 완료 - 총 위반 건수: {total_violations}")
         return {
             "overall_result": "fail",
             "encryption_status": "not_encrypted",
@@ -970,18 +995,6 @@ class ManualCheckService:
         }
         return mappings.get(status_type, {}).get(status, status or "")
 
-    def get_check_type_mapping(self):
-        """점검 유형 코드와 이름 매핑 반환"""
-        return {
-            "seal_check": "PC 봉인씰 확인",
-            "malware_scan": "악성코드 전체 검사",
-            "file_encryption": "개인정보 파일 암호화",
-            # 기존 호환성을 위한 매핑도 포함
-            "screen_saver": "화면보호기",
-            "antivirus": "백신",
-            "patch_update": "패치",
-        }
-
     def get_check_types(self):
         """지원되는 점검 유형 목록 반환 (period_service와 일관성 유지)"""
         return {
@@ -989,95 +1002,6 @@ class ManualCheckService:
             "malware_scan": "악성코드 전체 검사",
             "file_encryption": "개인정보 파일 암호화",
         }
-
-    def _process_check_data(self, df, check_type, uploaded_by):
-        """점검 유형별 데이터 처리 (기존 테이블 구조에 맞게)"""
-        processed_data = []
-
-        if check_type == "file_encryption":
-            processed_data = self._process_file_encryption_data(df, uploaded_by)
-        elif check_type == "seal_check":
-            processed_data = self._process_seal_check_data(df, uploaded_by)
-        elif check_type == "malware_scan":
-            processed_data = self._process_malware_scan_data(df, uploaded_by)
-
-        return processed_data
-
-    def _process_file_encryption_data(self, df, uploaded_by):
-        """개인정보 파일 암호화 데이터 처리"""
-        processed_data = []
-
-        # 컬럼 매핑
-        col_mapping = self._find_column_mapping(
-            df.columns,
-            {
-                "datetime": ["일시", "점검일시", "날짜"],
-                "local_ip": ["로컬 IP", "IP", "로컬IP"],
-                "ssn_count": ["주민등록번호", "주민번호", "00회차에서 주민등록번호"],
-            },
-        )
-
-        for idx, row in df.iterrows():
-            try:
-                # 로컬 IP로 사용자 찾기
-                local_ip = (
-                    str(row[col_mapping["local_ip"]])
-                    if col_mapping["local_ip"]
-                    and pd.notna(row[col_mapping["local_ip"]])
-                    else ""
-                )
-
-                # 주민등록번호 건수 확인
-                ssn_count = 0
-                if col_mapping["ssn_count"]:
-                    ssn_value = row[col_mapping["ssn_count"]]
-                    if pd.notna(ssn_value):
-                        if isinstance(ssn_value, (int, float)):
-                            ssn_count = int(ssn_value)
-                        else:
-                            numbers = re.findall(r"\d+", str(ssn_value))
-                            ssn_count = int(numbers[0]) if numbers else 0
-
-                # 결과 판정: 주민등록번호가 0건 이상이면 불합격
-                overall_result = "fail" if ssn_count > 0 else "pass"
-                encryption_status = (
-                    "not_encrypted" if ssn_count > 0 else "fully_encrypted"
-                )
-
-                processed_row = {
-                    "check_item_code": "file_encryption",
-                    "source_ip": local_ip,
-                    "check_year": datetime.now().year,
-                    "check_period": "first_half",  # 기본값, 나중에 기간 설정으로 수정 가능
-                    "check_date": (
-                        self._parse_datetime(row[col_mapping["datetime"]])
-                        if col_mapping["datetime"]
-                        else datetime.now()
-                    ),
-                    "checker_name": uploaded_by,
-                    "encryption_status": encryption_status,
-                    "unencrypted_files": ssn_count,
-                    "encryption_completed": 1 if ssn_count == 0 else 0,
-                    "encryption_notes": (
-                        f"주민등록번호 {ssn_count}건 발견" if ssn_count > 0 else "정상"
-                    ),
-                    "ssn_included": 1 if ssn_count > 0 else 0,
-                    "overall_result": overall_result,
-                    "notes": (
-                        f"개인정보 파일 암호화 점검: {ssn_count}건 미암호화"
-                        if ssn_count > 0
-                        else "모든 개인정보 파일 암호화 완료"
-                    ),
-                    "row_index": idx + 2,
-                }
-
-                processed_data.append(processed_row)
-
-            except Exception as e:
-                print(f"개인정보 파일 암호화 데이터 처리 오류 (행 {idx + 2}): {str(e)}")
-                continue
-
-        return processed_data
 
     def _process_seal_check_data(self, df, uploaded_by):
         """PC 봉인씰 확인 데이터 처리"""
@@ -1527,9 +1451,6 @@ class ManualCheckService:
             "file_encryption": "개인정보 파일 암호화 (회차별)",
             "seal_check": "PC 봉인씰 확인",
             "malware_scan": "악성코드 전체 검사",
-            "screen_saver": "화면보호기",
-            "antivirus": "백신",
-            "patch_update": "패치",
         }
 
     def _analyze_expected_results(self, df, check_type):
