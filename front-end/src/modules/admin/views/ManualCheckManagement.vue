@@ -575,12 +575,11 @@
   </div>
 </template>
 
-// ManualCheckManagement.vue - Script Setup 부분
 <script setup>
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 
-// 기존 반응형 데이터
+// 기본 필터 및 검색
 const selectedYear = ref(new Date().getFullYear())
 const selectedCheckType = ref('')
 const selectedResult = ref('')
@@ -590,16 +589,15 @@ const filteredRecords = ref([])
 const selectedRecords = ref([])
 const selectAll = ref(false)
 const loading = ref(false)
-const error = ref('')
 
-// 새로 추가: 기간 섹션 토글 상태
+// 기간 섹션 토글
 const showPeriodSection = ref(false)
 
 // 페이지네이션
 const currentPage = ref(1)
 const itemsPerPage = ref(20)
-const totalPages = ref(1) // computed에서 ref로 변경
-const totalRecords = ref(0) // 전체 레코드 수 추가
+const totalPages = ref(1)
+const totalRecords = ref(0)
 
 // 모달 상태
 const showBulkUploadModal = ref(false)
@@ -611,11 +609,9 @@ const uploading = ref(false)
 const editingRecord = ref({})
 const saving = ref(false)
 
-// 기간 관리 관련
+// 기간 관리
 const editingPeriod = ref(null)
 const savingPeriod = ref(false)
-const completing = ref(false)
-const reopening = ref(false)
 const periodStatus = ref({ check_types: {} })
 
 // 토스트
@@ -644,7 +640,7 @@ const paginatedRecords = computed(() => {
   return filteredRecords.value
 })
 
-// 새로 추가: 기간 섹션 토글 관련
+// 기간 섹션 토글
 const togglePeriodSection = () => {
   showPeriodSection.value = !showPeriodSection.value
 }
@@ -667,7 +663,7 @@ const getPeriodsCountText = () => {
   return `(${totalPeriods}개 기간)`
 }
 
-// 주요 데이터 로딩 메서드
+// 데이터 로딩
 const loadCheckData = async () => {
   try {
     loading.value = true
@@ -682,53 +678,31 @@ const loadCheckData = async () => {
     if (selectedResult.value) params.append('result', selectedResult.value)
     if (searchQuery.value) params.append('search', searchQuery.value)
 
-    console.log(`[DEBUG] API 요청: /api/manual-check/results?${params}`)
-
     const response = await fetch(`/api/manual-check/results?${params}`, {
       credentials: 'include',
     })
 
-    console.log(`[DEBUG] API 응답 상태: ${response.status}`)
-
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error(`[DEBUG] API 오류 응답:`, errorText)
       throw new Error(`API 요청 실패: ${response.status}`)
     }
 
     const result = await response.json()
-    console.log(`[DEBUG] API 응답 데이터:`, result)
 
     if (result.success) {
-      // 데이터 설정
       checkData.value = result.data || []
       filteredRecords.value = result.data || []
 
-      // 페이지네이션 정보 설정 - 수정된 부분
       if (result.pagination) {
         totalPages.value = result.pagination.total_pages
-      } else {
-        totalPages.value = Math.ceil((result.data.total || 0) / itemsPerPage.value)
-      }
-
-      if (result.data.page) {
         currentPage.value = result.pagination.current_page
       }
 
       if (result.data.total !== undefined) {
         totalRecords.value = result.data.total
       }
-
-      console.log(`[DEBUG] 페이지네이션 설정 완료:`, {
-        currentPage: currentPage.value,
-        totalPages: totalPages.value,
-        totalRecords: totalRecords.value,
-        itemsPerPage: itemsPerPage.value,
-      })
     } else {
-      console.warn(`[DEBUG] API 성공하지만 success=false 또는 data 없음:`, result)
-      checkData.value = result.data || []
-      filteredRecords.value = result.data || []
+      checkData.value = []
+      filteredRecords.value = []
       totalPages.value = 1
       totalRecords.value = 0
     }
@@ -764,34 +738,29 @@ const loadPeriodStatus = async () => {
   }
 }
 
-// 검색 및 필터링
+// 검색
 const searchCheckData = () => {
   setTimeout(() => {
     loadCheckData()
   }, 300)
 }
 
-// 유틸리티 함수들
+// 유틸리티 함수
 const getCheckTypeName = (type) => {
   const names = {
     seal_check: 'PC 봉인씰 확인',
     malware_scan: '악성코드 전체 검사',
     file_encryption: '개인정보 파일 암호화',
-    screen_saver: '화면보호기',
-    antivirus: '백신',
-    patch_update: '패치',
   }
   return names[type] || type
 }
 
-// 상태 텍스트 변환 (기존에 없다면 추가)
 const getStatusText = (status) => {
   const statusMap = {
     upcoming: '예정',
     active: '진행중',
     ended: '종료',
     completed: '완료',
-    unknown: '알 수 없음',
   }
   return statusMap[status] || status
 }
@@ -820,17 +789,6 @@ const getScoreClass = (score) => {
   return 'score-poor'
 }
 
-const formatDate = (dateString) => {
-  if (!dateString) return ''
-  return new Date(dateString).toLocaleDateString('ko-KR')
-}
-
-// const formatDateTime = (dateTimeString) => {
-//   if (!dateTimeString) return ''
-//   return new Date(dateTimeString).toLocaleString('ko-KR')
-// }
-
-// 날짜시간 포맷팅 (기존에 없다면 추가)
 const formatDateTime = (datetime) => {
   if (!datetime) return ''
   return new Date(datetime).toLocaleString('ko-KR', {
@@ -847,8 +805,8 @@ const truncateText = (text, maxLength) => {
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
 }
 
-// 기간 관리 메서드
-const openPeriodModal = (checkType = '') => {
+// 기간 관리
+const openPeriodModal = () => {
   resetPeriodForm()
   editingPeriod.value = null
   showPeriodModal.value = true
@@ -870,11 +828,9 @@ const resetPeriodForm = () => {
   periodForm.auto_pass_setting = true
 }
 
-// 기간 저장 메서드 (기존 메서드 수정)
 const savePeriod = async () => {
   if (savingPeriod.value) return
 
-  // 유효성 검사
   if (new Date(periodForm.start_date) >= new Date(periodForm.end_date)) {
     displayToast('종료일은 시작일보다 늦어야 합니다.', 'error')
     return
@@ -915,7 +871,6 @@ const savePeriod = async () => {
   }
 }
 
-// 기간 수정 메서드
 const editPeriod = (period) => {
   editingPeriod.value = period
   periodForm.check_type = period.check_type
@@ -928,7 +883,6 @@ const editPeriod = (period) => {
   showPeriodModal.value = true
 }
 
-// 기간 삭제
 const deletePeriod = async (periodId) => {
   if (!confirm('이 기간을 삭제하시겠습니까? 관련된 모든 점검 결과도 함께 삭제됩니다.')) {
     return
@@ -955,9 +909,8 @@ const deletePeriod = async (periodId) => {
   }
 }
 
-// 기간 완료 처리
 const completePeriod = async (periodId) => {
-  if (!confirm('이 기간을 완료 처리하시겠습니까? 미실시 사용자들이 모두 통과로 처리됩니다.')) {
+  if (!confirm('이 기간을 완료 처리하시겠습니까?')) {
     return
   }
 
@@ -975,14 +928,13 @@ const completePeriod = async (periodId) => {
 
     displayToast(result.message, 'success')
     await loadPeriodStatus()
-    await loadCheckData() // 점검 데이터도 새로고침
+    await loadCheckData()
   } catch (err) {
     console.error('완료 처리 오류:', err)
     displayToast(err.message, 'error')
   }
 }
 
-// 기간 재개 처리
 const reopenPeriod = async (periodId) => {
   if (!confirm('이 기간의 완료 상태를 취소하시겠습니까?')) {
     return
@@ -1009,7 +961,7 @@ const reopenPeriod = async (periodId) => {
   }
 }
 
-// 점검 결과 관리 메서드
+// 점검 결과 관리
 const editRecord = (record) => {
   editingRecord.value = { ...record }
   showEditModal.value = true
@@ -1083,7 +1035,7 @@ const deleteRecord = async (record) => {
   }
 }
 
-// 일괄 처리 메서드
+// 일괄 처리
 const toggleSelectAll = () => {
   if (selectAll.value) {
     selectedRecords.value = paginatedRecords.value.map(
@@ -1123,7 +1075,7 @@ const bulkDelete = async () => {
   }
 }
 
-// 파일 업로드 관련 메서드
+// 파일 업로드
 const openBulkUploadModal = () => {
   showBulkUploadModal.value = true
   selectedFile.value = null
@@ -1141,14 +1093,6 @@ const handleFileSelect = (event) => {
   if (!file) return
 
   selectedFile.value = file
-
-  uploadPreview.value = [
-    {
-      fileName: file.name,
-      fileSize: formatFileSize(file.size),
-      fileType: file.type,
-    },
-  ]
 }
 
 const handleFileDrop = (event) => {
@@ -1169,7 +1113,6 @@ const handleFileDrop = (event) => {
       file.name.endsWith('.csv')
     ) {
       selectedFile.value = file
-      handleFileSelect({ target: { files: [file] } })
     } else {
       displayToast('Excel 또는 CSV 파일만 업로드 가능합니다.', 'error')
     }
@@ -1179,10 +1122,6 @@ const handleFileDrop = (event) => {
 const removeSelectedFile = () => {
   selectedFile.value = null
   uploadPreview.value = []
-  const fileInput = document.querySelector('input[type="file"]')
-  if (fileInput) {
-    fileInput.value = ''
-  }
 }
 
 const formatFileSize = (bytes) => {
@@ -1212,8 +1151,7 @@ const uploadFile = async () => {
 
     if (result.success) {
       const data = result.data
-      let message = `${data.file_type} 파일 업로드 완료!\n`
-      message += `총 ${data.total_records}건 중 ${data.success_count}건 성공`
+      let message = `업로드 완료! 총 ${data.total_records}건 중 ${data.success_count}건 성공`
 
       if (data.error_count > 0) {
         message += `, ${data.error_count}건 실패`
@@ -1260,17 +1198,13 @@ const downloadTemplate = async () => {
 
 // 페이지네이션
 const changePage = (page) => {
-  console.log(`[DEBUG] changePage 호출: ${page}, 현재 totalPages: ${totalPages.value}`)
-
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
     loadCheckData()
-  } else {
-    console.warn(`[DEBUG] 유효하지 않은 페이지: ${page}`)
   }
 }
 
-// 토스트 메시지
+// 토스트
 const displayToast = (message, type = 'success') => {
   toastMessage.value = message
   toastType.value = type
@@ -1287,12 +1221,7 @@ watch(selectedYear, () => {
   loadCheckData()
 })
 
-watch(selectedCheckType, () => {
-  currentPage.value = 1
-  loadCheckData()
-})
-
-watch(selectedResult, () => {
+watch([selectedCheckType, selectedResult], () => {
   currentPage.value = 1
   loadCheckData()
 })
