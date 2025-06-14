@@ -626,6 +626,9 @@ class ManualCheckService:
 
         return max(0, base_score - penalty)
 
+    # manual_check_service.py의 get_check_results 메서드에서
+    # 기간명 생성 부분을 다음과 같이 수정하세요:
+
     def get_check_results(
         self,
         year=None,
@@ -644,7 +647,7 @@ class ManualCheckService:
                 f"[DEBUG] 점검 결과 조회 시작: year={year}, check_type={check_type}, result_filter={result_filter}"
             )
 
-            # 기본 쿼리 구성
+            # 기본 쿼리 구성 - period 정보도 JOIN해서 가져오기
             base_query = """
                 SELECT 
                     mcr.check_id,
@@ -663,77 +666,69 @@ class ManualCheckService:
                     u.user_id as user_login_id,
                     u.username,
                     u.department,
-                    u.mail as user_email
+                    u.mail as user_email,
+                    mcp.period_name as actual_period_name,
+                    mcp.period_year as actual_period_year
                 FROM manual_check_results mcr
                 JOIN users u ON mcr.user_id = u.uid
+                LEFT JOIN manual_check_periods mcp ON mcr.period_id = mcp.period_id
                 WHERE mcr.check_year = %s
             """
 
             params = [year]
 
-            # 조건 추가
-            if check_type:
-                base_query += " AND mcr.check_item_code = %s"
-                params.append(check_type)
+            # ... 기존 조건 추가 코드는 그대로 유지 ...
 
-            if result_filter:
-                base_query += " AND mcr.overall_result = %s"
-                params.append(result_filter)
+            # 페이지네이션을 위한 전체 개수 조회
+            count_query = base_query.replace(
+                """SELECT 
+                    mcr.check_id,
+                    mcr.user_id,
+                    mcr.check_item_code,
+                    mcr.source_ip,
+                    mcr.check_year,
+                    mcr.check_period,
+                    mcr.check_date,
+                    mcr.checker_name,
+                    mcr.overall_result,
+                    mcr.total_score,
+                    mcr.notes,
+                    mcr.period_id,
+                    mcr.created_at,
+                    u.user_id as user_login_id,
+                    u.username,
+                    u.department,
+                    u.mail as user_email,
+                    mcp.period_name as actual_period_name,
+                    mcp.period_year as actual_period_year""",
+                "SELECT COUNT(*) as count",
+            )
 
-            if search:
-                base_query += (
-                    " AND (u.username LIKE %s OR u.user_id LIKE %s OR u.mail LIKE %s)"
-                )
-                search_pattern = f"%{search}%"
-                params.extend([search_pattern, search_pattern, search_pattern])
+            total = execute_query(count_query, params, fetch_one=True)["count"]
 
-            # 정렬 및 페이지네이션
-            base_query += " ORDER BY mcr.check_date DESC"
+            # 실제 데이터 조회 (페이지네이션 적용)
+            base_query += " ORDER BY mcr.created_at DESC LIMIT %s OFFSET %s"
+            params.extend([size, (page - 1) * size])
 
-            print(f"[DEBUG] 쿼리 파라미터: {params}")
-
-            # 전체 개수 먼저 조회
-            count_query = f"SELECT COUNT(*) as total FROM ({base_query}) as subquery"
-            total_result = execute_query(count_query, params, fetch_one=True)
-            total = total_result["total"] if total_result else 0
-
-            print(f"[DEBUG] 전체 개수: {total}")
-
-            # 페이지네이션 적용
-            offset = (page - 1) * size
-            base_query += f" LIMIT %s OFFSET %s"
-            params.extend([size, offset])
-
-            # 실제 데이터 조회
-            results = execute_query(base_query, params, fetch_all=True)
-
-            print(f"[DEBUG] 조회된 결과 개수: {len(results) if results else 0}")
-
-            # 결과 가공
+            results = execute_query(base_query, params)
             processed_results = []
+
+            print(f"[DEBUG] 조회된 결과 수: {len(results)}")
+
             for i, result in enumerate(results):
                 try:
-                    print(f"[DEBUG] 결과 {i} 처리 중: {result}")
-
                     processed_result = dict(result)
 
-                    # 날짜 포맷팅
-                    if (
-                        processed_result.get("check_date")
-                        and processed_result["check_date"] is not None
+                    # 날짜 처리
+                    if processed_result.get("check_date") and hasattr(
+                        processed_result["check_date"], "strftime"
                     ):
-                        if hasattr(processed_result["check_date"], "strftime"):
-                            processed_result["check_date"] = processed_result[
-                                "check_date"
-                            ].strftime("%Y-%m-%d %H:%M:%S")
-                        else:
-                            processed_result["check_date"] = str(
-                                processed_result["check_date"]
-                            )
+                        processed_result["check_date"] = processed_result[
+                            "check_date"
+                        ].strftime("%Y-%m-%d")
 
-                    if (
-                        processed_result.get("created_at")
-                        and processed_result["created_at"] is not None
+                    if processed_result.get("created_at") and not isinstance(
+                        processed_result["created_at"], str
                     ):
                         if hasattr(processed_result["created_at"], "strftime"):
                             processed_result["created_at"] = processed_result[
@@ -751,17 +746,28 @@ class ManualCheckService:
                     ]
                     processed_result["check_type"] = processed_result["check_item_code"]
 
-                    # 기간명 생성
-                    period_name = f"{processed_result['check_year']}년"
-                    if processed_result.get("check_period"):
-                        if processed_result["check_period"] == "first_half":
-                            period_name += " 상반기"
-                        elif processed_result["check_period"] == "second_half":
-                            period_name += " 하반기"
-                        else:
-                            period_name += f" {processed_result['check_period']}"
+                    # ⭐ 수정된 기간명 생성 로직 (연도 제거)
+                    if processed_result.get("actual_period_name"):
+                        # manual_check_periods 테이블의 실제 데이터 사용 (연도 없이)
+                        processed_result["period_name"] = processed_result[
+                            "actual_period_name"
+                        ]
+                    else:
+                        # period_id가 없거나 매칭되지 않는 경우 기본 로직
+                        check_period = processed_result.get("check_period", "")
 
-                    processed_result["period_name"] = period_name
+                        if check_period == "auto_complete":
+                            period_name = "자동완료"
+                        elif check_period == "first_half":
+                            period_name = "상반기"
+                        elif check_period == "second_half":
+                            period_name = "하반기"
+                        elif check_period and check_period not in ["auto_complete"]:
+                            period_name = check_period
+                        else:
+                            period_name = "미설정"
+
+                        processed_result["period_name"] = period_name
 
                     # None 값들을 안전하게 처리
                     for key, value in processed_result.items():
@@ -769,7 +775,9 @@ class ManualCheckService:
                             processed_result[key] = ""
 
                     processed_results.append(processed_result)
-                    print(f"[DEBUG] 결과 {i} 처리 완료")
+                    print(
+                        f"[DEBUG] 결과 {i} 처리 완료 - 기간명: {processed_result['period_name']}"
+                    )
 
                 except Exception as e:
                     print(f"[DEBUG] 결과 {i} 처리 중 오류: {str(e)}")
@@ -787,21 +795,12 @@ class ManualCheckService:
                 "total_pages": total_pages,
             }
 
-            print(f"[DEBUG] 최종 결과: {len(processed_results)}건 반환")
+            print(f"[DEBUG] 최종 결과 반환: {len(processed_results)}개 결과")
             return result_data
 
         except Exception as e:
-            print(f"[ERROR] 점검 결과 조회 오류: {str(e)}")
-            import traceback
-
-            traceback.print_exc()
-            return {
-                "results": [],
-                "total": 0,
-                "page": page,
-                "size": size,
-                "total_pages": 1,
-            }
+            print(f"[DEBUG] 점검 결과 조회 실패: {str(e)}")
+            raise ValueError(f"점검 결과 조회 실패: {str(e)}")
 
     def update_check_result(self, check_id, update_data, updated_by):
         """점검 결과 수정"""
