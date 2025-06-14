@@ -1520,7 +1520,6 @@
 
 /* 액세서빌리티 개선 */
 @media (prefers-reduced-motion: reduce) {
-
   .toggle-icon,
   .period-content,
   .modal-content,
@@ -1564,4 +1563,303 @@
 .form-group textarea:focus-visible {
   outline: 2px solid var(--primary-color);
   outline-offset: 1px;
+}
+
+/* 추가할 CSS 스타일 */
+.upload-modal {
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.upload-section {
+  margin-bottom: 20px;
+}
+
+.upload-area {
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+  transition: border-color 0.3s;
+}
+
+.upload-area:hover {
+  border-color: #007bff;
+}
+
+.upload-placeholder {
+  cursor: pointer;
+  padding: 20px;
+}
+
+.upload-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+.upload-hint {
+  color: #666;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.file-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.file-icon {
+  font-size: 24px;
+  margin-right: 10px;
+}
+
+.file-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.file-details strong {
+  font-weight: 600;
+}
+
+.file-details span {
+  color: #666;
+  font-size: 14px;
+}
+
+.remove-file-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.template-section {
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.template-section h4 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.template-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.template-btn {
+  padding: 10px 15px;
+  border: 1px solid #007bff;
+  background: #007bff;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+}
+
+.template-btn:hover {
+  background: #0056b3;
+}
+
+.template-btn.outline {
+  background: transparent;
+  color: #007bff;
+}
+
+.template-btn.outline:hover {
+  background: #007bff;
+  color: white;
+}
+
+.preview-section {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  background: #f8f9fa;
+  margin-top: 20px;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.preview-info {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.record-count {
+  background: #007bff;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.expected-results {
+  margin-bottom: 20px;
+}
+
+.result-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.result-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid #dee2e6;
+}
+
+.result-item.pass {
+  border-color: #28a745;
+  background: #d4edda;
+}
+
+.result-item.fail {
+  border-color: #dc3545;
+  background: #f8d7da;
+}
+
+.result-item.rate {
+  border-color: #007bff;
+  background: #d1ecf1;
+}
+
+.result-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.result-count {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+}
+
+.preview-table-container {
+  margin: 20px 0;
+  max-height: 300px;
+  overflow: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background: white;
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.preview-table th,
+.preview-table td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+  font-size: 14px;
+}
+
+.preview-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+.preview-note {
+  font-size: 12px;
+  color: #666;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.analysis-details {
+  margin-top: 15px;
+}
+
+.analysis-details h5 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.analysis-list {
+  background: white;
+  border-radius: 6px;
+  padding: 15px;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.analysis-list li {
+  padding: 5px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
+}
+
+.analysis-list li:last-child {
+  border-bottom: none;
+}
+
+.loading-preview {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.upload-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
 }

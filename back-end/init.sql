@@ -17,10 +17,9 @@
 
 -- patch_management 데이터베이스 구조 내보내기
 DROP DATABASE IF EXISTS `patch_management`;
-CREATE DATABASE IF NOT EXISTS `patch_management` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci */;
+CREATE DATABASE IF NOT EXISTS `patch_management`;
 USE `patch_management`;
 
--- 테이블 patch_management.audit_log 구조 내보내기
 DROP TABLE IF EXISTS `audit_log`;
 CREATE TABLE IF NOT EXISTS `audit_log` (
   `log_id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -40,7 +39,7 @@ CREATE TABLE IF NOT EXISTS `audit_log` (
   CONSTRAINT `fk_audit_log_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=53 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='보안 감사 로그';
 
--- 테이블 데이터 patch_management.audit_log:~33 rows (대략적) 내보내기
+
 DELETE FROM `audit_log`;
 INSERT INTO `audit_log` (`log_id`, `user_id`, `item_id`, `actual_value`, `passed`, `notes`, `exclude_reason`, `checked_at`) VALUES
 	(20, 3, 1, '{"screenSaverTime": "600", "screenSaverSecure": "1", "screenSaverEnabled": "1"}', 1, '화면 보호기가 정상적으로 설정되어 있습니다.', NULL, '2025-06-04 01:49:16'),
@@ -77,7 +76,6 @@ INSERT INTO `audit_log` (`log_id`, `user_id`, `item_id`, `actual_value`, `passed
 	(51, 3, 10, '{"status": "pending", "message": "검사 대기 중"}', 0, '검사 대기 중', NULL, '2025-06-05 06:53:34'),
 	(52, 3, 11, '{"status": "pending", "message": "검사 대기 중"}', 0, '검사 대기 중', NULL, '2025-06-05 06:53:34');
 
--- 테이블 patch_management.checklist_items 구조 내보내기
 DROP TABLE IF EXISTS `checklist_items`;
 CREATE TABLE IF NOT EXISTS `checklist_items` (
   `item_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -95,7 +93,6 @@ CREATE TABLE IF NOT EXISTS `checklist_items` (
   KEY `idx_checklist_items_type` (`check_type`,`item_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=106 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='보안 점검 항목';
 
--- 테이블 데이터 patch_management.checklist_items:~14 rows (대략적) 내보내기
 DELETE FROM `checklist_items`;
 INSERT INTO `checklist_items` (`item_id`, `item_name`, `category`, `description`, `check_type`, `check_frequency`, `penalty_weight`, `created_at`, `updated_at`) VALUES
 	(1, '화면보호기 사용', '접근통제', '화면보호기 설정 및 시간 확인', 'daily', 'daily', 0.5, '2025-06-03 12:44:38', '2025-06-03 12:44:38'),
@@ -113,7 +110,6 @@ INSERT INTO `checklist_items` (`item_id`, `item_name`, `category`, `description`
 	(104, '악성코드 전체 검사', '악성코드', '전체 시스템 악성코드 검사', 'manual', 'daily', 0.5, '2025-06-11 00:33:57', '2025-06-11 00:33:57'),
 	(105, '개인정보 파일 암호화', '개인정보보호', '개인정보 파일 암호화 적용 여부', 'manual', 'daily', 0.5, '2025-06-11 00:33:57', '2025-06-11 00:33:57');
 
--- 테이블 patch_management.department_extended_exceptions 구조 내보내기
 DROP TABLE IF EXISTS `department_extended_exceptions`;
 CREATE TABLE IF NOT EXISTS `department_extended_exceptions` (
   `dept_exception_id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -139,10 +135,8 @@ CREATE TABLE IF NOT EXISTS `department_extended_exceptions` (
   KEY `idx_dept_extended_search` (`department`,`item_type`,`is_active`)
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='부서별 확장 감사 항목 제외 설정 (감사/교육/훈련)';
 
--- 테이블 데이터 patch_management.department_extended_exceptions:~0 rows (대략적) 내보내기
 DELETE FROM `department_extended_exceptions`;
 
--- 테이블 patch_management.department_item_exceptions 구조 내보내기
 DROP TABLE IF EXISTS `department_item_exceptions`;
 CREATE TABLE IF NOT EXISTS `department_item_exceptions` (
   `dept_exception_id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -168,10 +162,8 @@ CREATE TABLE IF NOT EXISTS `department_item_exceptions` (
   CONSTRAINT `fk_dept_exception_item` FOREIGN KEY (`item_id`) REFERENCES `checklist_items` (`item_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='부서별 감사 항목 제외 설정';
 
--- 테이블 데이터 patch_management.department_item_exceptions:~0 rows (대략적) 내보내기
 DELETE FROM `department_item_exceptions`;
 
--- 테이블 patch_management.manual_check_items 구조 내보내기
 DROP TABLE IF EXISTS `manual_check_items`;
 CREATE TABLE IF NOT EXISTS `manual_check_items` (
   `item_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -186,14 +178,12 @@ CREATE TABLE IF NOT EXISTS `manual_check_items` (
   UNIQUE KEY `uk_item_code` (`item_code`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 항목';
 
--- 테이블 데이터 patch_management.manual_check_items:~3 rows (대략적) 내보내기
 DELETE FROM `manual_check_items`;
 INSERT INTO `manual_check_items` (`item_id`, `item_code`, `item_name`, `item_category`, `description`, `penalty_weight`, `is_active`, `created_at`) VALUES
 	(1, 'seal_check', 'PC 봉인씰 확인', '물리보안', 'PC 봉인씰 상태 점검', 0.5, 1, '2025-06-11 00:33:57'),
 	(2, 'malware_scan', '악성코드 전체 검사', '악성코드', '전체 시스템 악성코드 검사', 0.5, 1, '2025-06-11 00:33:57'),
 	(3, 'file_encryption', '개인정보 파일 암호화', '개인정보보호', '개인정보 파일 암호화 적용 여부', 0.5, 1, '2025-06-11 00:33:57');
 
--- 테이블 patch_management.manual_check_periods 구조 내보내기
 DROP TABLE IF EXISTS `manual_check_periods`;
 CREATE TABLE IF NOT EXISTS `manual_check_periods` (
   `period_id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -219,14 +209,12 @@ CREATE TABLE IF NOT EXISTS `manual_check_periods` (
   KEY `idx_active` (`is_active`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 기간 설정';
 
--- 테이블 데이터 patch_management.manual_check_periods:~3 rows (대략적) 내보내기
 DELETE FROM `manual_check_periods`;
 INSERT INTO `manual_check_periods` (`period_id`, `check_type`, `period_year`, `period_name`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `auto_pass_setting`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
 	(7, 'file_encryption', 2025, '3월', '2025-05-02', '2025-05-04', 1, '2025-06-12 13:06:15', 'admin', '테스트', 1, 'admin', '2025-06-12 13:01:42', '2025-06-12 13:06:15', 1),
 	(8, 'malware_scan', 2025, '3월', '2025-05-04', '2025-05-20', 1, '2025-06-12 13:07:26', 'admin', '', 1, 'admin', '2025-06-12 13:07:12', '2025-06-12 13:07:26', 1),
 	(9, 'file_encryption', 2025, '335', '2025-06-02', '2025-06-30', 0, NULL, NULL, 're', 1, 'admin', '2025-06-12 16:14:52', '2025-06-12 16:14:52', 1);
 
--- 테이블 patch_management.manual_check_results 구조 내보내기
 DROP TABLE IF EXISTS `manual_check_results`;
 CREATE TABLE IF NOT EXISTS `manual_check_results` (
   `check_id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -277,7 +265,6 @@ CREATE TABLE IF NOT EXISTS `manual_check_results` (
   CONSTRAINT `manual_check_results_ibfk_2` FOREIGN KEY (`period_id`) REFERENCES `manual_check_periods` (`period_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 결과';
 
--- 테이블 데이터 patch_management.manual_check_results:~13 rows (대략적) 내보내기
 DELETE FROM `manual_check_results`;
 INSERT INTO `manual_check_results` (`check_id`, `user_id`, `check_item_code`, `source_ip`, `check_year`, `check_period`, `check_date`, `checker_name`, `seal_status`, `seal_number`, `seal_notes`, `malware_scan_result`, `threats_found`, `threats_cleaned`, `antivirus_version`, `malware_notes`, `malware_name`, `malware_classification`, `malware_path`, `detection_item`, `encryption_status`, `files_scanned`, `unencrypted_files`, `encryption_completed`, `encryption_notes`, `round_number`, `ssn_included`, `overall_result`, `total_score`, `penalty_points`, `notes`, `exclude_from_scoring`, `exclude_reason`, `created_at`, `updated_at`, `period_id`) VALUES
 	(16, 1, 'seal_check', NULL, 2025, 'first_half', '2025-06-01 09:30:00', '김점검관', 'normal', 'SEAL-2025-001', '정상 상태 확인', 'clean', 0, 1, 'V3 Engine 2025.06.01', '검사 완료, 이상 없음', NULL, NULL, NULL, NULL, 'fully_encrypted', 25, 0, 1, '모든 개인정보 파일 암호화 완료', NULL, 0, 'pass', 100.00, 0.00, '모든 항목 정상, 우수한 보안 상태 유지', 0, NULL, '2025-06-11 00:51:23', '2025-06-11 00:51:23', NULL),
@@ -294,7 +281,6 @@ INSERT INTO `manual_check_results` (`check_id`, `user_id`, `check_item_code`, `s
 	(40, 1, 'malware_scan', NULL, 2025, 'auto_complete', '2025-06-12 22:07:26', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-12 13:07:26', '2025-06-12 13:07:26', 8),
 	(41, 2, 'malware_scan', NULL, 2025, 'auto_complete', '2025-06-12 22:07:26', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-12 13:07:26', '2025-06-12 13:07:26', 8);
 
--- 테이블 patch_management.phishing_training 구조 내보내기
 DROP TABLE IF EXISTS `phishing_training`;
 CREATE TABLE IF NOT EXISTS `phishing_training` (
   `training_id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -318,7 +304,6 @@ CREATE TABLE IF NOT EXISTS `phishing_training` (
   CONSTRAINT `fk_training_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=338 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 이력';
 
--- 테이블 데이터 patch_management.phishing_training:~17 rows (대략적) 내보내기
 DELETE FROM `phishing_training`;
 INSERT INTO `phishing_training` (`training_id`, `user_id`, `training_year`, `training_period`, `email_sent_time`, `action_time`, `log_type`, `mail_type`, `user_email`, `ip_address`, `training_result`, `response_time_minutes`, `notes`, `created_at`, `updated_at`) VALUES
 	(47, 5, 2024, 'first_half', '2024-04-22 10:44:25', '2024-10-22 10:45:25', '스크립트 첨부파일 열람', '퇴직연금 운용상품 안내 (HTML)', 'admin@test.com', '1.34.52.46', 'fail', 263521, '', '2025-06-05 07:35:40', '2025-06-05 07:35:40'),
@@ -339,7 +324,6 @@ INSERT INTO `phishing_training` (`training_id`, `user_id`, `training_year`, `tra
 	(335, 4, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-12 14:53:39', '2025-06-12 14:53:39'),
 	(336, 1, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-12 14:53:39', '2025-06-12 14:53:39');
 
--- 테이블 patch_management.phishing_training_periods 구조 내보내기
 DROP TABLE IF EXISTS `phishing_training_periods`;
 CREATE TABLE IF NOT EXISTS `phishing_training_periods` (
   `period_id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -362,13 +346,11 @@ CREATE TABLE IF NOT EXISTS `phishing_training_periods` (
   KEY `idx_active` (`is_active`)
 ) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 기간 설정';
 
--- 테이블 데이터 patch_management.phishing_training_periods:~2 rows (대략적) 내보내기
 DELETE FROM `phishing_training_periods`;
 INSERT INTO `phishing_training_periods` (`period_id`, `training_year`, `training_period`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
 	(24, 2025, 'second_half', '2025-07-02', '2025-08-09', 0, NULL, NULL, '', 'admin', '2025-06-08 12:29:43', '2025-06-08 12:29:43', 1),
 	(25, 2025, 'first_half', '2025-06-02', '2025-06-04', 1, '2025-06-12 14:53:39', 'admin', '', 'admin', '2025-06-08 12:31:46', '2025-06-12 14:53:39', 1);
 
--- 테이블 patch_management.security_education 구조 내보내기
 DROP TABLE IF EXISTS `security_education`;
 CREATE TABLE IF NOT EXISTS `security_education` (
   `education_id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -387,7 +369,6 @@ CREATE TABLE IF NOT EXISTS `security_education` (
   CONSTRAINT `fk_education_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='정보보호 교육 이력';
 
--- 테이블 데이터 patch_management.security_education:~4 rows (대략적) 내보내기
 DELETE FROM `security_education`;
 INSERT INTO `security_education` (`education_id`, `user_id`, `education_year`, `education_period`, `education_type`, `education_date`, `completion_status`, `notes`, `created_at`, `updated_at`) VALUES
 	(1, 3, 2025, 'first_half', '기본교육', NULL, 0, '상반기 교육 미이수', '2025-06-03 12:44:38', '2025-06-03 12:44:38'),
@@ -395,7 +376,6 @@ INSERT INTO `security_education` (`education_id`, `user_id`, `education_year`, `
 	(3, 3, 2024, 'first_half', '기본교육', NULL, 1, '상반기 교육 이수 완료', '2025-06-03 12:44:38', '2025-06-03 12:44:38'),
 	(4, 3, 2024, 'second_half', '기본교육', NULL, 1, '하반기 교육 이수 완료', '2025-06-03 12:44:38', '2025-06-03 12:44:38');
 
--- 테이블 patch_management.security_score_summary 구조 내보내기
 DROP TABLE IF EXISTS `security_score_summary`;
 CREATE TABLE IF NOT EXISTS `security_score_summary` (
   `summary_id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -416,7 +396,6 @@ CREATE TABLE IF NOT EXISTS `security_score_summary` (
   CONSTRAINT `fk_score_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=148 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='KPI 보안 점수 요약 (감점 기준)';
 
--- 테이블 데이터 patch_management.security_score_summary:~12 rows (대략적) 내보내기
 DELETE FROM `security_score_summary`;
 INSERT INTO `security_score_summary` (`summary_id`, `user_id`, `evaluation_year`, `audit_penalty`, `education_penalty`, `training_penalty`, `total_penalty`, `audit_failed_count`, `education_incomplete_count`, `training_failed_count`, `last_calculated`, `created_at`) VALUES
 	(1, 3, 2025, 2.00, 1.00, 0.50, 3.50, 4, 2, 1, '2025-06-04 05:48:17', '2025-06-03 12:52:56'),
@@ -432,7 +411,6 @@ INSERT INTO `security_score_summary` (`summary_id`, `user_id`, `evaluation_year`
 	(136, 6, 2025, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-04 04:54:38', '2025-06-03 04:46:55'),
 	(137, 1, 2025, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-04 04:54:38', '2025-06-03 04:46:55');
 
--- 테이블 patch_management.users 구조 내보내기
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE IF NOT EXISTS `users` (
   `uid` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'JPA에서 Long 타입으로 매핑',
@@ -451,7 +429,6 @@ CREATE TABLE IF NOT EXISTS `users` (
   KEY `idx_department` (`department`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자 정보';
 
--- 테이블 데이터 patch_management.users:~4 rows (대략적) 내보내기
 DELETE FROM `users`;
 INSERT INTO `users` (`uid`, `user_id`, `username`, `mail`, `department`, `created_at`, `updated_at`, `last_updated`, `ip`, `mac`) VALUES
 	(1, 'eunjekim8', '김은제', 'eunjekim8@test.com', '운영실', '2025-06-09 06:39:36', '2025-06-09 06:42:14', '2025-06-09 06:42:14', '10.101.21.32, 10.106.15.129', NULL),
@@ -459,7 +436,6 @@ INSERT INTO `users` (`uid`, `user_id`, `username`, `mail`, `department`, `create
 	(3, 'dog', '강아지', 'dog@test.com', '동물원', '2025-06-09 06:39:36', '2025-06-09 06:43:19', '2025-06-09 06:43:19', '10.11.42.13', NULL),
 	(4, 'admin', '관리자', 'admin@test.com', '관리실', '2025-06-09 06:39:36', '2025-06-09 06:41:07', '2025-06-09 06:41:07', '127.0.0.1', NULL);
 
--- 테이블 patch_management.user_extended_exceptions 구조 내보내기
 DROP TABLE IF EXISTS `user_extended_exceptions`;
 CREATE TABLE IF NOT EXISTS `user_extended_exceptions` (
   `exception_id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -486,14 +462,12 @@ CREATE TABLE IF NOT EXISTS `user_extended_exceptions` (
   CONSTRAINT `fk_user_extended_exception` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 확장 감사 항목 제외 설정 (감사/교육/훈련)';
 
--- 테이블 데이터 patch_management.user_extended_exceptions:~3 rows (대략적) 내보내기
 DELETE FROM `user_extended_exceptions`;
 INSERT INTO `user_extended_exceptions` (`exception_id`, `user_id`, `item_id`, `item_type`, `item_name`, `item_category`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
 	(11, 2, 'training_2025_first_half', 'training_period', '2025년 상반기 악성메일 모의훈련', '악성메일 모의훈련', '관리자 설정', 'permanent', NULL, NULL, 'admin', '2025-06-08 13:26:43', '2025-06-09 00:18:47', 0),
 	(13, 4, 'training_2025_first_half', 'training_period', '2025년 first_half(상반기) 모의훈련', '모의훈련', '관리자 설정', 'permanent', NULL, NULL, 'admin', '2025-06-08 14:43:00', '2025-06-08 14:44:18', 0),
 	(14, 3, 'training_2025_first_half', 'training_period', '2025년 first_half(상반기) 모의훈련', '모의훈련', '관리자 설정', 'permanent', NULL, NULL, 'admin', '2025-06-12 15:35:31', '2025-06-12 15:35:31', 1);
 
--- 테이블 patch_management.user_item_exceptions 구조 내보내기
 DROP TABLE IF EXISTS `user_item_exceptions`;
 CREATE TABLE IF NOT EXISTS `user_item_exceptions` (
   `exception_id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -520,11 +494,4 @@ CREATE TABLE IF NOT EXISTS `user_item_exceptions` (
   CONSTRAINT `fk_exception_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 감사 항목 제외 설정';
 
--- 테이블 데이터 patch_management.user_item_exceptions:~0 rows (대략적) 내보내기
 DELETE FROM `user_item_exceptions`;
-
-/*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
-/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
-/*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;

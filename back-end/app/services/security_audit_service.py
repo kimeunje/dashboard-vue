@@ -14,292 +14,8 @@ class AuditService:
         self.exception_service = ExceptionService()
 
     def get_user_stats(self, username: str, check_type: str = None) -> dict:
-        """사용자별 보안 통계 데이터 조회 (제외 설정 반영)"""
-        # 사용자 ID 가져오기
-        user = execute_query("SELECT uid FROM users WHERE user_id = %s", (username, ),
-                             fetch_one=True)
-
-        if not user:
-            raise ValueError("사용자 정보를 찾을 수 없습니다.")
-
-        user_id = user["uid"]
-
-        with DatabaseManager.get_db_cursor(commit=False) as cursor:
-            # 체크리스트 항목 조건 설정
-            if check_type:
-                checklist_condition = "WHERE ci.check_type = %s"
-                checklist_params = (check_type, )
-                log_condition = """
-                    WHERE al.user_id = %s 
-                    AND ci.check_type = %s
-                """
-                log_params = (user_id, check_type)
-            else:
-                checklist_condition = ""
-                checklist_params = ()
-                log_condition = "WHERE al.user_id = %s"
-                log_params = (user_id, )
-
-            # 총 체크리스트 항목 수 조회
-            cursor.execute(
-                f"SELECT COUNT(*) as total_items FROM checklist_items ci {checklist_condition}",
-                checklist_params)
-            total_checks = cursor.fetchone()["total_items"]
-
-            # 해당 사용자의 가장 최근 감사 날짜 조회
-            cursor.execute(
-                f"""
-                SELECT MAX(al.checked_at) as last_audit_date
-                FROM audit_log al
-                LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
-                {log_condition}
-                """, log_params)
-            last_audit_result = cursor.fetchone()
-            last_audit_date = last_audit_result["last_audit_date"]
-
-            # 제외 설정 반영하여 통계 계산 (수정: 제외된 항목은 통과/실패 모두 제외)
-            cursor.execute(
-                f"""
-                SELECT 
-                    -- 제외되지 않은 항목만 카운트
-                    COUNT(DISTINCT CASE 
-                        WHEN NOT (
-                            EXISTS (
-                                SELECT 1 FROM user_item_exceptions uie 
-                                WHERE uie.user_id = al.user_id 
-                                AND uie.item_id = al.item_id 
-                                AND uie.is_active = 1
-                                AND (uie.exclude_type = 'permanent' OR 
-                                     (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
-                            )
-                            OR EXISTS (
-                                SELECT 1 FROM user_extended_exceptions uee 
-                                WHERE uee.user_id = al.user_id 
-                                AND uee.item_id = CAST(al.item_id AS CHAR)
-                                AND uee.item_type = 'audit_item'
-                                AND uee.is_active = 1
-                                AND (uee.exclude_type = 'permanent' OR 
-                                     (uee.exclude_type = 'temporary' AND CURDATE() BETWEEN uee.start_date AND uee.end_date))
-                            )
-                            OR EXISTS (
-                                SELECT 1 FROM department_item_exceptions die 
-                                WHERE die.department = (SELECT department FROM users WHERE uid = al.user_id)
-                                AND die.item_id = al.item_id 
-                                AND die.is_active = 1
-                                AND (die.exclude_type = 'permanent' OR 
-                                     (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
-                            )
-                            OR EXISTS (
-                                SELECT 1 FROM department_extended_exceptions dee 
-                                WHERE dee.department = (SELECT department FROM users WHERE uid = al.user_id)
-                                AND dee.item_id = CAST(al.item_id AS CHAR)
-                                AND dee.item_type = 'audit_item'
-                                AND dee.is_active = 1
-                                AND (dee.exclude_type = 'permanent' OR 
-                                     (dee.exclude_type = 'temporary' AND CURDATE() BETWEEN dee.start_date AND dee.end_date))
-                            )
-                        ) THEN al.item_id 
-                        ELSE NULL 
-                    END) as active_checks,
-                    -- 제외되지 않은 항목 중 통과한 것만 카운트
-                    SUM(CASE 
-                        WHEN NOT (
-                            EXISTS (
-                                SELECT 1 FROM user_item_exceptions uie 
-                                WHERE uie.user_id = al.user_id 
-                                AND uie.item_id = al.item_id 
-                                AND uie.is_active = 1
-                                AND (uie.exclude_type = 'permanent' OR 
-                                     (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
-                            )
-                            OR EXISTS (
-                                SELECT 1 FROM user_extended_exceptions uee 
-                                WHERE uee.user_id = al.user_id 
-                                AND uee.item_id = CAST(al.item_id AS CHAR)
-                                AND uee.item_type = 'audit_item'
-                                AND uee.is_active = 1
-                                AND (uee.exclude_type = 'permanent' OR 
-                                     (uee.exclude_type = 'temporary' AND CURDATE() BETWEEN uee.start_date AND uee.end_date))
-                            )
-                            OR EXISTS (
-                                SELECT 1 FROM department_item_exceptions die 
-                                WHERE die.department = (SELECT department FROM users WHERE uid = al.user_id)
-                                AND die.item_id = al.item_id 
-                                AND die.is_active = 1
-                                AND (die.exclude_type = 'permanent' OR 
-                                     (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
-                            )
-                            OR EXISTS (
-                                SELECT 1 FROM department_extended_exceptions dee 
-                                WHERE dee.department = (SELECT department FROM users WHERE uid = al.user_id)
-                                AND dee.item_id = CAST(al.item_id AS CHAR)
-                                AND dee.item_type = 'audit_item'
-                                AND dee.is_active = 1
-                                AND (dee.exclude_type = 'permanent' OR 
-                                     (dee.exclude_type = 'temporary' AND CURDATE() BETWEEN dee.start_date AND dee.end_date))
-                            )
-                        ) AND al.passed = 1 THEN 1 
-                        ELSE 0 
-                    END) as passed_count,
-                    -- 제외되지 않은 항목 중 실패한 것만 카운트
-                    SUM(CASE 
-                        WHEN NOT (
-                            EXISTS (
-                                SELECT 1 FROM user_item_exceptions uie 
-                                WHERE uie.user_id = al.user_id 
-                                AND uie.item_id = al.item_id 
-                                AND uie.is_active = 1
-                                AND (uie.exclude_type = 'permanent' OR 
-                                     (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
-                            )
-                            OR EXISTS (
-                                SELECT 1 FROM user_extended_exceptions uee 
-                                WHERE uee.user_id = al.user_id 
-                                AND uee.item_id = CAST(al.item_id AS CHAR)
-                                AND uee.item_type = 'audit_item'
-                                AND uee.is_active = 1
-                                AND (uee.exclude_type = 'permanent' OR 
-                                     (uee.exclude_type = 'temporary' AND CURDATE() BETWEEN uee.start_date AND uee.end_date))
-                            )
-                            OR EXISTS (
-                                SELECT 1 FROM department_item_exceptions die 
-                                WHERE die.department = (SELECT department FROM users WHERE uid = al.user_id)
-                                AND die.item_id = al.item_id 
-                                AND die.is_active = 1
-                                AND (die.exclude_type = 'permanent' OR 
-                                     (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
-                            )
-                            OR EXISTS (
-                                SELECT 1 FROM department_extended_exceptions dee 
-                                WHERE dee.department = (SELECT department FROM users WHERE uid = al.user_id)
-                                AND dee.item_id = CAST(al.item_id AS CHAR)
-                                AND dee.item_type = 'audit_item'
-                                AND dee.is_active = 1
-                                AND (dee.exclude_type = 'permanent' OR 
-                                     (dee.exclude_type = 'temporary' AND CURDATE() BETWEEN dee.start_date AND dee.end_date))
-                            )
-                        ) AND al.passed = 0 THEN 1 
-                        ELSE 0 
-                    END) as failed_count,
-                    -- 제외되지 않은 항목 중 실패한 것만 감점 적용
-                    SUM(CASE 
-                        WHEN NOT (
-                            EXISTS (
-                                SELECT 1 FROM user_item_exceptions uie 
-                                WHERE uie.user_id = al.user_id 
-                                AND uie.item_id = al.item_id 
-                                AND uie.is_active = 1
-                                AND (uie.exclude_type = 'permanent' OR 
-                                     (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
-                            )
-                            OR EXISTS (
-                                SELECT 1 FROM user_extended_exceptions uee 
-                                WHERE uee.user_id = al.user_id 
-                                AND uee.item_id = CAST(al.item_id AS CHAR)
-                                AND uee.item_type = 'audit_item'
-                                AND uee.is_active = 1
-                                AND (uee.exclude_type = 'permanent' OR 
-                                     (uee.exclude_type = 'temporary' AND CURDATE() BETWEEN uee.start_date AND uee.end_date))
-                            )
-                            OR EXISTS (
-                                SELECT 1 FROM department_item_exceptions die 
-                                WHERE die.department = (SELECT department FROM users WHERE uid = al.user_id)
-                                AND die.item_id = al.item_id 
-                                AND die.is_active = 1
-                                AND (die.exclude_type = 'permanent' OR 
-                                     (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
-                            )
-                            OR EXISTS (
-                                SELECT 1 FROM department_extended_exceptions dee 
-                                WHERE dee.department = (SELECT department FROM users WHERE uid = al.user_id)
-                                AND dee.item_id = CAST(al.item_id AS CHAR)
-                                AND dee.item_type = 'audit_item'
-                                AND dee.is_active = 1
-                                AND (dee.exclude_type = 'permanent' OR 
-                                     (dee.exclude_type = 'temporary' AND CURDATE() BETWEEN dee.start_date AND dee.end_date))
-                            )
-                        ) AND al.passed = 0 THEN COALESCE(ci.penalty_weight, 0.5) 
-                        ELSE 0 
-                    END) as total_penalty
-                FROM audit_log al
-                INNER JOIN (
-                    SELECT item_id, MAX(checked_at) as max_checked_at
-                    FROM audit_log 
-                    WHERE user_id = %s
-                    GROUP BY item_id
-                ) latest ON al.item_id = latest.item_id AND al.checked_at = latest.max_checked_at
-                INNER JOIN checklist_items ci ON al.item_id = ci.item_id
-                WHERE al.user_id = %s
-                {(' AND ci.check_type = %s' if check_type else '')}
-                """, (user_id, user_id) + ((check_type, ) if check_type else ()))
-
-            stats_result = cursor.fetchone()
-
-            active_checks = stats_result["active_checks"] or 0  # 제외되지 않은 검사 항목 수
-            passed_count = stats_result["passed_count"] or 0
-            failed_count = stats_result["failed_count"] or 0
-            total_penalty = float(stats_result["total_penalty"] or 0)
-
-            # 제외된 항목 수 조회 (수정: 모든 제외 테이블 확인)
-            cursor.execute(
-                f"""
-                SELECT COUNT(DISTINCT ci.item_id) as excluded_count
-                FROM checklist_items ci
-                WHERE (
-                    EXISTS (
-                        SELECT 1 FROM user_item_exceptions uie 
-                        WHERE uie.item_id = ci.item_id 
-                        AND uie.user_id = %s 
-                        AND uie.is_active = 1
-                        AND (uie.exclude_type = 'permanent' OR 
-                             (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
-                    )
-                    OR EXISTS (
-                        SELECT 1 FROM user_extended_exceptions uee 
-                        WHERE uee.item_id = CAST(ci.item_id AS CHAR)
-                        AND uee.user_id = %s 
-                        AND uee.item_type = 'audit_item'
-                        AND uee.is_active = 1
-                        AND (uee.exclude_type = 'permanent' OR 
-                             (uee.exclude_type = 'temporary' AND CURDATE() BETWEEN uee.start_date AND uee.end_date))
-                    )
-                    OR EXISTS (
-                        SELECT 1 FROM department_item_exceptions die 
-                        WHERE die.item_id = ci.item_id 
-                        AND die.department = (SELECT department FROM users WHERE uid = %s)
-                        AND die.is_active = 1
-                        AND (die.exclude_type = 'permanent' OR 
-                             (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
-                    )
-                    OR EXISTS (
-                        SELECT 1 FROM department_extended_exceptions dee 
-                        WHERE dee.item_id = CAST(ci.item_id AS CHAR)
-                        AND dee.department = (SELECT department FROM users WHERE uid = %s)
-                        AND dee.item_type = 'audit_item'
-                        AND dee.is_active = 1
-                        AND (dee.exclude_type = 'permanent' OR 
-                             (dee.exclude_type = 'temporary' AND CURDATE() BETWEEN dee.start_date AND dee.end_date))
-                    )
-                )
-                {('AND ci.check_type = %s' if check_type else '')}
-                """, (user_id, user_id, user_id, user_id) +
-                ((check_type, ) if check_type else ()))
-
-            excluded_count = cursor.fetchone()["excluded_count"] or 0
-
-        # 날짜 포맷 변환
-        formatted_date = last_audit_date.strftime("%Y-%m-%d") if last_audit_date else ""
-
-        return {
-            "lastAuditDate": formatted_date,
-            "totalChecks": total_checks,  # 전체 점검 항목 수 (제외 항목 포함)
-            "activeChecks": active_checks,  # 새로 추가: 실제로 점검되는 항목 수 (제외 항목 제외)
-            "completedChecks": passed_count,  # 통과한 항목 (제외 항목 제외)
-            "criticalIssues": failed_count,  # 실패한 항목 (제외 항목 제외)
-            "excludedItems": excluded_count,  # 제외된 항목
-            "totalPenalty": round(total_penalty, 1),
-            "checkType": check_type
-        }
+        """사용자별 보안 통계 데이터 조회 (하이브리드 방식으로 변경)"""
+        return self.get_user_stats_hybrid(username, check_type)
 
     def _check_item_excluded_for_user(self, user_id: int, item_id: int) -> dict:
         """특정 사용자-항목이 제외 대상인지 확인 (모든 제외 테이블 확인)"""
@@ -370,149 +86,7 @@ class AuditService:
 
     # 나머지 메서드들도 동일한 방식으로 수정...
     def get_user_logs(self, username: str, check_type: str = None) -> list:
-        """사용자별 보안 감사 로그 목록 조회 (제외 설정 정보 포함)"""
-        # 사용자 ID 가져오기
-        user = execute_query("SELECT uid FROM users WHERE user_id = %s", (username, ),
-                             fetch_one=True)
-
-        if not user:
-            raise ValueError("사용자 정보를 찾을 수 없습니다.")
-
-        user_id = user["uid"]
-
-        # 점검 유형별 필터링 조건
-        if check_type:
-            condition = """
-                WHERE al.user_id = %s AND ci.check_type = %s
-                ORDER BY al.checked_at DESC
-            """
-            params = (user_id, check_type)
-        else:
-            condition = """
-                WHERE al.user_id = %s
-                ORDER BY al.checked_at DESC
-            """
-            params = (user_id, )
-
-        # 제외 설정 정보를 포함하여 로그 조회 (수정: 모든 제외 테이블 확인)
-        logs = execute_query(
-            f"""
-            SELECT 
-                al.log_id, al.user_id, al.item_id, al.actual_value, al.passed, al.notes, al.checked_at,
-                ci.check_type, ci.check_frequency, ci.penalty_weight, ci.item_name,
-                CASE 
-                    WHEN (
-                        EXISTS (
-                            SELECT 1 FROM user_item_exceptions uie 
-                            WHERE uie.user_id = al.user_id 
-                            AND uie.item_id = al.item_id 
-                            AND uie.is_active = 1
-                            AND (uie.exclude_type = 'permanent' OR 
-                                 (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
-                        )
-                        OR EXISTS (
-                            SELECT 1 FROM user_extended_exceptions uee 
-                            WHERE uee.user_id = al.user_id 
-                            AND uee.item_id = CAST(al.item_id AS CHAR)
-                            AND uee.item_type = 'audit_item'
-                            AND uee.is_active = 1
-                            AND (uee.exclude_type = 'permanent' OR 
-                                 (uee.exclude_type = 'temporary' AND CURDATE() BETWEEN uee.start_date AND uee.end_date))
-                        )
-                        OR EXISTS (
-                            SELECT 1 FROM department_item_exceptions die 
-                            WHERE die.department = (SELECT department FROM users WHERE uid = al.user_id)
-                            AND die.item_id = al.item_id 
-                            AND die.is_active = 1
-                            AND (die.exclude_type = 'permanent' OR 
-                                 (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
-                        )
-                        OR EXISTS (
-                            SELECT 1 FROM department_extended_exceptions dee 
-                            WHERE dee.department = (SELECT department FROM users WHERE uid = al.user_id)
-                            AND dee.item_id = CAST(al.item_id AS CHAR)
-                            AND dee.item_type = 'audit_item'
-                            AND dee.is_active = 1
-                            AND (dee.exclude_type = 'permanent' OR 
-                                 (dee.exclude_type = 'temporary' AND CURDATE() BETWEEN dee.start_date AND dee.end_date))
-                        )
-                    ) THEN 0
-                    WHEN al.passed = 0 THEN COALESCE(ci.penalty_weight, 0.5) 
-                    ELSE 0 
-                END as penalty_applied,
-                CASE 
-                    WHEN EXISTS (
-                        SELECT 1 FROM user_item_exceptions uie 
-                        WHERE uie.user_id = al.user_id 
-                        AND uie.item_id = al.item_id 
-                        AND uie.is_active = 1
-                        AND (uie.exclude_type = 'permanent' OR 
-                             (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
-                    ) THEN 1
-                    WHEN EXISTS (
-                        SELECT 1 FROM user_extended_exceptions uee 
-                        WHERE uee.user_id = al.user_id 
-                        AND uee.item_id = CAST(al.item_id AS CHAR)
-                        AND uee.item_type = 'audit_item'
-                        AND uee.is_active = 1
-                        AND (uee.exclude_type = 'permanent' OR 
-                             (uee.exclude_type = 'temporary' AND CURDATE() BETWEEN uee.start_date AND uee.end_date))
-                    ) THEN 1
-                    WHEN EXISTS (
-                        SELECT 1 FROM department_item_exceptions die 
-                        WHERE die.department = (SELECT department FROM users WHERE uid = al.user_id)
-                        AND die.item_id = al.item_id 
-                        AND die.is_active = 1
-                        AND (die.exclude_type = 'permanent' OR 
-                             (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
-                    ) THEN 1
-                    WHEN EXISTS (
-                        SELECT 1 FROM department_extended_exceptions dee 
-                        WHERE dee.department = (SELECT department FROM users WHERE uid = al.user_id)
-                        AND dee.item_id = CAST(al.item_id AS CHAR)
-                        AND dee.item_type = 'audit_item'
-                        AND dee.is_active = 1
-                        AND (dee.exclude_type = 'permanent' OR 
-                             (dee.exclude_type = 'temporary' AND CURDATE() BETWEEN dee.start_date AND dee.end_date))
-                    ) THEN 1
-                    ELSE 0
-                END as is_excluded
-            FROM audit_log al
-            LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
-            {condition}
-            """, params, fetch_all=True)
-
-        result = []
-        for log in logs:
-            # MariaDB의 JSON 타입이 자동으로 파싱되지 않을 수 있으므로 확인
-            if isinstance(log["actual_value"], str):
-                actual_value = json.loads(log["actual_value"])
-            else:
-                actual_value = log["actual_value"]
-
-            # checked_at이 datetime 객체라면 문자열로 변환
-            if isinstance(log["checked_at"], datetime):
-                checked_at = log["checked_at"].strftime("%Y-%m-%d %H:%M:%S")
-            else:
-                checked_at = log["checked_at"]
-
-            result.append({
-                "log_id": log["log_id"],
-                "user_id": log["user_id"],
-                "item_id": log["item_id"],
-                "item_name": log["item_name"],
-                "actual_value": actual_value,
-                "passed": log["passed"],
-                "notes": log["notes"],
-                "checked_at": checked_at,
-                "check_type": log["check_type"],
-                "check_frequency": log["check_frequency"],
-                "penalty_weight": float(log["penalty_weight"] or 0),
-                "penalty_applied": float(log["penalty_applied"] or 0),
-                "is_excluded": bool(log["is_excluded"])
-            })
-
-        return result
+        return self.get_user_logs_hybrid(username, check_type)
 
     # 나머지 메서드들은 기존과 동일 (validate_check, execute_manual_check 등)
     def validate_check(self, data: dict) -> dict:
@@ -721,21 +295,8 @@ class AuditService:
             """, fetch_all=True)
 
     def get_checklist_items(self, check_type: str = None) -> list:
-        """체크리스트 항목 조회 (감점 가중치 포함)"""
-        if check_type:
-            condition = "WHERE check_type = %s"
-            params = (check_type, )
-        else:
-            condition = ""
-            params = ()
-
-        return execute_query(
-            f"""
-            SELECT item_id, category, item_name as name, description, check_type, check_frequency, penalty_weight
-            FROM checklist_items
-            {condition}
-            ORDER BY check_type, item_id ASC
-            """, params, fetch_all=True)
+        """체크리스트 항목 조회 (하이브리드 방식으로 변경)"""
+        return self.get_checklist_items_hybrid(check_type)
 
     def get_user_exceptions_summary(self, username: str) -> dict:
         """사용자의 제외 설정 요약"""
@@ -754,4 +315,945 @@ class AuditService:
             "department_based": len(
                 [e for e in exceptions if e["exception_type"] == "department"]),
             "exceptions": exceptions
+        }
+
+    def get_manual_check_logs_from_results(self, username: str) -> list:
+        """수시 점검 로그 조회 (manual_check_results 테이블에서)"""
+        try:
+            # 사용자 ID 조회
+            user = execute_query("SELECT uid FROM users WHERE user_id = %s",
+                                 (username, ), fetch_one=True)
+            if not user:
+                raise ValueError("사용자 정보를 찾을 수 없습니다.")
+
+            user_id = user["uid"]
+
+            # manual_check_results 테이블에서 로그 조회
+            logs = execute_query(
+                """
+                SELECT 
+                    mcr.check_id as log_id,
+                    mcr.user_id,
+                    mci.item_id,
+                    mci.item_name,
+                    mcr.check_item_code,
+                    mcr.check_date as checked_at,
+                    CASE 
+                        WHEN mcr.overall_result = 'pass' THEN 1
+                        WHEN mcr.overall_result = 'fail' THEN 0
+                        ELSE NULL
+                    END as passed,
+                    mcr.notes,
+                    'manual' as check_type,
+                    'periodic' as check_frequency,
+                    mci.penalty_weight,
+                    CASE 
+                        WHEN mcr.exclude_from_scoring = 1 THEN 0
+                        WHEN mcr.overall_result = 'fail' AND mcr.exclude_from_scoring = 0 THEN COALESCE(mci.penalty_weight, 0.5)
+                        ELSE 0
+                    END as penalty_applied,
+                    mcr.exclude_from_scoring as is_excluded,
+                    mcr.exclude_reason,
+                    -- 실제 값을 JSON 형태로 구성
+                    JSON_OBJECT(
+                        'seal_status', mcr.seal_status,
+                        'seal_number', mcr.seal_number,
+                        'malware_scan_result', mcr.malware_scan_result,
+                        'threats_found', mcr.threats_found,
+                        'threats_cleaned', mcr.threats_cleaned,
+                        'antivirus_version', mcr.antivirus_version,
+                        'encryption_status', mcr.encryption_status,
+                        'files_scanned', mcr.files_scanned,
+                        'unencrypted_files', mcr.unencrypted_files,
+                        'encryption_completed', mcr.encryption_completed,
+                        'total_score', mcr.total_score,
+                        'penalty_points', mcr.penalty_points
+                    ) as actual_value
+                FROM manual_check_results mcr
+                LEFT JOIN manual_check_items mci ON mcr.check_item_code = mci.item_code
+                WHERE mcr.user_id = %s
+                ORDER BY mcr.check_date DESC
+                """, (user_id, ), fetch_all=True)
+
+            # 결과 포맷팅
+            result = []
+            for log in logs:
+                # 날짜 포맷팅
+                if isinstance(log["checked_at"], datetime):
+                    checked_at = log["checked_at"].strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    checked_at = log["checked_at"]
+
+                # actual_value가 문자열인 경우 JSON 파싱
+                actual_value = log["actual_value"]
+                if isinstance(actual_value, str):
+                    try:
+                        actual_value = json.loads(actual_value)
+                    except (json.JSONDecodeError, TypeError):
+                        actual_value = {"raw_data": actual_value}
+
+                result.append({
+                    "log_id": log["log_id"],
+                    "user_id": log["user_id"],
+                    "item_id": log["item_id"]
+                    or 0,  # manual_check_items에 item_id가 없을 경우 기본값
+                    "item_name": log["item_name"]
+                    or f"수시 점검 - {log['check_item_code']}",
+                    "actual_value": actual_value,
+                    "passed": log["passed"],
+                    "notes": log["notes"],
+                    "checked_at": checked_at,
+                    "check_type": log["check_type"],
+                    "check_frequency": log["check_frequency"],
+                    "penalty_weight": float(log["penalty_weight"] or 0.5),
+                    "penalty_applied": float(log["penalty_applied"] or 0),
+                    "is_excluded": bool(log["is_excluded"])
+                })
+
+            return result
+
+        except Exception as e:
+            print(f"[ERROR] 수시 점검 로그 조회 오류: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return []
+
+    def get_manual_check_stats_from_results(self, username: str) -> dict:
+        """수시 점검 통계 조회 (manual_check_results 테이블에서)"""
+        try:
+            # 사용자 ID 조회
+            user = execute_query("SELECT uid FROM users WHERE user_id = %s",
+                                 (username, ), fetch_one=True)
+            if not user:
+                raise ValueError("사용자 정보를 찾을 수 없습니다.")
+
+            user_id = user["uid"]
+
+            # 통계 데이터 조회
+            stats_data = execute_query(
+                """
+                SELECT 
+                    COUNT(*) as total_checks,
+                    COUNT(CASE WHEN mcr.overall_result = 'pass' AND mcr.exclude_from_scoring = 0 THEN 1 END) as completed_checks,
+                    COUNT(CASE WHEN mcr.overall_result = 'fail' AND mcr.exclude_from_scoring = 0 THEN 1 END) as critical_issues,
+                    COUNT(CASE WHEN mcr.exclude_from_scoring = 1 THEN 1 END) as excluded_items,
+                    MAX(mcr.check_date) as last_audit_date,
+                    SUM(CASE 
+                        WHEN mcr.overall_result = 'fail' AND mcr.exclude_from_scoring = 0 
+                        THEN COALESCE(mci.penalty_weight, 0.5)
+                        ELSE 0 
+                    END) as total_penalty
+                FROM manual_check_results mcr
+                LEFT JOIN manual_check_items mci ON mcr.check_item_code = mci.item_code
+                WHERE mcr.user_id = %s
+                """, (user_id, ), fetch_one=True)
+
+            if not stats_data:
+                return {
+                    "totalChecks": 0,
+                    "activeChecks": 0,
+                    "completedChecks": 0,
+                    "criticalIssues": 0,
+                    "excludedItems": 0,
+                    "lastAuditDate": "",
+                    "totalPenalty": 0.0
+                }
+
+            # 날짜 포맷팅
+            last_audit_date = ""
+            if stats_data["last_audit_date"]:
+                if isinstance(stats_data["last_audit_date"], datetime):
+                    last_audit_date = stats_data["last_audit_date"].strftime(
+                        "%Y-%m-%d %H:%M:%S")
+                else:
+                    last_audit_date = str(stats_data["last_audit_date"])
+
+            # 활성 점검 항목 수 (제외되지 않은 항목)
+            active_checks = stats_data["completed_checks"] + stats_data[
+                "critical_issues"]
+
+            return {
+                "totalChecks": stats_data["total_checks"],
+                "activeChecks": active_checks,
+                "completedChecks": stats_data["completed_checks"],
+                "criticalIssues": stats_data["critical_issues"],
+                "excludedItems": stats_data["excluded_items"],
+                "lastAuditDate": last_audit_date,
+                "totalPenalty": float(stats_data["total_penalty"] or 0)
+            }
+
+        except Exception as e:
+            print(f"[ERROR] 수시 점검 통계 조회 오류: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "totalChecks": 0,
+                "activeChecks": 0,
+                "completedChecks": 0,
+                "criticalIssues": 0,
+                "excludedItems": 0,
+                "lastAuditDate": "",
+                "totalPenalty": 0.0
+            }
+
+    def get_manual_check_items_from_table(self) -> list:
+        """수시 점검 항목 목록 조회 (manual_check_items 테이블에서)"""
+        try:
+            items = execute_query(
+                """
+                SELECT 
+                    item_id,
+                    item_code,
+                    item_name as name,
+                    item_category as category,
+                    description,
+                    penalty_weight,
+                    'manual' as check_type,
+                    'periodic' as check_frequency,
+                    is_active
+                FROM manual_check_items
+                WHERE is_active = 1
+                ORDER BY item_category, item_name
+                """, fetch_all=True)
+
+            # 결과 포맷팅
+            result = []
+            for item in items:
+                result.append({
+                    "item_id": item["item_id"],
+                    "name": item["name"],
+                    "category": item["category"],
+                    "description": item["description"],
+                    "check_type": item["check_type"],
+                    "check_frequency": item["check_frequency"],
+                    "penalty_weight": float(item["penalty_weight"] or 0.5)
+                })
+
+            return result
+
+        except Exception as e:
+            print(f"[ERROR] 수시 점검 항목 조회 오류: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return []
+
+    def get_user_logs_hybrid(self, username: str, check_type: str = None) -> list:
+        """
+        사용자별 보안 감사 로그 목록 조회 (하이브리드 방식)
+        - 매일 점검(daily): audit_log 테이블 사용
+        - 수시 점검(manual): manual_check_results 테이블 사용
+        - 전체(all): 두 테이블 모두 사용
+        """
+        try:
+            # 사용자 ID 조회
+            user = execute_query("SELECT uid FROM users WHERE user_id = %s",
+                                 (username, ), fetch_one=True)
+            if not user:
+                raise ValueError("사용자 정보를 찾을 수 없습니다.")
+
+            user_id = user["uid"]
+            result = []
+
+            if check_type == 'daily':
+                # 매일 점검만 - 기존 audit_log 테이블 사용
+                result = self._get_daily_logs_from_audit_log(user_id)
+                # None 체크 추가
+                if result is None:
+                    result = []
+            elif check_type == 'manual':
+                # 수시 점검만 - manual_check_results 테이블 사용
+                result = self._get_manual_logs_from_results_table(user_id)
+                # None 체크 추가
+                if result is None:
+                    result = []
+            else:
+                # 전체 - 두 테이블 모두 사용
+                daily_logs = self._get_daily_logs_from_audit_log(user_id)
+                manual_logs = self._get_manual_logs_from_results_table(user_id)
+
+                # None 체크 및 기본값 설정
+                if daily_logs is None:
+                    daily_logs = []
+                if manual_logs is None:
+                    manual_logs = []
+
+                result = daily_logs + manual_logs
+                # 날짜순 정렬
+                if result:
+                    result.sort(key=lambda x: x.get('checked_at', ''), reverse=True)
+
+            return result
+
+        except Exception as e:
+            print(f"[ERROR] 로그 조회 오류: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return []
+
+    def _get_daily_logs_from_audit_log(self, user_id: int) -> list:
+        """매일 점검 로그 조회 (audit_log 테이블에서) - 오류 처리 강화"""
+        try:
+            logs = execute_query(
+                """
+                SELECT 
+                    al.log_id,
+                    al.user_id,
+                    al.item_id,
+                    ci.item_name,
+                    al.actual_value,
+                    al.passed,
+                    al.notes,
+                    al.checked_at,
+                    ci.check_type,
+                    ci.check_frequency,
+                    ci.penalty_weight,
+                    CASE 
+                        WHEN (
+                            EXISTS (
+                                SELECT 1 FROM user_item_exceptions uie 
+                                WHERE uie.user_id = al.user_id 
+                                AND uie.item_id = al.item_id 
+                                AND uie.is_active = 1
+                                AND (uie.exclude_type = 'permanent' OR 
+                                    (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
+                            )
+                            OR EXISTS (
+                                SELECT 1 FROM user_extended_exceptions uee 
+                                WHERE uee.user_id = al.user_id 
+                                AND uee.item_id = CAST(al.item_id AS CHAR)
+                                AND uee.item_type = 'audit_item'
+                                AND uee.is_active = 1
+                                AND (uee.exclude_type = 'permanent' OR 
+                                    (uee.exclude_type = 'temporary' AND CURDATE() BETWEEN uee.start_date AND uee.end_date))
+                            )
+                            OR EXISTS (
+                                SELECT 1 FROM department_item_exceptions die 
+                                WHERE die.department = (SELECT department FROM users WHERE uid = al.user_id)
+                                AND die.item_id = al.item_id 
+                                AND die.is_active = 1
+                                AND (die.exclude_type = 'permanent' OR 
+                                    (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
+                            )
+                            OR EXISTS (
+                                SELECT 1 FROM department_extended_exceptions dee 
+                                WHERE dee.department = (SELECT department FROM users WHERE uid = al.user_id)
+                                AND dee.item_id = CAST(al.item_id AS CHAR)
+                                AND dee.item_type = 'audit_item'
+                                AND dee.is_active = 1
+                                AND (dee.exclude_type = 'permanent' OR 
+                                    (dee.exclude_type = 'temporary' AND CURDATE() BETWEEN dee.start_date AND dee.end_date))
+                            )
+                        ) THEN 1 ELSE 0 
+                    END as is_excluded,
+                    CASE 
+                        WHEN (
+                            EXISTS (
+                                SELECT 1 FROM user_item_exceptions uie 
+                                WHERE uie.user_id = al.user_id 
+                                AND uie.item_id = al.item_id 
+                                AND uie.is_active = 1
+                                AND (uie.exclude_type = 'permanent' OR 
+                                    (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
+                            )
+                            OR EXISTS (
+                                SELECT 1 FROM user_extended_exceptions uee 
+                                WHERE uee.user_id = al.user_id 
+                                AND uee.item_id = CAST(al.item_id AS CHAR)
+                                AND uee.item_type = 'audit_item'
+                                AND uee.is_active = 1
+                                AND (uee.exclude_type = 'permanent' OR 
+                                    (uee.exclude_type = 'temporary' AND CURDATE() BETWEEN uee.start_date AND uee.end_date))
+                            )
+                            OR EXISTS (
+                                SELECT 1 FROM department_item_exceptions die 
+                                WHERE die.department = (SELECT department FROM users WHERE uid = al.user_id)
+                                AND die.item_id = al.item_id 
+                                AND die.is_active = 1
+                                AND (die.exclude_type = 'permanent' OR 
+                                    (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
+                            )
+                            OR EXISTS (
+                                SELECT 1 FROM department_extended_exceptions dee 
+                                WHERE dee.department = (SELECT department FROM users WHERE uid = al.user_id)
+                                AND dee.item_id = CAST(al.item_id AS CHAR)
+                                AND dee.item_type = 'audit_item'
+                                AND dee.is_active = 1
+                                AND (dee.exclude_type = 'permanent' OR 
+                                    (dee.exclude_type = 'temporary' AND CURDATE() BETWEEN dee.start_date AND dee.end_date))
+                            )
+                        ) AND al.passed = 0 THEN 0
+                        WHEN al.passed = 0 THEN COALESCE(ci.penalty_weight, 0.5) 
+                        ELSE 0 
+                    END as penalty_applied
+                FROM audit_log al
+                LEFT JOIN checklist_items ci ON al.item_id = ci.item_id
+                WHERE al.user_id = %s AND ci.check_type = 'daily'
+                ORDER BY al.checked_at DESC
+                """, (user_id, ), fetch_all=True)
+
+            # logs가 None인 경우 빈 리스트 반환
+            if logs is None:
+                return []
+
+            # 결과 포맷팅
+            result = []
+            for log in logs:
+                try:
+                    # 날짜 포맷팅
+                    if isinstance(log["checked_at"], datetime):
+                        checked_at = log["checked_at"].strftime("%Y-%m-%d %H:%M:%S")
+                    else:
+                        checked_at = str(log["checked_at"]) if log["checked_at"] else ""
+
+                    # actual_value JSON 파싱
+                    actual_value = log["actual_value"]
+                    if isinstance(actual_value, str):
+                        try:
+                            actual_value = json.loads(actual_value)
+                        except (json.JSONDecodeError, TypeError):
+                            actual_value = {"raw_data": actual_value}
+                    elif actual_value is None:
+                        actual_value = {}
+
+                    result.append({
+                        "log_id": log["log_id"],
+                        "user_id": log["user_id"],
+                        "item_id": log["item_id"],
+                        "item_name": log["item_name"] or "",
+                        "actual_value": actual_value,
+                        "passed": log["passed"],
+                        "notes": log["notes"] or "",
+                        "checked_at": checked_at,
+                        "check_type": log["check_type"] or "daily",
+                        "check_frequency": log["check_frequency"] or "daily",
+                        "penalty_weight": float(log["penalty_weight"] or 0),
+                        "penalty_applied": float(log["penalty_applied"] or 0),
+                        "is_excluded": bool(log["is_excluded"])
+                    })
+                except Exception as row_error:
+                    print(f"[WARNING] 로그 행 처리 중 오류: {str(row_error)}")
+                    continue
+
+            return result
+
+        except Exception as e:
+            print(f"[ERROR] 매일 점검 로그 조회 오류: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return []  # None 대신 빈 리스트 반환
+
+    def get_checklist_items_hybrid(self, check_type: str = None) -> list:
+        """
+        체크리스트 항목 조회 (하이브리드 방식)
+        - 매일 점검(daily): checklist_items 테이블 사용
+        - 수시 점검(manual): manual_check_items 테이블 사용
+        - 전체(all): 두 테이블 모두 사용
+        """
+        try:
+            if check_type == 'daily':
+                # 매일 점검만 - 기존 checklist_items 테이블 사용
+                return execute_query(
+                    """
+                    SELECT item_id, category, item_name as name, description, check_type, check_frequency, penalty_weight
+                    FROM checklist_items
+                    WHERE check_type = 'daily'
+                    ORDER BY item_id ASC
+                    """, fetch_all=True)
+            elif check_type == 'manual':
+                # 수시 점검만 - manual_check_items 테이블 사용
+                return execute_query(
+                    """
+                    SELECT 
+                        item_id,
+                        item_category as category,
+                        item_name as name,
+                        description,
+                        'manual' as check_type,
+                        'periodic' as check_frequency,
+                        penalty_weight
+                    FROM manual_check_items
+                    WHERE is_active = 1
+                    ORDER BY item_category, item_name
+                    """, fetch_all=True)
+            else:
+                # 전체 - 두 테이블 모두 사용
+                daily_items = execute_query(
+                    """
+                    SELECT item_id, category, item_name as name, description, check_type, check_frequency, penalty_weight
+                    FROM checklist_items
+                    WHERE check_type = 'daily'
+                    ORDER BY item_id ASC
+                    """, fetch_all=True)
+
+                manual_items = execute_query(
+                    """
+                    SELECT 
+                        item_id,
+                        item_category as category,
+                        item_name as name,
+                        description,
+                        'manual' as check_type,
+                        'periodic' as check_frequency,
+                        penalty_weight
+                    FROM manual_check_items
+                    WHERE is_active = 1
+                    ORDER BY item_category, item_name
+                    """, fetch_all=True)
+
+                # 두 결과를 합치고 정렬
+                all_items = daily_items + manual_items
+                return sorted(all_items, key=lambda x:
+                              (x['check_type'], x.get('item_id', 0)))
+
+        except Exception as e:
+            print(f"[ERROR] 체크리스트 항목 조회 오류: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return ([])
+
+        return result
+
+    def _get_manual_logs_from_results_table(self, user_id: int) -> list:
+        """수시 점검 로그 조회 (manual_check_results 테이블에서) - 오류 처리 강화"""
+        try:
+            logs = execute_query(
+                """
+                SELECT 
+                    mcr.check_id as log_id,
+                    mcr.user_id,
+                    mci.item_id,
+                    mci.item_name,
+                    mcr.check_item_code,
+                    mcr.check_date as checked_at,
+                    CASE 
+                        WHEN mcr.overall_result = 'pass' THEN 1
+                        WHEN mcr.overall_result = 'fail' THEN 0
+                        ELSE NULL
+                    END as passed,
+                    mcr.notes,
+                    'manual' as check_type,
+                    'periodic' as check_frequency,
+                    COALESCE(mci.penalty_weight, 0.5) as penalty_weight,
+                    CASE 
+                        WHEN mcr.exclude_from_scoring = 1 THEN 0
+                        WHEN mcr.overall_result = 'fail' AND mcr.exclude_from_scoring = 0 THEN COALESCE(mci.penalty_weight, 0.5)
+                        ELSE 0
+                    END as penalty_applied,
+                    mcr.exclude_from_scoring as is_excluded,
+                    mcr.exclude_reason,
+                    -- 실제 값을 JSON 형태로 구성
+                    mcr.seal_status,
+                    mcr.seal_number,
+                    mcr.seal_notes,
+                    mcr.malware_scan_result,
+                    mcr.threats_found,
+                    mcr.threats_cleaned,
+                    mcr.antivirus_version,
+                    mcr.malware_notes,
+                    mcr.malware_name,
+                    mcr.malware_classification,
+                    mcr.malware_path,
+                    mcr.detection_item,
+                    mcr.encryption_status,
+                    mcr.files_scanned,
+                    mcr.unencrypted_files,
+                    mcr.encryption_completed,
+                    mcr.encryption_notes,
+                    mcr.round_number,
+                    mcr.ssn_included,
+                    mcr.total_score,
+                    mcr.penalty_points
+                FROM manual_check_results mcr
+                LEFT JOIN manual_check_items mci ON mcr.check_item_code = mci.item_code
+                WHERE mcr.user_id = %s
+                ORDER BY mcr.check_date DESC
+                """, (user_id, ), fetch_all=True)
+
+            # logs가 None인 경우 빈 리스트 반환
+            if logs is None:
+                return []
+
+            # 결과 포맷팅
+            result = []
+            for log in logs:
+                try:
+                    # 날짜 포맷팅
+                    if isinstance(log["checked_at"], datetime):
+                        checked_at = log["checked_at"].strftime("%Y-%m-%d %H:%M:%S")
+                    else:
+                        checked_at = str(log["checked_at"]) if log["checked_at"] else ""
+
+                    # actual_value JSON 객체 구성
+                    actual_value = {
+                        'seal_status': log["seal_status"],
+                        'seal_number': log["seal_number"],
+                        'seal_notes': log["seal_notes"],
+                        'malware_scan_result': log["malware_scan_result"],
+                        'threats_found': log["threats_found"],
+                        'threats_cleaned': log["threats_cleaned"],
+                        'antivirus_version': log["antivirus_version"],
+                        'malware_notes': log["malware_notes"],
+                        'malware_name': log["malware_name"],
+                        'malware_classification': log["malware_classification"],
+                        'malware_path': log["malware_path"],
+                        'detection_item': log["detection_item"],
+                        'encryption_status': log["encryption_status"],
+                        'files_scanned': log["files_scanned"],
+                        'unencrypted_files': log["unencrypted_files"],
+                        'encryption_completed': log["encryption_completed"],
+                        'encryption_notes': log["encryption_notes"],
+                        'round_number': log["round_number"],
+                        'ssn_included': log["ssn_included"],
+                        'total_score': log["total_score"],
+                        'penalty_points': log["penalty_points"]
+                    }
+
+                    # item_id가 None인 경우 기본값 설정
+                    item_id = log["item_id"] if log["item_id"] is not None else 0
+                    item_name = log["item_name"] if log[
+                        "item_name"] else f"수시 점검 - {log['check_item_code']}"
+
+                    result.append({
+                        "log_id": log["log_id"],
+                        "user_id": log["user_id"],
+                        "item_id": item_id,
+                        "item_name": item_name,
+                        "actual_value": actual_value,
+                        "passed": log["passed"],
+                        "notes": log["notes"] or "",
+                        "checked_at": checked_at,
+                        "check_type": log["check_type"],
+                        "check_frequency": log["check_frequency"],
+                        "penalty_weight": float(log["penalty_weight"] or 0.5),
+                        "penalty_applied": float(log["penalty_applied"] or 0),
+                        "is_excluded": bool(log["is_excluded"])
+                    })
+                except Exception as row_error:
+                    print(f"[WARNING] 수시 점검 로그 행 처리 중 오류: {str(row_error)}")
+                    continue
+
+            return result
+
+        except Exception as e:
+            print(f"[ERROR] 수시 점검 로그 조회 오류: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return []  # None 대신 빈 리스트 반환
+
+    def get_user_stats_hybrid(self, username: str, check_type: str = None) -> dict:
+        """
+        사용자별 보안 통계 데이터 조회 (하이브리드 방식)
+        - 매일 점검(daily): audit_log 테이블 사용
+        - 수시 점검(manual): manual_check_results 테이블 사용
+        - 전체(all): 두 테이블 모두 사용
+        """
+        try:
+            # 사용자 ID 조회
+            user = execute_query("SELECT uid FROM users WHERE user_id = %s",
+                                 (username, ), fetch_one=True)
+            if not user:
+                raise ValueError("사용자 정보를 찾을 수 없습니다.")
+
+            user_id = user["uid"]
+
+            if check_type == 'daily':
+                # 매일 점검만 - 기존 audit_log 테이블 사용
+                return self._get_daily_stats_from_audit_log(user_id)
+            elif check_type == 'manual':
+                # 수시 점검만 - manual_check_results 테이블 사용
+                return self._get_manual_stats_from_results_table(user_id)
+            else:
+                # 전체 - 두 테이블 모두 사용하여 통합 통계 생성
+                daily_stats = self._get_daily_stats_from_audit_log(user_id)
+                manual_stats = self._get_manual_stats_from_results_table(user_id)
+
+                # 통합 통계 계산
+                return {
+                    "totalChecks": daily_stats["totalChecks"] +
+                    manual_stats["totalChecks"],
+                    "activeChecks": daily_stats["activeChecks"] +
+                    manual_stats["activeChecks"],
+                    "completedChecks": daily_stats["completedChecks"] +
+                    manual_stats["completedChecks"],
+                    "criticalIssues": daily_stats["criticalIssues"] +
+                    manual_stats["criticalIssues"],
+                    "excludedItems": daily_stats["excludedItems"] +
+                    manual_stats["excludedItems"],
+                    "lastAuditDate": max(daily_stats["lastAuditDate"],
+                                         manual_stats["lastAuditDate"]) if
+                    daily_stats["lastAuditDate"] and manual_stats["lastAuditDate"] else
+                    (daily_stats["lastAuditDate"] or manual_stats["lastAuditDate"]),
+                    "totalPenalty": daily_stats["totalPenalty"] +
+                    manual_stats["totalPenalty"]
+                }
+
+        except Exception as e:
+            print(f"[ERROR] 통계 조회 오류: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "totalChecks": 0,
+                "activeChecks": 0,
+                "completedChecks": 0,
+                "criticalIssues": 0,
+                "excludedItems": 0,
+                "lastAuditDate": "",
+                "totalPenalty": 0.0
+            }
+
+    def _get_manual_stats_from_results_table(self, user_id: int) -> dict:
+        """수시 점검 통계 조회 (manual_check_results 테이블에서)"""
+        stats_data = execute_query(
+            """
+            SELECT 
+                COUNT(*) as total_checks,
+                COUNT(CASE WHEN mcr.overall_result = 'pass' AND mcr.exclude_from_scoring = 0 THEN 1 END) as completed_checks,
+                COUNT(CASE WHEN mcr.overall_result = 'fail' AND mcr.exclude_from_scoring = 0 THEN 1 END) as critical_issues,
+                COUNT(CASE WHEN mcr.exclude_from_scoring = 1 THEN 1 END) as excluded_items,
+                MAX(mcr.check_date) as last_audit_date,
+                SUM(CASE 
+                    WHEN mcr.overall_result = 'fail' AND mcr.exclude_from_scoring = 0 
+                    THEN COALESCE(mci.penalty_weight, 0.5)
+                    ELSE 0 
+                END) as total_penalty
+            FROM manual_check_results mcr
+            LEFT JOIN manual_check_items mci ON mcr.check_item_code = mci.item_code
+            WHERE mcr.user_id = %s
+            """, (user_id, ), fetch_one=True)
+
+        if not stats_data:
+            return {
+                "totalChecks": 0,
+                "activeChecks": 0,
+                "completedChecks": 0,
+                "criticalIssues": 0,
+                "excludedItems": 0,
+                "lastAuditDate": "",
+                "totalPenalty": 0.0
+            }
+
+        # 날짜 포맷팅
+        last_audit_date = ""
+        if stats_data["last_audit_date"]:
+            if isinstance(stats_data["last_audit_date"], datetime):
+                last_audit_date = stats_data["last_audit_date"].strftime(
+                    "%Y-%m-%d %H:%M:%S")
+            else:
+                last_audit_date = str(stats_data["last_audit_date"])
+
+        # 활성 점검 항목 수 (제외되지 않은 항목)
+        active_checks = stats_data["completed_checks"] + stats_data["critical_issues"]
+
+        return {
+            "totalChecks": stats_data["total_checks"],
+            "activeChecks": active_checks,
+            "completedChecks": stats_data["completed_checks"],
+            "criticalIssues": stats_data["critical_issues"],
+            "excludedItems": stats_data["excluded_items"],
+            "lastAuditDate": last_audit_date,
+            "totalPenalty": float(stats_data["total_penalty"] or 0)
+        }
+
+    def _get_daily_stats_from_audit_log(self, user_id: int) -> dict:
+        """매일 점검 통계 조회 (audit_log 테이블에서)"""
+        stats_data = execute_query(
+            """
+            SELECT 
+                COUNT(DISTINCT ci.item_id) as total_items,
+                COUNT(DISTINCT CASE 
+                    WHEN NOT (
+                        EXISTS (
+                            SELECT 1 FROM user_item_exceptions uie 
+                            WHERE uie.user_id = al.user_id 
+                            AND uie.item_id = al.item_id 
+                            AND uie.is_active = 1
+                            AND (uie.exclude_type = 'permanent' OR 
+                                (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM user_extended_exceptions uee 
+                            WHERE uee.user_id = al.user_id 
+                            AND uee.item_id = CAST(al.item_id AS CHAR)
+                            AND uee.item_type = 'audit_item'
+                            AND uee.is_active = 1
+                            AND (uee.exclude_type = 'permanent' OR 
+                                (uee.exclude_type = 'temporary' AND CURDATE() BETWEEN uee.start_date AND uee.end_date))
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM department_item_exceptions die 
+                            WHERE die.department = (SELECT department FROM users WHERE uid = al.user_id)
+                            AND die.item_id = al.item_id 
+                            AND die.is_active = 1
+                            AND (die.exclude_type = 'permanent' OR 
+                                (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM department_extended_exceptions dee 
+                            WHERE dee.department = (SELECT department FROM users WHERE uid = al.user_id)
+                            AND dee.item_id = CAST(al.item_id AS CHAR)
+                            AND dee.item_type = 'audit_item'
+                            AND dee.is_active = 1
+                            AND (dee.exclude_type = 'permanent' OR 
+                                (dee.exclude_type = 'temporary' AND CURDATE() BETWEEN dee.start_date AND dee.end_date))
+                        )
+                    ) AND al.passed = 1 THEN al.item_id 
+                END) as completed_checks,
+                COUNT(DISTINCT CASE 
+                    WHEN NOT (
+                        EXISTS (
+                            SELECT 1 FROM user_item_exceptions uie 
+                            WHERE uie.user_id = al.user_id 
+                            AND uie.item_id = al.item_id 
+                            AND uie.is_active = 1
+                            AND (uie.exclude_type = 'permanent' OR 
+                                (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM user_extended_exceptions uee 
+                            WHERE uee.user_id = al.user_id 
+                            AND uee.item_id = CAST(al.item_id AS CHAR)
+                            AND uee.item_type = 'audit_item'
+                            AND uee.is_active = 1
+                            AND (uee.exclude_type = 'permanent' OR 
+                                (uee.exclude_type = 'temporary' AND CURDATE() BETWEEN uee.start_date AND uee.end_date))
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM department_item_exceptions die 
+                            WHERE die.department = (SELECT department FROM users WHERE uid = al.user_id)
+                            AND die.item_id = al.item_id 
+                            AND die.is_active = 1
+                            AND (die.exclude_type = 'permanent' OR 
+                                (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM department_extended_exceptions dee 
+                            WHERE dee.department = (SELECT department FROM users WHERE uid = al.user_id)
+                            AND dee.item_id = CAST(al.item_id AS CHAR)
+                            AND dee.item_type = 'audit_item'
+                            AND dee.is_active = 1
+                            AND (dee.exclude_type = 'permanent' OR 
+                                (dee.exclude_type = 'temporary' AND CURDATE() BETWEEN dee.start_date AND dee.end_date))
+                        )
+                    ) AND al.passed = 0 THEN al.item_id 
+                END) as critical_issues,
+                COUNT(DISTINCT CASE 
+                    WHEN (
+                        EXISTS (
+                            SELECT 1 FROM user_item_exceptions uie 
+                            WHERE uie.user_id = al.user_id 
+                            AND uie.item_id = al.item_id 
+                            AND uie.is_active = 1
+                            AND (uie.exclude_type = 'permanent' OR 
+                                (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM user_extended_exceptions uee 
+                            WHERE uee.user_id = al.user_id 
+                            AND uee.item_id = CAST(al.item_id AS CHAR)
+                            AND uee.item_type = 'audit_item'
+                            AND uee.is_active = 1
+                            AND (uee.exclude_type = 'permanent' OR 
+                                (uee.exclude_type = 'temporary' AND CURDATE() BETWEEN uee.start_date AND uee.end_date))
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM department_item_exceptions die 
+                            WHERE die.department = (SELECT department FROM users WHERE uid = al.user_id)
+                            AND die.item_id = al.item_id 
+                            AND die.is_active = 1
+                            AND (die.exclude_type = 'permanent' OR 
+                                (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM department_extended_exceptions dee 
+                            WHERE dee.department = (SELECT department FROM users WHERE uid = al.user_id)
+                            AND dee.item_id = CAST(al.item_id AS CHAR)
+                            AND dee.item_type = 'audit_item'
+                            AND dee.is_active = 1
+                            AND (dee.exclude_type = 'permanent' OR 
+                                (dee.exclude_type = 'temporary' AND CURDATE() BETWEEN dee.start_date AND dee.end_date))
+                        )
+                    ) THEN al.item_id 
+                END) as excluded_items,
+                MAX(al.checked_at) as last_audit_date,
+                SUM(CASE 
+                    WHEN NOT (
+                        EXISTS (
+                            SELECT 1 FROM user_item_exceptions uie 
+                            WHERE uie.user_id = al.user_id 
+                            AND uie.item_id = al.item_id 
+                            AND uie.is_active = 1
+                            AND (uie.exclude_type = 'permanent' OR 
+                                (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM user_extended_exceptions uee 
+                            WHERE uee.user_id = al.user_id 
+                            AND uee.item_id = CAST(al.item_id AS CHAR)
+                            AND uee.item_type = 'audit_item'
+                            AND uee.is_active = 1
+                            AND (uee.exclude_type = 'permanent' OR 
+                                (uee.exclude_type = 'temporary' AND CURDATE() BETWEEN uee.start_date AND uee.end_date))
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM department_item_exceptions die 
+                            WHERE die.department = (SELECT department FROM users WHERE uid = al.user_id)
+                            AND die.item_id = al.item_id 
+                            AND die.is_active = 1
+                            AND (die.exclude_type = 'permanent' OR 
+                                (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM department_extended_exceptions dee 
+                            WHERE dee.department = (SELECT department FROM users WHERE uid = al.user_id)
+                            AND dee.item_id = CAST(al.item_id AS CHAR)
+                            AND dee.item_type = 'audit_item'
+                            AND dee.is_active = 1
+                            AND (dee.exclude_type = 'permanent' OR 
+                                (dee.exclude_type = 'temporary' AND CURDATE() BETWEEN dee.start_date AND dee.end_date))
+                        )
+                    ) AND al.passed = 0 THEN COALESCE(ci.penalty_weight, 0.5) 
+                    ELSE 0 
+                END) as total_penalty
+            FROM audit_log al
+            INNER JOIN (
+                SELECT item_id, MAX(checked_at) as max_checked_at
+                FROM audit_log 
+                WHERE user_id = %s
+                GROUP BY item_id
+            ) latest ON al.item_id = latest.item_id AND al.checked_at = latest.max_checked_at
+            INNER JOIN checklist_items ci ON al.item_id = ci.item_id
+            WHERE al.user_id = %s AND ci.check_type = 'daily'
+            """, (user_id, user_id), fetch_one=True)
+
+        if not stats_data:
+            return {
+                "totalChecks": 0,
+                "activeChecks": 0,
+                "completedChecks": 0,
+                "criticalIssues": 0,
+                "excludedItems": 0,
+                "lastAuditDate": "",
+                "totalPenalty": 0.0
+            }
+
+        # 날짜 포맷팅
+        last_audit_date = ""
+        if stats_data["last_audit_date"]:
+            if isinstance(stats_data["last_audit_date"], datetime):
+                last_audit_date = stats_data["last_audit_date"].strftime(
+                    "%Y-%m-%d %H:%M:%S")
+            else:
+                last_audit_date = str(stats_data["last_audit_date"])
+
+        # 활성 점검 항목 수 (제외되지 않은 항목)
+        active_checks = stats_data["completed_checks"] + stats_data["critical_issues"]
+
+        return {
+            "totalChecks": stats_data["total_items"],
+            "activeChecks": active_checks,
+            "completedChecks": stats_data["completed_checks"],
+            "criticalIssues": stats_data["critical_issues"],
+            "excludedItems": stats_data["excluded_items"],
+            "lastAuditDate": last_audit_date,
+            "totalPenalty": float(stats_data["total_penalty"] or 0)
         }
