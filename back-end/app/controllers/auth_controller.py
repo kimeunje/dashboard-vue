@@ -19,7 +19,7 @@ def check_ip_authentication():
 
     # IP 기반 인증
     result = auth_service.authenticate_by_ip(client_ip)
-
+    print(result)
     if result["success"]:
         return jsonify({
             "success": True,

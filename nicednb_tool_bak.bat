@@ -36,12 +36,7 @@ set "GREEN=PowerShell -Command Write-Host -ForegroundColor Green"
 set "RED=PowerShell -Command Write-Host -ForegroundColor Red"
 set "YELLOW=PowerShell -Command Write-Host -ForegroundColor DarkYellow"
 
-rem @REM 사용자 환경변수 제거
-REG delete HKCU\Environment /F /V nicednb_audit_user_id >nul 2>&1
-REG delete HKCU\Environment /F /V NICEDNB_USER >nul 2>&1
-del "%LOG_DIR%\security.inf" > nul 2>&1
-
-call :get_user_by_ip
+set USER="김은제"
 
 :: 로그 디렉토리 설정
 set "LOG_DIR=%TEMP%\security_audit"
@@ -53,68 +48,20 @@ if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
     call :authenticate_user "사용자 검증" "INFO"
     
     @REM 이제 각 검사는 순서대로 실행 (실패해도 계속 진행)
+    call :autorun_check "자동 실행 검사" "INFO"
     call :ahnlab_antivirus_check "안랩 검증" "INFO"
+    call :firewall_check "방화벽 설정 검사" "INFO"
     call :screen_saver_check "화면 보호기 검사" "INFO"
+    call :user_name_check "윈도우 계정 이름 검사" "INFO"
+    call :user_account_list_check "윈도우 계정 목록 검사" "INFO"
     call :user_password_check "윈도우 계정 암호 검사" "INFO"
     call :share_folder_check "공유 폴더 검사" "INFO"
     call :remote_computer_check "원격 설정 검사" "INFO"
     
     rem @REM 사용자 환경변수 제거
     REG delete HKCU\Environment /F /V nicednb_audit_user_id >nul 2>&1
-    REG delete HKCU\Environment /F /V NICEDNB_USER >nul 2>&1
-    del "%LOG_DIR%\security.inf" > nul 2>&1
 
     %GREEN% "모든 보안 검사가 완료되었습니다."
-    exit /b
-
-
-:: === IP 기반 사용자 설정 함수 ===
-:get_user_by_ip
-    call :log_message "IP 기반 사용자 정보 조회 시작" "INFO"
-
-    powershell -Command ^
-        "try { " ^
-            "$response = (Invoke-RestMethod " ^
-                "-Method GET " ^
-                "-Uri '%SERVER_URL%/api/auth/ip-info' " ^
-                "-ContentType 'application/json; charset=utf-8'); " ^
-            "$clientIp = $response.client_ip; " ^
-            "$ipCheckBody = @{ } | ConvertTo-Json; " ^
-            "$ipResponse = (Invoke-RestMethod " ^
-                "-Method Post " ^
-                "-Uri '%SERVER_URL%/api/auth/check-ip' " ^
-                "-Body $ipCheckBody " ^
-                "-ContentType 'application/json; charset=utf-8'); " ^
-            "if ($ipResponse.success) { " ^
-                "$username = $ipResponse.name; " ^
-                "Set-ItemProperty " ^
-                    "-Path 'HKCU:\Environment' " ^
-                    "-Name 'NICEDNB_USER' " ^
-                    "-Value $username " ^
-                    "-Type String " ^
-                    "-Force; " ^
-            "} else { " ^
-                "Set-ItemProperty " ^
-                    "-Path 'HKCU:\Environment' " ^
-                    "-Name 'NICEDNB_USER' " ^
-                    "-Value '기본사용자' " ^
-                    "-Type String " ^
-                    "-Force; " ^
-            "}; " ^
-        "} catch { " ^
-            "exit 1; " ^
-        "};"
-
-    :: 환경변수에서 사용자명 읽어오기
-    for /f "tokens=2*" %%i in ('reg query "HKCU\Environment" /v NICEDNB_USER 2^>nul') do (
-        set "USER=%%j"
-    )
-
-    if not defined USER (
-        call :log_message "사용자 설정 실패. 기본 사용자를 사용합니다." "FAIL"
-    ) else (
-        call :log_message "사용자 설정 완료: %USER%" "PASS"
-    )
     exit /b
 
 :: === 로그 함수 ===
@@ -196,6 +143,63 @@ if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
             "Write-Host '화면 보호기 검사 완료' -ForegroundColor Green; " ^
         "} catch { " ^
             "Write-Host '화면 보호기 검사 실패 - 네트워크 오류' -ForegroundColor Red; " ^
+        "};"
+    exit /b
+
+:: === 2. 계정 이름 점검 ===
+:user_name_check
+    call :log_message "윈도우 계정 이름 검사 시작" "INFO"
+    
+    powershell -Command ^
+        "Write-Host '윈도우 계정 이름 검사 진행 중...'; " ^
+        "$userId = (Get-ItemProperty -Path 'HKCU:\Environment' -ErrorAction SilentlyContinue).nicednb_audit_user_id; " ^
+        "$packages = @{ " ^
+            "user_id = $userId; " ^
+            "item_type = '사용자 계정명의 적정성'; " ^
+            "actual_value = @{ " ^
+                "user_name = @((Get-LocalUser -ErrorAction SilentlyContinue | Where-Object { $_.Enabled -eq $true }).Name); " ^
+                "workgroup = (Get-WmiObject Win32_ComputerSystem -ErrorAction SilentlyContinue).Workgroup; " ^
+                "computer_name = (Get-WmiObject Win32_ComputerSystem -ErrorAction SilentlyContinue).Name; " ^
+            "}; " ^
+        "}; " ^
+        "$body = ConvertTo-Json $packages -Depth 3; " ^
+        "try { " ^
+            "$response = (Invoke-RestMethod " ^
+                "-Method Post " ^
+                "-Uri '%SERVER_URL%/api/security-audit/validate_check' " ^
+                "-Body $body " ^
+                "-ContentType 'application/json; charset=utf-8'); " ^
+            "Write-Host '윈도우 계정 이름 검사 완료' -ForegroundColor Green; " ^
+        "} catch { " ^
+            "Write-Host '윈도우 계정 이름 검사 실패 - 네트워크 오류' -ForegroundColor Red; " ^
+        "};"
+    exit /b
+
+:: === 3. 계정 목록 점검 ===
+:user_account_list_check
+    call :log_message "윈도우 계정 목록 검사 시작" "INFO"
+    
+    powershell -Command ^
+        "Write-Host '윈도우 계정 목록 검사 진행 중...'; " ^
+        "$userId = (Get-ItemProperty -Path 'HKCU:\Environment' -ErrorAction SilentlyContinue).nicednb_audit_user_id; " ^
+        "$packages = @{ " ^
+            "user_id = $userId; " ^
+            "item_type = '불필요한 계정 사용'; " ^
+            "actual_value = @{ " ^
+                "user_name = @((Get-LocalUser -ErrorAction SilentlyContinue | Where-Object { $_.Enabled -eq $true }).Name); " ^
+                "accounts = @((Get-WmiObject -Class Win32_UserAccount -ErrorAction SilentlyContinue).Name); " ^
+            "}; " ^
+        "}; " ^
+        "$body = ConvertTo-Json $packages -Depth 3; " ^
+        "try { " ^
+            "$response = (Invoke-RestMethod " ^
+                "-Method Post " ^
+                "-Uri '%SERVER_URL%/api/security-audit/validate_check' " ^
+                "-Body $body " ^
+                "-ContentType 'application/json; charset=utf-8'); " ^
+            "Write-Host '윈도우 계정 목록 검사 완료' -ForegroundColor Green; " ^
+        "} catch { " ^
+            "Write-Host '윈도우 계정 목록 검사 실패 - 네트워크 오류' -ForegroundColor Red; " ^
         "};"
     exit /b
 
@@ -305,6 +309,72 @@ if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
             "Write-Host '원격 설정 검사 완료' -ForegroundColor Green; " ^
         "} catch { " ^
             "Write-Host '원격 설정 검사 실패 - 네트워크 오류' -ForegroundColor Red; " ^
+        "};"
+    exit /b
+
+:: === 7. 방화벽 점검 ===
+:firewall_check
+    call :log_message "방화벽 설정 검사 시작" "INFO"
+    
+    powershell -Command ^
+        "Write-Host '방화벽 설정 검사 진행 중...'; " ^
+        "$userId = (Get-ItemProperty -Path 'HKCU:\Environment' -ErrorAction SilentlyContinue).nicednb_audit_user_id; " ^
+        "$packages = @{ " ^
+            "user_id = $userId; " ^
+            "item_type = '방화벽 활성화 확인'; " ^
+            "actual_value = @{ " ^
+                "Domain = (Get-NetFirewallProfile -Name Domain -ErrorAction SilentlyContinue).Enabled; " ^
+                "Private = (Get-NetFirewallProfile -Name Private -ErrorAction SilentlyContinue).Enabled; " ^
+                "Public = (Get-NetFirewallProfile -Name Public -ErrorAction SilentlyContinue).Enabled; " ^
+            "}; " ^
+        "}; " ^
+        "$body = ConvertTo-Json $packages -Depth 3; " ^
+        "try { " ^
+            "$response = (Invoke-RestMethod " ^
+                "-Method Post " ^
+                "-Uri '%SERVER_URL%/api/security-audit/validate_check' " ^
+                "-Body $body " ^
+                "-ContentType 'application/json; charset=utf-8'); " ^
+            "Write-Host '방화벽 설정 검사 완료' -ForegroundColor Green; " ^
+        "} catch { " ^
+            "Write-Host '방화벽 설정 검사 실패 - 네트워크 오류' -ForegroundColor Red; " ^
+        "};"
+    exit /b
+
+:: === 8. 자동실행 제한 점검 ===
+:autorun_check
+    call :log_message "이동매체 자동실행 제한 검사 시작" "INFO"
+    
+    powershell -Command ^
+        "Write-Host '이동매체 자동실행 제한 검사 진행 중...'; " ^
+        "$userId = (Get-ItemProperty -Path 'HKCU:\Environment' -ErrorAction SilentlyContinue).nicednb_audit_user_id; " ^
+        "$regPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'; " ^
+        "$actualValue = if (Test-Path $regPath) { " ^
+            "$nodrivetype = Get-ItemProperty -Path $regPath -Name 'NoDriveTypeAutoRun' -ErrorAction SilentlyContinue; " ^
+            "if ($nodrivetype) { " ^
+                "$status = if ($nodrivetype.NoDriveTypeAutoRun -ge 255 -or $nodrivetype.NoDriveTypeAutoRun -eq 95) { '제한됨' } else { '제한되지 않음' }; " ^
+                "@{ Setting = 'NoDriveTypeAutoRun'; Value = $nodrivetype.NoDriveTypeAutoRun; Status = $status }; " ^
+            "} else { " ^
+                "@{ Setting = 'NoDriveTypeAutoRun'; Value = 'NotFound'; Status = '제한되지 않음' }; " ^
+            "} " ^
+        "} else { " ^
+            "@{ Setting = 'NoDriveTypeAutoRun'; Value = 'NotFound'; Status = '제한되지 않음' }; " ^
+        "}; " ^
+        "$packages = @{ " ^
+            "user_id = $userId; " ^
+            "item_type = '이동매체 자동실행 제한'; " ^
+            "actual_value = $actualValue; " ^
+        "}; " ^
+        "$body = ConvertTo-Json $packages -Depth 3; " ^
+        "try { " ^
+            "$response = (Invoke-RestMethod " ^
+                "-Method Post " ^
+                "-Uri '%SERVER_URL%/api/security-audit/validate_check' " ^
+                "-Body $body " ^
+                "-ContentType 'application/json; charset=utf-8'); " ^
+            "Write-Host '이동매체 자동실행 제한 검사 완료' -ForegroundColor Green; " ^
+        "} catch { " ^
+            "Write-Host '이동매체 자동실행 제한 검사 실패 - 네트워크 오류' -ForegroundColor Red; " ^
         "};"
     exit /b
 
