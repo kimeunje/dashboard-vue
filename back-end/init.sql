@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `audit_log` (
   KEY `idx_audit_log_user_item_date` (`user_id`,`item_id`,`checked_at`),
   CONSTRAINT `fk_audit_log_item` FOREIGN KEY (`item_id`) REFERENCES `checklist_items` (`item_id`),
   CONSTRAINT `fk_audit_log_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=53 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='보안 감사 로그';
+) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='보안 감사 로그';
 
 -- 테이블 데이터 patch_management.audit_log:~8 rows (대략적) 내보내기
 DELETE FROM `audit_log`;
@@ -162,8 +162,7 @@ CREATE TABLE IF NOT EXISTS `department_item_exceptions` (
   KEY `idx_department` (`department`),
   KEY `idx_item_id_dept` (`item_id`),
   KEY `idx_active_dept` (`is_active`),
-  KEY `idx_dept_exceptions_type` (`department`,`item_type`,`is_active`),
-  CONSTRAINT `fk_dept_exception_item` FOREIGN KEY (`item_id`) REFERENCES `checklist_items` (`item_id`) ON DELETE CASCADE
+  KEY `idx_dept_exceptions_type` (`department`,`item_type`,`is_active`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='부서별 감사 항목 제외 설정';
 
 -- 테이블 데이터 patch_management.department_item_exceptions:~0 rows (대략적) 내보내기
@@ -182,14 +181,14 @@ CREATE TABLE IF NOT EXISTS `manual_check_items` (
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`item_id`),
   UNIQUE KEY `uk_item_code` (`item_code`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 항목';
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 항목';
 
 -- 테이블 데이터 patch_management.manual_check_items:~3 rows (대략적) 내보내기
 DELETE FROM `manual_check_items`;
 INSERT INTO `manual_check_items` (`item_id`, `item_code`, `item_name`, `item_category`, `description`, `penalty_weight`, `is_active`, `created_at`) VALUES
-	(1, 'seal_check', 'PC 봉인씰 확인', '물리보안', 'PC 봉인씰 상태 점검', 0.5, 1, '2025-06-11 00:33:57'),
-	(2, 'malware_scan', '악성코드 전체 검사', '악성코드', '전체 시스템 악성코드 검사', 0.5, 1, '2025-06-11 00:33:57'),
-	(3, 'file_encryption', '개인정보 파일 암호화', '개인정보보호', '개인정보 파일 암호화 적용 여부', 0.5, 1, '2025-06-11 00:33:57');
+	(9, 'seal_check', 'PC 봉인씰 확인', '물리보안', 'PC 봉인씰 상태 점검', 0.5, 1, '2025-06-11 00:33:57'),
+	(10, 'malware_scan', '악성코드 전체 검사', '악성코드', '전체 시스템 악성코드 검사', 0.5, 1, '2025-06-11 00:33:57'),
+	(11, 'file_encryption', '개인정보 파일 암호화', '개인정보보호', '개인정보 파일 암호화 적용 여부', 0.5, 1, '2025-06-11 00:33:57');
 
 -- 테이블 patch_management.manual_check_periods 구조 내보내기
 DROP TABLE IF EXISTS `manual_check_periods`;
@@ -275,23 +274,14 @@ CREATE TABLE IF NOT EXISTS `manual_check_results` (
   KEY `idx_check_type_result` (`check_item_code`,`overall_result`),
   CONSTRAINT `manual_check_results_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`),
   CONSTRAINT `manual_check_results_ibfk_2` FOREIGN KEY (`period_id`) REFERENCES `manual_check_periods` (`period_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=404 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 결과';
+) ENGINE=InnoDB AUTO_INCREMENT=407 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 결과';
 
--- 테이블 데이터 patch_management.manual_check_results:~12 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.manual_check_results:~3 rows (대략적) 내보내기
 DELETE FROM `manual_check_results`;
 INSERT INTO `manual_check_results` (`check_id`, `user_id`, `check_item_code`, `source_ip`, `check_year`, `check_period`, `check_date`, `checker_name`, `seal_status`, `seal_number`, `seal_notes`, `malware_scan_result`, `threats_found`, `threats_cleaned`, `antivirus_version`, `malware_notes`, `malware_name`, `malware_classification`, `malware_path`, `detection_item`, `encryption_status`, `files_scanned`, `unencrypted_files`, `encryption_completed`, `encryption_notes`, `round_number`, `ssn_included`, `overall_result`, `total_score`, `penalty_points`, `notes`, `exclude_from_scoring`, `exclude_reason`, `created_at`, `updated_at`, `period_id`) VALUES
-	(368, 4, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-15 00:26:22', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-14 15:26:22', '2025-06-14 15:26:22', 16),
-	(369, 3, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-15 00:26:22', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'fully_encrypted', 0, 0, 1, NULL, NULL, 0, 'pass', 100.00, 0.00, '검증 결과: 159회차: 0건 - 159회차 0건으로 최종 통과', 0, NULL, '2025-06-14 15:26:22', '2025-06-14 15:28:21', 16),
-	(370, 1, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-15 00:26:22', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'not_encrypted', 0, 8, 0, NULL, NULL, 1, 'fail', 100.00, 0.00, '검증 결과: 159회차: 1건, 158회차: 3건, 157회차: 4건 - 모든 회차에서 주민등록번호 발견으로 실패', 0, NULL, '2025-06-14 15:26:22', '2025-06-14 15:28:21', 16),
-	(371, 5, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-15 00:26:22', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-14 15:26:22', '2025-06-14 15:26:22', 16),
-	(372, 2, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-15 00:26:22', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'not_encrypted', 0, 1, 0, NULL, NULL, 1, 'fail', 100.00, 0.00, '검증 결과: 159회차: 미확인(-) - 최신 회차(159회차)에서 주민등록번호 확인 불가로 실패', 0, NULL, '2025-06-14 15:26:22', '2025-06-14 15:28:21', 16),
-	(378, 5, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-15 00:26:54', '자동완료', 'damaged', NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'fail', 100.00, 0.00, 'PC 봉인씰 확인: 훼손', 0, NULL, '2025-06-14 15:26:54', '2025-06-14 15:28:53', 15),
-	(389, 2, 'seal_check', NULL, 2025, 'first_half', '2025-06-01 00:00:00', 'admin', 'damaged', NULL, '봉인씰 상태: 훼손', NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'fail', 0.00, 0.00, 'PC 봉인씰 확인: 훼손', 0, NULL, '2025-06-14 15:28:53', '2025-06-14 15:28:53', NULL),
-	(397, 4, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-15 00:30:16', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-14 15:30:16', '2025-06-14 15:30:16', 17),
-	(398, 3, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-15 00:30:16', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-14 15:30:16', '2025-06-14 15:30:16', 17),
-	(399, 1, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-15 00:30:16', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-14 15:30:16', '2025-06-14 15:30:16', 17),
-	(400, 5, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-15 00:30:16', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-14 15:30:16', '2025-06-14 15:30:16', 17),
-	(401, 2, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-15 00:30:16', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-14 15:30:16', '2025-06-14 15:30:16', 17);
+	(404, 1, 'seal_check', NULL, 2025, '42342', '2025-05-11 00:00:00', 'admin', 'damaged', NULL, '봉인씰 상태: 훼손', NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, 'PC 봉인씰 확인: 훼손', 0, NULL, '2025-06-15 14:04:12', '2025-06-15 14:04:12', 17),
+	(405, 2, 'seal_check', NULL, 2025, '42342', '2025-05-21 00:00:00', 'admin', 'damaged', NULL, '봉인씰 상태: 훼손', NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, 'PC 봉인씰 확인: 훼손', 0, NULL, '2025-06-15 14:04:12', '2025-06-15 14:04:12', 17),
+	(406, 5, 'seal_check', NULL, 2025, '42342', '2025-06-15 00:00:00', 'admin', 'damaged', NULL, '봉인씰 상태: 훼손', NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, 'PC 봉인씰 확인: 훼손', 0, NULL, '2025-06-15 14:04:12', '2025-06-15 14:04:12', 17);
 
 -- 테이블 patch_management.phishing_training 구조 내보내기
 DROP TABLE IF EXISTS `phishing_training`;
@@ -542,12 +532,14 @@ CREATE TABLE IF NOT EXISTS `user_item_exceptions` (
   KEY `idx_item_id` (`item_id`),
   KEY `idx_active` (`is_active`),
   KEY `idx_user_exceptions_type` (`user_id`,`item_type`,`is_active`),
-  CONSTRAINT `fk_exception_item` FOREIGN KEY (`item_id`) REFERENCES `checklist_items` (`item_id`) ON DELETE CASCADE,
   CONSTRAINT `fk_exception_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 감사 항목 제외 설정';
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 감사 항목 제외 설정';
 
--- 테이블 데이터 patch_management.user_item_exceptions:~0 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.user_item_exceptions:~2 rows (대략적) 내보내기
 DELETE FROM `user_item_exceptions`;
+INSERT INTO `user_item_exceptions` (`exception_id`, `user_id`, `item_id`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`, `item_type`, `item_name`, `item_category`) VALUES
+	(19, 5, 9, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:03:27', '2025-06-15 14:03:27', 1, 'manual', 'PC 봉인씰 확인', '물리보안'),
+	(20, 5, 6, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:03:49', '2025-06-15 14:03:49', 1, 'audit', '동일 패스워드 설정 제한', '접근통제');
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
