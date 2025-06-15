@@ -1504,21 +1504,41 @@ class ExceptionService:
             }
 
     def remove_user_exception(self, user_id: int, item_type: str) -> Dict:
-        """사용자별 제외 설정 제거 (확장된 버전)"""
+        """사용자별 제외 설정 제거 (수정된 버전)"""
         try:
-            if item_type.startswith("audit_"):
-                # 감사 항목 제외 설정 제거
-                item_id = int(item_type.replace("audit_", ""))
+            print(
+                f"[DEBUG] remove_user_exception 호출 - user_id: {user_id}, item_type: {item_type}, type: {type(item_type)}"
+            )
+
+            # item_type이 숫자인지 확인 (감사 항목)
+            if item_type.isdigit():
+                # 숫자 item_type은 감사 항목으로 처리
+                item_id = int(item_type)
+                print(f"[DEBUG] 감사 항목 처리 (숫자) - item_id: {item_id}")
                 result = execute_query(
                     "UPDATE user_item_exceptions SET is_active = 0 WHERE user_id = %s AND item_id = %s",
                     (user_id, item_id),
                 )
+                print(f"[DEBUG] user_item_exceptions 업데이트 결과: {result}")
+            elif item_type.startswith("audit_"):
+                # audit_ 접두사가 있는 감사 항목
+                item_id = int(item_type.replace("audit_", ""))
+                print(f"[DEBUG] 감사 항목 처리 (audit_ 접두사) - item_id: {item_id}")
+                result = execute_query(
+                    "UPDATE user_item_exceptions SET is_active = 0 WHERE user_id = %s AND item_id = %s",
+                    (user_id, item_id),
+                )
+                print(f"[DEBUG] user_item_exceptions 업데이트 결과: {result}")
             else:
                 # 교육/훈련 항목 제외 설정 제거
+                print(f"[DEBUG] 교육/훈련 항목 처리 - item_type: {item_type}")
                 result = execute_query(
                     "UPDATE user_extended_exceptions SET is_active = 0 WHERE user_id = %s AND item_id = %s",
                     (user_id, item_type),
                 )
+                print(f"[DEBUG] user_extended_exceptions 업데이트 결과: {result}")
+
+            print(f"[DEBUG] 최종 결과: {result}")
 
             if result > 0:
                 return {"success": True, "message": "제외 설정이 비활성화되었습니다."}
@@ -1529,24 +1549,44 @@ class ExceptionService:
                 }
 
         except Exception as e:
+            print(f"[ERROR] 제외 설정 제거 중 예외 발생: {str(e)}")
             return {"success": False, "message": f"제외 설정 제거 실패: {str(e)}"}
 
     def remove_department_exception(self, department: str, item_type: str) -> Dict:
-        """부서별 제외 설정 제거 (확장된 버전)"""
+        """부서별 제외 설정 제거 (수정된 버전)"""
         try:
-            if item_type.startswith("audit_"):
-                # 감사 항목 제외 설정 제거
+            print(
+                f"[DEBUG] remove_department_exception 호출 - department: {department}, item_type: {item_type}"
+            )
+
+            # item_type이 숫자인지 확인 (감사 항목)
+            if item_type.isdigit():
+                # 숫자 item_type은 감사 항목으로 처리
+                item_id = int(item_type)
+                print(f"[DEBUG] 부서별 감사 항목 처리 (숫자) - item_id: {item_id}")
+                result = execute_query(
+                    "UPDATE department_item_exceptions SET is_active = 0 WHERE department = %s AND item_id = %s",
+                    (department, item_id),
+                )
+            elif item_type.startswith("audit_"):
+                # audit_ 접두사가 있는 감사 항목
                 item_id = int(item_type.replace("audit_", ""))
+                print(
+                    f"[DEBUG] 부서별 감사 항목 처리 (audit_ 접두사) - item_id: {item_id}"
+                )
                 result = execute_query(
                     "UPDATE department_item_exceptions SET is_active = 0 WHERE department = %s AND item_id = %s",
                     (department, item_id),
                 )
             else:
                 # 교육/훈련 항목 제외 설정 제거
+                print(f"[DEBUG] 부서별 교육/훈련 항목 처리 - item_type: {item_type}")
                 result = execute_query(
                     "UPDATE department_extended_exceptions SET is_active = 0 WHERE department = %s AND item_id = %s",
                     (department, item_type),
                 )
+
+            print(f"[DEBUG] 부서별 제외 설정 제거 결과: {result}")
 
             if result > 0:
                 return {
@@ -1560,6 +1600,7 @@ class ExceptionService:
                 }
 
         except Exception as e:
+            print(f"[ERROR] 부서별 제외 설정 제거 중 예외 발생: {str(e)}")
             return {
                 "success": False,
                 "message": f"부서별 제외 설정 제거 실패: {str(e)}",
