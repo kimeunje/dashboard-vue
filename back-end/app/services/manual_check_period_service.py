@@ -97,21 +97,135 @@ class ManualCheckPeriodService:
 
         return result
 
-    def create_period(self, period_data: dict) -> dict:
-        """기간 생성 (auto_pass_setting 필드 제거)"""
+
+    def check_period_overlap(self, check_type: str, start_date, end_date, exclude_period_id=None) -> dict:
+        """
+        기간 겹침 검사 - 같은 점검 유형에서 날짜 범위가 겹치는 기간이 있는지 확인
+        
+        Args:
+            check_type: 점검 유형 (file_encryption, seal_check, malware_scan)
+            start_date: 시작일 (datetime.date 또는 str)
+            end_date: 종료일 (datetime.date 또는 str)
+            exclude_period_id: 수정 시 제외할 기간 ID (선택사항)
+        
+        Returns:
+            dict: {
+                'has_overlap': bool,
+                'overlapping_periods': list,
+                'message': str
+            }
+        """
         try:
-            # 중복 체크
+            from datetime import datetime
+            
+            # 날짜 타입 변환
+            if isinstance(start_date, str):
+                start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            if isinstance(end_date, str):
+                end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            
+            # 기본 쿼리 - 같은 점검 유형의 활성 기간들 조회
+            query = """
+                SELECT period_id, period_name, start_date, end_date, period_year
+                FROM manual_check_periods 
+                WHERE check_type = %s 
+                AND is_active = 1
+            """
+            params = [check_type]
+            
+            # 수정 시 현재 기간 제외
+            if exclude_period_id:
+                query += " AND period_id != %s"
+                params.append(exclude_period_id)
+            
+            existing_periods = execute_query(query, params, fetch_all=True)
+            
+            overlapping_periods = []
+            
+            for period in existing_periods:
+                existing_start = period['start_date']
+                existing_end = period['end_date']
+                
+                # 날짜 겹침 검사 로직
+                # 경우 1: 새 기간의 시작일이 기존 기간 내에 있는 경우
+                # 경우 2: 새 기간의 종료일이 기존 기간 내에 있는 경우  
+                # 경우 3: 새 기간이 기존 기간을 완전히 포함하는 경우
+                # 경우 4: 기존 기간이 새 기간을 완전히 포함하는 경우
+                
+                if (
+                    # 새 시작일이 기존 기간 내
+                    (existing_start <= start_date <= existing_end) or
+                    # 새 종료일이 기존 기간 내  
+                    (existing_start <= end_date <= existing_end) or
+                    # 새 기간이 기존 기간을 포함
+                    (start_date <= existing_start and end_date >= existing_end) or
+                    # 기존 기간이 새 기간을 포함
+                    (existing_start <= start_date and existing_end >= end_date)
+                ):
+                    overlapping_periods.append({
+                        'period_id': period['period_id'],
+                        'period_name': period['period_name'],
+                        'start_date': existing_start.strftime("%Y-%m-%d"),
+                        'end_date': existing_end.strftime("%Y-%m-%d"),
+                        'period_year': period['period_year']
+                    })
+            
+            has_overlap = len(overlapping_periods) > 0
+            
+            if has_overlap:
+                # 겹치는 기간들의 정보를 포함한 메시지 생성
+                overlap_info = []
+                for period in overlapping_periods:
+                    overlap_info.append(f"{period['period_year']}년 {period['period_name']} ({period['start_date']} ~ {period['end_date']})")
+                
+                message = f"다음 기간과 겹칩니다: {', '.join(overlap_info)}"
+            else:
+                message = "기간 겹침 없음"
+            
+            return {
+                'has_overlap': has_overlap,
+                'overlapping_periods': overlapping_periods,
+                'message': message
+            }
+            
+        except Exception as e:
+            print(f"[ERROR] 기간 겹침 검사 오류: {str(e)}")
+            return {
+                'has_overlap': False,
+                'overlapping_periods': [],
+                'message': f"검사 중 오류 발생: {str(e)}"
+            }
+
+
+    def create_period(self, period_data: dict) -> dict:
+        """기간 생성 (날짜 겹침 검사 추가)"""
+        try:
+            # 1. 기존 중복 체크 (같은 연도/기간명/점검유형)
             if self.check_period_exists(
                 period_data["period_year"],
-                period_data["period_name"],
+                period_data["period_name"], 
                 period_data["check_type"],
             ):
                 return {
                     "success": False,
                     "message": f"{period_data['period_year']}년 {period_data['period_name']} {period_data['check_type']} 기간이 이미 존재합니다.",
                 }
-
-            # 기간 생성
+            
+            # 2. 새로 추가: 날짜 겹침 검사
+            overlap_result = self.check_period_overlap(
+                period_data["check_type"],
+                period_data["start_date"],
+                period_data["end_date"]
+            )
+            
+            if overlap_result['has_overlap']:
+                return {
+                    "success": False,
+                    "message": f"기간이 겹칩니다. {overlap_result['message']}",
+                    "overlapping_periods": overlap_result['overlapping_periods']
+                }
+            
+            # 3. 기간 생성
             with DatabaseManager.get_db_cursor() as cursor:
                 cursor.execute(
                     """
@@ -165,17 +279,32 @@ class ManualCheckPeriodService:
             return False
 
     def update_period(self, period_id: int, period_data: dict) -> dict:
-        """기간 수정 (auto_pass_setting 필드 제거)"""
+        """기간 수정 (날짜 겹침 검사 추가)"""
         try:
             # 기간 존재 여부 확인
             existing = execute_query(
-                "SELECT period_id FROM manual_check_periods WHERE period_id = %s AND is_active = 1",
+                "SELECT period_id, check_type FROM manual_check_periods WHERE period_id = %s AND is_active = 1",
                 (period_id,),
                 fetch_one=True,
             )
 
             if not existing:
                 return {"success": False, "message": "기간을 찾을 수 없습니다."}
+
+            # 날짜 겹침 검사 (현재 기간 제외)
+            overlap_result = self.check_period_overlap(
+                existing['check_type'],
+                period_data["start_date"],
+                period_data["end_date"],
+                exclude_period_id=period_id
+            )
+            
+            if overlap_result['has_overlap']:
+                return {
+                    "success": False,
+                    "message": f"기간이 겹칩니다. {overlap_result['message']}",
+                    "overlapping_periods": overlap_result['overlapping_periods']
+                }
 
             # 기간 수정
             execute_query(
@@ -196,6 +325,54 @@ class ManualCheckPeriodService:
 
         except Exception as e:
             return {"success": False, "message": f"기간 수정 실패: {str(e)}"}
+
+
+    # 컨트롤러에서 사용할 검증 엔드포인트도 추가
+    def validate_period_dates(self, check_type: str, start_date, end_date, exclude_period_id=None) -> dict:
+        """
+        기간 생성/수정 전 유효성 검사
+        
+        Returns:
+            dict: {
+                'valid': bool,
+                'message': str,
+                'overlapping_periods': list (optional)
+            }
+        """
+        try:
+            from datetime import datetime
+            
+            # 날짜 형식 검증
+            if isinstance(start_date, str):
+                try:
+                    start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+                except ValueError:
+                    return {"valid": False, "message": "시작일 형식이 올바르지 않습니다. (YYYY-MM-DD)"}
+            
+            if isinstance(end_date, str):
+                try:
+                    end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+                except ValueError:
+                    return {"valid": False, "message": "종료일 형식이 올바르지 않습니다. (YYYY-MM-DD)"}
+            
+            # 시작일과 종료일 관계 검증
+            if end_date <= start_date:
+                return {"valid": False, "message": "종료일은 시작일보다 늦어야 합니다."}
+            
+            # 겹침 검사
+            overlap_result = self.check_period_overlap(check_type, start_date, end_date, exclude_period_id)
+            
+            if overlap_result['has_overlap']:
+                return {
+                    "valid": False,
+                    "message": overlap_result['message'],
+                    "overlapping_periods": overlap_result['overlapping_periods']
+                }
+            
+            return {"valid": True, "message": "유효한 기간입니다."}
+            
+        except Exception as e:
+            return {"valid": False, "message": f"검증 중 오류 발생: {str(e)}"}
 
     def delete_period(self, period_id: int) -> dict:
         """점검 기간 삭제"""

@@ -58,76 +58,43 @@ def get_periods():
 @validate_json(["check_type", "period_year", "period_name", "start_date", "end_date"])
 @handle_exceptions
 def create_period():
-    """새로운 점검 기간 생성"""
+    """기간 생성 - 날짜 겹침 검사 포함"""
     data = request.json
-    current_user = request.current_user
+    user = request.current_user
 
-    # 데이터 유효성 검사
-    required_fields = [
-        "check_type",
-        "period_year",
-        "period_name",
-        "start_date",
-        "end_date",
-    ]
-    for field in required_fields:
-        if not data.get(field):
+    try:
+        # 점검 유형 검증
+        valid_check_types = manual_check_period_service.get_check_types().keys()
+        if data["check_type"] not in valid_check_types:
             return (
-                jsonify({"success": False, "error": f"{field}는 필수 항목입니다."}),
+                jsonify(
+                    {
+                        "success": False,
+                        "error": f"지원되지 않는 점검 유형입니다.",
+                        "valid_types": list(valid_check_types),
+                    }
+                ),
                 HTTP_STATUS["BAD_REQUEST"],
             )
 
-    # 점검 유형 유효성 검사
-    valid_check_types = manual_check_period_service.get_check_types().keys()
-    if data["check_type"] not in valid_check_types:
-        return (
-            jsonify(
-                {
-                    "success": False,
-                    "error": f'지원되지 않는 점검 유형입니다. 사용 가능한 유형: {", ".join(valid_check_types)}',
-                }
-            ),
-            HTTP_STATUS["BAD_REQUEST"],
-        )
+        # 생성자 정보 추가
+        data["created_by"] = user["username"]
 
-    # 연도 유효성 검사
-    current_year = datetime.now().year
-    if data["period_year"] < current_year - 5 or data["period_year"] > current_year + 5:
-        return (
-            jsonify(
-                {
-                    "success": False,
-                    "error": "연도는 현재 기준 ±5년 범위 내에서만 설정 가능합니다.",
-                }
-            ),
-            HTTP_STATUS["BAD_REQUEST"],
-        )
-
-    try:
-        print(f"[DEBUG] 기간 생성 요청 데이터: {data}")
-        print(f"[DEBUG] 생성자: {current_user['username']}")
-
-        # ✅ created_by를 데이터에 추가
-        period_data = data.copy()
-        period_data["created_by"] = current_user["username"]
-
-        # ✅ 수정된 호출 방식 (인자 1개만 전달)
-        result = manual_check_period_service.create_period(period_data)
-
-        print(f"[DEBUG] 서비스 응답: {result}")
+        # 기간 생성 (내부에서 겹침 검사 포함)
+        result = manual_check_period_service.create_period(data)
 
         if result["success"]:
-            print(f"[DEBUG] 성공 응답 반환")
             return jsonify(result), HTTP_STATUS["CREATED"]
         else:
-            print(f"[DEBUG] 실패 응답 반환: {result}")
-            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
+            response_data = {"success": False, "error": result["message"]}
+
+            # 겹치는 기간 정보가 있으면 포함
+            if "overlapping_periods" in result:
+                response_data["overlapping_periods"] = result["overlapping_periods"]
+
+            return jsonify(response_data), HTTP_STATUS["BAD_REQUEST"]
 
     except Exception as e:
-        print(f"[DEBUG] 예외 발생: {str(e)}")
-        import traceback
-
-        traceback.print_exc()
         return (
             jsonify(
                 {
@@ -144,25 +111,23 @@ def create_period():
 @validate_json(["start_date", "end_date"])
 @handle_exceptions
 def update_period(period_id):
-    """점검 기간 수정"""
+    """기간 수정 - 날짜 겹침 검사 포함"""
     data = request.json
 
-    # 필수 필드 검사
-    required_fields = ["start_date", "end_date"]
-    for field in required_fields:
-        if not data.get(field):
-            return (
-                jsonify({"success": False, "error": f"{field}는 필수 항목입니다."}),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
-
     try:
+        # 기간 수정 (내부에서 겹침 검사 포함)
         result = manual_check_period_service.update_period(period_id, data)
 
         if result["success"]:
             return jsonify(result)
         else:
-            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
+            response_data = {"success": False, "error": result["message"]}
+
+            # 겹치는 기간 정보가 있으면 포함
+            if "overlapping_periods" in result:
+                response_data["overlapping_periods"] = result["overlapping_periods"]
+
+            return jsonify(response_data), HTTP_STATUS["BAD_REQUEST"]
 
     except Exception as e:
         return (
@@ -390,7 +355,7 @@ def get_period_details(period_id):
 @validate_json(["check_type", "period_year", "start_date", "end_date"])
 @handle_exceptions
 def validate_period_data():
-    """기간 데이터 유효성 검사 (실제 생성 전 검증용)"""
+    """기간 데이터 유효성 검사 (실제 생성 전 검증용) - 날짜 겹침 검사 추가"""
     data = request.json
 
     try:
@@ -408,34 +373,26 @@ def validate_period_data():
                 HTTP_STATUS["BAD_REQUEST"],
             )
 
-        # 날짜 유효성 검사
-        try:
-            start_date = datetime.strptime(data["start_date"], "%Y-%m-%d").date()
-            end_date = datetime.strptime(data["end_date"], "%Y-%m-%d").date()
+        # 날짜 및 겹침 검증 (새로운 검증 함수 사용)
+        validation_result = manual_check_period_service.validate_period_dates(
+            data["check_type"],
+            data["start_date"],
+            data["end_date"],
+            exclude_period_id=data.get("period_id"),  # 수정 시 현재 기간 제외
+        )
 
-            if end_date <= start_date:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "error": "종료일은 시작일보다 늦어야 합니다.",
-                        }
-                    ),
-                    HTTP_STATUS["BAD_REQUEST"],
-                )
+        if not validation_result["valid"]:
+            response_data = {"success": False, "error": validation_result["message"]}
 
-        except ValueError as e:
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": "날짜 형식이 올바르지 않습니다. (YYYY-MM-DD)",
-                    }
-                ),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
+            # 겹치는 기간 정보가 있으면 포함
+            if "overlapping_periods" in validation_result:
+                response_data["overlapping_periods"] = validation_result[
+                    "overlapping_periods"
+                ]
 
-        # 중복 검사 (period_name이 있는 경우)
+            return jsonify(response_data), HTTP_STATUS["BAD_REQUEST"]
+
+        # 중복 검사 (period_name이 있는 경우 - 기존 로직 유지)
         if data.get("period_name"):
             from app.utils.database import execute_query
 
@@ -467,6 +424,44 @@ def validate_period_data():
                 {
                     "success": False,
                     "error": f"유효성 검사 중 오류가 발생했습니다: {str(e)}",
+                }
+            ),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
+
+
+# 새로운 엔드포인트: 기간 겹침 검사 전용
+@manual_check_period_bp.route("/periods/check-overlap", methods=["POST"])
+@admin_required
+@validate_json(["check_type", "start_date", "end_date"])
+@handle_exceptions
+def check_period_overlap():
+    """기간 겹침 검사 전용 엔드포인트"""
+    data = request.json
+
+    try:
+        overlap_result = manual_check_period_service.check_period_overlap(
+            data["check_type"],
+            data["start_date"],
+            data["end_date"],
+            exclude_period_id=data.get("exclude_period_id"),
+        )
+
+        return jsonify(
+            {
+                "success": True,
+                "has_overlap": overlap_result["has_overlap"],
+                "message": overlap_result["message"],
+                "overlapping_periods": overlap_result["overlapping_periods"],
+            }
+        )
+
+    except Exception as e:
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": f"겹침 검사 중 오류가 발생했습니다: {str(e)}",
                 }
             ),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],

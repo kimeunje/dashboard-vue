@@ -352,6 +352,21 @@
                   수정 시에는 연도를 변경할 수 없습니다.
                 </small>
               </div>
+
+              <div class="form-group">
+                <label>연도 *</label>
+                <input
+                  type="number"
+                  v-model.number="periodForm.period_year"
+                  :disabled="editingPeriod"
+                  min="2020"
+                  max="2030"
+                  required
+                />
+                <small v-if="editingPeriod" class="form-help">
+                  수정 시에는 연도를 변경할 수 없습니다.
+                </small>
+              </div>
             </div>
 
             <div class="form-row">
@@ -391,11 +406,40 @@
               ></textarea>
             </div>
 
+            <!-- 검증 중 상태 표시 -->
+            <div v-if="isValidating" class="validation-status">
+              <span class="loading-text">📋 기간 검증 중...</span>
+            </div>
+
+            <!-- 겹침 경고 표시 -->
+            <div v-if="overlapWarning" class="overlap-warning">
+              <div class="warning-header">⚠️ 기간 겹침 경고</div>
+              <p>{{ overlapWarning.message }}</p>
+              <ul v-if="overlapWarning.overlapping_periods?.length" class="overlap-list">
+                <li v-for="period in overlapWarning.overlapping_periods" :key="period.period_id">
+                  {{ period.period_year }}년 {{ period.period_name }} ({{ period.start_date }} ~
+                  {{ period.end_date }})
+                </li>
+              </ul>
+            </div>
+
+            <!-- 유효성 검사 오류 표시 -->
+            <div v-if="validationErrors.length" class="validation-errors">
+              <div class="error-header">❌ 입력 오류</div>
+              <ul>
+                <li v-for="error in validationErrors" :key="error">{{ error }}</li>
+              </ul>
+            </div>
+
             <div class="form-actions">
               <button type="button" @click="closePeriodModal" class="cancel-button">취소</button>
-              <button type="submit" class="save-button" :disabled="savingPeriod">
+              <button
+                type="submit"
+                class="save-button"
+                :disabled="savingPeriod || isValidating || validationErrors.length > 0"
+              >
                 <span v-if="savingPeriod" class="loading-spinner"></span>
-                {{ savingPeriod ? '저장 중...' : editingPeriod ? '수정' : '추가' }}
+                {{ savingPeriod ? '저장 중...' : editingPeriod ? '수정' : '저장' }}
               </button>
             </div>
           </form>
@@ -649,6 +693,12 @@ const toastType = ref('success')
 // 기존 변수에 추가
 const filePreviewInfo = ref(null)
 
+// 새로 추가할 검증 관련 반응형 데이터
+const overlapWarning = ref(null) // 겹침 경고 정보
+const validationErrors = ref([]) // 유효성 검사 오류 목록
+const isValidating = ref(false) // 검증 진행 중 상태
+const dateChangeTimeout = ref(null) // 디바운스용 타이머
+
 // 기간 폼
 const periodForm = reactive({
   check_type: '',
@@ -848,6 +898,7 @@ const closePeriodModal = () => {
   resetPeriodForm()
 }
 
+// 수정된 resetPeriodForm 함수
 const resetPeriodForm = () => {
   periodForm.check_type = ''
   periodForm.period_year = new Date().getFullYear()
@@ -855,13 +906,217 @@ const resetPeriodForm = () => {
   periodForm.start_date = ''
   periodForm.end_date = ''
   periodForm.description = ''
+
+  // 검증 관련 초기화
+  validationErrors.value = []
+  overlapWarning.value = null
+  isValidating.value = false
 }
 
+// 기간 겹침 검사 함수
+const checkPeriodOverlap = async (checkType, startDate, endDate, excludePeriodId = null) => {
+  if (!checkType || !startDate || !endDate) {
+    return { has_overlap: false, overlapping_periods: [], message: '' }
+  }
+
+  try {
+    const payload = {
+      check_type: checkType,
+      start_date: startDate,
+      end_date: endDate,
+    }
+
+    if (excludePeriodId) {
+      payload.exclude_period_id = excludePeriodId
+    }
+
+    const response = await fetch('/api/manual-check/periods/check-overlap', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      // 백엔드 API가 아직 구현되지 않은 경우 프론트엔드에서 검증
+      return await checkOverlapLocally(checkType, startDate, endDate, excludePeriodId)
+    }
+
+    const result = await response.json()
+    return result.success ? result : { has_overlap: false, overlapping_periods: [], message: '' }
+  } catch (error) {
+    console.warn('서버 겹침 검사 실패, 로컬 검증으로 대체:', error)
+    // 서버 오류 시 로컬 검증으로 대체
+    return await checkOverlapLocally(checkType, startDate, endDate, excludePeriodId)
+  }
+}
+
+// 로컬 기간 겹침 검사 (백엔드 API가 없을 때 사용)
+const checkOverlapLocally = async (checkType, startDate, endDate, excludePeriodId = null) => {
+  try {
+    // periodStatus에서 현재 점검 유형의 기간들 가져오기
+    const typeData = periodStatus.value.check_types?.[checkType]
+    if (!typeData?.periods) {
+      return { has_overlap: false, overlapping_periods: [], message: '' }
+    }
+
+    const newStart = new Date(startDate)
+    const newEnd = new Date(endDate)
+    const overlappingPeriods = []
+
+    for (const period of typeData.periods) {
+      // 수정 시 현재 기간 제외
+      if (excludePeriodId && period.period_id === excludePeriodId) {
+        continue
+      }
+
+      const existingStart = new Date(period.start_date)
+      const existingEnd = new Date(period.end_date)
+
+      // 기간 겹침 검사 로직
+      const isOverlapping =
+        // 새 시작일이 기존 기간 내
+        (existingStart <= newStart && newStart <= existingEnd) ||
+        // 새 종료일이 기존 기간 내
+        (existingStart <= newEnd && newEnd <= existingEnd) ||
+        // 새 기간이 기존 기간을 포함
+        (newStart <= existingStart && newEnd >= existingEnd) ||
+        // 기존 기간이 새 기간을 포함
+        (existingStart <= newStart && existingEnd >= newEnd)
+
+      if (isOverlapping) {
+        overlappingPeriods.push({
+          period_id: period.period_id,
+          period_name: period.period_name,
+          start_date: period.start_date,
+          end_date: period.end_date,
+          period_year: period.period_year,
+        })
+      }
+    }
+
+    const hasOverlap = overlappingPeriods.length > 0
+    let message = ''
+
+    if (hasOverlap) {
+      const overlapInfo = overlappingPeriods
+        .map((p) => `${p.period_year}년 ${p.period_name} (${p.start_date} ~ ${p.end_date})`)
+        .join(', ')
+      message = `다음 기간과 겹칩니다: ${overlapInfo}`
+    }
+
+    return {
+      has_overlap: hasOverlap,
+      overlapping_periods: overlappingPeriods,
+      message: message,
+    }
+  } catch (error) {
+    console.error('로컬 겹침 검사 오류:', error)
+    return { has_overlap: false, overlapping_periods: [], message: '' }
+  }
+}
+
+// 실시간 날짜 겹침 검사
+const checkDateOverlap = async () => {
+  if (!periodForm.start_date || !periodForm.end_date || !periodForm.check_type) {
+    overlapWarning.value = null
+    return
+  }
+
+  try {
+    isValidating.value = true
+
+    const result = await checkPeriodOverlap(
+      periodForm.check_type,
+      periodForm.start_date,
+      periodForm.end_date,
+      editingPeriod.value?.period_id,
+    )
+
+    if (result.has_overlap) {
+      overlapWarning.value = {
+        message: result.message,
+        overlapping_periods: result.overlapping_periods,
+      }
+    } else {
+      overlapWarning.value = null
+    }
+  } catch (error) {
+    console.error('겹침 검사 실패:', error)
+    overlapWarning.value = null
+  } finally {
+    isValidating.value = false
+  }
+}
+
+// 날짜 변경 시 디바운스 적용
+const onDateChange = () => {
+  clearTimeout(dateChangeTimeout.value)
+  dateChangeTimeout.value = setTimeout(() => {
+    checkDateOverlap()
+  }, 500)
+}
+
+// 저장 전 종합 검증
+const validateBeforeSave = async () => {
+  validationErrors.value = []
+
+  // 기본 필드 검증
+  if (!periodForm.period_name?.trim()) {
+    validationErrors.value.push('기간명을 입력해주세요.')
+  }
+  if (!periodForm.start_date) {
+    validationErrors.value.push('시작일을 선택해주세요.')
+  }
+  if (!periodForm.end_date) {
+    validationErrors.value.push('종료일을 선택해주세요.')
+  }
+  if (!periodForm.check_type) {
+    validationErrors.value.push('점검 유형을 선택해주세요.')
+  }
+
+  // 날짜 순서 검증
+  if (periodForm.start_date && periodForm.end_date) {
+    if (new Date(periodForm.start_date) >= new Date(periodForm.end_date)) {
+      validationErrors.value.push('종료일은 시작일보다 늦어야 합니다.')
+    }
+  }
+
+  // 기간 겹침 검증
+  if (periodForm.check_type && periodForm.start_date && periodForm.end_date) {
+    try {
+      const overlapResult = await checkPeriodOverlap(
+        periodForm.check_type,
+        periodForm.start_date,
+        periodForm.end_date,
+        editingPeriod.value?.period_id,
+      )
+
+      if (overlapResult.has_overlap) {
+        validationErrors.value.push(overlapResult.message)
+        overlapWarning.value = {
+          message: overlapResult.message,
+          overlapping_periods: overlapResult.overlapping_periods,
+        }
+      }
+    } catch (error) {
+      console.error('겹침 검증 오류:', error)
+      validationErrors.value.push('기간 겹침 검증 중 오류가 발생했습니다.')
+    }
+  }
+
+  return validationErrors.value.length === 0
+}
+
+// 수정된 savePeriod 함수
 const savePeriod = async () => {
   if (savingPeriod.value) return
 
-  if (new Date(periodForm.start_date) >= new Date(periodForm.end_date)) {
-    displayToast('종료일은 시작일보다 늦어야 합니다.', 'error')
+  // 검증 실행
+  const isValid = await validateBeforeSave()
+  if (!isValid) {
     return
   }
 
@@ -886,7 +1141,15 @@ const savePeriod = async () => {
     const result = await response.json()
 
     if (!response.ok) {
-      throw new Error(result.error || '저장 실패')
+      // 서버에서 겹침 오류 반환 시 처리
+      if (result.overlapping_periods) {
+        overlapWarning.value = {
+          message: result.error,
+          overlapping_periods: result.overlapping_periods,
+        }
+      }
+      validationErrors.value = [result.error || '저장 실패']
+      return
     }
 
     displayToast(result.message, 'success')
@@ -894,7 +1157,7 @@ const savePeriod = async () => {
     await loadPeriodStatus()
   } catch (err) {
     console.error('기간 저장 오류:', err)
-    displayToast(err.message, 'error')
+    validationErrors.value = [err.message || '저장 중 오류가 발생했습니다.']
   } finally {
     savingPeriod.value = false
   }
@@ -1326,6 +1589,10 @@ watch([selectedCheckType, selectedResult], () => {
   currentPage.value = 1
   loadCheckData()
 })
+
+watch(() => periodForm.start_date, onDateChange)
+watch(() => periodForm.end_date, onDateChange)
+watch(() => periodForm.check_type, onDateChange)
 
 // 생명주기
 onMounted(() => {

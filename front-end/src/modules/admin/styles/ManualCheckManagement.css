@@ -1639,7 +1639,8 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   animation: slideIn 0.3s ease;
   max-width: 400px;
-  white-space: pre-line; /* 줄바꿈 지원 */
+  white-space: pre-line;
+  /* 줄바꿈 지원 */
   line-height: 1.4;
 }
 
@@ -1733,5 +1734,83 @@
 
   .preview-info {
     padding: 16px;
+  }
+}
+
+
+.overlap-warning {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  padding: 12px;
+  margin: 10px 0;
+}
+
+.overlap-warning .warning-header {
+  font-weight: bold;
+  color: #856404;
+  margin-bottom: 8px;
+}
+
+.overlap-list {
+  margin: 8px 0 0 20px;
+  color: #856404;
+}
+
+.validation-errors {
+  background: #f8d7da;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  padding: 12px;
+  margin: 10px 0;
+}
+
+.validation-errors .error-header {
+  font-weight: bold;
+  color: #721c24;
+  margin-bottom: 8px;
+}
+
+.validation-errors ul {
+  margin: 8px 0 0 20px;
+  color: #721c24;
+}
+
+.validation-status {
+  text-align: center;
+  padding: 10px;
+  color: #007bff;
+  font-style: italic;
+}
+
+.loading-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
   }
 }
