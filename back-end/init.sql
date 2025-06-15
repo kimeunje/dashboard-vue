@@ -38,9 +38,9 @@ CREATE TABLE IF NOT EXISTS `audit_log` (
   KEY `idx_audit_log_user_item_date` (`user_id`,`item_id`,`checked_at`),
   CONSTRAINT `fk_audit_log_item` FOREIGN KEY (`item_id`) REFERENCES `checklist_items` (`item_id`),
   CONSTRAINT `fk_audit_log_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='보안 감사 로그';
+) ENGINE=InnoDB AUTO_INCREMENT=77 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='보안 감사 로그';
 
--- 테이블 데이터 patch_management.audit_log:~8 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.audit_log:~24 rows (대략적) 내보내기
 DELETE FROM `audit_log`;
 INSERT INTO `audit_log` (`log_id`, `user_id`, `item_id`, `actual_value`, `passed`, `notes`, `exclude_reason`, `checked_at`) VALUES
 	(53, 5, 1, '{"screenSaverTime": "600", "screenSaverSecure": "1", "screenSaverEnabled": "1"}', 1, '화면 보호기가 정상적으로 설정되어 있습니다. [제외사유: 135]', '135', '2025-06-15 13:24:32'),
@@ -50,7 +50,23 @@ INSERT INTO `audit_log` (`log_id`, `user_id`, `item_id`, `actual_value`, `passed
 	(57, 5, 5, '{"maximumPasswordAge": "91"}', 1, '암호 변경 주기가 적절하게 설정되어 있습니다.', NULL, '2025-06-15 13:24:42'),
 	(58, 5, 6, '{"passwordHistorySize": "5"}', 1, '동일 암호 사용 제한이 적절하게 설정되어 있습니다.', NULL, '2025-06-15 13:24:42'),
 	(59, 5, 7, '{"folders": ["ADMIN$", "C$", "D$", "E$", "F$", "IPC$"]}', 0, '불필요한 공유 폴더가 있습니다. 필요하지 않은 공유 폴더를 제거해주세요.', NULL, '2025-06-15 13:24:45'),
-	(60, 5, 8, '{"fDenyTSConnections": 1}', 1, '원격 데스크톱이 적절하게 제한되어 있습니다.', NULL, '2025-06-15 13:24:48');
+	(60, 5, 8, '{"fDenyTSConnections": 1}', 1, '원격 데스크톱이 적절하게 제한되어 있습니다.', NULL, '2025-06-15 13:24:48'),
+	(61, 4, 1, '{"screenSaverTime": "600", "screenSaverSecure": "1", "screenSaverEnabled": "1"}', 1, '화면 보호기가 정상적으로 설정되어 있습니다.', NULL, '2025-06-15 14:58:56'),
+	(62, 4, 2, '{"UpToDate": 0, "DisplayName": "백신 미설치", "RealTimeProtection": 0}', 0, '알약 백신이 정상적으로 설치되어 있지 않거나, 실시간 보호가 비활성화되어 있거나, 업데이트가 최신 상태가 아닙니다. 알약 백신을 설치하고 실시간 보호를 활성화한 후 최신 업데이트를 적용해주세요.', NULL, '2025-06-15 14:58:53'),
+	(63, 4, 3, '{"minimumPasswordLength": "8"}', 1, '암호 길이가 정책에 맞게 설정되어 있습니다.', NULL, '2025-06-15 14:59:05'),
+	(64, 4, 4, '{"passwordComplexity": "0"}', 0, '암호 복잡도가 설정되어 있지 않습니다. 암호 복잡도 설정을 활성화해주세요.', NULL, '2025-06-15 14:59:05'),
+	(65, 4, 5, '{"maximumPasswordAge": "91"}', 1, '암호 변경 주기가 적절하게 설정되어 있습니다.', NULL, '2025-06-15 14:59:05'),
+	(66, 4, 6, '{"passwordHistorySize": "5"}', 1, '동일 암호 사용 제한이 적절하게 설정되어 있습니다.', NULL, '2025-06-15 14:59:05'),
+	(67, 4, 7, '{"folders": ["IPC$"]}', 1, '불필요한 공유 폴더가 없습니다.', NULL, '2025-06-15 14:59:09'),
+	(68, 4, 8, '{"fDenyTSConnections": 1}', 1, '원격 데스크톱이 적절하게 제한되어 있습니다.', NULL, '2025-06-15 14:59:12'),
+	(69, 4, 1, '{"screenSaverTime": "600", "screenSaverSecure": "1", "screenSaverEnabled": "1"}', 1, '화면 보호기가 정상적으로 설정되어 있습니다.', NULL, '2025-06-15 15:19:16'),
+	(70, 4, 2, '{"UpToDate": 0, "DisplayName": "백신 미설치", "RealTimeProtection": 0}', 0, '알약 백신이 정상적으로 설치되어 있지 않거나, 실시간 보호가 비활성화되어 있거나, 업데이트가 최신 상태가 아닙니다. 알약 백신을 설치하고 실시간 보호를 활성화한 후 최신 업데이트를 적용해주세요.', NULL, '2025-06-15 15:19:13'),
+	(71, 4, 3, '{"minimumPasswordLength": "8"}', 1, '암호 길이가 정책에 맞게 설정되어 있습니다.', NULL, '2025-06-15 15:19:19'),
+	(72, 4, 4, '{"passwordComplexity": "1"}', 1, '암호 복잡도가 적절하게 설정되어 있습니다.', NULL, '2025-06-15 15:19:19'),
+	(73, 4, 5, '{"maximumPasswordAge": "90"}', 1, '암호 변경 주기가 적절하게 설정되어 있습니다.', NULL, '2025-06-15 15:19:19'),
+	(74, 4, 6, '{"passwordHistorySize": "5"}', 1, '동일 암호 사용 제한이 적절하게 설정되어 있습니다.', NULL, '2025-06-15 15:19:19'),
+	(75, 4, 7, '{"folders": ["IPC$"]}', 1, '불필요한 공유 폴더가 없습니다.', NULL, '2025-06-15 15:19:22'),
+	(76, 4, 8, '{"fDenyTSConnections": 1}', 1, '원격 데스크톱이 적절하게 제한되어 있습니다.', NULL, '2025-06-15 15:19:25');
 
 -- 테이블 patch_management.checklist_items 구조 내보내기
 DROP TABLE IF EXISTS `checklist_items`;
@@ -281,7 +297,7 @@ DELETE FROM `manual_check_results`;
 INSERT INTO `manual_check_results` (`check_id`, `user_id`, `check_item_code`, `source_ip`, `check_year`, `check_period`, `check_date`, `checker_name`, `seal_status`, `seal_number`, `seal_notes`, `malware_scan_result`, `threats_found`, `threats_cleaned`, `antivirus_version`, `malware_notes`, `malware_name`, `malware_classification`, `malware_path`, `detection_item`, `encryption_status`, `files_scanned`, `unencrypted_files`, `encryption_completed`, `encryption_notes`, `round_number`, `ssn_included`, `overall_result`, `total_score`, `penalty_points`, `notes`, `exclude_from_scoring`, `exclude_reason`, `created_at`, `updated_at`, `period_id`) VALUES
 	(404, 1, 'seal_check', NULL, 2025, '42342', '2025-05-11 00:00:00', 'admin', 'damaged', NULL, '봉인씰 상태: 훼손', NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, 'PC 봉인씰 확인: 훼손', 0, NULL, '2025-06-15 14:04:12', '2025-06-15 14:04:12', 17),
 	(405, 2, 'seal_check', NULL, 2025, '42342', '2025-05-21 00:00:00', 'admin', 'damaged', NULL, '봉인씰 상태: 훼손', NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, 'PC 봉인씰 확인: 훼손', 0, NULL, '2025-06-15 14:04:12', '2025-06-15 14:04:12', 17),
-	(406, 5, 'seal_check', NULL, 2025, '42342', '2025-06-15 00:00:00', 'admin', 'damaged', NULL, '봉인씰 상태: 훼손', NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, 'PC 봉인씰 확인: 훼손', 0, NULL, '2025-06-15 14:04:12', '2025-06-15 14:04:12', 17);
+	(406, 5, 'seal_check', NULL, 2025, '42342', '2025-06-15 00:00:00', 'admin', 'damaged', NULL, '봉인씰 상태: 훼손', NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, 'PC 봉인씰 확인: 훼손', 1, '135', '2025-06-15 14:04:12', '2025-06-15 14:24:21', 17);
 
 -- 테이블 patch_management.phishing_training 구조 내보내기
 DROP TABLE IF EXISTS `phishing_training`;
@@ -305,7 +321,7 @@ CREATE TABLE IF NOT EXISTS `phishing_training` (
   UNIQUE KEY `uk_user_training` (`user_id`,`training_year`,`training_period`),
   KEY `idx_training_year` (`training_year`),
   CONSTRAINT `fk_training_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=382 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 이력';
+) ENGINE=InnoDB AUTO_INCREMENT=388 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 이력';
 
 -- 테이블 데이터 patch_management.phishing_training:~17 rows (대략적) 내보내기
 DELETE FROM `phishing_training`;
@@ -322,11 +338,11 @@ INSERT INTO `phishing_training` (`training_id`, `user_id`, `training_year`, `tra
 	(301, 2, 2024, 'second_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:36:00', '2025-06-08 10:36:00'),
 	(302, 6, 2024, 'second_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:36:00', '2025-06-08 10:36:00'),
 	(303, 1, 2024, 'second_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:36:00', '2025-06-08 10:36:00'),
-	(367, 4, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '이메일 열람2', '카카오톡', 'admin@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-14 15:26:16', '2025-06-15 12:31:27'),
-	(369, 1, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '세금계산서', 'eunjekim8@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-14 15:26:16', '2025-06-15 12:31:27'),
-	(371, 2, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '퇴직연금 운용', 'penguin@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-14 15:26:16', '2025-06-15 12:31:27'),
+	(367, 4, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '이메일 열람2', '카카오톡', 'admin@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-14 15:26:16', '2025-06-15 14:27:40'),
+	(369, 1, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '세금계산서', 'eunjekim8@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-14 15:26:16', '2025-06-15 14:27:40'),
+	(371, 2, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '퇴직연금 운용', 'penguin@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-14 15:26:16', '2025-06-15 14:27:17'),
 	(379, 3, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-15 12:31:35', '2025-06-15 12:31:35'),
-	(380, 5, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-15 12:31:35', '2025-06-15 12:31:35');
+	(380, 5, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '퇴직연금 운용', 'hamtori@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-15 12:31:35', '2025-06-15 14:27:40');
 
 -- 테이블 patch_management.phishing_training_periods 구조 내보내기
 DROP TABLE IF EXISTS `phishing_training_periods`;
@@ -403,23 +419,12 @@ CREATE TABLE IF NOT EXISTS `security_score_summary` (
   UNIQUE KEY `uk_user_year` (`user_id`,`evaluation_year`),
   KEY `idx_evaluation_year` (`evaluation_year`),
   CONSTRAINT `fk_score_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=148 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='KPI 보안 점수 요약 (감점 기준)';
+) ENGINE=InnoDB AUTO_INCREMENT=149 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='KPI 보안 점수 요약 (감점 기준)';
 
--- 테이블 데이터 patch_management.security_score_summary:~12 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.security_score_summary:~0 rows (대략적) 내보내기
 DELETE FROM `security_score_summary`;
 INSERT INTO `security_score_summary` (`summary_id`, `user_id`, `evaluation_year`, `audit_penalty`, `education_penalty`, `training_penalty`, `total_penalty`, `audit_failed_count`, `education_incomplete_count`, `training_failed_count`, `last_calculated`, `created_at`) VALUES
-	(1, 3, 2025, 2.00, 1.00, 0.50, 3.50, 4, 2, 1, '2025-06-04 05:48:17', '2025-06-03 12:52:56'),
-	(2, 3, 2023, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-04 05:48:17', '2025-06-03 12:52:56'),
-	(3, 3, 2024, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-04 05:48:17', '2025-06-03 12:52:56'),
-	(10, 3, 2022, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 13:46:57', '2025-06-03 12:54:03'),
-	(57, 3, 2026, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-03 13:47:01', '2025-06-03 13:46:58'),
-	(116, 5, 2025, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-04 04:54:38', '2025-06-03 15:02:34'),
-	(117, 5, 2023, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-04 01:16:00', '2025-06-03 15:02:34'),
-	(118, 5, 2024, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-04 01:16:00', '2025-06-03 15:02:34'),
-	(134, 4, 2025, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-04 04:54:38', '2025-06-03 04:46:55'),
-	(135, 2, 2025, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-04 04:54:38', '2025-06-03 04:46:55'),
-	(136, 6, 2025, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-04 04:54:38', '2025-06-03 04:46:55'),
-	(137, 1, 2025, 0.00, 1.00, 0.00, 1.00, 0, 2, 0, '2025-06-04 04:54:38', '2025-06-03 04:46:55');
+	(148, 4, 2025, 0.50, 0.00, 0.00, 0.50, 0, 0, 0, '2025-06-15 16:24:10', '2025-06-15 16:23:55');
 
 -- 테이블 patch_management.users 구조 내보내기
 DROP TABLE IF EXISTS `users`;
@@ -504,10 +509,13 @@ CREATE TABLE IF NOT EXISTS `user_extended_exceptions` (
   KEY `idx_item_category` (`item_category`),
   KEY `idx_user_extended_search` (`user_id`,`item_type`,`is_active`),
   CONSTRAINT `fk_user_extended_exception` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 확장 감사 항목 제외 설정 (감사/교육/훈련)';
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 확장 감사 항목 제외 설정 (감사/교육/훈련)';
 
--- 테이블 데이터 patch_management.user_extended_exceptions:~0 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.user_extended_exceptions:~2 rows (대략적) 내보내기
 DELETE FROM `user_extended_exceptions`;
+INSERT INTO `user_extended_exceptions` (`exception_id`, `user_id`, `item_id`, `item_type`, `item_name`, `item_category`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
+	(18, 5, 'training_2025_first_half', 'training_period', '2025년 상반기 악성메일 모의훈련', '악성메일 모의훈련', '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:28:10', '2025-06-15 14:41:08', 0),
+	(19, 5, 'training_period', 'training_period', '2025년 first_half(상반기) 모의훈련', '모의훈련', '관리자 설정', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:41:14', '2025-06-15 14:41:49', 1);
 
 -- 테이블 patch_management.user_item_exceptions 구조 내보내기
 DROP TABLE IF EXISTS `user_item_exceptions`;
@@ -533,13 +541,14 @@ CREATE TABLE IF NOT EXISTS `user_item_exceptions` (
   KEY `idx_active` (`is_active`),
   KEY `idx_user_exceptions_type` (`user_id`,`item_type`,`is_active`),
   CONSTRAINT `fk_exception_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 감사 항목 제외 설정';
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 감사 항목 제외 설정';
 
--- 테이블 데이터 patch_management.user_item_exceptions:~2 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.user_item_exceptions:~3 rows (대략적) 내보내기
 DELETE FROM `user_item_exceptions`;
 INSERT INTO `user_item_exceptions` (`exception_id`, `user_id`, `item_id`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`, `item_type`, `item_name`, `item_category`) VALUES
-	(19, 5, 9, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:03:27', '2025-06-15 14:03:27', 1, 'manual', 'PC 봉인씰 확인', '물리보안'),
-	(20, 5, 6, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:03:49', '2025-06-15 14:03:49', 1, 'audit', '동일 패스워드 설정 제한', '접근통제');
+	(19, 5, 9, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:03:27', '2025-06-15 14:41:57', 0, 'manual', 'PC 봉인씰 확인', '물리보안'),
+	(20, 5, 6, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:03:49', '2025-06-15 14:24:12', 0, 'audit', '동일 패스워드 설정 제한', '접근통제'),
+	(21, 5, 8, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:24:55', '2025-06-15 14:24:55', 1, 'audit', '원격데스크톱 제한', '접근통제');
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;

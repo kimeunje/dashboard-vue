@@ -81,6 +81,9 @@ def register_controllers(app):
         manual_check_period_bp,
     )  # 추가
 
+    from app.controllers.personal_dashboard_controller import personal_dashboard_bp
+
+
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(audit_bp, url_prefix="/api/security-audit")
     app.register_blueprint(education_bp, url_prefix="/api/security-education")
@@ -93,6 +96,7 @@ def register_controllers(app):
         manual_check_period_bp, url_prefix="/api/manual-check"
     )  # 추가
 
+    app.register_blueprint(personal_dashboard_bp, url_prefix="/api/personal-dashboard")  # url_prefix는 블루프린트에서 이미 설정됨
 
 def register_error_handlers(app):
     """에러 핸들러 등록"""
