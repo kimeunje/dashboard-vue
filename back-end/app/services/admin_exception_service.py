@@ -861,96 +861,6 @@ class ExceptionService:
             traceback.print_exc()
             return {"success": False, "message": f"제외 설정 추가 실패: {str(e)}"}
 
-    def _add_user_manual_exception(
-        self,
-        user_uid: int,
-        item_id: int,
-        item_name: str,
-        exclude_reason: str,
-        exclude_type: str,
-        start_date: date,
-        end_date: date,
-        created_by: str,
-    ) -> Dict:
-        """manual_check_items 수시 점검 항목 사용자별 제외 설정 추가"""
-        # 항목 정보 조회
-        item_info = execute_query(
-            "SELECT item_name, item_category FROM manual_check_items WHERE item_id = %s",
-            (item_id,),
-            fetch_one=True,
-        )
-
-        if not item_info:
-            return {"success": False, "message": "존재하지 않는 수시 점검 항목입니다."}
-
-        try:
-            # 기존 설정 확인 (manual_check_items 항목은 user_item_exceptions 테이블 사용)
-            existing = execute_query(
-                "SELECT exception_id FROM user_item_exceptions WHERE user_id = %s AND item_id = %s AND item_type = 'manual'",
-                (user_uid, item_id),
-                fetch_one=True,
-            )
-
-            if existing:
-                # 기존 설정 업데이트
-                execute_query(
-                    """
-                    UPDATE user_item_exceptions 
-                    SET exclude_reason = %s, exclude_type = %s, start_date = %s, 
-                        end_date = %s, created_by = %s, is_active = 1, updated_at = NOW(),
-                        item_name = %s, item_category = %s
-                    WHERE user_id = %s AND item_id = %s AND item_type = 'manual'
-                    """,
-                    (
-                        exclude_reason,
-                        exclude_type,
-                        start_date,
-                        end_date,
-                        created_by,
-                        item_info["item_name"],
-                        item_info["item_category"],
-                        user_uid,
-                        item_id,
-                    ),
-                )
-                return {
-                    "success": True,
-                    "message": "기존 수시 점검 제외 설정이 업데이트되었습니다.",
-                    "action": "updated",
-                }
-            else:
-                # 새 설정 추가
-                execute_query(
-                    """
-                    INSERT INTO user_item_exceptions 
-                    (user_id, item_id, exclude_reason, exclude_type, start_date, end_date, 
-                    created_by, is_active, item_type, item_name, item_category)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, 1, 'manual', %s, %s)
-                    """,
-                    (
-                        user_uid,
-                        item_id,
-                        exclude_reason,
-                        exclude_type,
-                        start_date,
-                        end_date,
-                        created_by,
-                        item_info["item_name"],
-                        item_info["item_category"],
-                    ),
-                )
-                return {
-                    "success": True,
-                    "message": "새로운 수시 점검 제외 설정이 추가되었습니다.",
-                    "action": "created",
-                }
-
-        except Exception as e:
-            return {
-                "success": False,
-                "message": f"수시 점검 제외 설정 추가 실패: {str(e)}",
-            }
-
     def add_department_exception(
         self,
         department: str,
@@ -1020,96 +930,6 @@ class ExceptionService:
             return {
                 "success": False,
                 "message": f"부서별 제외 설정 추가 실패: {str(e)}",
-            }
-
-    def _add_department_manual_exception(
-        self,
-        department: str,
-        item_id: int,
-        item_name: str,
-        exclude_reason: str,
-        exclude_type: str,
-        start_date: date,
-        end_date: date,
-        created_by: str,
-    ) -> Dict:
-        """manual_check_items 수시 점검 항목 부서별 제외 설정 추가"""
-        # 항목 정보 조회
-        item_info = execute_query(
-            "SELECT item_name, item_category FROM manual_check_items WHERE item_id = %s",
-            (item_id,),
-            fetch_one=True,
-        )
-
-        if not item_info:
-            return {"success": False, "message": "존재하지 않는 수시 점검 항목입니다."}
-
-        try:
-            # 기존 설정 확인 (manual_check_items 항목은 department_item_exceptions 테이블 사용)
-            existing = execute_query(
-                "SELECT dept_exception_id FROM department_item_exceptions WHERE department = %s AND item_id = %s AND item_type = 'manual'",
-                (department, item_id),
-                fetch_one=True,
-            )
-
-            if existing:
-                # 기존 설정 업데이트
-                execute_query(
-                    """
-                    UPDATE department_item_exceptions 
-                    SET exclude_reason = %s, exclude_type = %s, start_date = %s, 
-                        end_date = %s, created_by = %s, is_active = 1, updated_at = NOW(),
-                        item_name = %s, item_category = %s
-                    WHERE department = %s AND item_id = %s AND item_type = 'manual'
-                    """,
-                    (
-                        exclude_reason,
-                        exclude_type,
-                        start_date,
-                        end_date,
-                        created_by,
-                        item_info["item_name"],
-                        item_info["item_category"],
-                        department,
-                        item_id,
-                    ),
-                )
-                return {
-                    "success": True,
-                    "message": "기존 부서별 수시 점검 제외 설정이 업데이트되었습니다.",
-                    "action": "updated",
-                }
-            else:
-                # 새 설정 추가
-                execute_query(
-                    """
-                    INSERT INTO department_item_exceptions 
-                    (department, item_id, exclude_reason, exclude_type, start_date, end_date, 
-                    created_by, item_name, item_category, item_type)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'manual')
-                    """,
-                    (
-                        department,
-                        item_id,
-                        exclude_reason,
-                        exclude_type,
-                        start_date,
-                        end_date,
-                        created_by,
-                        item_info["item_name"],
-                        item_info["item_category"],
-                    ),
-                )
-                return {
-                    "success": True,
-                    "message": "새로운 부서별 수시 점검 제외 설정이 추가되었습니다.",
-                    "action": "created",
-                }
-
-        except Exception as e:
-            return {
-                "success": False,
-                "message": f"부서별 수시 점검 제외 설정 추가 실패: {str(e)}",
             }
 
     def _add_user_audit_exception(
@@ -1503,109 +1323,6 @@ class ExceptionService:
                 "message": f"부서별 확장 제외 설정 추가 실패: {str(e)}",
             }
 
-    def remove_user_exception(self, user_id: int, item_type: str) -> Dict:
-        """사용자별 제외 설정 제거 (수정된 버전)"""
-        try:
-            print(
-                f"[DEBUG] remove_user_exception 호출 - user_id: {user_id}, item_type: {item_type}, type: {type(item_type)}"
-            )
-
-            # item_type이 숫자인지 확인 (감사 항목)
-            if item_type.isdigit():
-                # 숫자 item_type은 감사 항목으로 처리
-                item_id = int(item_type)
-                print(f"[DEBUG] 감사 항목 처리 (숫자) - item_id: {item_id}")
-                result = execute_query(
-                    "UPDATE user_item_exceptions SET is_active = 0 WHERE user_id = %s AND item_id = %s",
-                    (user_id, item_id),
-                )
-                print(f"[DEBUG] user_item_exceptions 업데이트 결과: {result}")
-            elif item_type.startswith("audit_"):
-                # audit_ 접두사가 있는 감사 항목
-                item_id = int(item_type.replace("audit_", ""))
-                print(f"[DEBUG] 감사 항목 처리 (audit_ 접두사) - item_id: {item_id}")
-                result = execute_query(
-                    "UPDATE user_item_exceptions SET is_active = 0 WHERE user_id = %s AND item_id = %s",
-                    (user_id, item_id),
-                )
-                print(f"[DEBUG] user_item_exceptions 업데이트 결과: {result}")
-            else:
-                # 교육/훈련 항목 제외 설정 제거
-                print(f"[DEBUG] 교육/훈련 항목 처리 - item_type: {item_type}")
-                result = execute_query(
-                    "UPDATE user_extended_exceptions SET is_active = 0 WHERE user_id = %s AND item_id = %s",
-                    (user_id, item_type),
-                )
-                print(f"[DEBUG] user_extended_exceptions 업데이트 결과: {result}")
-
-            print(f"[DEBUG] 최종 결과: {result}")
-
-            if result > 0:
-                return {"success": True, "message": "제외 설정이 비활성화되었습니다."}
-            else:
-                return {
-                    "success": False,
-                    "message": "해당 제외 설정을 찾을 수 없습니다.",
-                }
-
-        except Exception as e:
-            print(f"[ERROR] 제외 설정 제거 중 예외 발생: {str(e)}")
-            return {"success": False, "message": f"제외 설정 제거 실패: {str(e)}"}
-
-    def remove_department_exception(self, department: str, item_type: str) -> Dict:
-        """부서별 제외 설정 제거 (수정된 버전)"""
-        try:
-            print(
-                f"[DEBUG] remove_department_exception 호출 - department: {department}, item_type: {item_type}"
-            )
-
-            # item_type이 숫자인지 확인 (감사 항목)
-            if item_type.isdigit():
-                # 숫자 item_type은 감사 항목으로 처리
-                item_id = int(item_type)
-                print(f"[DEBUG] 부서별 감사 항목 처리 (숫자) - item_id: {item_id}")
-                result = execute_query(
-                    "UPDATE department_item_exceptions SET is_active = 0 WHERE department = %s AND item_id = %s",
-                    (department, item_id),
-                )
-            elif item_type.startswith("audit_"):
-                # audit_ 접두사가 있는 감사 항목
-                item_id = int(item_type.replace("audit_", ""))
-                print(
-                    f"[DEBUG] 부서별 감사 항목 처리 (audit_ 접두사) - item_id: {item_id}"
-                )
-                result = execute_query(
-                    "UPDATE department_item_exceptions SET is_active = 0 WHERE department = %s AND item_id = %s",
-                    (department, item_id),
-                )
-            else:
-                # 교육/훈련 항목 제외 설정 제거
-                print(f"[DEBUG] 부서별 교육/훈련 항목 처리 - item_type: {item_type}")
-                result = execute_query(
-                    "UPDATE department_extended_exceptions SET is_active = 0 WHERE department = %s AND item_id = %s",
-                    (department, item_type),
-                )
-
-            print(f"[DEBUG] 부서별 제외 설정 제거 결과: {result}")
-
-            if result > 0:
-                return {
-                    "success": True,
-                    "message": "부서별 제외 설정이 비활성화되었습니다.",
-                }
-            else:
-                return {
-                    "success": False,
-                    "message": "해당 부서별 제외 설정을 찾을 수 없습니다.",
-                }
-
-        except Exception as e:
-            print(f"[ERROR] 부서별 제외 설정 제거 중 예외 발생: {str(e)}")
-            return {
-                "success": False,
-                "message": f"부서별 제외 설정 제거 실패: {str(e)}",
-            }
-
     def get_all_departments(self) -> List[str]:
         """시스템에 등록된 모든 부서 목록 조회"""
         departments = execute_query(
@@ -1672,3 +1389,513 @@ class ExceptionService:
             "department_exceptions": dept_stats,
             "top_excluded_items": top_excluded_items,
         }
+
+    # app/services/admin_exception_service.py 수정사항
+
+    def _add_user_manual_exception(
+        self,
+        user_uid: int,
+        item_id: int,
+        item_name: str,
+        exclude_reason: str,
+        exclude_type: str,
+        start_date: date,
+        end_date: date,
+        created_by: str,
+    ) -> Dict:
+        """manual_check_items 수시 점검 항목 사용자별 제외 설정 추가 + 기존 결과 동기화"""
+        # 항목 정보 조회
+        item_info = execute_query(
+            "SELECT item_name, item_category, item_code FROM manual_check_items WHERE item_id = %s",
+            (item_id,),
+            fetch_one=True,
+        )
+
+        if not item_info:
+            return {"success": False, "message": "존재하지 않는 수시 점검 항목입니다."}
+
+        try:
+            # 기존 설정 확인 (manual_check_items 항목은 user_item_exceptions 테이블 사용)
+            existing = execute_query(
+                "SELECT exception_id FROM user_item_exceptions WHERE user_id = %s AND item_id = %s AND item_type = 'manual'",
+                (user_uid, item_id),
+                fetch_one=True,
+            )
+
+            if existing:
+                # 기존 설정 업데이트
+                execute_query(
+                    """
+                    UPDATE user_item_exceptions 
+                    SET exclude_reason = %s, exclude_type = %s, start_date = %s, 
+                        end_date = %s, created_by = %s, is_active = 1, updated_at = NOW(),
+                        item_name = %s, item_category = %s
+                    WHERE user_id = %s AND item_id = %s AND item_type = 'manual'
+                    """,
+                    (
+                        exclude_reason,
+                        exclude_type,
+                        start_date,
+                        end_date,
+                        created_by,
+                        item_info["item_name"],
+                        item_info["item_category"],
+                        user_uid,
+                        item_id,
+                    ),
+                )
+                action_msg = "기존 수시 점검 제외 설정이 업데이트되었습니다."
+                action = "updated"
+            else:
+                # 새 설정 추가
+                execute_query(
+                    """
+                    INSERT INTO user_item_exceptions 
+                    (user_id, item_id, exclude_reason, exclude_type, start_date, end_date, 
+                    created_by, is_active, item_type, item_name, item_category)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 1, 'manual', %s, %s)
+                    """,
+                    (
+                        user_uid,
+                        item_id,
+                        exclude_reason,
+                        exclude_type,
+                        start_date,
+                        end_date,
+                        created_by,
+                        item_info["item_name"],
+                        item_info["item_category"],
+                    ),
+                )
+                action_msg = "새로운 수시 점검 제외 설정이 추가되었습니다."
+                action = "created"
+
+            # ★★★ 핵심: 기존 manual_check_results 데이터 동기화 ★★★
+            sync_result = self._sync_manual_check_results_exclusion(
+                user_uid, item_info["item_code"], exclude_reason, is_excluded=True
+            )
+
+            final_message = f"{action_msg} {sync_result['message']}"
+
+            return {
+                "success": True,
+                "message": final_message,
+                "action": action,
+                "sync_details": sync_result,
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"수시 점검 제외 설정 추가 실패: {str(e)}",
+            }
+
+    def _sync_manual_check_results_exclusion(
+        self,
+        user_id: int,
+        item_code: str,
+        exclude_reason: str,
+        is_excluded: bool = True,
+    ) -> Dict:
+        """manual_check_results 테이블의 기존 데이터와 제외 설정 동기화"""
+        try:
+            if is_excluded:
+                # 제외 설정 시: exclude_from_scoring = 1, exclude_reason 설정
+                result = execute_query(
+                    """
+                    UPDATE manual_check_results 
+                    SET exclude_from_scoring = 1, 
+                        exclude_reason = %s,
+                        updated_at = NOW()
+                    WHERE user_id = %s AND check_item_code = %s AND exclude_from_scoring = 0
+                    """,
+                    (exclude_reason, user_id, item_code),
+                )
+
+                if result > 0:
+                    return {
+                        "success": True,
+                        "message": f"기존 {result}건의 상시점검 결과가 제외 처리되었습니다.",
+                        "updated_count": result,
+                    }
+                else:
+                    return {
+                        "success": True,
+                        "message": "동기화할 기존 결과가 없습니다.",
+                        "updated_count": 0,
+                    }
+            else:
+                # 제외 해제 시: exclude_from_scoring = 0, exclude_reason 초기화
+                result = execute_query(
+                    """
+                    UPDATE manual_check_results 
+                    SET exclude_from_scoring = 0, 
+                        exclude_reason = NULL,
+                        updated_at = NOW()
+                    WHERE user_id = %s AND check_item_code = %s AND exclude_from_scoring = 1
+                    """,
+                    (user_id, item_code),
+                )
+
+                if result > 0:
+                    return {
+                        "success": True,
+                        "message": f"기존 {result}건의 상시점검 결과가 포함 처리되었습니다.",
+                        "updated_count": result,
+                    }
+                else:
+                    return {
+                        "success": True,
+                        "message": "동기화할 기존 결과가 없습니다.",
+                        "updated_count": 0,
+                    }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"기존 결과 동기화 실패: {str(e)}",
+                "updated_count": 0,
+            }
+
+    def remove_user_exception(self, user_id: int, item_type: str) -> Dict:
+        """사용자별 제외 설정 제거 (수정된 버전) + 기존 결과 동기화"""
+        try:
+            print(
+                f"[DEBUG] remove_user_exception 호출 - user_id: {user_id}, item_type: {item_type}"
+            )
+
+            # item_type이 숫자인지 확인 (감사 항목)
+            if item_type.isdigit():
+                # 숫자 item_type은 감사 항목으로 처리
+                item_id = int(item_type)
+                print(f"[DEBUG] 감사 항목 처리 (숫자) - item_id: {item_id}")
+                result = execute_query(
+                    "UPDATE user_item_exceptions SET is_active = 0 WHERE user_id = %s AND item_id = %s",
+                    (user_id, item_id),
+                )
+                print(f"[DEBUG] user_item_exceptions 업데이트 결과: {result}")
+
+            elif item_type.startswith("audit_"):
+                # audit_ 접두사가 있는 감사 항목
+                item_id = int(item_type.replace("audit_", ""))
+                print(f"[DEBUG] 감사 항목 처리 (audit_ 접두사) - item_id: {item_id}")
+                result = execute_query(
+                    "UPDATE user_item_exceptions SET is_active = 0 WHERE user_id = %s AND item_id = %s",
+                    (user_id, item_id),
+                )
+                print(f"[DEBUG] user_item_exceptions 업데이트 결과: {result}")
+
+            elif item_type.startswith("manual_"):
+                # ★★★ manual_ 접두사가 있는 수시 점검 항목 - 동기화 추가 ★★★
+                item_id = int(item_type.replace("manual_", ""))
+                print(
+                    f"[DEBUG] 수시 점검 항목 처리 (manual_ 접두사) - item_id: {item_id}"
+                )
+
+                # 먼저 item_code 조회
+                item_info = execute_query(
+                    "SELECT item_code FROM manual_check_items WHERE item_id = %s",
+                    (item_id,),
+                    fetch_one=True,
+                )
+
+                result = execute_query(
+                    "UPDATE user_item_exceptions SET is_active = 0 WHERE user_id = %s AND item_id = %s AND item_type = 'manual'",
+                    (user_id, item_id),
+                )
+                print(f"[DEBUG] user_item_exceptions 업데이트 결과: {result}")
+
+                # 기존 manual_check_results 동기화
+                if item_info and result > 0:
+                    sync_result = self._sync_manual_check_results_exclusion(
+                        user_id, item_info["item_code"], "", is_excluded=False
+                    )
+                    final_message = (
+                        f"제외 설정이 비활성화되었습니다. {sync_result['message']}"
+                    )
+                    return {
+                        "success": True,
+                        "message": final_message,
+                        "sync_details": sync_result,
+                    }
+
+            else:
+                # 교육/훈련 항목 제외 설정 제거
+                print(f"[DEBUG] 교육/훈련 항목 처리 - item_type: {item_type}")
+                result = execute_query(
+                    "UPDATE user_extended_exceptions SET is_active = 0 WHERE user_id = %s AND item_id = %s",
+                    (user_id, item_type),
+                )
+                print(f"[DEBUG] user_extended_exceptions 업데이트 결과: {result}")
+
+            print(f"[DEBUG] 최종 결과: {result}")
+
+            if result > 0:
+                return {"success": True, "message": "제외 설정이 비활성화되었습니다."}
+            else:
+                return {
+                    "success": False,
+                    "message": "해당 제외 설정을 찾을 수 없습니다.",
+                }
+
+        except Exception as e:
+            print(f"[ERROR] 제외 설정 제거 중 예외 발생: {str(e)}")
+            return {"success": False, "message": f"제외 설정 제거 실패: {str(e)}"}
+
+    def _add_department_manual_exception(
+        self,
+        department: str,
+        item_id: int,
+        item_name: str,
+        exclude_reason: str,
+        exclude_type: str,
+        start_date: date,
+        end_date: date,
+        created_by: str,
+    ) -> Dict:
+        """manual_check_items 수시 점검 항목 부서별 제외 설정 추가 + 부서 사용자 동기화"""
+        # 항목 정보 조회
+        item_info = execute_query(
+            "SELECT item_name, item_category, item_code FROM manual_check_items WHERE item_id = %s",
+            (item_id,),
+            fetch_one=True,
+        )
+
+        if not item_info:
+            return {"success": False, "message": "존재하지 않는 수시 점검 항목입니다."}
+
+        try:
+            # 기존 설정 확인
+            existing = execute_query(
+                "SELECT dept_exception_id FROM department_item_exceptions WHERE department = %s AND item_id = %s AND item_type = 'manual'",
+                (department, item_id),
+                fetch_one=True,
+            )
+
+            if existing:
+                # 기존 설정 업데이트
+                execute_query(
+                    """
+                    UPDATE department_item_exceptions 
+                    SET exclude_reason = %s, exclude_type = %s, start_date = %s, 
+                        end_date = %s, created_by = %s, is_active = 1, updated_at = NOW(),
+                        item_name = %s, item_category = %s
+                    WHERE department = %s AND item_id = %s AND item_type = 'manual'
+                    """,
+                    (
+                        exclude_reason,
+                        exclude_type,
+                        start_date,
+                        end_date,
+                        created_by,
+                        item_info["item_name"],
+                        item_info["item_category"],
+                        department,
+                        item_id,
+                    ),
+                )
+                action_msg = "기존 부서별 수시 점검 제외 설정이 업데이트되었습니다."
+                action = "updated"
+            else:
+                # 새 설정 추가
+                execute_query(
+                    """
+                    INSERT INTO department_item_exceptions 
+                    (department, item_id, exclude_reason, exclude_type, start_date, end_date, 
+                    created_by, item_name, item_category, item_type)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'manual')
+                    """,
+                    (
+                        department,
+                        item_id,
+                        exclude_reason,
+                        exclude_type,
+                        start_date,
+                        end_date,
+                        created_by,
+                        item_info["item_name"],
+                        item_info["item_category"],
+                    ),
+                )
+                action_msg = "새로운 부서별 수시 점검 제외 설정이 추가되었습니다."
+                action = "created"
+
+            # ★★★ 부서 소속 전체 사용자의 기존 결과 동기화 ★★★
+            sync_result = self._sync_department_manual_check_results_exclusion(
+                department, item_info["item_code"], exclude_reason, is_excluded=True
+            )
+
+            final_message = f"{action_msg} {sync_result['message']}"
+
+            return {
+                "success": True,
+                "message": final_message,
+                "action": action,
+                "sync_details": sync_result,
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"부서별 수시 점검 제외 설정 추가 실패: {str(e)}",
+            }
+
+    def _sync_department_manual_check_results_exclusion(
+        self,
+        department: str,
+        item_code: str,
+        exclude_reason: str,
+        is_excluded: bool = True,
+    ) -> Dict:
+        """부서별 manual_check_results 테이블의 기존 데이터와 제외 설정 동기화"""
+        try:
+            if is_excluded:
+                # 제외 설정 시: 해당 부서 사용자들의 결과를 제외 처리
+                result = execute_query(
+                    """
+                    UPDATE manual_check_results mcr
+                    JOIN users u ON mcr.user_id = u.uid
+                    SET mcr.exclude_from_scoring = 1, 
+                        mcr.exclude_reason = %s,
+                        mcr.updated_at = NOW()
+                    WHERE u.department = %s 
+                      AND mcr.check_item_code = %s 
+                      AND mcr.exclude_from_scoring = 0
+                    """,
+                    (exclude_reason, department, item_code),
+                )
+
+                if result > 0:
+                    return {
+                        "success": True,
+                        "message": f"부서 소속 사용자들의 기존 {result}건 상시점검 결과가 제외 처리되었습니다.",
+                        "updated_count": result,
+                    }
+                else:
+                    return {
+                        "success": True,
+                        "message": "부서 소속 사용자들의 동기화할 기존 결과가 없습니다.",
+                        "updated_count": 0,
+                    }
+            else:
+                # 제외 해제 시
+                result = execute_query(
+                    """
+                    UPDATE manual_check_results mcr
+                    JOIN users u ON mcr.user_id = u.uid
+                    SET mcr.exclude_from_scoring = 0, 
+                        mcr.exclude_reason = NULL,
+                        mcr.updated_at = NOW()
+                    WHERE u.department = %s 
+                      AND mcr.check_item_code = %s 
+                      AND mcr.exclude_from_scoring = 1
+                    """,
+                    (department, item_code),
+                )
+
+                if result > 0:
+                    return {
+                        "success": True,
+                        "message": f"부서 소속 사용자들의 기존 {result}건 상시점검 결과가 포함 처리되었습니다.",
+                        "updated_count": result,
+                    }
+                else:
+                    return {
+                        "success": True,
+                        "message": "부서 소속 사용자들의 동기화할 기존 결과가 없습니다.",
+                        "updated_count": 0,
+                    }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"부서별 기존 결과 동기화 실패: {str(e)}",
+                "updated_count": 0,
+            }
+
+    # remove_department_exception 메서드도 수정 필요
+    def remove_department_exception(self, department: str, item_type: str) -> Dict:
+        """부서별 제외 설정 제거 (수정된 버전) + 기존 결과 동기화"""
+        try:
+            print(
+                f"[DEBUG] remove_department_exception 호출 - department: {department}, item_type: {item_type}"
+            )
+
+            # item_type이 숫자인지 확인 (감사 항목)
+            if item_type.isdigit():
+                # 숫자 item_type은 감사 항목으로 처리
+                item_id = int(item_type)
+                print(f"[DEBUG] 부서별 감사 항목 처리 (숫자) - item_id: {item_id}")
+                result = execute_query(
+                    "UPDATE department_item_exceptions SET is_active = 0 WHERE department = %s AND item_id = %s",
+                    (department, item_id),
+                )
+            elif item_type.startswith("audit_"):
+                # audit_ 접두사가 있는 감사 항목
+                item_id = int(item_type.replace("audit_", ""))
+                print(
+                    f"[DEBUG] 부서별 감사 항목 처리 (audit_ 접두사) - item_id: {item_id}"
+                )
+                result = execute_query(
+                    "UPDATE department_item_exceptions SET is_active = 0 WHERE department = %s AND item_id = %s",
+                    (department, item_id),
+                )
+            elif item_type.startswith("manual_"):
+                # ★★★ manual_ 접두사가 있는 수시 점검 항목 - 동기화 추가 ★★★
+                item_id = int(item_type.replace("manual_", ""))
+                print(
+                    f"[DEBUG] 부서별 수시 점검 항목 처리 (manual_ 접두사) - item_id: {item_id}"
+                )
+
+                # 먼저 item_code 조회
+                item_info = execute_query(
+                    "SELECT item_code FROM manual_check_items WHERE item_id = %s",
+                    (item_id,),
+                    fetch_one=True,
+                )
+
+                result = execute_query(
+                    "UPDATE department_item_exceptions SET is_active = 0 WHERE department = %s AND item_id = %s AND item_type = 'manual'",
+                    (department, item_id),
+                )
+                print(f"[DEBUG] department_item_exceptions 업데이트 결과: {result}")
+
+                # 기존 manual_check_results 동기화
+                if item_info and result > 0:
+                    sync_result = self._sync_department_manual_check_results_exclusion(
+                        department, item_info["item_code"], "", is_excluded=False
+                    )
+                    final_message = f"부서별 제외 설정이 비활성화되었습니다. {sync_result['message']}"
+                    return {
+                        "success": True,
+                        "message": final_message,
+                        "sync_details": sync_result,
+                    }
+
+            else:
+                # 교육/훈련 항목 제외 설정 제거
+                print(f"[DEBUG] 부서별 교육/훈련 항목 처리 - item_type: {item_type}")
+                result = execute_query(
+                    "UPDATE department_extended_exceptions SET is_active = 0 WHERE department = %s AND item_id = %s",
+                    (department, item_type),
+                )
+
+            print(f"[DEBUG] 부서별 제외 설정 제거 결과: {result}")
+
+            if result > 0:
+                return {
+                    "success": True,
+                    "message": "부서별 제외 설정이 비활성화되었습니다.",
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "해당 부서별 제외 설정을 찾을 수 없습니다.",
+                }
+
+        except Exception as e:
+            print(f"[ERROR] 부서별 제외 설정 제거 중 예외 발생: {str(e)}")
+            return {
+                "success": False,
+                "message": f"부서별 제외 설정 제거 실패: {str(e)}",
+            }
