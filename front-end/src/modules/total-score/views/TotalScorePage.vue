@@ -5,14 +5,8 @@
       <h1 class="page-title">개인 보안 점수 현황</h1>
       <div class="year-selector">
         <label for="year">평가연도:</label>
-        <select
-          id="year"
-          v-model="selectedYear"
-          @change="fetchSecurityScore"
-        >
-          <option v-for="year in availableYears" :key="year" :value="year">
-            {{ year }}년
-          </option>
+        <select id="year" v-model="selectedYear" @change="fetchSecurityScore">
+          <option v-for="year in availableYears" :key="year" :value="year">{{ year }}년</option>
         </select>
       </div>
     </div>
@@ -33,7 +27,6 @@
 
     <!-- 보안 점수 데이터 -->
     <div v-else-if="scoreData" class="score-content">
-
       <!-- 총 감점 카드 -->
       <div class="overall-score-card">
         <div class="score-circle">
@@ -47,9 +40,9 @@
         </div>
         <div class="score-summary">
           <h2>{{ selectedYear }}년 보안 점수 현황</h2>
-          <p class="score-description">
+          <!-- <p class="score-description">
             {{ getPenaltyDescription(scoreData.total_penalty) }}
-          </p>
+          </p> -->
           <div class="score-details">
             <div class="detail-item">
               <span class="detail-label">상시감사 감점:</span>
@@ -72,11 +65,10 @@
       </div>
 
       <!-- 감점 구성 요소 -->
-      <div class="score-breakdown">
+      <!-- <div class="score-breakdown">
         <h2>감점 구성 요소</h2>
         <div class="breakdown-grid">
 
-          <!-- 상시감사 -->
           <div class="breakdown-card audit">
             <div class="card-header">
               <div class="card-icon">🛡️</div>
@@ -104,7 +96,6 @@
             </div>
           </div>
 
-          <!-- 수시감사 -->
           <div class="breakdown-card manual-audit">
             <div class="card-header">
               <div class="card-icon">🔍</div>
@@ -136,7 +127,6 @@
             </div>
           </div>
 
-          <!-- 정보보호교육 -->
           <div class="breakdown-card education">
             <div class="card-header">
               <div class="card-icon">📚</div>
@@ -164,7 +154,6 @@
             </div>
           </div>
 
-          <!-- 악성메일 모의훈련 -->
           <div class="breakdown-card training">
             <div class="card-header">
               <div class="card-icon">🎯</div>
@@ -192,10 +181,10 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <!-- 개선 권장사항 -->
-      <div class="recommendations">
+      <!-- <div class="recommendations">
         <h2>개선 권장사항</h2>
         <div v-if="recommendations.length === 0" class="no-recommendations">
           <div class="success-icon">🎉</div>
@@ -221,8 +210,7 @@
           </div>
 
         </div>
-      </div>
-
+      </div> -->
     </div>
   </div>
 </template>
@@ -253,10 +241,10 @@ const availableYears = computed(() => {
 const callSecurityScoreAPI = async (year) => {
   const response = await fetch(`/api/personal-dashboard/summary?year=${year}`, {
     method: 'GET',
-    credentials: 'include',  // 쿠키 기반 인증 사용
+    credentials: 'include', // 쿠키 기반 인증 사용
     headers: {
-      'Content-Type': 'application/json'
-    }
+      'Content-Type': 'application/json',
+    },
   })
 
   if (!response.ok) {
@@ -276,10 +264,10 @@ const callSecurityScoreAPI = async (year) => {
 const callRecommendationsAPI = async (year) => {
   const response = await fetch(`/api/personal-dashboard/recommendations?year=${year}`, {
     method: 'GET',
-    credentials: 'include',  // 쿠키 기반 인증 사용
+    credentials: 'include', // 쿠키 기반 인증 사용
     headers: {
-      'Content-Type': 'application/json'
-    }
+      'Content-Type': 'application/json',
+    },
   })
 
   if (!response.ok) {
@@ -306,7 +294,7 @@ const fetchSecurityScore = async () => {
     // 점수 데이터와 권장사항을 병렬로 호출
     const [scoreResponse, recommendationsResponse] = await Promise.all([
       callSecurityScoreAPI(selectedYear.value),
-      callRecommendationsAPI(selectedYear.value)
+      callRecommendationsAPI(selectedYear.value),
     ])
 
     console.log('점수 API 응답:', scoreResponse)
@@ -314,7 +302,6 @@ const fetchSecurityScore = async () => {
 
     scoreData.value = scoreResponse
     recommendations.value = recommendationsResponse.recommendations || []
-
   } catch (err) {
     console.error('API 호출 오류:', err)
     error.value = err.message || '데이터를 불러오는 중 오류가 발생했습니다.'
@@ -338,21 +325,21 @@ const getPassRate = (stats) => {
 
 const getPriorityText = (priority) => {
   const priorityMap = {
-    'high': '높음',
-    'medium': '보통',
-    'low': '낮음',
-    'info': '정보'
+    high: '높음',
+    medium: '보통',
+    low: '낮음',
+    info: '정보',
   }
   return priorityMap[priority] || priority
 }
 
 const getActionButtonText = (category) => {
   const actionMap = {
-    'education': '교육 현황 확인',
-    'training': '훈련 현황 확인',
-    'audit': '감사 결과 확인',
-    'manual': '수시감사 결과 확인',
-    'general': '조치 방법 보기'
+    education: '교육 현황 확인',
+    training: '훈련 현황 확인',
+    audit: '감사 결과 확인',
+    manual: '수시감사 결과 확인',
+    general: '조치 방법 보기',
   }
   return actionMap[category] || '상세 보기'
 }
@@ -371,26 +358,16 @@ onMounted(() => {
 
 <style scoped>
 .score-page {
+  padding: 24px 30px 40px;
+  background-color: #ffffff;
+  min-height: calc(100vh - 114px);
+  width: 100%;
   max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #f8fafc;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.page-title {
-  font-size: 28px;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0;
+  margin: 20px auto;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+  border-left: 1px solid #e0e4e9;
+  border-right: 1px solid #e0e4e9;
+  border-radius: 8px;
 }
 
 .year-selector {
@@ -588,19 +565,28 @@ onMounted(() => {
   margin: 4px 0;
 }
 
-.failed-items, .incomplete-periods, .failed-periods, .check-items {
+.failed-items,
+.incomplete-periods,
+.failed-periods,
+.check-items {
   margin-top: 12px;
   font-size: 0.875rem;
 }
 
-.failed-items h4, .incomplete-periods h4, .failed-periods h4, .check-items h4 {
+.failed-items h4,
+.incomplete-periods h4,
+.failed-periods h4,
+.check-items h4 {
   margin: 0 0 8px 0;
   font-size: 0.875rem;
   font-weight: 600;
   color: #374151;
 }
 
-.failed-items ul, .incomplete-periods ul, .failed-periods ul, .check-items ul {
+.failed-items ul,
+.incomplete-periods ul,
+.failed-periods ul,
+.check-items ul {
   margin: 0;
   padding-left: 16px;
   color: #6b7280;
@@ -790,8 +776,12 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* 반응형 디자인 */

@@ -232,8 +232,8 @@ const getMockEducationData = () => {
       total_courses: 2, // 수강과정 수
       completed_courses: 0, // 수료 과정
       incomplete_courses: 2, // 미수료 과정
-      incomplete_rate: 100, // 미수료율 (3/8 * 100)
-      status: 'incomplete', // 미수료율이 20% 초과이므로 미이수
+      incomplete_rate: 0, // 미수료율 (3/8 * 100)
+      status: 'not_started', // 미수료율이 20% 초과이므로 미이수
       education_date: '2025-05-20',
       exclude_from_scoring: false,
       notes: '온라인 교육 2개 과정 중 2개 미수료 (미수료율 100%)',
@@ -289,7 +289,7 @@ const getMockEducationData = () => {
             (onlineEducationData.total_courses + offlineEducationData.total_courses)) *
             100,
         ), // 50%
-        penalty_score: 0.5, // 온라인 미수료율 초과로 인한 감점
+        penalty_score: 0.0, // 온라인 미수료율 초과로 인한 감점
         excluded_count: 0,
       },
     }
@@ -298,25 +298,11 @@ const getMockEducationData = () => {
   // 2024년 데이터 (성공 상태)
   if (selectedYear.value === 2024) {
     const onlineEducationData = {
-      total_courses: 4, // 수강과정 수
-      completed_courses: 4, // 수료 과정
-      incomplete_courses: 0, // 미수료 과정
-      incomplete_rate: 0, // 미수료율 (1/10 * 100) - 20% 이하로 성공
-      status: 'completed', // 미수료율이 20% 이하이므로 이수완료
-      education_date: '2024-11-25',
-      exclude_from_scoring: false,
-      notes: '온라인 교육 4개 과정 중 4개 수료 완료 (미수료율 0%)',
+
     }
 
     const offlineEducationData = {
-      total_courses: 1, // 오프라인 필수 교육 과정
-      completed_courses: 1, // 참석한 과정
-      incomplete_courses: 0, // 미참석하여 미수료된 과정
-      not_started_courses: 0, // 아직 시작되지 않은 과정
-      status: 'completed', // 모든 과정 완료
-      education_date: '2024-12-10',
-      exclude_from_scoring: false,
-      notes: '집합교육 1회 모두 참석 완료',
+
     }
 
     return {

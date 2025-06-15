@@ -40,33 +40,8 @@ CREATE TABLE IF NOT EXISTS `audit_log` (
   CONSTRAINT `fk_audit_log_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=77 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='보안 감사 로그';
 
--- 테이블 데이터 patch_management.audit_log:~24 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.audit_log:~0 rows (대략적) 내보내기
 DELETE FROM `audit_log`;
-INSERT INTO `audit_log` (`log_id`, `user_id`, `item_id`, `actual_value`, `passed`, `notes`, `exclude_reason`, `checked_at`) VALUES
-	(53, 5, 1, '{"screenSaverTime": "600", "screenSaverSecure": "1", "screenSaverEnabled": "1"}', 1, '화면 보호기가 정상적으로 설정되어 있습니다. [제외사유: 135]', '135', '2025-06-15 13:24:32'),
-	(54, 5, 2, '{"UpToDate": 0, "DisplayName": "백신 미설치", "RealTimeProtection": 0}', 0, '알약 백신이 정상적으로 설치되어 있지 않거나, 실시간 보호가 비활성화되어 있거나, 업데이트가 최신 상태가 아닙니다. 알약 백신을 설치하고 실시간 보호를 활성화한 후 최신 업데이트를 적용해주세요.', NULL, '2025-06-15 13:24:24'),
-	(55, 5, 3, '{"minimumPasswordLength": "8"}', 1, '암호 길이가 정책에 맞게 설정되어 있습니다.', NULL, '2025-06-15 13:24:42'),
-	(56, 5, 4, '{"passwordComplexity": "0"}', 0, '암호 복잡도가 설정되어 있지 않습니다. 암호 복잡도 설정을 활성화해주세요.', NULL, '2025-06-15 13:24:42'),
-	(57, 5, 5, '{"maximumPasswordAge": "91"}', 1, '암호 변경 주기가 적절하게 설정되어 있습니다.', NULL, '2025-06-15 13:24:42'),
-	(58, 5, 6, '{"passwordHistorySize": "5"}', 1, '동일 암호 사용 제한이 적절하게 설정되어 있습니다.', NULL, '2025-06-15 13:24:42'),
-	(59, 5, 7, '{"folders": ["ADMIN$", "C$", "D$", "E$", "F$", "IPC$"]}', 0, '불필요한 공유 폴더가 있습니다. 필요하지 않은 공유 폴더를 제거해주세요.', NULL, '2025-06-15 13:24:45'),
-	(60, 5, 8, '{"fDenyTSConnections": 1}', 1, '원격 데스크톱이 적절하게 제한되어 있습니다.', NULL, '2025-06-15 13:24:48'),
-	(61, 4, 1, '{"screenSaverTime": "600", "screenSaverSecure": "1", "screenSaverEnabled": "1"}', 1, '화면 보호기가 정상적으로 설정되어 있습니다.', NULL, '2025-06-15 14:58:56'),
-	(62, 4, 2, '{"UpToDate": 0, "DisplayName": "백신 미설치", "RealTimeProtection": 0}', 0, '알약 백신이 정상적으로 설치되어 있지 않거나, 실시간 보호가 비활성화되어 있거나, 업데이트가 최신 상태가 아닙니다. 알약 백신을 설치하고 실시간 보호를 활성화한 후 최신 업데이트를 적용해주세요.', NULL, '2025-06-15 14:58:53'),
-	(63, 4, 3, '{"minimumPasswordLength": "8"}', 1, '암호 길이가 정책에 맞게 설정되어 있습니다.', NULL, '2025-06-15 14:59:05'),
-	(64, 4, 4, '{"passwordComplexity": "0"}', 0, '암호 복잡도가 설정되어 있지 않습니다. 암호 복잡도 설정을 활성화해주세요.', NULL, '2025-06-15 14:59:05'),
-	(65, 4, 5, '{"maximumPasswordAge": "91"}', 1, '암호 변경 주기가 적절하게 설정되어 있습니다.', NULL, '2025-06-15 14:59:05'),
-	(66, 4, 6, '{"passwordHistorySize": "5"}', 1, '동일 암호 사용 제한이 적절하게 설정되어 있습니다.', NULL, '2025-06-15 14:59:05'),
-	(67, 4, 7, '{"folders": ["IPC$"]}', 1, '불필요한 공유 폴더가 없습니다.', NULL, '2025-06-15 14:59:09'),
-	(68, 4, 8, '{"fDenyTSConnections": 1}', 1, '원격 데스크톱이 적절하게 제한되어 있습니다.', NULL, '2025-06-15 14:59:12'),
-	(69, 4, 1, '{"screenSaverTime": "600", "screenSaverSecure": "1", "screenSaverEnabled": "1"}', 1, '화면 보호기가 정상적으로 설정되어 있습니다.', NULL, '2025-06-15 15:19:16'),
-	(70, 4, 2, '{"UpToDate": 0, "DisplayName": "백신 미설치", "RealTimeProtection": 0}', 0, '알약 백신이 정상적으로 설치되어 있지 않거나, 실시간 보호가 비활성화되어 있거나, 업데이트가 최신 상태가 아닙니다. 알약 백신을 설치하고 실시간 보호를 활성화한 후 최신 업데이트를 적용해주세요.', NULL, '2025-06-15 15:19:13'),
-	(71, 4, 3, '{"minimumPasswordLength": "8"}', 1, '암호 길이가 정책에 맞게 설정되어 있습니다.', NULL, '2025-06-15 15:19:19'),
-	(72, 4, 4, '{"passwordComplexity": "1"}', 1, '암호 복잡도가 적절하게 설정되어 있습니다.', NULL, '2025-06-15 15:19:19'),
-	(73, 4, 5, '{"maximumPasswordAge": "90"}', 1, '암호 변경 주기가 적절하게 설정되어 있습니다.', NULL, '2025-06-15 15:19:19'),
-	(74, 4, 6, '{"passwordHistorySize": "5"}', 1, '동일 암호 사용 제한이 적절하게 설정되어 있습니다.', NULL, '2025-06-15 15:19:19'),
-	(75, 4, 7, '{"folders": ["IPC$"]}', 1, '불필요한 공유 폴더가 없습니다.', NULL, '2025-06-15 15:19:22'),
-	(76, 4, 8, '{"fDenyTSConnections": 1}', 1, '원격 데스크톱이 적절하게 제한되어 있습니다.', NULL, '2025-06-15 15:19:25');
 
 -- 테이블 patch_management.checklist_items 구조 내보내기
 DROP TABLE IF EXISTS `checklist_items`;
@@ -235,8 +210,8 @@ CREATE TABLE IF NOT EXISTS `manual_check_periods` (
 -- 테이블 데이터 patch_management.manual_check_periods:~5 rows (대략적) 내보내기
 DELETE FROM `manual_check_periods`;
 INSERT INTO `manual_check_periods` (`period_id`, `check_type`, `period_year`, `period_name`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `auto_pass_setting`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
-	(14, 'seal_check', 2025, '상반기', '2025-07-10', '2025-07-30', 0, NULL, NULL, '', 1, 'admin', '2025-06-14 10:56:12', '2025-06-14 15:25:06', 1),
-	(15, 'seal_check', 2025, '3월', '2025-04-03', '2025-04-13', 0, NULL, NULL, '', 1, 'admin', '2025-06-14 11:19:26', '2025-06-14 15:30:09', 1),
+	(14, 'seal_check', 2025, '상반기', '2025-07-10', '2025-07-30', 1, '2025-06-15 16:41:29', 'admin', '', 1, 'admin', '2025-06-14 10:56:12', '2025-06-15 16:41:29', 1),
+	(15, 'seal_check', 2025, '3월', '2025-04-03', '2025-04-13', 1, '2025-06-15 16:41:28', 'admin', '', 1, 'admin', '2025-06-14 11:19:26', '2025-06-15 16:41:28', 1),
 	(16, 'file_encryption', 2025, '2323', '2025-01-01', '2025-04-01', 1, '2025-06-14 15:26:22', 'admin', '', 1, 'admin', '2025-06-14 11:46:46', '2025-06-14 15:26:22', 1),
 	(17, 'seal_check', 2025, '42342', '2025-05-10', '2025-06-16', 1, '2025-06-14 15:30:16', 'admin', '', 1, 'admin', '2025-06-14 11:47:18', '2025-06-14 15:30:16', 1),
 	(18, 'file_encryption', 2025, '6월 검사', '2025-06-13', '2025-06-15', 0, NULL, NULL, '', 1, 'admin', '2025-06-14 14:38:58', '2025-06-14 15:25:08', 1);
@@ -290,14 +265,28 @@ CREATE TABLE IF NOT EXISTS `manual_check_results` (
   KEY `idx_check_type_result` (`check_item_code`,`overall_result`),
   CONSTRAINT `manual_check_results_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`),
   CONSTRAINT `manual_check_results_ibfk_2` FOREIGN KEY (`period_id`) REFERENCES `manual_check_periods` (`period_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=407 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 결과';
+) ENGINE=InnoDB AUTO_INCREMENT=426 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 결과';
 
--- 테이블 데이터 patch_management.manual_check_results:~3 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.manual_check_results:~17 rows (대략적) 내보내기
 DELETE FROM `manual_check_results`;
 INSERT INTO `manual_check_results` (`check_id`, `user_id`, `check_item_code`, `source_ip`, `check_year`, `check_period`, `check_date`, `checker_name`, `seal_status`, `seal_number`, `seal_notes`, `malware_scan_result`, `threats_found`, `threats_cleaned`, `antivirus_version`, `malware_notes`, `malware_name`, `malware_classification`, `malware_path`, `detection_item`, `encryption_status`, `files_scanned`, `unencrypted_files`, `encryption_completed`, `encryption_notes`, `round_number`, `ssn_included`, `overall_result`, `total_score`, `penalty_points`, `notes`, `exclude_from_scoring`, `exclude_reason`, `created_at`, `updated_at`, `period_id`) VALUES
-	(404, 1, 'seal_check', NULL, 2025, '42342', '2025-05-11 00:00:00', 'admin', 'damaged', NULL, '봉인씰 상태: 훼손', NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, 'PC 봉인씰 확인: 훼손', 0, NULL, '2025-06-15 14:04:12', '2025-06-15 14:04:12', 17),
-	(405, 2, 'seal_check', NULL, 2025, '42342', '2025-05-21 00:00:00', 'admin', 'damaged', NULL, '봉인씰 상태: 훼손', NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, 'PC 봉인씰 확인: 훼손', 0, NULL, '2025-06-15 14:04:12', '2025-06-15 14:04:12', 17),
-	(406, 5, 'seal_check', NULL, 2025, '42342', '2025-06-15 00:00:00', 'admin', 'damaged', NULL, '봉인씰 상태: 훼손', NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, 'PC 봉인씰 확인: 훼손', 1, '135', '2025-06-15 14:04:12', '2025-06-15 14:24:21', 17);
+	(404, 1, 'seal_check', NULL, 2025, '42342', '2025-05-11 00:00:00', 'admin', 'damaged', NULL, '봉인씰 상태: 훼손', NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, 'PC 봉인씰 확인: 훼손', 0, NULL, '2025-06-15 14:04:12', '2025-06-15 16:35:48', 17),
+	(405, 2, 'seal_check', NULL, 2025, '42342', '2025-05-21 00:00:00', 'admin', 'damaged', NULL, '봉인씰 상태: 훼손', NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, 'PC 봉인씰 확인: 훼손', 0, NULL, '2025-06-15 14:04:12', '2025-06-15 16:35:48', 17),
+	(406, 5, 'seal_check', NULL, 2025, '42342', '2025-06-15 00:00:00', 'admin', 'damaged', NULL, '봉인씰 상태: 훼손', NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, 'PC 봉인씰 확인: 훼손', 1, '135', '2025-06-15 14:04:12', '2025-06-15 16:35:48', 17),
+	(407, 1, 'malware_scan', '10.106.15.129', 2025, 'first_half', '2025-05-25 13:02:53', 'admin', NULL, NULL, NULL, 'infected', 1, 0, NULL, '탐지 항목: cecdc.exe', 'Trojan.Generic.3894389', '트로이목마/트로잔', 'C:\\users\\ncece', 'cecdc.exe', NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, '악성코드 검사: cecdc.exe', 0, NULL, '2025-06-15 16:35:53', '2025-06-15 16:35:53', NULL),
+	(408, 2, 'malware_scan', '10.24.13.24', 2025, 'first_half', '2025-05-28 13:02:53', 'admin', NULL, NULL, NULL, 'infected', 1, 0, NULL, '탐지 항목: abc.exe', 'Trojan.Generic.3894389', '트로이목마/트로잔', 'C:\\users\\ncece', 'abc.exe', NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, '악성코드 검사: abc.exe', 0, NULL, '2025-06-15 16:35:53', '2025-06-15 16:35:53', NULL),
+	(409, 3, 'malware_scan', '10.11.42.13', 2025, 'first_half', '2025-05-31 13:02:53', 'admin', NULL, NULL, NULL, 'infected', 1, 0, NULL, '탐지 항목: cec11dc.exe', 'Trojan.Generic.3894389', '트로이목마/트로잔', 'C:\\users\\ncece', 'cec11dc.exe', NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, '악성코드 검사: cec11dc.exe', 0, NULL, '2025-06-15 16:35:53', '2025-06-15 16:35:53', NULL),
+	(411, 5, 'malware_scan', '172.30.1.38', 2025, 'first_half', '2025-06-03 16:00:21', 'admin', NULL, NULL, NULL, 'infected', 1, 0, NULL, '탐지 항목: rfwef.json', 'toolkit.f3d.231', '기타', 'C:\\users\\taffd', 'rfwef.json', NULL, 0, 0, 0, NULL, '0', 0, 'fail', 0.00, 0.00, '악성코드 검사: rfwef.json', 0, NULL, '2025-06-15 16:35:53', '2025-06-15 16:35:53', NULL),
+	(412, 4, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-16 01:41:28', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-15 16:41:28', '2025-06-15 16:54:36', 15),
+	(413, 3, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-16 01:41:28', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-15 16:41:28', '2025-06-15 16:41:28', 15),
+	(414, 1, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-16 01:41:28', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-15 16:41:28', '2025-06-15 16:41:28', 15),
+	(415, 5, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-16 01:41:28', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-15 16:41:28', '2025-06-15 16:41:28', 15),
+	(416, 2, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-16 01:41:28', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-15 16:41:28', '2025-06-15 16:41:28', 15),
+	(419, 4, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-16 01:41:29', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-15 16:41:29', '2025-06-15 16:54:33', 14),
+	(420, 3, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-16 01:41:29', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-15 16:41:29', '2025-06-15 16:41:29', 14),
+	(421, 1, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-16 01:41:29', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-15 16:41:29', '2025-06-15 16:41:29', 14),
+	(422, 5, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-16 01:41:29', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-15 16:41:29', '2025-06-15 16:41:29', 14),
+	(423, 2, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-16 01:41:29', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-15 16:41:29', '2025-06-15 16:41:29', 14);
 
 -- 테이블 patch_management.phishing_training 구조 내보내기
 DROP TABLE IF EXISTS `phishing_training`;
@@ -321,28 +310,13 @@ CREATE TABLE IF NOT EXISTS `phishing_training` (
   UNIQUE KEY `uk_user_training` (`user_id`,`training_year`,`training_period`),
   KEY `idx_training_year` (`training_year`),
   CONSTRAINT `fk_training_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=388 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 이력';
+) ENGINE=InnoDB AUTO_INCREMENT=391 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 이력';
 
--- 테이블 데이터 patch_management.phishing_training:~17 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.phishing_training:~2 rows (대략적) 내보내기
 DELETE FROM `phishing_training`;
 INSERT INTO `phishing_training` (`training_id`, `user_id`, `training_year`, `training_period`, `email_sent_time`, `action_time`, `log_type`, `mail_type`, `user_email`, `ip_address`, `training_result`, `response_time_minutes`, `notes`, `created_at`, `updated_at`) VALUES
-	(47, 5, 2024, 'first_half', '2024-04-22 10:44:25', '2024-10-22 10:45:25', '스크립트 첨부파일 열람', '퇴직연금 운용상품 안내 (HTML)', 'admin@test.com', '1.34.52.46', 'fail', 263521, '', '2025-06-05 07:35:40', '2025-06-05 07:35:40'),
-	(49, 3, 2024, 'second_half', '2024-11-20 10:44:25', '2025-04-22 10:34:25', '스크립트 첨부파일 열람', '세금계산서 안내', 'test@test.com', '103.34.21.35', 'fail', 220310, '', '2025-06-05 07:35:40', '2025-06-05 07:35:40'),
-	(292, 3, 2024, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:35:59', '2025-06-08 10:35:59'),
-	(293, 4, 2024, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:35:59', '2025-06-08 10:35:59'),
-	(294, 2, 2024, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:35:59', '2025-06-08 10:35:59'),
-	(295, 6, 2024, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:35:59', '2025-06-08 10:35:59'),
-	(296, 1, 2024, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:35:59', '2025-06-08 10:35:59'),
-	(299, 5, 2024, 'second_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:36:00', '2025-06-08 10:36:00'),
-	(300, 4, 2024, 'second_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:36:00', '2025-06-08 10:36:00'),
-	(301, 2, 2024, 'second_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:36:00', '2025-06-08 10:36:00'),
-	(302, 6, 2024, 'second_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:36:00', '2025-06-08 10:36:00'),
-	(303, 1, 2024, 'second_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-08 10:36:00', '2025-06-08 10:36:00'),
-	(367, 4, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '이메일 열람2', '카카오톡', 'admin@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-14 15:26:16', '2025-06-15 14:27:40'),
-	(369, 1, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '세금계산서', 'eunjekim8@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-14 15:26:16', '2025-06-15 14:27:40'),
-	(371, 2, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '퇴직연금 운용', 'penguin@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-14 15:26:16', '2025-06-15 14:27:17'),
-	(379, 3, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-15 12:31:35', '2025-06-15 12:31:35'),
-	(380, 5, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '퇴직연금 운용', 'hamtori@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-15 12:31:35', '2025-06-15 14:27:40');
+	(388, 5, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '퇴직연금 운용', 'hamtori@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-15 16:53:30', '2025-06-15 16:53:30'),
+	(389, 1, 2025, 'first_half', '2025-06-03 09:00:00', '2025-06-03 10:33:00', '스크립트 첨부파일 열람', '세금계산서', 'eunjekim8@test.com', '10.24.11.3', 'fail', 93, '', '2025-06-15 16:53:30', '2025-06-15 16:53:30');
 
 -- 테이블 patch_management.phishing_training_periods 구조 내보내기
 DROP TABLE IF EXISTS `phishing_training_periods`;
@@ -392,13 +366,8 @@ CREATE TABLE IF NOT EXISTS `security_education` (
   CONSTRAINT `fk_education_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='정보보호 교육 이력';
 
--- 테이블 데이터 patch_management.security_education:~4 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.security_education:~0 rows (대략적) 내보내기
 DELETE FROM `security_education`;
-INSERT INTO `security_education` (`education_id`, `user_id`, `education_year`, `education_period`, `education_type`, `education_date`, `completion_status`, `notes`, `created_at`, `updated_at`) VALUES
-	(1, 3, 2025, 'first_half', '기본교육', NULL, 0, '상반기 교육 미이수', '2025-06-03 12:44:38', '2025-06-03 12:44:38'),
-	(2, 3, 2025, 'second_half', '기본교육', NULL, 0, '하반기 교육 미실시', '2025-06-03 12:44:38', '2025-06-03 12:44:38'),
-	(3, 3, 2024, 'first_half', '기본교육', NULL, 1, '상반기 교육 이수 완료', '2025-06-03 12:44:38', '2025-06-03 12:44:38'),
-	(4, 3, 2024, 'second_half', '기본교육', NULL, 1, '하반기 교육 이수 완료', '2025-06-03 12:44:38', '2025-06-03 12:44:38');
 
 -- 테이블 patch_management.security_score_summary 구조 내보내기
 DROP TABLE IF EXISTS `security_score_summary`;
@@ -421,10 +390,10 @@ CREATE TABLE IF NOT EXISTS `security_score_summary` (
   CONSTRAINT `fk_score_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=149 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='KPI 보안 점수 요약 (감점 기준)';
 
--- 테이블 데이터 patch_management.security_score_summary:~0 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.security_score_summary:~1 rows (대략적) 내보내기
 DELETE FROM `security_score_summary`;
 INSERT INTO `security_score_summary` (`summary_id`, `user_id`, `evaluation_year`, `audit_penalty`, `education_penalty`, `training_penalty`, `total_penalty`, `audit_failed_count`, `education_incomplete_count`, `training_failed_count`, `last_calculated`, `created_at`) VALUES
-	(148, 4, 2025, 0.50, 0.00, 0.00, 0.50, 0, 0, 0, '2025-06-15 16:24:10', '2025-06-15 16:23:55');
+	(148, 4, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-15 16:57:06', '2025-06-15 16:23:55');
 
 -- 테이블 patch_management.users 구조 내보내기
 DROP TABLE IF EXISTS `users`;
