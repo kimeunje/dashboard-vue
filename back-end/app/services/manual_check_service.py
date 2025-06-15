@@ -1905,3 +1905,130 @@ class ManualCheckService:
             "result": {"pass": "통과", "fail": "실패", "partial": "부분통과"},
         }
         return mappings.get(status_type, {}).get(status, status or "")
+
+    def update_check_result(
+        self, check_id, check_result=None, notes=None, check_type=None
+    ):
+        """점검 결과 수정"""
+        try:
+            # 기존 결과 확인
+            existing = execute_query(
+                "SELECT check_id, user_id, check_item_code FROM manual_check_results WHERE check_id = %s",
+                (check_id,),
+                fetch_one=True,
+            )
+
+            if not existing:
+                raise ValueError("해당 점검 결과를 찾을 수 없습니다.")
+
+            # 수정할 필드들 준비
+            update_fields = []
+            update_values = []
+
+            # 결과 상태 업데이트
+            if check_result:
+                update_fields.append("overall_result = %s")
+                update_values.append(check_result)
+
+                # 결과에 따른 점수 계산 (통과=100점, 실패=0점)
+                score = 100.0 if check_result == "pass" else 0.0
+                update_fields.append("total_score = %s")
+                update_values.append(score)
+
+            # 비고 업데이트
+            if notes is not None:
+                update_fields.append("notes = %s")
+                update_values.append(notes)
+
+            # 수정일시 업데이트
+            update_fields.append("updated_at = NOW()")
+
+            if not update_fields:
+                return {"message": "수정할 내용이 없습니다."}
+
+            # 업데이트 쿼리 실행
+            update_values.append(check_id)
+            query = f"""
+                UPDATE manual_check_results 
+                SET {', '.join(update_fields)}
+                WHERE check_id = %s
+            """
+
+            result = execute_query(query, tuple(update_values))
+
+            if result > 0:
+                return {"message": "점검 결과가 성공적으로 수정되었습니다."}
+            else:
+                raise ValueError("결과 수정에 실패했습니다.")
+
+        except Exception as e:
+            raise ValueError(f"점검 결과 수정 실패: {str(e)}")
+
+    def delete_check_result(self, check_id):
+        """점검 결과 삭제"""
+        try:
+            # 기존 결과 확인
+            existing = execute_query(
+                """
+                SELECT mcr.check_id, u.username, mcr.check_item_code 
+                FROM manual_check_results mcr
+                JOIN users u ON mcr.user_id = u.uid
+                WHERE mcr.check_id = %s
+                """,
+                (check_id,),
+                fetch_one=True,
+            )
+
+            if not existing:
+                raise ValueError("해당 점검 결과를 찾을 수 없습니다.")
+
+            # 결과 삭제 (하드 삭제)
+            result = execute_query(
+                "DELETE FROM manual_check_results WHERE check_id = %s", (check_id,)
+            )
+
+            if result > 0:
+                check_type_name = self.get_check_type_name(existing["check_item_code"])
+                return {
+                    "message": f"{existing['username']}의 {check_type_name} 점검 결과가 삭제되었습니다."
+                }
+            else:
+                raise ValueError("결과 삭제에 실패했습니다.")
+
+        except Exception as e:
+            raise ValueError(f"점검 결과 삭제 실패: {str(e)}")
+
+    def bulk_delete_results(self, result_ids):
+        """점검 결과 일괄 삭제"""
+        try:
+            if not result_ids or not isinstance(result_ids, list):
+                raise ValueError("삭제할 결과 ID 목록이 필요합니다.")
+
+            # 존재하는 결과 수 확인
+            placeholders = ",".join(["%s"] * len(result_ids))
+            existing_count = execute_query(
+                f"SELECT COUNT(*) as count FROM manual_check_results WHERE check_id IN ({placeholders})",
+                tuple(result_ids),
+                fetch_one=True,
+            )["count"]
+
+            if existing_count == 0:
+                raise ValueError("삭제할 결과를 찾을 수 없습니다.")
+
+            # 일괄 삭제 실행
+            deleted_count = execute_query(
+                f"DELETE FROM manual_check_results WHERE check_id IN ({placeholders})",
+                tuple(result_ids),
+            )
+
+            return {
+                "message": f"{deleted_count}개의 점검 결과가 삭제되었습니다.",
+                "deleted_count": deleted_count,
+            }
+
+        except Exception as e:
+            raise ValueError(f"일괄 삭제 실패: {str(e)}")
+
+    def generate_upload_template(self):
+        """업로드 템플릿 생성"""
+        return self.generate_file_encryption_template()

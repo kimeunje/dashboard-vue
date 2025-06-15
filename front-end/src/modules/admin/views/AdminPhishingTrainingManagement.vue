@@ -562,7 +562,6 @@
   </div>
 </template>
 
-// AdminPhishingTrainingManagement.vue - Script Setup 부분
 <script setup>
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
