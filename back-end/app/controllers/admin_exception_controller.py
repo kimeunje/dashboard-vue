@@ -175,7 +175,7 @@ def get_department_exceptions():
 @validate_json(["user_id", "item_type", "exclude_reason"])
 @handle_exceptions
 def add_user_exception():
-    """사용자별 제외 설정 추가 (개선된 버전)"""
+    """사용자별 제외 설정 추가 (완전 수정된 버전)"""
     data = request.json
     current_user = request.current_user
 
@@ -227,43 +227,40 @@ def add_user_exception():
             HTTP_STATUS["BAD_REQUEST"],
         )
 
-    # 디버깅: 서비스 호출 전 파라미터 로그
-    service_params = {
-        "user_uid": data["user_id"],
-        "item_id": data.get("item_id", data["item_type"]),
-        "item_type": data["item_type"],
-        "item_name": data.get("item_name", ""),
-        "item_category": data.get("item_category", ""),
-        "exclude_reason": data["exclude_reason"],
-        "exclude_type": data.get("exclude_type", "permanent"),
-        "start_date": start_date,
-        "end_date": end_date,
-        "created_by": current_user["username"],
-    }
-    print(f"[DEBUG] 서비스 호출 파라미터: {service_params}")
+    # 서비스 호출 - 올바른 파라미터명 사용
+    result = exception_service.add_user_exception(
+        user_uid=data["user_id"],  # user_id -> user_uid
+        item_id=data["item_type"],  # item_type을 item_id로 전달
+        item_type=data["item_type"],
+        item_name=data.get("item_name", ""),
+        item_category=data.get("item_category", ""),
+        exclude_reason=data["exclude_reason"],
+        exclude_type=data.get("exclude_type", "permanent"),
+        start_date=start_date,
+        end_date=end_date,
+        created_by=current_user["username"],
+    )
 
-    # 수정된 서비스 호출
-    result = exception_service.add_user_exception(**service_params)
-
-    # 디버깅: 서비스 결과 로그
     print(f"[DEBUG] 서비스 결과: {result}")
 
     if result["success"]:
         return jsonify(result)
     else:
-        # 구체적인 에러 메시지 로그 출력
         print(f"[ERROR] 제외 설정 추가 실패: {result}")
         return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
 
 
+# 부서별 제외 설정도 동일하게 수정
 @exception_bp.route("/department-exceptions", methods=["POST"])
 @admin_required
 @validate_json(["department", "item_type", "exclude_reason"])
 @handle_exceptions
 def add_department_exception():
-    """부서별 제외 설정 추가 (개선된 버전)"""
+    """부서별 제외 설정 추가 (완전 수정된 버전)"""
     data = request.json
     current_user = request.current_user
+
+    print(f"[DEBUG] 부서별 제외 설정 - 받은 데이터: {data}")
 
     # 날짜 변환 로직 (위와 동일)
     start_date = None
@@ -287,16 +284,31 @@ def add_department_exception():
                 HTTP_STATUS["BAD_REQUEST"],
             )
 
+    # 임시 제외의 경우 날짜 검증
+    if data.get("exclude_type") == "temporary":
+        if not start_date or not end_date:
+            return (
+                jsonify({"error": "임시 제외의 경우 시작일과 종료일이 필요합니다."}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
+        if end_date <= start_date:
+            return (
+                jsonify({"error": "종료일은 시작일보다 늦어야 합니다."}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
+
     result = exception_service.add_department_exception(
         department=data["department"],
         item_type=data["item_type"],
-        item_name=data["item_name"],
+        item_name=data.get("item_name", ""),
         exclude_reason=data["exclude_reason"],
         exclude_type=data.get("exclude_type", "permanent"),
         start_date=start_date,
         end_date=end_date,
         created_by=current_user["username"],
     )
+
+    print(f"[DEBUG] 부서별 제외 설정 서비스 결과: {result}")
 
     if result["success"]:
         return jsonify(result)
@@ -347,28 +359,67 @@ def get_departments():
 @admin_required
 @handle_exceptions
 def get_checklist_items():
-    """점검 항목 목록 조회"""
+    """점검 항목 목록 조회 - checklist_items와 manual_check_items 통합"""
     check_type = request.args.get("check_type")  # 'daily', 'manual' 또는 전체
 
-    if check_type:
-        condition = "WHERE check_type = %s"
-        params = (check_type,)
-    else:
-        condition = ""
-        params = ()
+    try:
+        items = []
 
-    items = execute_query(
-        f"""
-        SELECT item_id, item_name, category, description, check_type, penalty_weight
-        FROM checklist_items
-        {condition}
-        ORDER BY check_type, category, item_name
-        """,
-        params,
-        fetch_all=True,
-    )
+        if check_type != "manual":
+            # checklist_items에서 일반 감사 항목 조회
+            if check_type:
+                condition = "WHERE check_type = %s"
+                params = (check_type,)
+            else:
+                condition = ""
+                params = ()
 
-    return jsonify(items)
+            checklist_items = execute_query(
+                f"""
+                SELECT 
+                    CONCAT('audit_', item_id) as item_id,
+                    item_name, 
+                    category, 
+                    description, 
+                    check_type, 
+                    penalty_weight,
+                    'audit' as source_table
+                FROM checklist_items
+                {condition}
+                ORDER BY check_type, category, item_name
+                """,
+                params,
+                fetch_all=True,
+            )
+            items.extend(checklist_items)
+
+        if check_type != "daily":
+            # manual_check_items에서 수시 점검 항목 조회
+            manual_items = execute_query(
+                """
+                SELECT 
+                    CONCAT('manual_', item_id) as item_id,
+                    item_name, 
+                    item_category as category, 
+                    description, 
+                    'manual' as check_type, 
+                    penalty_weight,
+                    'manual' as source_table
+                FROM manual_check_items
+                WHERE is_active = 1
+                ORDER BY item_category, item_name
+                """,
+                fetch_all=True,
+            )
+            items.extend(manual_items)
+
+        return jsonify(items)
+
+    except Exception as e:
+        return (
+            jsonify({"error": f"항목 목록 조회 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @exception_bp.route("/users", methods=["GET"])

@@ -1490,7 +1490,7 @@ const processBulkUpload = async () => {
     //   },
     //   body: formData,
     // })
-    const response = await fetch('/api/admin/training/bulk-update', {
+    const response = await fetch('/api/phishing-training/bulk-upload', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

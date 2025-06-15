@@ -446,61 +446,64 @@
             </div>
 
             <!-- 세부 항목 선택 -->
+
+            <!-- 세부 항목 선택 -->
             <div v-if="formData.item_category" class="form-group">
               <label>세부 항목:</label>
               <select v-model="formData.item_type" required class="form-select">
                 <option value="">항목을 선택하세요</option>
 
-                <!-- 정보보안 감사 항목 -->
-                <optgroup
-                  v-if="formData.item_category === '정보보안 감사'"
-                  v-for="category in auditItemCategories"
-                  :key="category.name"
-                  :label="category.name"
-                >
-                  <option
-                    v-for="item in category.items"
-                    :key="item.item_id"
-                    :value="'audit_' + item.item_id"
-                    :data-name="item.item_name"
+                <!-- 정보보안 감사 항목 (실제 데이터 구조에 맞게 수정) -->
+                <template v-if="formData.item_category === '정보보안 감사'">
+                  <optgroup
+                    v-for="(items, categoryName) in auditItemsByCategory"
+                    :key="categoryName"
+                    :label="categoryName"
                   >
-                    {{ item.item_name }} ({{ item.check_type === 'daily' ? '정기' : '수시' }})
-                  </option>
-                </optgroup>
+                    <option
+                      v-for="item in items"
+                      :key="item.item_id"
+                      :value="item.item_id"
+                      :data-name="item.item_name"
+                    >
+                      {{ item.item_name }} ({{
+                        item.check_type === 'daily' ? '정기점검' : '수시점검'
+                      }})
+                    </option>
+                  </optgroup>
+                </template>
 
-                <!-- 정보보호 교육 항목 (연도별) -->
-                <optgroup
-                  v-if="formData.item_category === '정보보호 교육'"
-                  v-for="(items, year) in educationItems"
-                  :key="year"
-                  :label="year + '년'"
-                >
-                  <option
-                    v-for="item in items"
-                    :key="item.item_type"
-                    :value="item.item_type"
-                    :data-name="item.item_name"
+                <!-- 정보보호 교육 항목 -->
+                <template v-if="formData.item_category === '정보보호 교육'">
+                  <optgroup
+                    v-for="(items, year) in educationItems"
+                    :key="year"
+                    :label="`${year}년`"
                   >
-                    {{ item.item_name }}
-                  </option>
-                </optgroup>
+                    <option
+                      v-for="item in items"
+                      :key="item.item_id"
+                      :value="item.item_id"
+                      :data-name="item.item_name"
+                    >
+                      {{ item.item_name }}
+                    </option>
+                  </optgroup>
+                </template>
 
-                <!-- 악성메일 모의훈련 항목 (연도별) -->
-                <optgroup
-                  v-if="formData.item_category === '악성메일 모의훈련'"
-                  v-for="(items, year) in trainingItems"
-                  :key="year"
-                  :label="year + '년'"
-                >
-                  <option
-                    v-for="item in items"
-                    :key="item.item_type"
-                    :value="item.item_type"
-                    :data-name="item.item_name"
-                  >
-                    {{ item.item_name }}
-                  </option>
-                </optgroup>
+                <!-- 악성메일 모의훈련 항목 -->
+                <template v-if="formData.item_category === '악성메일 모의훈련'">
+                  <optgroup v-for="(items, year) in trainingItems" :key="year" :label="`${year}년`">
+                    <option
+                      v-for="item in items"
+                      :key="item.item_id"
+                      :value="item.item_id"
+                      :data-name="item.item_name"
+                    >
+                      {{ item.item_name }}
+                    </option>
+                  </optgroup>
+                </template>
               </select>
             </div>
 
@@ -606,25 +609,54 @@ const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref('success')
 
-// 계산된 속성 - 개선된 버전
+// 모든 감사 항목들을 하나의 배열로 (기존 auditItemCategories 대체)
 const auditItemCategories = computed(() => {
-  const auditItems = availableItems.value['정보보안 감사'] || []
-  const groups = {}
+  const categories = []
 
-  auditItems.forEach((item) => {
-    if (!groups[item.category]) {
-      groups[item.category] = {
-        name: item.category,
-        items: [],
+  Object.keys(availableItems.value).forEach((categoryName) => {
+    if (categoryName !== '정보보호 교육' && categoryName !== '악성메일 모의훈련') {
+      const items = availableItems.value[categoryName] || []
+      if (items.length > 0) {
+        categories.push({
+          name: categoryName,
+          items: items,
+        })
       }
     }
-    groups[item.category].items.push(item)
   })
 
-  return Object.values(groups)
+  return categories
 })
 
-// computed 섹션에 추가
+// 또는 더 간단하게 모든 감사 관련 항목들을 하나로 묶기
+const allAuditItems = computed(() => {
+  const items = []
+
+  // 정보보호 교육과 악성메일 모의훈련을 제외한 모든 항목들
+  Object.keys(availableItems.value).forEach((categoryName) => {
+    if (categoryName !== '정보보호 교육' && categoryName !== '악성메일 모의훈련') {
+      const categoryItems = availableItems.value[categoryName] || []
+      items.push(...categoryItems)
+    }
+  })
+
+  return items
+})
+
+// 카테고리별로 분류된 감사 항목들 (정보보호 교육과 악성메일 모의훈련 제외)
+const auditItemsByCategory = computed(() => {
+  const result = {}
+
+  Object.keys(availableItems.value).forEach((categoryName) => {
+    if (categoryName !== '정보보호 교육' && categoryName !== '악성메일 모의훈련') {
+      result[categoryName] = availableItems.value[categoryName] || []
+    }
+  })
+
+  return result
+})
+
+// 교육 항목들 (기존 코드 유지)
 const educationItems = computed(() => {
   const baseItems = availableItems.value['정보보호 교육'] || []
   // 연도별로 그룹화
@@ -641,6 +673,7 @@ const educationItems = computed(() => {
   return groupedByYear
 })
 
+// 훈련 항목들 (기존 코드 유지)
 const trainingItems = computed(() => {
   const baseItems = availableItems.value['악성메일 모의훈련'] || []
   // 연도별로 그룹화
@@ -709,6 +742,7 @@ const loadInitialData = async () => {
     }
     if (itemsRes.ok) {
       availableItems.value = await itemsRes.json()
+      console.log(availableItems.value)
     }
   } catch (error) {
     showToastMessage('초기 데이터 로드 실패: ' + error.message, 'error')

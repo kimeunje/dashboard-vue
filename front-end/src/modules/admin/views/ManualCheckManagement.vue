@@ -447,7 +447,7 @@
       </div>
     </div>
 
-    vue<!-- 일괄 업로드 모달 - 개선된 버전 -->
+    <!-- 일괄 업로드 모달 - 개선된 버전 -->
     <div v-if="showBulkUploadModal" class="modal-overlay" @click="closeBulkUploadModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">

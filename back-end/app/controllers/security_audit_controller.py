@@ -3,16 +3,16 @@ import os
 import io
 import logging
 from datetime import datetime
-from flask import Blueprint, request, jsonify, send_file, current_app
+from flask import Blueprint, json, request, jsonify, send_file, current_app
 from app.services.security_audit_service import AuditService
 from app.utils.decorators import token_required, validate_json, handle_exceptions
 from app.utils.constants import HTTP_STATUS
 
-audit_bp = Blueprint('audit', __name__)
+audit_bp = Blueprint("audit", __name__)
 audit_service = AuditService()
 
 
-@audit_bp.route('/stats', methods=['GET'])
+@audit_bp.route("/stats", methods=["GET"])
 @token_required
 @handle_exceptions
 def get_security_stats():
@@ -21,14 +21,14 @@ def get_security_stats():
     username = user["username"]
 
     # 점검 유형 파라미터 (daily, manual, 또는 전체)
-    check_type = request.args.get('type', None)
+    check_type = request.args.get("type", None)
 
     # 기존 메서드 대신 하이브리드 메서드 사용
     stats = audit_service.get_user_stats_hybrid(username, check_type)
     return jsonify(stats)
 
 
-@audit_bp.route('/logs', methods=['GET'])
+@audit_bp.route("/logs", methods=["GET"])
 @token_required
 @handle_exceptions
 def get_audit_logs():
@@ -37,26 +37,26 @@ def get_audit_logs():
     username = user["username"]
 
     # 점검 유형 파라미터 (daily, manual, 또는 전체)
-    check_type = request.args.get('type', None)
+    check_type = request.args.get("type", None)
 
     # 기존 메서드 대신 하이브리드 메서드 사용
     logs = audit_service.get_user_logs_hybrid(username, check_type)
     return jsonify(logs)
 
 
-@audit_bp.route('/checklist-items', methods=['GET'])
+@audit_bp.route("/checklist-items", methods=["GET"])
 @handle_exceptions
 def get_checklist_items():
     """체크리스트 항목 조회 (하이브리드 방식)"""
     # 점검 유형 파라미터 (daily, manual, 또는 전체)
-    check_type = request.args.get('type', None)
+    check_type = request.args.get("type", None)
 
     # 기존 메서드 대신 하이브리드 메서드 사용
     items = audit_service.get_checklist_items_hybrid(check_type)
     return jsonify(items)
 
 
-@audit_bp.route('/manual-check-items', methods=['GET'])
+@audit_bp.route("/manual-check-items", methods=["GET"])
 @token_required
 @handle_exceptions
 def get_manual_check_items():
@@ -65,7 +65,7 @@ def get_manual_check_items():
     return jsonify(items)
 
 
-@audit_bp.route('/manual-check', methods=['POST'])
+@audit_bp.route("/manual-check", methods=["POST"])
 @token_required
 @validate_json
 @handle_exceptions
@@ -79,17 +79,28 @@ def execute_manual_check():
     missing_fields = [field for field in required_fields if field not in data]
 
     if missing_fields:
-        return jsonify({"error": f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}"
-                        }), HTTP_STATUS['BAD_REQUEST']
+        return (
+            jsonify(
+                {"error": f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}"}
+            ),
+            HTTP_STATUS["BAD_REQUEST"],
+        )
 
     try:
         # 사용자 ID 가져오기
         from app.utils.database import execute_query
-        user_info = execute_query("SELECT uid FROM users WHERE user_id = %s",
-                                  (user["username"], ), fetch_one=True)
+
+        user_info = execute_query(
+            "SELECT uid FROM users WHERE user_id = %s",
+            (user["username"],),
+            fetch_one=True,
+        )
 
         if not user_info:
-            return jsonify({"error": "사용자 정보를 찾을 수 없습니다."}), HTTP_STATUS['BAD_REQUEST']
+            return (
+                jsonify({"error": "사용자 정보를 찾을 수 없습니다."}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
 
         user_id = user_info["uid"]
 
@@ -97,26 +108,32 @@ def execute_manual_check():
         check_result = {
             "actual_value": data["actual_value"],
             "passed": data["passed"],
-            "notes": data.get("notes", "")
+            "notes": data.get("notes", ""),
         }
 
-        result = audit_service.execute_manual_check(user_id, data["item_id"],
-                                                    check_result)
-        return jsonify(result), HTTP_STATUS['OK']
+        result = audit_service.execute_manual_check(
+            user_id, data["item_id"], check_result
+        )
+        return jsonify(result), HTTP_STATUS["OK"]
 
     except ValueError as e:
         current_app.logger.error(f"수시 점검 오류: {str(e)}")
-        return jsonify({"error": str(e)}), HTTP_STATUS['BAD_REQUEST']
+        return jsonify({"error": str(e)}), HTTP_STATUS["BAD_REQUEST"]
     except Exception as e:
         current_app.logger.error(f"서버 오류: {str(e)}")
-        return jsonify({
-            "status": "failed",
-            "message": "서버 오류가 발생했습니다.",
-            "details": str(e) if current_app.debug else None
-        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify(
+                {
+                    "status": "failed",
+                    "message": "서버 오류가 발생했습니다.",
+                    "details": str(e) if current_app.debug else None,
+                }
+            ),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
-@audit_bp.route('/dashboard-stats', methods=['GET'])
+@audit_bp.route("/dashboard-stats", methods=["GET"])
 @token_required
 @handle_exceptions
 def get_dashboard_stats():
@@ -126,63 +143,78 @@ def get_dashboard_stats():
 
     try:
         # 정기 점검 통계
-        daily_stats = audit_service.get_user_stats(username, 'daily')
+        daily_stats = audit_service.get_user_stats(username, "daily")
 
         # 수시 점검 통계
-        manual_stats = audit_service.get_user_stats(username, 'manual')
+        manual_stats = audit_service.get_user_stats(username, "manual")
 
         # 전체 통계
         total_stats = audit_service.get_user_stats(username)
 
         # 수정: 감점 요약 추가
-        daily_penalty_summary = audit_service.get_penalty_summary(username, 'daily')
-        manual_penalty_summary = audit_service.get_penalty_summary(username, 'manual')
+        daily_penalty_summary = audit_service.get_penalty_summary(username, "daily")
+        manual_penalty_summary = audit_service.get_penalty_summary(username, "manual")
         total_penalty_summary = audit_service.get_penalty_summary(username)
 
-        return jsonify({
-            "daily": daily_stats,
-            "manual": manual_stats,
-            "total": total_stats,
-            "penalty_summary": {  # 수정: 감점 요약 추가
-                "daily": daily_penalty_summary,
-                "manual": manual_penalty_summary,
-                "total": total_penalty_summary
-            }
-        }), HTTP_STATUS['OK']
+        return (
+            jsonify(
+                {
+                    "daily": daily_stats,
+                    "manual": manual_stats,
+                    "total": total_stats,
+                    "penalty_summary": {  # 수정: 감점 요약 추가
+                        "daily": daily_penalty_summary,
+                        "manual": manual_penalty_summary,
+                        "total": total_penalty_summary,
+                    },
+                }
+            ),
+            HTTP_STATUS["OK"],
+        )
 
     except Exception as e:
         current_app.logger.error(f"대시보드 통계 조회 오류: {str(e)}")
-        return jsonify({"error": "통계 데이터를 불러오는 중 오류가 발생했습니다."
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": "통계 데이터를 불러오는 중 오류가 발생했습니다."}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 # 기존 validate_check 엔드포인트 (정기 점검용, 감점 계산 포함)
-@audit_bp.route('/validate_check', methods=['POST'])
+@audit_bp.route("/validate_check", methods=["POST"])
 @handle_exceptions
 def validate_check():
     """항목 검증 API (정기 점검용, 감점 계산 포함)"""
     data = request.json
 
     if not data:
-        return jsonify({"error": "요청 데이터가 필요합니다."}), HTTP_STATUS['BAD_REQUEST']
+        return (
+            jsonify({"error": "요청 데이터가 필요합니다."}),
+            HTTP_STATUS["BAD_REQUEST"],
+        )
 
     try:
         result = audit_service.validate_check(data)
         return jsonify(result)
     except ValueError as e:
         current_app.logger.error(f"검증 오류: {str(e)}")
-        return jsonify({"error": str(e)}), HTTP_STATUS['BAD_REQUEST']
+        return jsonify({"error": str(e)}), HTTP_STATUS["BAD_REQUEST"]
     except Exception as e:
         current_app.logger.error(f"서버 오류: {str(e)}")
-        return jsonify({
-            "status": "failed",
-            "message": "서버 오류가 발생했습니다.",
-            "details": str(e) if current_app.debug else None
-        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify(
+                {
+                    "status": "failed",
+                    "message": "서버 오류가 발생했습니다.",
+                    "details": str(e) if current_app.debug else None,
+                }
+            ),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 # 로그 수신 엔드포인트 (기존 mock_app.py에서 이동)
-@audit_bp.route('/log', methods=['POST'])
+@audit_bp.route("/log", methods=["POST"])
 @handle_exceptions
 def receive_log():
     """클라이언트 로그 수신"""
@@ -193,10 +225,13 @@ def receive_log():
         # 필수 필드 검증
         required_fields = ["timestamp", "level", "message"]
         if not all(field in data for field in required_fields):
-            return jsonify({"error": "필수 필드가 누락되었습니다"}), HTTP_STATUS['BAD_REQUEST']
+            return (
+                jsonify({"error": "필수 필드가 누락되었습니다"}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
 
         # 로그 저장
-        log_dir = current_app.config['LOG_DIR']
+        log_dir = current_app.config["LOG_DIR"]
         os.makedirs(log_dir, exist_ok=True)
 
         log_file = f"{log_dir}/{datetime.now().strftime('%Y-%m-%d')}.log"
@@ -213,15 +248,18 @@ def receive_log():
         else:
             logging.info(data["message"])
 
-        return jsonify({"status": "연결 성공"}), HTTP_STATUS['OK']
+        return jsonify({"status": "연결 성공"}), HTTP_STATUS["OK"]
 
     except Exception as e:
         logging.error(f"로그 처리 오류: {str(e)}")
-        return jsonify({"error": "로그 처리 중 오류 발생"}), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": "로그 처리 중 오류 발생"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 # 수시 점검 실행 결과 조회 (추가 기능)
-@audit_bp.route('/manual-check-history/<int:item_id>', methods=['GET'])
+@audit_bp.route("/manual-check-history/<int:item_id>", methods=["GET"])
 @token_required
 @handle_exceptions
 def get_manual_check_history(item_id):
@@ -233,11 +271,15 @@ def get_manual_check_history(item_id):
         from app.utils.database import execute_query
 
         # 사용자 ID 가져오기
-        user_info = execute_query("SELECT uid FROM users WHERE user_id = %s",
-                                  (username, ), fetch_one=True)
+        user_info = execute_query(
+            "SELECT uid FROM users WHERE user_id = %s", (username,), fetch_one=True
+        )
 
         if not user_info:
-            return jsonify({"error": "사용자 정보를 찾을 수 없습니다."}), HTTP_STATUS['BAD_REQUEST']
+            return (
+                jsonify({"error": "사용자 정보를 찾을 수 없습니다."}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
 
         user_id = user_info["uid"]
 
@@ -252,7 +294,10 @@ def get_manual_check_history(item_id):
             WHERE al.user_id = %s AND al.item_id = %s AND ci.check_type = 'manual'
             ORDER BY al.checked_at DESC
             LIMIT 10
-            """, (user_id, item_id), fetch_all=True)
+            """,
+            (user_id, item_id),
+            fetch_all=True,
+        )
 
         # 결과 포맷팅
         result = []
@@ -269,63 +314,76 @@ def get_manual_check_history(item_id):
             else:
                 checked_at = record["checked_at"]
 
-            result.append({
-                "log_id": record["log_id"],
-                "item_name": record["item_name"],
-                "category": record["category"],
-                "actual_value": actual_value,
-                "passed": record["passed"],
-                "notes": record["notes"],
-                "checked_at": checked_at,
-                "penalty_weight": float(record["penalty_weight"] or 0),  # 수정: 감점 가중치 추가
-                "penalty_applied": float(record["penalty_applied"]
-                                         or 0)  # 수정: 적용된 감점 추가
-            })
+            result.append(
+                {
+                    "log_id": record["log_id"],
+                    "item_name": record["item_name"],
+                    "category": record["category"],
+                    "actual_value": actual_value,
+                    "passed": record["passed"],
+                    "notes": record["notes"],
+                    "checked_at": checked_at,
+                    "penalty_weight": float(
+                        record["penalty_weight"] or 0
+                    ),  # 수정: 감점 가중치 추가
+                    "penalty_applied": float(
+                        record["penalty_applied"] or 0
+                    ),  # 수정: 적용된 감점 추가
+                }
+            )
 
-        return jsonify(result), HTTP_STATUS['OK']
+        return jsonify(result), HTTP_STATUS["OK"]
 
     except Exception as e:
         current_app.logger.error(f"수시 점검 이력 조회 오류: {str(e)}")
-        return jsonify({"error": "이력 조회 중 오류가 발생했습니다."
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": "이력 조회 중 오류가 발생했습니다."}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
-@audit_bp.route('/penalty-summary', methods=['GET'])
+@audit_bp.route("/penalty-summary", methods=["GET"])
 @token_required
 @handle_exceptions
 def get_penalty_summary():
     """감점 요약 정보 조회 (새로운 엔드포인트)"""
     user = request.current_user
     username = user["username"]
-    check_type = request.args.get('type', None)
+    check_type = request.args.get("type", None)
 
     try:
         penalty_summary = audit_service.get_penalty_summary(username, check_type)
-        return jsonify(penalty_summary), HTTP_STATUS['OK']
+        return jsonify(penalty_summary), HTTP_STATUS["OK"]
     except Exception as e:
         current_app.logger.error(f"감점 요약 조회 오류: {str(e)}")
-        return jsonify({"error": "감점 요약 조회 중 오류가 발생했습니다."
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": "감점 요약 조회 중 오류가 발생했습니다."}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
-@audit_bp.route('/penalty-breakdown', methods=['GET'])
+@audit_bp.route("/penalty-breakdown", methods=["GET"])
 @token_required
 @handle_exceptions
 def get_penalty_breakdown():
     """항목별 감점 분석 (새로운 엔드포인트)"""
     user = request.current_user
     username = user["username"]
-    check_type = request.args.get('type', None)
+    check_type = request.args.get("type", None)
 
     try:
         from app.utils.database import execute_query
 
         # 사용자 ID 가져오기
-        user_info = execute_query("SELECT uid FROM users WHERE user_id = %s",
-                                  (username, ), fetch_one=True)
+        user_info = execute_query(
+            "SELECT uid FROM users WHERE user_id = %s", (username,), fetch_one=True
+        )
 
         if not user_info:
-            return jsonify({"error": "사용자 정보를 찾을 수 없습니다."}), HTTP_STATUS['BAD_REQUEST']
+            return (
+                jsonify({"error": "사용자 정보를 찾을 수 없습니다."}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
 
         user_id = user_info["uid"]
 
@@ -335,7 +393,7 @@ def get_penalty_breakdown():
             params = (user_id, check_type)
         else:
             type_condition = ""
-            params = (user_id, )
+            params = (user_id,)
 
         # 항목별 감점 분석
         breakdown = execute_query(
@@ -359,30 +417,40 @@ def get_penalty_breakdown():
             INNER JOIN checklist_items ci ON al.item_id = ci.item_id
             WHERE al.user_id = %s {type_condition}
             ORDER BY penalty_applied DESC, ci.category, ci.item_name
-            """, params, fetch_all=True)
+            """,
+            params,
+            fetch_all=True,
+        )
 
         # 총 감점 계산
         total_penalty = sum(float(item["penalty_applied"] or 0) for item in breakdown)
         failed_items = sum(1 for item in breakdown if item["passed"] == 0)
 
-        return jsonify({
-            "breakdown": breakdown,
-            "summary": {
-                "total_penalty": round(total_penalty, 1),
-                "failed_items": failed_items,
-                "total_items": len(breakdown),
-                "check_type": check_type
-            }
-        }), HTTP_STATUS['OK']
+        return (
+            jsonify(
+                {
+                    "breakdown": breakdown,
+                    "summary": {
+                        "total_penalty": round(total_penalty, 1),
+                        "failed_items": failed_items,
+                        "total_items": len(breakdown),
+                        "check_type": check_type,
+                    },
+                }
+            ),
+            HTTP_STATUS["OK"],
+        )
 
     except Exception as e:
         current_app.logger.error(f"감점 분석 조회 오류: {str(e)}")
-        return jsonify({"error": "감점 분석 조회 중 오류가 발생했습니다."
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": "감점 분석 조회 중 오류가 발생했습니다."}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 # 수시 점검 결과 조회용 새 엔드포인트 (manual_check_results 테이블 사용)
-@audit_bp.route('/manual-check-logs', methods=['GET'])
+@audit_bp.route("/manual-check-logs", methods=["GET"])
 @token_required
 @handle_exceptions
 def get_manual_check_logs():
@@ -392,15 +460,17 @@ def get_manual_check_logs():
 
     try:
         logs = audit_service.get_manual_check_logs_from_results(username)
-        return jsonify(logs), HTTP_STATUS['OK']
+        return jsonify(logs), HTTP_STATUS["OK"]
     except Exception as e:
         current_app.logger.error(f"수시 점검 로그 조회 오류: {str(e)}")
-        return jsonify({"error": "수시 점검 로그 조회 중 오류가 발생했습니다."
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": "수시 점검 로그 조회 중 오류가 발생했습니다."}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 # 수시 점검 통계 조회용 새 엔드포인트 (manual_check_results 테이블 사용)
-@audit_bp.route('/manual-check-stats', methods=['GET'])
+@audit_bp.route("/manual-check-stats", methods=["GET"])
 @token_required
 @handle_exceptions
 def get_manual_check_stats():
@@ -410,22 +480,26 @@ def get_manual_check_stats():
 
     try:
         stats = audit_service.get_manual_check_stats_from_results(username)
-        return jsonify(stats), HTTP_STATUS['OK']
+        return jsonify(stats), HTTP_STATUS["OK"]
     except Exception as e:
         current_app.logger.error(f"수시 점검 통계 조회 오류: {str(e)}")
-        return jsonify({"error": "수시 점검 통계 조회 중 오류가 발생했습니다."
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": "수시 점검 통계 조회 중 오류가 발생했습니다."}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 # 수시 점검 항목 목록 조회용 새 엔드포인트 (manual_check_items 테이블 사용)
-@audit_bp.route('/manual-check-items-from-table', methods=['GET'])
+@audit_bp.route("/manual-check-items-from-table", methods=["GET"])
 @handle_exceptions
 def get_manual_check_items_from_table():
     """수시 점검 항목 목록 조회 (manual_check_items 테이블에서)"""
     try:
         items = audit_service.get_manual_check_items_from_table()
-        return jsonify(items), HTTP_STATUS['OK']
+        return jsonify(items), HTTP_STATUS["OK"]
     except Exception as e:
         current_app.logger.error(f"수시 점검 항목 조회 오류: {str(e)}")
-        return jsonify({"error": "수시 점검 항목 조회 중 오류가 발생했습니다."
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": "수시 점검 항목 조회 중 오류가 발생했습니다."}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
