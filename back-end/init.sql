@@ -40,8 +40,17 @@ CREATE TABLE IF NOT EXISTS `audit_log` (
   CONSTRAINT `fk_audit_log_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=53 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='보안 감사 로그';
 
--- 테이블 데이터 patch_management.audit_log:~0 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.audit_log:~8 rows (대략적) 내보내기
 DELETE FROM `audit_log`;
+INSERT INTO `audit_log` (`log_id`, `user_id`, `item_id`, `actual_value`, `passed`, `notes`, `exclude_reason`, `checked_at`) VALUES
+	(53, 5, 1, '{"screenSaverTime": "600", "screenSaverSecure": "1", "screenSaverEnabled": "1"}', 1, '화면 보호기가 정상적으로 설정되어 있습니다. [제외사유: 135]', '135', '2025-06-15 13:24:32'),
+	(54, 5, 2, '{"UpToDate": 0, "DisplayName": "백신 미설치", "RealTimeProtection": 0}', 0, '알약 백신이 정상적으로 설치되어 있지 않거나, 실시간 보호가 비활성화되어 있거나, 업데이트가 최신 상태가 아닙니다. 알약 백신을 설치하고 실시간 보호를 활성화한 후 최신 업데이트를 적용해주세요.', NULL, '2025-06-15 13:24:24'),
+	(55, 5, 3, '{"minimumPasswordLength": "8"}', 1, '암호 길이가 정책에 맞게 설정되어 있습니다.', NULL, '2025-06-15 13:24:42'),
+	(56, 5, 4, '{"passwordComplexity": "0"}', 0, '암호 복잡도가 설정되어 있지 않습니다. 암호 복잡도 설정을 활성화해주세요.', NULL, '2025-06-15 13:24:42'),
+	(57, 5, 5, '{"maximumPasswordAge": "91"}', 1, '암호 변경 주기가 적절하게 설정되어 있습니다.', NULL, '2025-06-15 13:24:42'),
+	(58, 5, 6, '{"passwordHistorySize": "5"}', 1, '동일 암호 사용 제한이 적절하게 설정되어 있습니다.', NULL, '2025-06-15 13:24:42'),
+	(59, 5, 7, '{"folders": ["ADMIN$", "C$", "D$", "E$", "F$", "IPC$"]}', 0, '불필요한 공유 폴더가 있습니다. 필요하지 않은 공유 폴더를 제거해주세요.', NULL, '2025-06-15 13:24:45'),
+	(60, 5, 8, '{"fDenyTSConnections": 1}', 1, '원격 데스크톱이 적절하게 제한되어 있습니다.', NULL, '2025-06-15 13:24:48');
 
 -- 테이블 patch_management.checklist_items 구조 내보내기
 DROP TABLE IF EXISTS `checklist_items`;
@@ -157,10 +166,8 @@ CREATE TABLE IF NOT EXISTS `department_item_exceptions` (
   CONSTRAINT `fk_dept_exception_item` FOREIGN KEY (`item_id`) REFERENCES `checklist_items` (`item_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='부서별 감사 항목 제외 설정';
 
--- 테이블 데이터 patch_management.department_item_exceptions:~1 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.department_item_exceptions:~0 rows (대략적) 내보내기
 DELETE FROM `department_item_exceptions`;
-INSERT INTO `department_item_exceptions` (`dept_exception_id`, `department`, `item_id`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`, `item_type`, `item_name`, `item_category`) VALUES
-	(4, '남극', 6, 'ㅇㅈㅇ', 'permanent', NULL, NULL, 'admin', '2025-06-15 13:02:13', '2025-06-15 13:02:13', 1, 'audit', '동일 패스워드 설정 제한', '접근통제');
 
 -- 테이블 patch_management.manual_check_items 구조 내보내기
 DROP TABLE IF EXISTS `manual_check_items`;
@@ -509,10 +516,8 @@ CREATE TABLE IF NOT EXISTS `user_extended_exceptions` (
   CONSTRAINT `fk_user_extended_exception` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 확장 감사 항목 제외 설정 (감사/교육/훈련)';
 
--- 테이블 데이터 patch_management.user_extended_exceptions:~1 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.user_extended_exceptions:~0 rows (대략적) 내보내기
 DELETE FROM `user_extended_exceptions`;
-INSERT INTO `user_extended_exceptions` (`exception_id`, `user_id`, `item_id`, `item_type`, `item_name`, `item_category`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
-	(17, 4, 'training_2025_first_half', 'training_period', '2025년 first_half(상반기) 모의훈련', '모의훈련', '관리자 설정', 'permanent', NULL, NULL, 'admin', '2025-06-15 12:23:20', '2025-06-15 12:31:01', 0);
 
 -- 테이블 patch_management.user_item_exceptions 구조 내보내기
 DROP TABLE IF EXISTS `user_item_exceptions`;
@@ -541,10 +546,8 @@ CREATE TABLE IF NOT EXISTS `user_item_exceptions` (
   CONSTRAINT `fk_exception_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자별 감사 항목 제외 설정';
 
--- 테이블 데이터 patch_management.user_item_exceptions:~1 rows (대략적) 내보내기
+-- 테이블 데이터 patch_management.user_item_exceptions:~0 rows (대략적) 내보내기
 DELETE FROM `user_item_exceptions`;
-INSERT INTO `user_item_exceptions` (`exception_id`, `user_id`, `item_id`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`, `item_type`, `item_name`, `item_category`) VALUES
-	(15, 2, 2, 'ㄱㄷㅈㄱ', 'permanent', NULL, NULL, 'admin', '2025-06-15 13:11:01', '2025-06-15 13:11:01', 1, 'audit', '백신 상태 확인', '악성코드');
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
