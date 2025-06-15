@@ -335,6 +335,25 @@ class ManualCheckService:
             return datetime.now()
 
     def _read_excel_with_multi_header(self, file):
+        """멀티 헤더 엑셀 파일 읽기 및 컬럼명 합성 - 파일 구조 자동 감지"""
+        try:
+            filename = getattr(file, "filename", "")
+
+            # 1단계: 파일명 기반 구분
+            if "개인정보" in filename or "암호화" in filename:
+                # 개인정보 암호화 파일 - 멀티헤더 처리
+                return self._read_multi_header_file(file)
+            else:
+                # 봉인씰, 악성코드 등 - 단일헤더 처리
+                return self._read_single_header_file(file)
+
+        except Exception as e:
+            print(f"[DEBUG] 파일 읽기 실패, 기본 방식으로 시도: {str(e)}")
+            file.seek(0)
+            return pd.read_excel(file)
+
+    def _read_multi_header_file(self, file):
+        """멀티헤더 파일 처리 (3행부터 데이터)"""
         """멀티 헤더 엑셀 파일 읽기 및 컬럼명 합성"""
         try:
             # 첫 번째 시도: 1-2행을 헤더로 읽기
@@ -373,6 +392,11 @@ class ManualCheckService:
             # 실패 시 일반적인 방식으로 읽기
             file.seek(0)
             return pd.read_excel(file)
+
+    def _read_single_header_file(self, file):
+        """단일헤더 파일 처리 (2행부터 데이터)"""
+        file.seek(0)
+        return pd.read_excel(file, header=0)  # 1행을
 
     # ✅ 개선된 사용자 찾기 함수
     # ✅ 수정된 사용자 찾기 함수
