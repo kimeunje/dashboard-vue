@@ -830,6 +830,9 @@ const handleAddException = async () => {
       payload.item_name = selectedOption.getAttribute('data-name') || selectedOption.textContent
     }
 
+    // item_id 설정 - 중요!
+    payload.item_id = formData.value.item_type // item_type을 item_id로 사용
+
     // 필요 없는 필드 제거
     if (formData.value.type === 'user') {
       delete payload.department
@@ -839,7 +842,6 @@ const handleAddException = async () => {
     }
 
     delete payload.type
-    delete payload.item_category
 
     // 임시 제외가 아닌 경우 날짜 필드 제거
     if (payload.exclude_type !== 'temporary') {

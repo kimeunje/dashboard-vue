@@ -179,6 +179,8 @@ def add_user_exception():
     data = request.json
     current_user = request.current_user
 
+    print(f"[DEBUG] 받은 데이터: {data}")
+
     # 날짜 변환
     start_date = None
     end_date = None
@@ -225,20 +227,32 @@ def add_user_exception():
             HTTP_STATUS["BAD_REQUEST"],
         )
 
-    result = exception_service.add_user_exception(
-        user_id=data["user_id"],
-        item_type=data["item_type"],
-        item_name=data["item_name"],
-        exclude_reason=data["exclude_reason"],
-        exclude_type=data.get("exclude_type", "permanent"),
-        start_date=start_date,
-        end_date=end_date,
-        created_by=current_user["username"],
-    )
+    # 디버깅: 서비스 호출 전 파라미터 로그
+    service_params = {
+        "user_uid": data["user_id"],
+        "item_id": data.get("item_id", data["item_type"]),
+        "item_type": data["item_type"],
+        "item_name": data.get("item_name", ""),
+        "item_category": data.get("item_category", ""),
+        "exclude_reason": data["exclude_reason"],
+        "exclude_type": data.get("exclude_type", "permanent"),
+        "start_date": start_date,
+        "end_date": end_date,
+        "created_by": current_user["username"],
+    }
+    print(f"[DEBUG] 서비스 호출 파라미터: {service_params}")
+
+    # 수정된 서비스 호출
+    result = exception_service.add_user_exception(**service_params)
+
+    # 디버깅: 서비스 결과 로그
+    print(f"[DEBUG] 서비스 결과: {result}")
 
     if result["success"]:
         return jsonify(result)
     else:
+        # 구체적인 에러 메시지 로그 출력
+        print(f"[ERROR] 제외 설정 추가 실패: {result}")
         return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
 
 
@@ -324,7 +338,7 @@ def remove_department_exception(department, item_type):
 @admin_required
 @handle_exceptions
 def get_departments():
-    """시스템에 등록된 부서 목록 조회"""
+    """모든 부서 목록 조회"""
     departments = exception_service.get_all_departments()
     return jsonify(departments)
 
