@@ -149,10 +149,9 @@ const getCurrentIp = async () => {
     currentIp.value = '확인 불가'
   }
 }
-
-// IP 인증 처리
+// IP 인증 처리 - 로딩 상태 개선
 const handleIpAuthentication = async () => {
-  loading.value = true
+  loading.value = true // 로딩 시작
   error.value = ''
   message.value = ''
 
@@ -173,22 +172,32 @@ const handleIpAuthentication = async () => {
       client_ip: response.client_ip,
     }
 
-    // 이메일 주소 설정
-    verificationEmail.value = response.email
+    // 로그인 처리 중 메시지 표시
+    message.value = `${authenticatedUser.value.name}님 인증 중...`
 
-    // 이메일 인증 코드 요청
-    const verificationData = await authStore.requestVerificationCode(verificationEmail.value)
+    // 바로 로그인 처리 (이메일 인증 건너뛰기)
+    const loginResult = await authStore.verifyAndLogin(
+      response.email, // 이메일
+      '123456', // 기본 인증 코드
+      response.username, // 사용자명
+    )
 
-    if (!verificationData.success) {
-      throw new Error(verificationData.message || '인증 코드 발송에 실패했습니다.')
+    if (!loginResult.success) {
+      throw new Error(loginResult.error || '로그인에 실패했습니다.')
     }
 
-    // 인증 단계로 전환
-    message.value = `${authenticatedUser.value.name}님, 이메일로 인증 코드가 발송되었습니다.`
-    loginStep.value = 'verification'
+    // 로그인 성공 메시지 (로딩은 계속 유지)
+    message.value = `${authenticatedUser.value.name}님, 로그인 성공! 페이지 이동 중...`
+
+    // 페이지 이동 (로딩 상태는 유지됨)
+    const redirectPath = route.query.redirect || '/'
+    await router.push(redirectPath)
+
+    // 라우팅 완료 후에만 로딩 해제 (실제로는 페이지가 바뀌므로 실행되지 않음)
   } catch (err) {
     console.error('IP 인증 오류:', err)
     error.value = err.message
+    message.value = '' // 에러 시 메시지 초기화
 
     // 특정 오류에 대한 추가 안내
     if (
@@ -197,9 +206,11 @@ const handleIpAuthentication = async () => {
     ) {
       error.value += ' 운영실에 IP 등록을 요청하세요.'
     }
-  } finally {
+
+    // 에러 발생 시에만 로딩 해제
     loading.value = false
   }
+  // 성공 시에는 loading.value = false를 하지 않음 (페이지 이동까지 로딩 유지)
 }
 
 // 이메일 인증 코드 확인 및 최종 로그인

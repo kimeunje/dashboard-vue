@@ -363,7 +363,7 @@ const fetchEducationStatus = async () => {
     // 2025년 또는 2024년인 경우 임시 데이터 사용
     if (selectedYear.value === 2025 || selectedYear.value === 2024) {
       // 임시 데이터 로딩 시뮬레이션
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 100))
       educationData.value = getMockEducationData()
       return
     }
