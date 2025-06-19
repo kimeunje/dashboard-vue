@@ -17,7 +17,35 @@ export const MENU_STRUCTURE = [
     id: 'solutions',
     title: '조치방법',
     path: '/security-audit/solutions',
-    subItems: [],
+    subItems: [
+      {
+        id: 'screen-saver',
+        title: '화면보호기 점검',
+        path: '/security-audit/solutions/screen-saver',
+      },
+
+      {
+        id: 'antivirus',
+        title: '백신 상태 점검',
+        path: '/security-audit/solutions/antivirus',
+      },
+      {
+        id: 'password-policy',
+        title: '패스워드 정책 점검',
+        path: '/security-audit/solutions/password-policy',
+      },
+
+      {
+        id: 'shared-folder',
+        title: '공유폴더 점검',
+        path: '/security-audit/solutions/shared-folder',
+      },
+      {
+        id: 'remote-desktop',
+        title: '원격 데스크톱 점검',
+        path: '/security-audit/solutions/remote-desktop',
+      },
+    ],
   },
 ]
 

@@ -25,7 +25,6 @@ const SharedFolderSolutionPage = () =>
 const RemoteDesktopSolutionPage = () =>
   import('@/modules/security-audit/views/solutions/RemoteDesktopSolutionPage.vue')
 
-
 const SecurityEducationPage = () =>
   import('@/modules/security-education/views/SecurityEducationPage.vue')
 const PhishingTrainingPage = () =>
@@ -38,6 +37,10 @@ const AdminPhishingTrainingManagement = () =>
 
 const ManualCheckManagement = () => import('@/modules/admin/views/ManualCheckManagement.vue')
 
+// 1. 먼저 관리자 대시보드 컴포넌트 import 추가
+const AdminDashboard = () => import('@/modules/admin/views/AdminDashboard.vue')
+const AdminUserManagement = () => import('@/modules/admin/views/AdminUserManagement.vue')
+const AdminUserDetail = () => import('@/modules/admin/views/AdminUserDetail.vue')
 
 // 라우터 설정
 const routes = [
@@ -63,13 +66,53 @@ const routes = [
     },
   },
 
+  // 관리자 대시보드 메인
+  {
+    path: '/admin/dashboard',
+    name: 'AdminDashboard',
+    component: AdminDashboard,
+    meta: {
+      title: '관리자 대시보드',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
+
+  // 관리자 사용자 관리 (전체 목록)
+  {
+    path: '/admin/users',
+    name: 'AdminUserManagement',
+    component: AdminUserManagement,
+    meta: {
+      title: '사용자 관리',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
+
+  // 사용자 상세 페이지
+  {
+    path: '/admin/users/:userId/detail',
+    name: 'AdminUserDetail',
+    component: AdminUserDetail,
+    props: true,
+    meta: {
+      title: '사용자 상세 정보',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
+
+  // 기존 admin 라우트 수정 (대시보드로 리다이렉트)
   {
     path: '/admin',
     name: 'Admin',
-    component: AdminExceptionManagement,
-    meta: { requiresAuth: true, requiresAdmin: true },
+    redirect: '/admin/dashboard',
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
   },
-
 
   {
     path: '/admin/exceptions',
