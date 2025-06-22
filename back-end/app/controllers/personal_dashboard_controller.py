@@ -12,7 +12,9 @@ from app.utils.database import DatabaseManager, execute_query
 import logging
 
 # 블루프린트 생성 (URL 접두사 포함)
-personal_dashboard_bp = Blueprint("personal_dashboard", __name__, url_prefix="/api/personal-dashboard")
+personal_dashboard_bp = Blueprint("personal_dashboard", __name__,
+                                  url_prefix="/api/personal-dashboard")
+
 
 @personal_dashboard_bp.route("/summary", methods=["GET"])
 @token_required
@@ -22,45 +24,46 @@ def get_personal_dashboard_summary():
     user = request.current_user
     username = user["username"]
     year = request.args.get("year", datetime.now().year, type=int)
-    
+
     try:
         logging.info(f"개인 현황판 조회: username={username}, year={year}")
-        
+
         # 사용자 ID 조회 (username으로 uid 찾기)
-        user_data = execute_query(
-            "SELECT uid FROM users WHERE user_id = %s", (username,), fetch_one=True
-        )
-        
+        user_data = execute_query("SELECT uid FROM users WHERE user_id = %s",
+                                  (username, ), fetch_one=True)
+
         if not user_data:
             return jsonify({"error": "사용자 정보를 찾을 수 없습니다."}), HTTP_STATUS["NOT_FOUND"]
-        
+
         user_id = user_data["uid"]
-        
+
         # 1. 기본 사용자 정보
         user_info = _get_user_info(user_id)
         if not user_info:
             return jsonify({"error": "사용자 상세 정보를 찾을 수 없습니다."}), HTTP_STATUS["NOT_FOUND"]
-        
+
         # 2. 상시감사 감점 및 통계 (모든 로그 반영)
         audit_penalty, audit_stats = _calculate_audit_penalty_all_logs(user_id, year)
-        
+
         # 3. 수시감사 감점 및 통계 (수정된 로직)
-        manual_penalty, manual_stats = _calculate_manual_check_penalty_fixed(user_id, year)
-        
+        manual_penalty, manual_stats = _calculate_manual_check_penalty_fixed(
+            user_id, year)
+
         # 4. 교육 감점 및 통계
         education_penalty, education_stats = _calculate_education_penalty(user_id, year)
-        
+
         # 5. 모의훈련 감점 및 통계 (수정된 로직)
-        training_penalty, training_stats = _calculate_training_penalty_fixed(user_id, year)
-        
+        training_penalty, training_stats = _calculate_training_penalty_fixed(
+            user_id, year)
+
         # 6. 총 감점 계산
         total_penalty = audit_penalty + manual_penalty + education_penalty + training_penalty
         total_penalty = min(5.0, total_penalty)  # 최대 5점 감점
-        
+
         # 7. 감점 요약 저장/업데이트
-        _save_score_summary(user_id, year, audit_penalty, manual_penalty, 
-                          education_penalty, training_penalty, total_penalty)
-        
+        _save_score_summary(user_id, year, audit_penalty, manual_penalty,
+                            education_penalty, training_penalty, total_penalty)
+
         response_data = {
             "user_info": user_info,
             "year": year,
@@ -75,10 +78,10 @@ def get_personal_dashboard_summary():
             "training_stats": training_stats,
             "last_updated": datetime.now().isoformat()
         }
-        
+
         logging.info(f"개인 현황판 응답: total_penalty={total_penalty}")
         return jsonify(response_data)
-            
+
     except Exception as e:
         logging.error(f"Personal dashboard error: {str(e)}")
         return jsonify({
@@ -90,11 +93,12 @@ def get_personal_dashboard_summary():
 def _get_user_info(user_id):
     """기본 사용자 정보 조회"""
     try:
-        return execute_query("""
+        return execute_query(
+            """
             SELECT uid, user_id, username, department
             FROM users 
             WHERE uid = %s
-        """, (user_id,), fetch_one=True)
+        """, (user_id, ), fetch_one=True)
     except Exception as e:
         logging.error(f"User info error: {str(e)}")
         return None
@@ -104,7 +108,8 @@ def _calculate_audit_penalty_all_logs(user_id, year):
     """상시감사 감점 계산 - 모든 로그 반영 (수정됨)"""
     try:
         # 2025년 모든 상시감사 로그 조회
-        audit_logs = execute_query("""
+        audit_logs = execute_query(
+            """
             SELECT 
                 al.log_id,
                 al.item_id,
@@ -122,8 +127,12 @@ def _calculate_audit_penalty_all_logs(user_id, year):
 
         if not audit_logs:
             return 0.0, {
-                "total_count": 0, "passed_count": 0, "failed_count": 0, 
-                "pending_count": 0, "total_penalty": 0.0, "failed_items": []
+                "total_count": 0,
+                "passed_count": 0,
+                "failed_count": 0,
+                "pending_count": 0,
+                "total_penalty": 0.0,
+                "failed_items": []
             }
 
         # 통계 계산
@@ -135,7 +144,7 @@ def _calculate_audit_penalty_all_logs(user_id, year):
         # 감점 계산 - 모든 실패 로그에 대해 감점
         total_penalty = 0.0
         failed_item_details = []
-        
+
         for log in audit_logs:
             if log["passed"] == 0:  # 실패한 경우
                 penalty = float(log["penalty_weight"]) if log["penalty_weight"] else 0.5
@@ -156,19 +165,24 @@ def _calculate_audit_penalty_all_logs(user_id, year):
         }
 
         return total_penalty, audit_stats
-        
+
     except Exception as e:
         logging.error(f"Audit penalty calculation error: {str(e)}")
         return 0.0, {
-            "total_count": 0, "passed_count": 0, "failed_count": 0, 
-            "pending_count": 0, "total_penalty": 0.0, "failed_items": []
+            "total_count": 0,
+            "passed_count": 0,
+            "failed_count": 0,
+            "pending_count": 0,
+            "total_penalty": 0.0,
+            "failed_items": []
         }
 
 
 def _calculate_manual_check_penalty_fixed(user_id, year):
     """수시감사 감점 계산 - 수정된 로직 (overall_result='fail'이면 무조건 0.5점 감점)"""
     try:
-        manual_checks = execute_query("""
+        manual_checks = execute_query(
+            """
             SELECT 
                 check_id,
                 check_item_code,
@@ -184,34 +198,40 @@ def _calculate_manual_check_penalty_fixed(user_id, year):
 
         if not manual_checks:
             return 0.0, {
-                "total_count": 0, "passed_count": 0, "failed_count": 0, 
-                "total_penalty": 0.0, "items": []
+                "total_count": 0,
+                "passed_count": 0,
+                "failed_count": 0,
+                "total_penalty": 0.0,
+                "items": []
             }
 
         # 통계 계산
         total_count = len(manual_checks)
-        passed_count = sum(1 for check in manual_checks if check["overall_result"] == "pass")
-        failed_count = sum(1 for check in manual_checks 
-                          if check["overall_result"] == "fail" and not check["exclude_from_scoring"])
-        
+        passed_count = sum(1 for check in manual_checks
+                           if check["overall_result"] == "pass")
+        failed_count = sum(
+            1 for check in manual_checks
+            if check["overall_result"] == "fail" and not check["exclude_from_scoring"])
+
         # 감점 계산 - 수정된 로직: overall_result가 'fail'이고 제외되지 않은 경우 무조건 0.5점 감점
         total_penalty = 0.0
         check_details = []
-        
+
         check_type_names = {
             "seal_check": "봉인씰 점검",
-            "malware_scan": "악성코드 검사", 
+            "malware_scan": "악성코드 검사",
             "file_encryption": "파일 암호화 점검"
         }
-        
+
         for check in manual_checks:
             penalty = 0.0
             if not check["exclude_from_scoring"] and check["overall_result"] == "fail":
                 penalty = 0.5  # penalty_points 필드와 관계없이 고정 0.5점 감점
                 total_penalty += penalty
-            
+
             check_details.append({
-                "check_type": check_type_names.get(check["check_item_code"], check["check_item_code"]),
+                "check_type": check_type_names.get(check["check_item_code"],
+                                                   check["check_item_code"]),
                 "result": check["overall_result"],
                 "penalty": penalty,
                 "check_date": check["check_date"],
@@ -227,69 +247,65 @@ def _calculate_manual_check_penalty_fixed(user_id, year):
         }
 
         return total_penalty, manual_stats
-        
+
     except Exception as e:
         logging.error(f"Manual check penalty calculation error: {str(e)}")
         return 0.0, {
-            "total_count": 0, "passed_count": 0, "failed_count": 0, 
-            "total_penalty": 0.0, "items": []
+            "total_count": 0,
+            "passed_count": 0,
+            "failed_count": 0,
+            "total_penalty": 0.0,
+            "items": []
         }
 
 
 def _calculate_training_penalty_fixed(user_id, year):
-    """모의훈련 감점 계산 - training_result='fail'이면 0.5점 감점"""
+    """모의훈련 감점 계산 - 데이터 없으면 감점 없음"""
     try:
-        training_records = execute_query("""
-            SELECT 
-                training_id,
-                training_period,
-                training_result,
-                email_sent_time,
-                notes
-            FROM phishing_training
+        training_records = execute_query(
+            """
+            SELECT training_period, training_result, exclude_from_scoring
+            FROM phishing_training 
             WHERE user_id = %s AND training_year = %s
-            ORDER BY training_period
-        """, (user_id, year), fetch_all=True)
+            """, (user_id, year), fetch_all=True)
 
-        # 기본 통계 초기화
-        expected_periods = ["first_half", "second_half"]
-        total_count = len(expected_periods)
+        # 모의훈련 데이터가 없는 경우 감점 없음
+        if not training_records:
+            training_stats = {
+                "total_count": 0,  # 데이터가 없으면 0개로 처리
+                "passed_count": 0,
+                "failed_count": 0,
+                "pending_count": 0,
+                "total_penalty": 0.0,  # 감점 없음
+                "items": [],
+                "message": "모의훈련 데이터가 없어 감점하지 않음"
+            }
+            return 0.0, training_stats
+
+        # 실제 훈련 기록이 있는 경우만 감점 계산
+        total_count = len(training_records)
         passed_count = 0
         failed_count = 0
         total_penalty = 0.0
         training_details = []
 
-        # 실제 훈련 기록 처리
-        recorded_periods = set()
         for record in training_records:
-            recorded_periods.add(record["training_period"])
-            
+            if record.get('exclude_from_scoring', False):
+                continue  # 점수 계산에서 제외된 기록은 패스
+
             penalty = 0.0
             if record["training_result"] == "fail":
-                # training_result가 'fail'이면 0.5점 감점
                 failed_count += 1
                 penalty = 0.5
                 total_penalty += penalty
             elif record["training_result"] == "pass":
-                # 통과한 경우
                 passed_count += 1
-            
+
             training_details.append({
                 "period": record["training_period"],
                 "result": record["training_result"],
-                "penalty": penalty,
-                "email_sent": record["email_sent_time"] is not None
+                "penalty": penalty
             })
-
-        # 기록되지 않은 기간은 미실시로 처리 (감점 없음)
-        for period in expected_periods:
-            if period not in recorded_periods:
-                training_details.append({
-                    "period": period,
-                    "result": "pending",
-                    "penalty": 0.0,
-                    "email_sent": False
-                })
 
         pending_count = total_count - passed_count - failed_count
 
@@ -303,103 +319,146 @@ def _calculate_training_penalty_fixed(user_id, year):
         }
 
         return total_penalty, training_stats
-        
+
     except Exception as e:
         logging.error(f"Training penalty calculation error: {str(e)}")
+        # 에러 발생시에도 감점 없음
         return 0.0, {
-            "total_count": 2, "passed_count": 0, "failed_count": 0, 
-            "pending_count": 2, "total_penalty": 0.0, "items": []
+            "total_count": 0,
+            "passed_count": 0,
+            "failed_count": 0,
+            "pending_count": 0,
+            "total_penalty": 0.0,
+            "items": [],
+            "message": "모의훈련 데이터 조회 오류로 감점하지 않음"
         }
 
 
 def _calculate_education_penalty(user_id, year):
-    """교육 감점 계산 - 임시로 0점 고정 (아직 구현 안됨)"""
+    """교육 감점 계산 - 데이터 없으면 감점 없음"""
     try:
-        # 임시로 교육 감점은 0점으로 고정
+        education_records = execute_query(
+            """
+            SELECT education_period, completion_status, exclude_from_scoring
+            FROM security_education 
+            WHERE user_id = %s AND education_year = %s
+            """, (user_id, year), fetch_all=True)
+
+        # 교육 데이터가 없는 경우 감점 없음
+        if not education_records:
+            education_stats = {
+                "total_count": 0,  # 데이터가 없으면 0개로 처리
+                "completed_count": 0,
+                "incomplete_count": 0,
+                "excluded_count": 0,
+                "total_penalty": 0.0,  # 감점 없음
+                "message": "교육 데이터가 없어 감점하지 않음"
+            }
+            return 0.0, education_stats
+
+        # 실제 교육 기록이 있는 경우만 감점 계산
+        total_count = len(education_records)
+        scoring_records = [
+            r for r in education_records if not r.get('exclude_from_scoring', False)
+        ]
+        completed_count = sum(1 for r in scoring_records if r['completion_status'] == 1)
+        incomplete_count = len(scoring_records) - completed_count
+        excluded_count = total_count - len(scoring_records)
+
+        # 실제로 미이수한 교육에 대해서만 감점
+        total_penalty = incomplete_count * 0.5
+
         education_stats = {
-            "total_count": 2,  # 상반기, 하반기
+            "total_count": total_count,
+            "completed_count": completed_count,
+            "incomplete_count": incomplete_count,
+            "excluded_count": excluded_count,
+            "total_penalty": round(total_penalty, 2)
+        }
+
+        return total_penalty, education_stats
+
+    except Exception as e:
+        logging.error(f"Education penalty calculation error: {str(e)}")
+        # 에러 발생시에도 감점 없음
+        return 0.0, {
+            "total_count": 0,
             "completed_count": 0,
             "incomplete_count": 0,
             "excluded_count": 0,
-            "total_penalty": 0.0,  # 0점 고정
-            "message": "교육 시스템 미구현으로 감점 없음"
-        }
-
-        return 0.0, education_stats
-        
-    except Exception as e:
-        logging.error(f"Education penalty calculation error: {str(e)}")
-        return 0.0, {
-            "total_count": 2, "completed_count": 0, "incomplete_count": 0, 
-            "excluded_count": 0, "total_penalty": 0.0, "message": "교육 시스템 미구현"
+            "total_penalty": 0.0,
+            "message": "교육 데이터 조회 오류로 감점하지 않음"
         }
 
 
-def _save_score_summary(user_id, year, audit_penalty, manual_penalty, education_penalty, training_penalty, total_penalty):
+def _save_score_summary(user_id, year, audit_penalty, manual_penalty, education_penalty,
+                        training_penalty, total_penalty):
     """점수 요약 저장/업데이트"""
     try:
         # 기존 요약 확인
-        existing = execute_query("""
+        existing = execute_query(
+            """
             SELECT summary_id FROM security_score_summary 
             WHERE user_id = %s AND evaluation_year = %s
         """, (user_id, year), fetch_one=True)
 
         if existing:
             # 업데이트
-            execute_query("""
+            execute_query(
+                """
                 UPDATE security_score_summary 
                 SET audit_penalty = %s, education_penalty = %s, training_penalty = %s, 
                     total_penalty = %s, last_calculated = NOW()
                 WHERE user_id = %s AND evaluation_year = %s
-            """, (audit_penalty, education_penalty, training_penalty, total_penalty, user_id, year))
+            """, (audit_penalty, education_penalty, training_penalty, total_penalty,
+                  user_id, year))
         else:
             # 새로 생성
-            execute_query("""
+            execute_query(
+                """
                 INSERT INTO security_score_summary 
                 (user_id, evaluation_year, audit_penalty, education_penalty, training_penalty, total_penalty)
                 VALUES (%s, %s, %s, %s, %s, %s)
-            """, (user_id, year, audit_penalty, education_penalty, training_penalty, total_penalty))
+            """, (user_id, year, audit_penalty, education_penalty, training_penalty,
+                  total_penalty))
     except Exception as e:
         logging.error(f"Score summary save error: {str(e)}")
 
 
 @personal_dashboard_bp.route("/recommendations", methods=["GET"])
 @token_required
-@handle_exceptions 
+@handle_exceptions
 def get_personal_recommendations():
     """개인 보안 개선 권장사항 조회"""
     user = request.current_user
     username = user["username"]
     year = request.args.get("year", datetime.now().year, type=int)
-    
+
     try:
         logging.info(f"개인 권장사항 조회: username={username}, year={year}")
-        
+
         # 사용자 ID 조회
-        user_data = execute_query(
-            "SELECT uid FROM users WHERE user_id = %s", (username,), fetch_one=True
-        )
-        
+        user_data = execute_query("SELECT uid FROM users WHERE user_id = %s",
+                                  (username, ), fetch_one=True)
+
         if not user_data:
             return jsonify({"error": "사용자 정보를 찾을 수 없습니다."}), HTTP_STATUS["NOT_FOUND"]
-        
+
         user_id = user_data["uid"]
-        
+
         # 현재 감점 정보 조회
-        score_summary = execute_query("""
+        score_summary = execute_query(
+            """
             SELECT audit_penalty, education_penalty, training_penalty, total_penalty
             FROM security_score_summary 
             WHERE user_id = %s AND evaluation_year = %s
         """, (user_id, year), fetch_one=True)
-        
+
         if not score_summary:
-            return jsonify({
-                "recommendations": [], 
-                "message": "점수 데이터가 없습니다."
-            })
-        
+            return jsonify({"recommendations": [], "message": "점수 데이터가 없습니다."})
+
         recommendations = []
-        
+
         # 교육 관련 권장사항 - 임시로 비활성화
         # if score_summary["education_penalty"] > 0:
         #     recommendations.append({
@@ -410,51 +469,51 @@ def get_personal_recommendations():
         #         "penalty_score": float(score_summary["education_penalty"]),
         #         "action_url": "/security-education"
         #     })
-        
+
         # 모의훈련 관련 권장사항
         if score_summary["training_penalty"] > 0:
             recommendations.append({
-                "priority": "high", 
+                "priority": "high",
                 "category": "training",
                 "title": "🎯 악성메일 대응 능력 향상",
                 "description": f"모의훈련 실패로 인해 -{score_summary['training_penalty']}점 감점되었습니다. 악성메일 식별 능력을 향상시키세요.",
                 "penalty_score": float(score_summary["training_penalty"]),
                 "action_url": "/phishing-training"
             })
-        
-        # 상시감사 관련 권장사항  
+
+        # 상시감사 관련 권장사항
         if score_summary["audit_penalty"] > 0:
             recommendations.append({
                 "priority": "medium",
-                "category": "audit", 
+                "category": "audit",
                 "title": "🛡️ 보안 설정 개선",
                 "description": f"상시감사 실패로 인해 -{score_summary['audit_penalty']}점 감점되었습니다. 보안 설정을 확인하고 조치하세요.",
                 "penalty_score": float(score_summary["audit_penalty"]),
                 "action_url": "/security-audit/results"
             })
-        
+
         # 종합 권장사항
         if score_summary["total_penalty"] >= 2.0:
             recommendations.append({
                 "priority": "info",
                 "category": "general",
-                "title": "💡 종합적인 보안 의식 개선", 
+                "title": "💡 종합적인 보안 의식 개선",
                 "description": f"현재 총 -{score_summary['total_penalty']}점 감점되었습니다. 정기적인 보안 교육 참여와 정책 준수를 권장합니다.",
                 "penalty_score": 0,
                 "action_url": "/security-audit/solutions"
             })
-        
+
         response_data = {
             "current_penalty": float(score_summary["total_penalty"]),
-            "potential_improvement": float(score_summary["education_penalty"] + 
-                                         score_summary["training_penalty"] + 
-                                         score_summary["audit_penalty"]),
+            "potential_improvement": float(score_summary["education_penalty"] +
+                                           score_summary["training_penalty"] +
+                                           score_summary["audit_penalty"]),
             "recommendations": recommendations
         }
-        
+
         logging.info(f"개인 권장사항 응답: {len(recommendations)}개")
         return jsonify(response_data)
-            
+
     except Exception as e:
         logging.error(f"Personal recommendations error: {str(e)}")
         return jsonify({

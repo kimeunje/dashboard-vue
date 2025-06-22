@@ -14,9 +14,8 @@ class ScoreService:
             year = datetime.now().year
 
         # 사용자 ID 가져오기
-        user = execute_query(
-            "SELECT uid FROM users WHERE user_id = %s", (username,), fetch_one=True
-        )
+        user = execute_query("SELECT uid FROM users WHERE user_id = %s", (username, ),
+                             fetch_one=True)
 
         if not user:
             raise ValueError("사용자를 찾을 수 없습니다.")
@@ -33,20 +32,17 @@ class ScoreService:
         with DatabaseManager.get_db_cursor() as cursor:
             # 1. 상시감사 감점 계산 (audit_log + manual_check_results)
             audit_penalty, audit_stats = self._calculate_audit_penalty_from_real_data(
-                cursor, user_id, year
-            )
+                cursor, user_id, year)
             logging.info(f"감사 감점 계산 완료: {audit_penalty}")
 
             # 2. 교육 감점 계산 (security_education 테이블)
             education_penalty, education_stats = (
-                self._calculate_education_penalty_from_real_data(cursor, user_id, year)
-            )
+                self._calculate_education_penalty_from_real_data(cursor, user_id, year))
             logging.info(f"교육 감점 계산 완료: {education_penalty}")
 
             # 3. 모의훈련 감점 계산 (phishing_training 테이블)
             training_penalty, training_stats = (
-                self._calculate_training_penalty_from_real_data(cursor, user_id, year)
-            )
+                self._calculate_training_penalty_from_real_data(cursor, user_id, year))
             logging.info(f"훈련 감점 계산 완료: {training_penalty}")
 
             # 4. 총 감점 계산 (최대 -5.0점)
@@ -80,9 +76,8 @@ class ScoreService:
                 "audit_stats": audit_stats,
             }
 
-    def _calculate_audit_penalty_from_real_data(
-        self, cursor, user_id: int, year: int
-    ) -> tuple:
+    def _calculate_audit_penalty_from_real_data(self, cursor, user_id: int,
+                                                year: int) -> tuple:
         """실제 DB 스키마를 바탕으로 감사 감점 계산"""
 
         # 1. audit_log에서 상시감사 로그 조회 (daily 타입만)
@@ -138,14 +133,12 @@ class ScoreService:
                 penalty = float(log["penalty_weight"]) if log["penalty_weight"] else 0.5
                 total_penalty += penalty
                 audit_failed_count += 1
-                failed_items.append(
-                    {
-                        "item_name": log["item_name"],
-                        "checked_at": log["checked_at"],
-                        "penalty": penalty,
-                        "source": "audit_log",
-                    }
-                )
+                failed_items.append({
+                    "item_name": log["item_name"],
+                    "checked_at": log["checked_at"],
+                    "penalty": penalty,
+                    "source": "audit_log",
+                })
 
         # manual_check_results 감점 계산
         manual_failed_count = 0
@@ -154,20 +147,17 @@ class ScoreService:
                 penalty = float(check["penalty_weight"])
                 total_penalty += penalty
                 manual_failed_count += 1
-                failed_items.append(
-                    {
-                        "item_name": f"수시감사 - {check['check_item_code']}",
-                        "checked_at": check["check_date"],
-                        "penalty": penalty,
-                        "source": "manual_check_results",
-                    }
-                )
+                failed_items.append({
+                    "item_name": f"수시감사 - {check['check_item_code']}",
+                    "checked_at": check["check_date"],
+                    "penalty": penalty,
+                    "source": "manual_check_results",
+                })
 
         audit_stats = {
             "total_count": len(audit_logs) + len(manual_checks),
-            "passed_count": len(audit_logs)
-            - audit_failed_count
-            + len([c for c in manual_checks if c["overall_result"] == "pass"]),
+            "passed_count": len(audit_logs) - audit_failed_count +
+            len([c for c in manual_checks if c["overall_result"] == "pass"]),
             "failed_count": audit_failed_count + manual_failed_count,
             "pending_count": len([log for log in audit_logs if log["passed"] is None]),
             "total_penalty": round(total_penalty, 2),
@@ -178,10 +168,9 @@ class ScoreService:
 
         return total_penalty, audit_stats
 
-    def _calculate_education_penalty_from_real_data(
-        self, cursor, user_id: int, year: int
-    ) -> tuple:
-        """실제 DB 스키마를 바탕으로 교육 감점 계산"""
+    def _calculate_education_penalty_from_real_data(self, cursor, user_id: int,
+                                                    year: int) -> tuple:
+        """실제 DB 스키마를 바탕으로 교육 감점 계산 - 데이터 없으면 감점 없음"""
 
         cursor.execute(
             """
@@ -198,30 +187,26 @@ class ScoreService:
 
         education_records = cursor.fetchall()
 
-        # 교육 데이터가 없는 경우 기본 감점 적용
+        # 교육 데이터가 없는 경우 → 감점 없음으로 변경
         if not education_records:
-            # 연도별 필수 교육 회차 (상반기, 하반기)
-            required_sessions = 2
-            education_penalty = required_sessions * 0.5
-
             education_stats = {
-                "total_required": required_sessions,
+                "total_required": 0,  # 데이터가 없으면 필수 교육도 0개로 처리
                 "completed_count": 0,
-                "incomplete_count": required_sessions,
-                "total_penalty": education_penalty,
-                "incomplete_sessions": [f"{year}년 상반기", f"{year}년 하반기"],
+                "incomplete_count": 0,
+                "total_penalty": 0.0,  # 감점 없음
+                "incomplete_sessions": [],
+                "message": "교육 데이터가 없어 감점하지 않음"
             }
 
-            return education_penalty, education_stats
+            return 0.0, education_stats  # 감점 없음
 
-        # 실제 교육 기록이 있는 경우
-        completed_count = sum(
-            1 for record in education_records if record["completion_status"] == 1
-        )
-        incomplete_count = sum(
-            1 for record in education_records if record["completion_status"] == 0
-        )
+        # 실제 교육 기록이 있는 경우만 감점 계산
+        completed_count = sum(1 for record in education_records
+                              if record["completion_status"] == 1)
+        incomplete_count = sum(1 for record in education_records
+                               if record["completion_status"] == 0)
 
+        # 실제로 미이수한 교육에 대해서만 감점
         education_penalty = incomplete_count * 0.5
 
         incomplete_sessions = []
@@ -239,10 +224,9 @@ class ScoreService:
 
         return education_penalty, education_stats
 
-    def _calculate_training_penalty_from_real_data(
-        self, cursor, user_id: int, year: int
-    ) -> tuple:
-        """실제 DB 스키마를 바탕으로 모의훈련 감점 계산"""
+    def _calculate_training_penalty_from_real_data(self, cursor, user_id: int,
+                                                   year: int) -> tuple:
+        """실제 DB 스키마를 바탕으로 모의훈련 감점 계산 - 데이터 없으면 감점 없음"""
 
         cursor.execute(
             """
@@ -259,30 +243,26 @@ class ScoreService:
 
         training_records = cursor.fetchall()
 
-        # 훈련 데이터가 없는 경우 기본 감점 적용
+        # 훈련 데이터가 없는 경우 → 감점 없음으로 변경
         if not training_records:
-            # 연도별 필수 훈련 회차 (상반기, 하반기)
-            required_sessions = 2
-            training_penalty = required_sessions * 0.5
-
             training_stats = {
-                "total_required": required_sessions,
+                "total_required": 0,  # 데이터가 없으면 필수 훈련도 0개로 처리
                 "passed_count": 0,
-                "failed_count": required_sessions,
-                "total_penalty": training_penalty,
-                "failed_sessions": [f"{year}년 상반기", f"{year}년 하반기"],
+                "failed_count": 0,
+                "total_penalty": 0.0,  # 감점 없음
+                "failed_sessions": [],
+                "message": "모의훈련 데이터가 없어 감점하지 않음"
             }
 
-            return training_penalty, training_stats
+            return 0.0, training_stats  # 감점 없음
 
-        # 실제 훈련 기록이 있는 경우
-        passed_count = sum(
-            1 for record in training_records if record["training_result"] == "pass"
-        )
-        failed_count = sum(
-            1 for record in training_records if record["training_result"] == "fail"
-        )
+        # 실제 훈련 기록이 있는 경우만 감점 계산
+        passed_count = sum(1 for record in training_records
+                           if record["training_result"] == "pass")
+        failed_count = sum(1 for record in training_records
+                           if record["training_result"] == "fail")
 
+        # 실제로 실패한 훈련에 대해서만 감점
         training_penalty = failed_count * 0.5
 
         failed_sessions = []

@@ -519,6 +519,9 @@ INSERT INTO `user_item_exceptions` (`exception_id`, `user_id`, `item_id`, `exclu
 	(20, 5, 6, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:03:49', '2025-06-15 14:24:12', 0, 'audit', '동일 패스워드 설정 제한', '접근통제'),
 	(21, 5, 8, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:24:55', '2025-06-15 14:24:55', 1, 'audit', '원격데스크톱 제한', '접근통제');
 
+ALTER TABLE users ADD COLUMN role ENUM('user', 'admin') DEFAULT 'user';
+UPDATE users SET role = 'admin' WHERE user_id IN ('admin', 'users2');
+
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
 /*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;

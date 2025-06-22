@@ -15,25 +15,29 @@ admin_dashboard_bp = Blueprint("admin_dashboard", __name__,
                                url_prefix="/api/admin/dashboard")
 
 
+# 대시보드 overview 함수도 수정 - 자동 계산을 선택적으로
 @admin_dashboard_bp.route("/overview", methods=["GET"])
 @token_required
 @admin_required
 @handle_exceptions
 def get_dashboard_overview():
-    """관리자 대시보드 종합 현황 - 자동 점수 계산 포함"""
+    """관리자 대시보드 종합 현황 - 자동 점수 계산을 선택적으로"""
     year = request.args.get("year", datetime.now().year, type=int)
-    auto_calculate = request.args.get("auto_calculate", "true").lower() == "true"
+    auto_calculate = request.args.get("auto_calculate",
+                                      "false").lower() == "true"  # 기본값을 false로 변경
 
     try:
         logging.info(f"관리자 대시보드 현황 조회: year={year}, auto_calculate={auto_calculate}")
 
-        # 자동 계산이 활성화된 경우 미계산 사용자들의 점수를 먼저 계산
+        calculated_count = 0
+
+        # 자동 계산이 활성화된 경우에만 미계산 사용자들의 점수를 계산
         if auto_calculate:
             calculated_count = _auto_calculate_missing_scores(year)
             if calculated_count > 0:
                 logging.info(f"자동 계산 완료: {calculated_count}명의 점수 계산됨")
 
-        # 기존 대시보드 데이터 조회 로직
+        # 대시보드 데이터 조회
         user_stats = _get_user_statistics_fixed(year)
         score_distribution = _get_score_distribution_fixed(year)
         monthly_trends = _get_monthly_trends_fixed(year)
@@ -51,7 +55,7 @@ def get_dashboard_overview():
             "recent_activities": recent_activities,
             "risk_users": risk_users,
             "last_updated": datetime.now().isoformat(),
-            "auto_calculated_users": calculated_count if auto_calculate else 0
+            "auto_calculated_users": calculated_count
         }
 
         return jsonify(response_data)
@@ -65,7 +69,7 @@ def get_dashboard_overview():
 
 
 def _auto_calculate_missing_scores(year):
-    """미계산된 사용자들의 점수를 자동으로 계산"""
+    """미계산된 사용자들의 점수를 자동으로 계산 - 개선된 버전"""
     from app.services.total_score_service import ScoreService
 
     try:
@@ -81,6 +85,7 @@ def _auto_calculate_missing_scores(year):
         missing_users = execute_query(missing_users_query, (year, ), fetch_all=True)
 
         if not missing_users:
+            logging.info("미계산 사용자가 없습니다.")
             return 0
 
         logging.info(f"미계산 사용자 {len(missing_users)}명 발견, 자동 계산 시작")
@@ -93,6 +98,7 @@ def _auto_calculate_missing_scores(year):
                 # 개별 사용자 점수 계산
                 score_service.calculate_security_score(user["uid"], year)
                 calculated_count += 1
+                logging.debug(f"사용자 {user['user_id']} 자동 계산 완료")
 
             except Exception as user_error:
                 logging.error(f"사용자 {user['user_id']} 자동 계산 실패: {str(user_error)}")
@@ -243,53 +249,87 @@ def get_calculation_status():
         }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
 
-# 수동 전체 계산 트리거 (기존 배치 API 대신 간단한 버전)
 @admin_dashboard_bp.route("/trigger-calculation", methods=["POST"])
 @token_required
 @admin_required
 @handle_exceptions
 def trigger_full_calculation():
-    """모든 사용자 점수 강제 재계산"""
+    """모든 사용자 점수 강제 재계산 - 개선된 버전"""
     data = request.json or {}
     year = data.get("year", datetime.now().year)
     force_recalculate = data.get("force_recalculate", False)
 
     try:
+        logging.info(f"점수 계산 요청: year={year}, force_recalculate={force_recalculate}")
+
         if force_recalculate:
-            # 모든 사용자 재계산
+            # 모든 사용자 강제 재계산
             users_query = "SELECT uid, user_id, username FROM users ORDER BY uid"
             users = execute_query(users_query, fetch_all=True)
+
+            if not users:
+                return jsonify({"message": "계산할 사용자가 없습니다.", "calculated_count": 0})
+
+            success_count = 0
+            error_count = 0
+            errors = []
+
+            logging.info(f"전체 사용자 {len(users)}명의 점수를 강제 재계산 시작")
+
+            from app.services.total_score_service import ScoreService
+            score_service = ScoreService()
+
+            for user in users:
+                try:
+                    # 기존 점수 데이터 삭제 (강제 재계산)
+                    execute_query(
+                        "DELETE FROM security_score_summary WHERE user_id = %s AND evaluation_year = %s",
+                        (user["uid"], year))
+
+                    # 새로 계산
+                    score_service.calculate_security_score(user["uid"], year)
+                    success_count += 1
+
+                    logging.debug(f"사용자 {user['user_id']} 점수 재계산 완료")
+
+                except Exception as user_error:
+                    error_count += 1
+                    error_msg = f"사용자 {user['user_id']} 계산 실패: {str(user_error)}"
+                    errors.append(error_msg)
+                    logging.error(error_msg)
+
+            message = f"전체 재계산 완료: 성공 {success_count}명, 실패 {error_count}명"
+            logging.info(message)
+
+            response_data = {
+                "message": message,
+                "calculated_count": success_count,
+                "error_count": error_count,
+                "total_users": len(users),
+                "year": year,
+                "force_recalculate": True
+            }
+
+            if errors:
+                response_data["errors"] = errors[:10]  # 최대 10개의 에러만 반환
+
+            return jsonify(response_data)
+
         else:
-            # 미계산 사용자만
+            # 미계산 사용자만 계산 (기존 로직)
             calculated_count = _auto_calculate_missing_scores(year)
+
             return jsonify({
                 "message": f"{calculated_count}명의 미계산 사용자 점수를 계산했습니다.",
-                "calculated_users": calculated_count
+                "calculated_count": calculated_count,
+                "year": year,
+                "force_recalculate": False
             })
 
-        from app.services.total_score_service import ScoreService
-        score_service = ScoreService()
-
-        success_count = 0
-        for user in users:
-            try:
-                score_service.calculate_security_score(user["uid"], year)
-                success_count += 1
-            except Exception as user_error:
-                logging.error(f"사용자 {user['user_id']} 계산 실패: {str(user_error)}")
-                continue
-
-        return jsonify({
-            "message": f"전체 사용자 점수 계산 완료: {success_count}/{len(users)}명 성공",
-            "total_users": len(users),
-            "success_count": success_count,
-            "error_count": len(users) - success_count
-        })
-
     except Exception as e:
-        logging.error(f"Full calculation error: {str(e)}")
+        logging.error(f"점수 계산 실행 중 오류: {str(e)}")
         return jsonify({
-            "error": "전체 계산 중 오류가 발생했습니다.",
+            "error": "점수 계산 중 오류가 발생했습니다.",
             "details": str(e)
         }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
@@ -826,5 +866,54 @@ def get_filter_options():
         logging.error(f"Filter options error: {str(e)}")
         return jsonify({
             "error": "필터 옵션 조회 중 오류가 발생했습니다.",
+            "details": str(e)
+        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+
+
+# 추가: 계산 진행 상황을 실시간으로 확인할 수 있는 API
+@admin_dashboard_bp.route("/calculation-progress", methods=["GET"])
+@token_required
+@admin_required
+@handle_exceptions
+def get_calculation_progress():
+    """점수 계산 진행 상황 조회 (실시간)"""
+    year = request.args.get("year", datetime.now().year, type=int)
+
+    try:
+        # 전체 사용자 수
+        total_users = execute_query("SELECT COUNT(*) as count FROM users",
+                                    fetch_one=True)["count"]
+
+        # 해당 연도에 계산된 사용자 수
+        calculated_users = execute_query(
+            "SELECT COUNT(*) as count FROM security_score_summary WHERE evaluation_year = %s",
+            (year, ), fetch_one=True)["count"]
+
+        # 최근 1분간 계산된 사용자 수 (실시간 진행률 확인용)
+        recent_calculations = execute_query(
+            """
+            SELECT COUNT(*) as count FROM security_score_summary 
+            WHERE evaluation_year = %s 
+            AND last_calculated >= DATE_SUB(NOW(), INTERVAL 1 MINUTE)
+            """, (year, ), fetch_one=True)["count"]
+
+        progress_percentage = round(
+            (calculated_users / total_users) * 100, 1) if total_users > 0 else 0
+
+        return jsonify({
+            "year": year,
+            "total_users": total_users,
+            "calculated_users": calculated_users,
+            "missing_users": total_users - calculated_users,
+            "progress_percentage": progress_percentage,
+            "recent_calculations": recent_calculations,
+            "is_complete": calculated_users >= total_users,
+            "timestamp": datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        logging.error(f"Calculation progress error: {str(e)}")
+        return jsonify({
+            "error": "계산 진행 상황 조회 중 오류가 발생했습니다.",
             "details": str(e)
         }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]

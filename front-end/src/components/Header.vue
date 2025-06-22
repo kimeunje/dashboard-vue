@@ -2,94 +2,108 @@
 <template>
   <header class="header" id="header">
     <RouterLink :to="getLinkPath()" class="logo-container scale-hover">
-      <svg width="24" height="24" fill="white" viewBox="0 0 16 16">
-        <path
-          d="M8 0a8 8 0 0 0-2.916 15.462c-.074-.534-.144-1.343.03-1.918.159-.533.528-1.707.528-1.707s-.135-.271-.135-.674c0-.631.366-1.102.819-1.102.386 0 .573.29.573.636 0 .388-.246.973-.375 1.515-.107.452.224.816.67.816.805 0 1.347-.847 1.347-1.85 0-.969-.654-1.693-1.846-1.693-1.347 0-2.185 1.007-2.185 2.133 0 .388.129.663.332.872.035.044.078.126.063.158-.066.252-.214.796-.243.907-.35.135-.185.055-.421-.144-.593-.659-.859-1.537-.859-2.401 0-2.028 1.714-4.464 5.106-4.464 2.724 0 4.508 1.97 4.508 4.089 0 2.803-1.56 4.897-3.858 4.897-.771 0-1.5-.418-1.752-.894 0 0-.416 1.65-.507 1.97-.152.553-.501 1.11-.802 1.55 1.009.293 2.077.336 3.144.068 1.068-.285 2.062-.794 2.902-1.493a8 8 0 0 0-1.066-15.789z"
-        />
-      </svg>
-      <div class="logo">{{ scrolled ? getPageTitle() : '나이스디앤비' }}</div>
+      <!-- 스크롤하지 않았을 때: CI 이미지 표시 -->
+      <!-- <img v-if="!scrolled" src="/logo.png" alt="나이스디앤비 로고" class="logo-image" /> -->
+      <img src="/logo.png" alt="나이스디앤비 로고" class="logo-image" />
+      <!-- 스크롤했을 때: 현재 경로 텍스트 표시 -->
+      <!-- <div v-if="scrolled" class="route-title">
+        {{ getRouteTitle() }}
+      </div> -->
     </RouterLink>
 
     <div class="user-controls">
-      <div v-if="user" class="user-menu">
-        <div class="user-info tablet-hidden">
-          <span class="user-name">{{ user.name || user.username }}</span>
-          <span class="user-role">
-            {{ getUserRoleText(user.role) }}
-          </span>
+      <div class="user-menu" v-if="user">
+        <div class="user-info">
+          <div class="user-name">{{ user.username }}</div>
+          <div class="user-role">{{ getUserRoleText(user.role) }}</div>
         </div>
         <div class="user-actions">
-          <button @click="handleLogout" class="btn btn-transparent logout-button">
+          <button @click="handleLogout" class="logout-button">
             <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
               <path
-                fill-rule="evenodd"
-                d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"
+                d="M6 12.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0-.5.5V4a.5.5 0 0 1-1 0V3.5A1.5 1.5 0 0 1 6.5 2h4A1.5 1.5 0 0 1 12 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-4A1.5 1.5 0 0 1 5 12.5V12a.5.5 0 0 1 1 .5z"
               />
               <path
-                fill-rule="evenodd"
-                d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"
+                d="M.146 8.354a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L1.707 7.5H10.5a.5.5 0 0 1 0 1H1.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3z"
               />
             </svg>
             로그아웃
           </button>
         </div>
       </div>
-      <RouterLink v-else to="/login" class="btn btn-primary login-link">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-          <path
-            fill-rule="evenodd"
-            d="M6 12.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-8a.5.5 0 0 0-.5.5v2a.5.5 0 0 1-1 0v-2A1.5 1.5 0 0 1 6.5 2h8A1.5 1.5 0 0 1 16 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 5 12.5v-2a.5.5 0 0 1 1 0v2z"
-          />
-          <path
-            fill-rule="evenodd"
-            d="M.146 8.354a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L1.707 7.5H10.5a.5.5 0 0 1 0 1H1.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3z"
-          />
-        </svg>
-        로그인
-      </RouterLink>
+      <div v-else>
+        <RouterLink to="/login" class="login-link">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+          </svg>
+          로그인
+        </RouterLink>
+      </div>
     </div>
   </header>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+import { useRoute } from 'vue-router'
 
+// Props와 Emits 정의
 defineProps({
   user: {
     type: Object,
     default: null,
   },
-  loading: {
-    type: Boolean,
-    default: false,
-  },
 })
 
 const emit = defineEmits(['logout'])
 
+// 반응형 데이터
 const scrolled = ref(false)
-
 const route = useRoute()
 
-// 현재 경로에 따른 페이지 제목 설정
-const getPageTitle = () => {
-  const routes = [
-    { path: '/', title: '정보보안 감사 현황' },
-    { path: '/security-audit', title: '정보보안 감사 현황' },
-    { path: '/login', title: '로그인' },
-    { path: '/phishing-training', title: '악성메일 모의훈련 현황' },
-    { path: '/security-education', title: '정보보호 교육 현황' },
-    { path: '/contact', title: '문의사항' },
-  ]
+// 라우트 제목 가져오기
+const getRouteTitle = () => {
+  const titleMap = {
+    '/': '나이스디앤비',
+    '/dashboard': '대시보드',
+    '/security-audit': '정보보안 감사',
+    '/security-audit/results': '검사결과',
+    '/security-audit/solutions': '조치방법',
+    '/security-audit/solutions/screen-saver': '화면보호기 점검',
+    '/security-audit/solutions/antivirus': '백신 상태 점검',
+    '/security-audit/solutions/password-policy': '패스워드 정책 점검',
+    '/security-audit/solutions/shared-folder': '공유폴더 점검',
+    '/security-audit/solutions/remote-desktop': '원격 데스크톱 점검',
+    '/security-score': '종합 보안 점수',
+    '/security-education': '정보보호 교육',
+    '/phishing-training': '악성메일 모의훈련',
+    '/contact': '문의하기',
+    '/admin': '관리자',
+    '/admin/dashboard': '관리자 대시보드',
+    '/admin/users': '사용자 관리',
+    '/admin/training': '모의훈련 관리',
+    '/profile': '프로필',
+    '/login': '로그인',
+  }
 
-  const matchedRoute = routes.find(
-    (routeItem) =>
-      route.path === routeItem.path ||
-      (route.path.startsWith(routeItem.path) && routeItem.path !== '/'),
-  )
+  // 현재 경로와 정확히 일치하는 제목이 있으면 반환
+  if (titleMap[route.path]) {
+    return titleMap[route.path]
+  }
 
-  return matchedRoute ? matchedRoute.title : '나이스디앤비'
+  // 부분 일치 검사 (하위 경로 처리)
+  for (const [path, title] of Object.entries(titleMap)) {
+    if (route.path.startsWith(path) && path !== '/') {
+      return title
+    }
+  }
+
+  // 메타 정보에서 제목 가져오기
+  if (route.meta?.title) {
+    return route.meta.title.replace(' - 정보보안 감사 시스템', '')
+  }
+
+  return '나이스디앤비'
 }
 
 // 현재 경로에 따른 링크 경로 결정

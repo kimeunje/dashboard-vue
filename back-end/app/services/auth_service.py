@@ -50,9 +50,7 @@ class AuthService:
                 }
 
             # 4. 인증 성공
-            current_app.logger.info(
-                f"IP 인증 성공: {user_info['user_id']} ({client_ip})"
-            )
+            current_app.logger.info(f"IP 인증 성공: {user_info['user_id']} ({client_ip})")
             return {
                 "success": True,
                 "username": user_info["user_id"],  # 로그인 ID
@@ -72,13 +70,11 @@ class AuthService:
             }
 
     def _find_user_by_ip_from_db(self, client_ip: str) -> dict:
-        """users 테이블에서 IP로 사용자 찾기"""
+        """users 테이블에서 IP로 사용자 찾기 - role 컬럼 사용"""
         try:
-            # users 테이블에서 IP가 일치하는 사용자 조회
-            # ip 컬럼은 쉼표로 구분된 문자열이므로 FIND_IN_SET 또는 LIKE 사용
             users = execute_query(
                 """
-                SELECT uid, user_id, username, mail, department, ip
+                SELECT uid, user_id, username, mail, department, ip, role
                 FROM users 
                 WHERE ip IS NOT NULL 
                 AND ip != ''
@@ -93,22 +89,16 @@ class AuthService:
             )
 
             if not users:
-                current_app.logger.warning(
-                    f"IP {client_ip}에 매칭되는 사용자가 없습니다."
-                )
+                current_app.logger.warning(f"IP {client_ip}에 매칭되는 사용자가 없습니다.")
                 return None
 
-            # 여러 사용자가 매칭될 경우 첫 번째 사용자 반환 (또는 더 정교한 로직 구현)
             user = users[0]
 
-            # IP 정확성 재검증
             if self._verify_ip_match(client_ip, user["ip"]):
-                current_app.logger.info(
-                    f"사용자 매칭: {user['user_id']} <- {client_ip}"
-                )
+                current_app.logger.info(f"사용자 매칭: {user['user_id']} <- {client_ip}")
 
-                # 관리자 권한 확인 (admin 계정만 관리자로 설정)
-                role = "admin" if user["user_id"] == "admin" else "user"
+                # DB의 role 컬럼 사용 (기본값: 'user')
+                role = user.get("role", "user") or "user"
 
                 return {
                     "uid": user["uid"],
@@ -116,12 +106,10 @@ class AuthService:
                     "username": user["username"],
                     "mail": user["mail"],
                     "department": user["department"],
-                    "role": role,
+                    "role": role,  # DB에서 가져온 역할 사용
                 }
             else:
-                current_app.logger.warning(
-                    f"IP 정확성 검증 실패: {client_ip} vs {user['ip']}"
-                )
+                current_app.logger.warning(f"IP 정확성 검증 실패: {client_ip} vs {user['ip']}")
                 return None
 
         except Exception as e:
@@ -155,10 +143,8 @@ class AuthService:
 
         # 시간 체크
         current_hour = now.hour
-        if (
-            current_hour < business_hours["start"]
-            or current_hour >= business_hours["end"]
-        ):
+        if (current_hour < business_hours["start"]
+                or current_hour >= business_hours["end"]):
             current_app.logger.info(f"업무시간 외 접근 시도: {current_hour}시")
             return False
 
@@ -222,10 +208,9 @@ class AuthService:
 
         if email in self.verification_codes:
             verification_info = self.verification_codes[email]
-            is_valid_code = is_valid_code or (
-                verification_info["code"] == code
-                and datetime.now() <= verification_info["expiry"]
-            )
+            is_valid_code = is_valid_code or (verification_info["code"] == code
+                                              and datetime.now()
+                                              <= verification_info["expiry"])
 
         return is_valid_code
 
@@ -237,27 +222,24 @@ class AuthService:
             "dept": user_info.get("dept"),
             "role": user_info.get("role", "user"),
             "client_ip": client_ip,  # IP 정보 추가
-            "exp": datetime.now()
-            + timedelta(seconds=current_app.config["TOKEN_EXPIRATION"]),
+            "exp": datetime.now() +
+            timedelta(seconds=current_app.config["TOKEN_EXPIRATION"]),
         }
 
-        return jwt.encode(
-            token_payload, current_app.config["JWT_SECRET"], algorithm="HS256"
-        )
+        return jwt.encode(token_payload, current_app.config["JWT_SECRET"],
+                          algorithm="HS256")
 
     def verify_token(self, token: str, client_ip: str = None) -> dict:
         """JWT 토큰 검증 (IP 검증 포함)"""
         try:
-            payload = jwt.decode(
-                token, current_app.config["JWT_SECRET"], algorithms=["HS256"]
-            )
+            payload = jwt.decode(token, current_app.config["JWT_SECRET"],
+                                 algorithms=["HS256"])
 
             # IP 검증 (옵션 - 경고만 기록)
             if client_ip and payload.get("client_ip"):
                 if payload["client_ip"] != client_ip:
                     current_app.logger.warning(
-                        f"토큰 IP 불일치: 토큰={payload['client_ip']}, 현재={client_ip}"
-                    )
+                        f"토큰 IP 불일치: 토큰={payload['client_ip']}, 현재={client_ip}")
                     # DHCP 환경을 고려해 경고만 기록하고 통과
 
             return {"valid": True, "payload": payload}
@@ -292,9 +274,8 @@ class AuthService:
     def authenticate_user_in_db(self, username: str) -> dict:
         """데이터베이스에서 사용자 검증 및 감사 로그 초기화 (기존 유지)"""
         try:
-            user = execute_query(
-                "SELECT uid FROM users WHERE username = %s", (username,), fetch_one=True
-            )
+            user = execute_query("SELECT uid FROM users WHERE username = %s",
+                                 (username, ), fetch_one=True)
 
             if not user:
                 return {
@@ -310,15 +291,14 @@ class AuthService:
                 FROM audit_log
                 WHERE user_id = %s AND DATE(checked_at) = DATE(NOW())
                 """,
-                (user_id,),
+                (user_id, ),
                 fetch_one=True,
             )["log_count"]
 
             if existing_logs == 0:
                 self._create_initial_audit_logs(user_id)
                 current_app.logger.info(
-                    f"사용자 {username} ({user_id})에 대해 감사 로그를 생성했습니다."
-                )
+                    f"사용자 {username} ({user_id})에 대해 감사 로그를 생성했습니다.")
 
             return {"success": True, "user_id": user_id}
 
@@ -342,9 +322,10 @@ class AuthService:
 
         import json
 
-        default_actual_value = json.dumps(
-            {"status": "pending", "message": "검사 대기 중"}, ensure_ascii=False
-        )
+        default_actual_value = json.dumps({
+            "status": "pending",
+            "message": "검사 대기 중"
+        }, ensure_ascii=False)
 
         for item in checklist_items:
             execute_query(

@@ -330,10 +330,9 @@ router.beforeEach(async (to, from, next) => {
     })
     return
   }
-
   // 게스트 전용 페이지에 인증된 사용자가 접근하는 경우 (예: 로그인 페이지)
   if (requiresGuest && isAuthenticated) {
-    console.log('로그인한 사용자가 게스트 전용 페이지 접근:', to.path)
+    console.log('⚠️ 로그인한 사용자가 게스트 전용 페이지 접근:', to.path)
     const redirectPath = to.query.redirect || '/'
     next(redirectPath)
     return
@@ -341,12 +340,19 @@ router.beforeEach(async (to, from, next) => {
 
   // 관리자 권한이 필요한 페이지 체크
   if (requiresAdmin && isAuthenticated) {
-    // 사용자 역할 체크 (TEST_USERS에서 admin 계정만 관리자로 설정)
+    // 사용자 역할 체크
     const userRole = authStore.user?.role || 'user'
-    const isAdmin = userRole === 'admin' || authStore.user?.username === 'admin'
+    const isAdmin = userRole === 'admin'
+
+    // 관리자 권한 디버깅
+    console.group('👑 관리자 권한 체크')
+    console.log('userRole:', userRole)
+    console.log('isAdmin:', isAdmin)
+    console.log('authStore.user?.role:', authStore.user?.role)
+    console.groupEnd()
 
     if (!isAdmin) {
-      console.log('관리자 권한이 없는 사용자의 관리자 페이지 접근:', to.path)
+      console.log('❌ 관리자 권한이 없는 사용자의 관리자 페이지 접근:', to.path)
       next({
         name: 'Home',
         query: { error: 'unauthorized' },
@@ -356,6 +362,7 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // 정상적인 경우 계속 진행
+  console.log('✅ 라우터 가드 통과')
   next()
 })
 

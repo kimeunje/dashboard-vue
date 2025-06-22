@@ -29,7 +29,6 @@
 }
 
 .overview-content p {
-  margin: 0;
   font-size: 1rem;
   line-height: 1.6;
   color: #374151;
@@ -214,7 +213,6 @@
     display: none;
   }
 }
-
 
 .security-audit-layout {
   display: flex;

@@ -526,15 +526,13 @@ const adminAPI = {
 
   async getCalculationStatus(year) {
     const response = await fetch(`/api/admin/dashboard/calculation-status?year=${year}`, {
-      method: 'GET',
       headers: {
         Authorization: `Bearer ${authStore.token}`,
-        'Content-Type': 'application/json',
       },
     })
 
     if (!response.ok) {
-      throw new Error(`계산 상태 조회 실패: ${response.status}`)
+      throw new Error(`상태 조회 실패: ${response.status}`)
     }
 
     return await response.json()
@@ -554,7 +552,8 @@ const adminAPI = {
     })
 
     if (!response.ok) {
-      throw new Error(`계산 실행 실패: ${response.status}`)
+      const errorData = await response.json()
+      throw new Error(errorData.error || `계산 실행 실패: ${response.status}`)
     }
 
     return await response.json()
@@ -580,7 +579,7 @@ const adminAPI = {
   },
 }
 
-// loadDashboardData 함수 수정
+// 대시보드 로드 함수 수정 - 자동 계산 비활성화
 async function loadDashboardData() {
   if (!authStore.isAuthenticated || !isAdmin()) {
     router.push('/login')
@@ -593,26 +592,26 @@ async function loadDashboardData() {
   try {
     console.log(`관리자 대시보드 데이터 로드: ${selectedYear.value}년`)
 
-    // 자동 계산을 포함한 대시보드 데이터 조회
-    const data = await adminAPI.getDashboardOverview(selectedYear.value, true) // auto_calculate=true
+    // 자동 계산 비활성화 - 수동으로만 계산하도록 변경
+    const data = await adminAPI.getDashboardOverview(selectedYear.value, false) // auto_calculate=false
 
     dashboardData.value = data
-
-    // 자동 계산된 사용자가 있으면 알림 표시
-    if (data.auto_calculated_users > 0) {
-      showSuccess(`${data.auto_calculated_users}명의 미계산 사용자 점수가 자동으로 계산되었습니다.`)
-    }
-
     console.log('대시보드 데이터 로드 완료:', data)
   } catch (err) {
     console.error('대시보드 데이터 로드 실패:', err)
     error.value = err.message || '데이터를 불러오는데 실패했습니다.'
   } finally {
     loading.value = false
+
+    // 로딩 메시지 제거
+    const loader = document.querySelector('.refresh-loader')
+    if (loader) {
+      loader.remove()
+    }
   }
 }
 
-// refreshData 함수 수정 (더 간단하게)
+// 새로고침 함수 수정 - 옵션 제공
 async function refreshData() {
   loading.value = true
   error.value = ''
@@ -620,31 +619,242 @@ async function refreshData() {
   try {
     console.log('데이터 새로고침 시작...')
 
-    // 1. 계산 상태 확인
-    const statusResponse = await adminAPI.getCalculationStatus(selectedYear.value)
-    console.log('계산 상태:', statusResponse)
+    // 사용자에게 새로고침 방식 선택 옵션 제공
+    const choice = await showRefreshOptions()
 
-    // 2. 미계산 사용자가 많으면 사용자에게 알림
-    if (statusResponse.missing_users > 10) {
-      const confirmCalculate = confirm(
-        `${statusResponse.missing_users}명의 미계산 사용자가 있습니다.\n` +
-          `전체 계산을 실행하시겠습니까? (시간이 걸릴 수 있습니다)`,
-      )
-
-      if (confirmCalculate) {
-        await adminAPI.triggerFullCalculation(selectedYear.value, false) // 미계산만
-        showSuccess('전체 계산이 완료되었습니다.')
-      }
+    if (choice === 'cancel') {
+      return // 사용자가 취소한 경우
     }
 
-    // 3. 대시보드 데이터 새로고침 (자동 계산 포함)
+    if (choice === 'force_all') {
+      // 모든 사용자 강제 재계산
+      await forceRecalculateAll()
+    } else {
+      // 기본 새로고침 (미계산 사용자만)
+      await refreshDataOnly()
+    }
+
+    // 대시보드 데이터 새로고침
     await loadDashboardData()
+
+    showSuccess('데이터 새로고침이 완료되었습니다.')
   } catch (err) {
     console.error('새로고침 중 오류:', err)
     error.value = err.message || '새로고침 중 오류가 발생했습니다.'
   } finally {
     loading.value = false
   }
+}
+
+// 모든 사용자 강제 재계산
+async function forceRecalculateAll() {
+  try {
+    showLoadingMessage('모든 사용자의 점수를 재계산하고 있습니다...')
+
+    // 서버에 강제 재계산 요청
+    const response = await adminAPI.triggerFullCalculation(selectedYear.value, true) // force_recalculate=true
+
+    console.log('전체 재계산 완료:', response)
+
+    if (response.calculated_count) {
+      showSuccess(`${response.calculated_count}명의 사용자 점수가 재계산되었습니다.`)
+    }
+  } catch (err) {
+    console.error('전체 재계산 실패:', err)
+    throw new Error(`전체 재계산 실패: ${err.message}`)
+  }
+}
+
+// 로딩 메시지 표시
+function showLoadingMessage(message) {
+  // 기존 로딩 메시지 제거
+  const existingLoader = document.querySelector('.refresh-loader')
+  if (existingLoader) {
+    existingLoader.remove()
+  }
+
+  const loader = document.createElement('div')
+  loader.className = 'refresh-loader'
+  loader.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #3b82f6;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    max-width: 350px;
+  `
+
+  loader.innerHTML = `
+    <div style="
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top: 2px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    "></div>
+    <span>${message}</span>
+  `
+
+  // 스피너 애니메이션 CSS 추가
+  if (!document.querySelector('#spinner-style')) {
+    const style = document.createElement('style')
+    style.id = 'spinner-style'
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `
+    document.head.appendChild(style)
+  }
+
+  document.body.appendChild(loader)
+
+  // 30초 후 자동 제거
+  setTimeout(() => {
+    if (loader.parentNode) {
+      loader.parentNode.removeChild(loader)
+    }
+  }, 30000)
+}
+
+// 데이터만 새로고침 (기존 로직)
+async function refreshDataOnly() {
+  try {
+    showLoadingMessage('데이터를 새로고침하고 있습니다...')
+
+    // 계산 상태 확인
+    const statusResponse = await adminAPI.getCalculationStatus(selectedYear.value)
+    console.log('계산 상태:', statusResponse)
+
+    // 미계산 사용자가 있으면 자동 계산
+    if (statusResponse.missing_users > 0) {
+      console.log(`${statusResponse.missing_users}명의 미계산 사용자 자동 계산`)
+      await adminAPI.triggerFullCalculation(selectedYear.value, false) // 미계산만
+    }
+  } catch (err) {
+    console.error('데이터 새로고침 실패:', err)
+    throw new Error(`데이터 새로고침 실패: ${err.message}`)
+  }
+}
+
+// 새로고침 옵션 선택 대화상자
+function showRefreshOptions() {
+  return new Promise((resolve) => {
+    // 커스텀 대화상자 HTML 생성
+    const modal = document.createElement('div')
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    `
+
+    const dialog = document.createElement('div')
+    dialog.style.cssText = `
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      max-width: 500px;
+      width: 90%;
+    `
+
+    dialog.innerHTML = `
+      <h3 style="margin: 0 0 20px 0; color: #1f2937; font-size: 20px;">새로고침 방식 선택</h3>
+      <p style="margin: 0 0 25px 0; color: #6b7280; line-height: 1.5;">
+        데이터를 어떻게 새로고침하시겠습니까?
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
+        <button id="refreshOnly" style="
+          padding: 12px 16px;
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          background: white;
+          cursor: pointer;
+          text-align: left;
+          transition: all 0.2s;
+        ">
+          <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">📊 데이터만 새로고침</div>
+          <div style="font-size: 14px; color: #6b7280;">기존 점수는 유지하고 대시보드 데이터만 갱신</div>
+        </button>
+
+        <button id="forceAll" style="
+          padding: 12px 16px;
+          border: 2px solid #fbbf24;
+          border-radius: 8px;
+          background: #fffbeb;
+          cursor: pointer;
+          text-align: left;
+          transition: all 0.2s;
+        ">
+          <div style="font-weight: 600; color: #92400e; margin-bottom: 4px;">🔄 모든 사용자 점수 재계산</div>
+          <div style="font-size: 14px; color: #92400e;">모든 사용자의 점수를 처음부터 다시 계산 (시간 소요)</div>
+        </button>
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button id="cancel" style="
+          padding: 8px 16px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          background: white;
+          cursor: pointer;
+          color: #6b7280;
+        ">취소</button>
+      </div>
+    `
+
+    modal.appendChild(dialog)
+    document.body.appendChild(modal)
+
+    // 버튼 이벤트 등록
+    dialog.querySelector('#refreshOnly').onclick = () => {
+      document.body.removeChild(modal)
+      resolve('refresh_only')
+    }
+
+    dialog.querySelector('#forceAll').onclick = () => {
+      document.body.removeChild(modal)
+      resolve('force_all')
+    }
+
+    dialog.querySelector('#cancel').onclick = () => {
+      document.body.removeChild(modal)
+      resolve('cancel')
+    }
+
+    // 호버 효과
+    const buttons = dialog.querySelectorAll('button')
+    buttons.forEach((btn) => {
+      if (btn.id === 'refreshOnly' || btn.id === 'forceAll') {
+        btn.onmouseenter = () => {
+          btn.style.transform = 'translateY(-2px)'
+          btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)'
+        }
+        btn.onmouseleave = () => {
+          btn.style.transform = 'translateY(0)'
+          btn.style.boxShadow = 'none'
+        }
+      }
+    })
+  })
 }
 
 // 배치 작업 완료 대기 함수 (새로 추가)
