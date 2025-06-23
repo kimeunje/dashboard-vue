@@ -42,6 +42,10 @@ const AdminDashboard = () => import('@/modules/admin/views/AdminDashboard.vue')
 const AdminUserManagement = () => import('@/modules/admin/views/AdminUserManagement.vue')
 const AdminUserDetail = () => import('@/modules/admin/views/AdminUserDetail.vue')
 
+// 관리자 교육 관리 컴포넌트 import 추가
+const AdminSecurityEducationManagement = () =>
+  import('@/modules/admin/views/AdminSecurityEducationManagement.vue')
+
 // 라우터 설정
 const routes = [
   // 홈 페이지
@@ -78,6 +82,16 @@ const routes = [
     },
   },
 
+  {
+    path: '/admin/education',
+    name: 'AdminSecurityEducationManagement',
+    component: AdminSecurityEducationManagement,
+    meta: {
+      title: '정보보호 교육 관리',
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
+  },
   // 관리자 사용자 관리 (전체 목록)
   {
     path: '/admin/users',

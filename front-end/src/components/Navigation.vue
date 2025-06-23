@@ -66,31 +66,12 @@ const adminMenuItems = computed(() => {
   if (!isAdmin.value) return []
 
   return [
-    {
-      name: 'AdminDashboard',
-      path: '/admin/dashboard',
-      title: '관리자 대시보드',
-    },
-    {
-      name: 'AdminUserManagement',
-      path: '/admin/users',
-      title: '사용자 관리',
-    },
-    {
-      name: 'AdminPhishingTrainingManagement',
-      path: '/admin/training',
-      title: '모의훈련 관리',
-    },
-    {
-      name: 'AdminExceptionManagement',
-      path: '/admin/exceptions',
-      title: '예외 관리',
-    },
-    {
-      name: 'AdminManualCheck',
-      path: '/admin/manual-check',
-      title: '수시 점검 관리',
-    },
+    { name: 'AdminDashboard', path: '/admin/dashboard', title: '대시보드' },
+    { name: 'AdminUserManagement', path: '/admin/users', title: '사용자 관리' },
+    { name: 'AdminPhishingTrainingManagement', path: '/admin/training', title: '모의훈련 관리' },
+    { name: 'AdminSecurityEducationManagement', path: '/admin/education', title: '교육 관리' }, // 추가
+    { name: 'ManualCheckManagement', path: '/admin/manual-check', title: '수시 점검 관리' },
+    { name: 'AdminExceptionManagement', path: '/admin/exceptions', title: '제외 설정' },
   ]
 })
 
