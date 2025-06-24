@@ -217,24 +217,36 @@
                     "
                   />
                 </th>
-                <th>사용자명</th>
+                <th>사용자</th>
                 <th>부서</th>
-                <th>교육기간</th>
+                <!-- ✅ 새로운 컬럼: 과정명 (기존 교육유형 대체) -->
+                <th>과정명</th>
                 <th>교육유형</th>
-                <th>수료상태</th>
-                <th>수료일</th>
-                <th>점수계산</th>
-                <th>비고</th>
-                <th style="width: 120px">작업</th>
+                <!-- ✅ 새로운 컬럼들 -->
+                <th>수료횟수</th>
+                <th>미수료횟수</th>
+                <th>수료율</th>
+                <!-- 기존 컬럼들 -->
+                <th>상태</th>
+                <th>교육일</th>
+                <th>기간</th>
+                <th>감점</th>
+                <th>제외</th>
+                <th>작업</th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="record in paginatedRecords"
-                :key="`${record.user_id}-${record.period_id}-${record.education_type}`"
-                :class="{ excluded: record.exclude_from_scoring }"
+                :key="record.education_id"
+                :class="{
+                  selected: selectedRecords.includes(record),
+                  excluded: record.exclude_from_scoring,
+                  'data-legacy': record.data_mode === 'legacy',
+                }"
               >
-                <td>
+                <!-- 체크박스 -->
+                <td class="checkbox-col">
                   <input
                     type="checkbox"
                     :value="record"
@@ -242,46 +254,144 @@
                     @change="updateSelectAll"
                   />
                 </td>
-                <td>{{ record.username }}</td>
-                <td>{{ record.department }}</td>
-                <td>{{ record.period_name }}</td>
-                <td>{{ record.education_type }}</td>
-                <td>
-                  <span
-                    class="status-badge"
-                    :class="record.completion_status ? 'success' : 'danger'"
-                  >
-                    {{ record.completion_status ? '수료' : '미수료' }}
+
+                <!-- 사용자 정보 -->
+                <td class="user-info">
+                  <div class="user-name">{{ record.username }}</div>
+                  <div class="user-id">{{ record.user_id }}</div>
+                </td>
+
+                <!-- 부서 -->
+                <td class="department">{{ record.department }}</td>
+
+                <!-- ✅ 과정명 (새로운 정보 우선 표시) -->
+                <td class="course-name">
+                  <div class="course-main">{{ record.course_name || record.education_type }}</div>
+                  <!-- ✅ 새로운 스키마인 경우 총 과정 수 표시 -->
+                  <div v-if="record.total_courses > 1" class="course-meta">
+                    총 {{ record.total_courses }}과정
+                  </div>
+                </td>
+
+                <!-- 교육유형 -->
+                <td class="education-type">
+                  <span class="type-badge" :class="getTypeClass(record.education_type)">
+                    {{ record.education_type }}
                   </span>
                 </td>
-                <td>{{ formatDate(record.education_date) }}</td>
-                <td>
+
+                <!-- ✅ 수료횟수 -->
+                <td class="completed-count">
+                  <span class="count-value success">{{ record.completed_count || 0 }}</span>
+                </td>
+
+                <!-- ✅ 미수료횟수 -->
+                <td class="incomplete-count">
+                  <span class="count-value danger">{{ record.incomplete_count || 0 }}</span>
+                </td>
+
+                <!-- ✅ 수료율 -->
+                <td class="completion-rate">
+                  <div class="rate-container">
+                    <div class="rate-bar">
+                      <div
+                        class="rate-fill"
+                        :style="{ width: `${record.completion_rate || 0}%` }"
+                        :class="getRateClass(record.completion_rate)"
+                      ></div>
+                    </div>
+                    <span class="rate-text" :class="getRateTextClass(record.completion_rate)">
+                      {{ (record.completion_rate || 0).toFixed(0) }}%
+                    </span>
+                  </div>
+                </td>
+
+                <!-- 상태 (향상된 표시) -->
+                <td class="status">
+                  <span class="status-badge" :class="getStatusClass(record)">
+                    {{ record.status_text || getStatusText(record) }}
+                  </span>
+                  <!-- ✅ 레거시 데이터 표시 -->
+                  <div v-if="record.data_mode === 'legacy'" class="legacy-indicator">레거시</div>
+                </td>
+
+                <!-- 교육일 -->
+                <td class="education-date">
+                  {{ formatDate(record.education_date) }}
+                </td>
+
+                <!-- ✅ 기간 정보 (향상된 표시) -->
+                <td class="period-info">
+                  <div v-if="record.period_name" class="period-name">
+                    {{ record.period_name }}
+                  </div>
+                  <div
+                    v-if="record.period_start_date && record.period_end_date"
+                    class="period-dates"
+                  >
+                    {{ formatDateShort(record.period_start_date) }} ~
+                    {{ formatDateShort(record.period_end_date) }}
+                  </div>
+                  <div v-if="record.period_completed" class="period-status completed">완료됨</div>
+                </td>
+
+                <!-- ✅ 감점 (정확한 계산) -->
+                <td class="penalty">
+                  <span v-if="record.exclude_from_scoring" class="penalty-excluded"> 제외 </span>
+                  <span
+                    v-else
+                    class="penalty-value"
+                    :class="{ 'penalty-active': record.penalty_applied > 0 }"
+                  >
+                    -{{ (record.penalty_applied || 0).toFixed(1) }}점
+                  </span>
+                </td>
+
+                <!-- 제외 상태 -->
+                <td class="exclude-status">
                   <button
                     @click="toggleExceptionStatus(record)"
-                    class="exception-toggle"
-                    :title="
-                      record.exclude_from_scoring ? '점수 계산에서 제외됨' : '점수 계산에 포함됨'
-                    "
+                    class="exclude-toggle"
+                    :class="{ active: record.exclude_from_scoring }"
+                    :title="record.exclude_from_scoring ? '제외 해제' : '점수 제외'"
                   >
-                    <span
-                      class="exception-status"
-                      :class="record.exclude_from_scoring ? 'excluded' : 'included'"
-                    >
-                      {{ record.exclude_from_scoring ? '제외' : '포함' }}
-                    </span>
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                      <path
+                        v-if="record.exclude_from_scoring"
+                        d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"
+                      />
+                      <path
+                        v-else
+                        d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"
+                      />
+                    </svg>
                   </button>
+
+                  <!-- ✅ 제외 사유 표시 -->
+                  <div
+                    v-if="record.exclude_from_scoring && record.exclude_reason"
+                    class="exclude-reason"
+                  >
+                    {{ record.exclude_reason }}
+                  </div>
                 </td>
-                <td>{{ truncateText(record.notes, 20) }}</td>
-                <td>
+
+                <!-- 작업 버튼 -->
+                <td class="actions">
                   <div class="action-buttons">
-                    <button @click="editRecord(record)" class="edit-button" title="수정">
+                    <button @click="editRecord(record)" class="action-btn edit" title="수정">
                       <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                         <path
-                          d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L14.5 5.207l-3-3L12.146.146zM11.207 2.5L13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"
+                          d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"
+                        />
+                        <path
+                          fill-rule="evenodd"
+                          d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"
                         />
                       </svg>
                     </button>
-                    <button @click="deleteRecord(record)" class="delete-button" title="삭제">
+
+                    <button @click="deleteRecord(record)" class="action-btn delete" title="삭제">
                       <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                         <path
                           d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"
@@ -606,6 +716,13 @@
                 </tbody>
               </table>
 
+              <!-- 데이터가 없는 경우 -->
+              <div v-if="filteredRecords.length === 0" class="no-data">
+                <div class="no-data-icon">📚</div>
+                <h3>교육 기록이 없습니다</h3>
+                <p>필터 조건을 변경하거나 새로운 교육 데이터를 업로드해보세요.</p>
+              </div>
+
               <!-- 더 많은 데이터가 있는 경우 안내 (기존 유지) -->
               <p v-if="uploadPreview.length > 10" class="preview-note">
                 총 {{ uploadPreview.length }}건 중 10건만 미리보기로 표시됩니다.
@@ -796,17 +913,21 @@ const searchEducationData = () => {
   applyFilters()
 }
 
+// ✅ 필터링 로직 개선 (기존 applyFilters 함수 수정)
 const applyFilters = () => {
   let filtered = [...educationData.value]
 
   // 검색어 필터
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase().trim()
-    filtered = filtered.filter(
-      (record) =>
+    filtered = filtered.filter((record) => {
+      return (
         record.username?.toLowerCase().includes(query) ||
-        record.department?.toLowerCase().includes(query),
-    )
+        record.department?.toLowerCase().includes(query) ||
+        record.course_name?.toLowerCase().includes(query) || // ✅ 과정명 검색 추가
+        record.education_type?.toLowerCase().includes(query)
+      )
+    })
   }
 
   filteredRecords.value = filtered
@@ -1514,36 +1635,63 @@ const closeBulkUploadModal = () => {
   selectedUploadPeriod.value = ''
   validationWarnings.value = []
 }
-
-// 레코드 관리 메서드
+// ✅ 편집 레코드 함수 개선 (기존 editRecord 함수 수정)
 const editRecord = (record) => {
-  editingRecord.value = { ...record }
+  // 새로운 스키마 데이터를 기존 형식으로 변환
+  editingRecord.value = {
+    education_id: record.education_id,
+    user_id: record.user_id,
+    username: record.username,
+    department: record.department,
+    education_year: record.education_year,
+    education_period: record.education_period,
+    education_type: record.education_type,
+    education_date: record.education_date,
+    // ✅ 새로운 필드들
+    course_name: record.course_name,
+    completed_count: record.completed_count || 0,
+    incomplete_count: record.incomplete_count || 0,
+    total_courses: record.total_courses || 1,
+    completion_rate: record.completion_rate || 0,
+    // 기존 필드들
+    completion_status: record.completion_status,
+    exclude_from_scoring: record.exclude_from_scoring,
+    exclude_reason: record.exclude_reason,
+    notes: record.notes,
+    period_id: record.period_id,
+  }
   showEditModal.value = true
 }
 
-const saveRecord = async () => {
-  try {
-    const response = await fetch('/api/security-education/update', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(editingRecord.value),
-    })
+// ✅ 상태 통계 계산 함수 (템플릿에서 사용)
+const getRecordsSummary = () => {
+  if (!filteredRecords.value.length) return null
 
-    const result = await response.json()
-
-    if (!response.ok) {
-      throw new Error(result.error || '저장 실패')
+  const total = filteredRecords.value.length
+  const completed = filteredRecords.value.filter((r) => {
+    if (r.completion_rate !== undefined) {
+      return r.completion_rate >= 80
     }
+    return r.completion_status === 1
+  }).length
 
-    displayToast(result.message || '레코드가 저장되었습니다.', 'success')
-    closeEditModal()
-    await loadEducationData()
-  } catch (err) {
-    console.error('레코드 저장 오류:', err)
-    displayToast(err.message, 'error')
+  const excluded = filteredRecords.value.filter((r) => r.exclude_from_scoring).length
+
+  return {
+    total,
+    completed,
+    incomplete: total - completed,
+    excluded,
+    completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
   }
 }
+
+// ✅ 새로운 스키마 데이터 감지 함수
+const hasEnhancedData = computed(() => {
+  return educationData.value.some(
+    (record) => record.course_name && record.completion_rate !== undefined,
+  )
+})
 
 const deleteRecord = async (record) => {
   if (!confirm('이 교육 기록을 삭제하시겠습니까?')) return
@@ -1723,14 +1871,24 @@ const downloadTemplate = async () => {
   }
 }
 
-// 유틸리티 함수
+// ✅ 날짜 포맷 함수들
 const formatDate = (dateString) => {
   if (!dateString) return '-'
   try {
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) return dateString
-    return date.toLocaleDateString('ko-KR')
-  } catch (error) {
+    return new Date(dateString).toLocaleDateString('ko-KR')
+  } catch {
+    return dateString
+  }
+}
+
+const formatDateShort = (dateString) => {
+  if (!dateString) return '-'
+  try {
+    return new Date(dateString).toLocaleDateString('ko-KR', {
+      month: '2-digit',
+      day: '2-digit',
+    })
+  } catch {
     return dateString
   }
 }
@@ -1748,12 +1906,63 @@ const truncateText = (text, maxLength) => {
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
 }
 
-const getStatusText = (status, isCompleted) => {
-  if (isCompleted) return '완료됨'
-  if (status === 'active') return '진행중'
-  if (status === 'upcoming') return '예정'
-  if (status === 'ended') return '종료'
-  return '알 수 없음'
+// ✅ 새로운 헬퍼 함수들
+const getTypeClass = (educationType) => {
+  const typeMap = {
+    온라인: 'type-online',
+    오프라인: 'type-offline',
+    신입교육: 'type-newbie',
+    심화교육: 'type-advanced',
+    기본교육: 'type-basic',
+  }
+  return typeMap[educationType] || 'type-default'
+}
+
+const getRateClass = (rate) => {
+  if (rate >= 80) return 'rate-excellent'
+  if (rate >= 60) return 'rate-good'
+  if (rate >= 40) return 'rate-warning'
+  return 'rate-poor'
+}
+
+const getRateTextClass = (rate) => {
+  if (rate >= 80) return 'text-excellent'
+  if (rate >= 60) return 'text-good'
+  if (rate >= 40) return 'text-warning'
+  return 'text-danger'
+}
+
+const getStatusClass = (record) => {
+  if (record.exclude_from_scoring) return 'status-excluded'
+
+  // 새로운 스키마 기반
+  if (record.completion_rate !== undefined) {
+    if (record.completion_rate >= 100) return 'status-completed'
+    if (record.completion_rate >= 80) return 'status-passed'
+    if (record.completion_rate > 0) return 'status-partial'
+    return 'status-not-started'
+  }
+
+  // 레거시 스키마 기반
+  if (record.completion_status === 1) return 'status-completed'
+  return 'status-incomplete'
+}
+
+const getStatusText = (record) => {
+  if (record.status_text) return record.status_text
+
+  if (record.exclude_from_scoring) return '제외'
+
+  // 새로운 스키마 기반
+  if (record.completion_rate !== undefined) {
+    if (record.completion_rate >= 100) return '완료'
+    if (record.completion_rate >= 80) return '수료'
+    if (record.completion_rate > 0) return `부분완료(${record.completion_rate.toFixed(0)}%)`
+    return '미실시'
+  }
+
+  // 레거시 기반
+  return record.completion_status === 1 ? '수료' : '미수료'
 }
 
 const displayToast = (message, type = 'success') => {

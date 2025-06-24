@@ -246,28 +246,130 @@
               정보보호 교육 상세 내역
             </h3>
             <div class="section-summary">
-              총 {{ userDetail.score_detail?.education_stats?.total_count || 0 }}건 중
-              {{ userDetail.score_detail?.education_stats?.incomplete_count || 0 }}건 미완료
+              <!-- ✅ 새로운 통계 정보 우선 표시, 없으면 기존 방식 -->
+              <span v-if="userDetail.score_detail?.education_stats?.unique_courses">
+                {{ userDetail.score_detail.education_stats.unique_courses }}개 과정, 총
+                {{ userDetail.score_detail.education_stats.total_courses || 0 }}건 중
+                {{ userDetail.score_detail.education_stats.incomplete_count || 0 }}건 미완료
+              </span>
+              <span v-else>
+                총 {{ userDetail.score_detail?.education_stats?.total_count || 0 }}건 중
+                {{ userDetail.score_detail?.education_stats?.incomplete_count || 0 }}건 미완료
+              </span>
             </div>
           </div>
 
+          <!-- ✅ 과정별 요약 정보 추가 (새로운 스키마에서만) -->
+          <div
+            v-if="userDetail.score_detail?.education_stats?.course_summary?.length"
+            class="course-summary-grid"
+          >
+            <div class="summary-header">
+              <h4>과정별 현황</h4>
+            </div>
+            <div class="course-cards">
+              <div
+                v-for="course in userDetail.score_detail.education_stats.course_summary"
+                :key="course.course_name"
+                class="course-card"
+                :class="getCourseStatusClass(course)"
+              >
+                <div class="course-header">
+                  <h5>{{ course.course_name }}</h5>
+                  <span class="course-status">{{ course.status }}</span>
+                </div>
+                <div class="course-stats">
+                  <div class="stat-item">
+                    <span class="label">수료:</span>
+                    <span class="value success">{{ course.completed }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="label">미수료:</span>
+                    <span class="value danger">{{ course.incomplete }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="label">수료율:</span>
+                    <span class="value" :class="getCompletionRateClass(course.completion_rate)">
+                      {{ course.completion_rate }}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ✅ 기존 미완료 아이템 리스트 (새로운 정보 추가) -->
           <div
             v-if="userDetail.score_detail?.education_stats?.incomplete_items?.length"
             class="penalty-items"
           >
+            <div class="items-header">
+              <h4>미완료 세부 내역</h4>
+            </div>
             <div
               v-for="(item, index) in userDetail.score_detail.education_stats.incomplete_items"
               :key="index"
               class="penalty-item education"
             >
               <div class="item-info">
-                <div class="item-name">{{ item.education_name }}</div>
-                <div class="item-date">마감일: {{ formatDate(item.due_date) }}</div>
+                <div class="item-header">
+                  <div class="item-name">{{ item.course_name || item.education_name }}</div>
+                  <!-- ✅ 새로운 정보 표시 -->
+                  <div v-if="item.incomplete_count > 1" class="item-count">
+                    {{ item.incomplete_count }}회 미완료
+                  </div>
+                </div>
+
+                <!-- ✅ 상세 정보 표시 -->
+                <div class="item-details">
+                  <div v-if="item.period_name" class="item-period">
+                    기간: {{ item.period_name }}
+                  </div>
+                  <div v-if="item.education_date" class="item-date">
+                    교육일: {{ formatDate(item.education_date) }}
+                  </div>
+                  <!-- ✅ 수료율 정보 (새로운 스키마) -->
+                  <div v-if="item.completion_rate !== undefined" class="item-rate">
+                    수료율: {{ item.completion_rate }}%
+                  </div>
+                  <!-- ✅ 제외 정보 -->
+                  <div v-if="item.exclude_from_scoring" class="item-excluded">
+                    점수 제외: {{ item.exclude_reason || '관리자 설정' }}
+                  </div>
+                </div>
+
+                <!-- ✅ 메모 표시 -->
+                <div v-if="item.notes" class="item-notes">
+                  <span class="notes-icon">📝</span>
+                  {{ item.notes }}
+                </div>
               </div>
-              <div class="item-penalty">-{{ formatDecimal(item.penalty) }}점</div>
+
+              <div class="item-penalty">
+                <span v-if="item.exclude_from_scoring" class="excluded-penalty">제외</span>
+                <span v-else class="penalty-value">-{{ formatDecimal(item.penalty) }}점</span>
+              </div>
             </div>
           </div>
-          <div v-else class="no-penalty-items">교육 관련 감점 내역이 없습니다.</div>
+
+          <!-- ✅ 데이터가 없는 경우 메시지 -->
+          <div v-else class="no-penalty-items">
+            <div class="no-data-icon">✅</div>
+            <span>교육 관련 미완료 내역이 없습니다.</span>
+            <!-- ✅ 새로운 스키마 정보가 있는 경우 요약 표시 -->
+            <div
+              v-if="userDetail.score_detail?.education_stats?.total_courses > 0"
+              class="education-summary"
+            >
+              <p>
+                총 {{ userDetail.score_detail.education_stats.total_courses }}건의 교육을
+                {{ userDetail.score_detail.education_stats.completed_count }}건 완료하였습니다.
+              </p>
+              <p v-if="userDetail.score_detail.education_stats.avg_completion_rate">
+                평균 수료율: {{ userDetail.score_detail.education_stats.avg_completion_rate }}%
+              </p>
+            </div>
+          </div>
         </div>
 
         <!-- 모의훈련 상세 -->
@@ -888,6 +990,47 @@ const trainingSuccessRate = computed(() => {
 
   return total > 0 ? ((passed / total) * 100).toFixed(1) : 0
 })
+
+// ✅ 새로운 헬퍼 함수 추가 (기존 함수들과 함께)
+const getCourseStatusClass = (course) => {
+  if (course.completion_rate >= 80) return 'course-excellent'
+  if (course.completion_rate >= 60) return 'course-good'
+  if (course.completion_rate > 0) return 'course-partial'
+  return 'course-poor'
+}
+
+const getCompletionRateClass = (rate) => {
+  if (rate >= 80) return 'excellent-text'
+  if (rate >= 60) return 'good-text'
+  if (rate >= 40) return 'warning-text'
+  return 'danger-text'
+}
+
+// ✅ 교육 통계 요약 함수 (템플릿에서 사용)
+const getEducationSummaryText = () => {
+  const stats = userDetail.value?.score_detail?.education_stats
+  if (!stats) return '교육 데이터가 없습니다.'
+
+  if (stats.unique_courses) {
+    // 새로운 스키마
+    return `${stats.unique_courses}개 과정, 총 ${stats.total_courses}건 중 ${stats.incomplete_count}건 미완료`
+  } else {
+    // 레거시 스키마
+    return `총 ${stats.total_count || 0}건 중 ${stats.incomplete_count || 0}건 미완료`
+  }
+}
+
+// ✅ 교육 현황 아이콘 함수
+const getEducationStatusIcon = (item) => {
+  if (item.exclude_from_scoring) return '🚫'
+  if (item.completion_rate !== undefined) {
+    if (item.completion_rate >= 80) return '✅'
+    if (item.completion_rate > 0) return '⚠️'
+    return '❌'
+  }
+  // 레거시 모드
+  return item.penalty > 0 ? '❌' : '✅'
+}
 
 // 내보내기
 defineExpose({
