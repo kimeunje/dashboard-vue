@@ -329,47 +329,249 @@ class SecurityEducationService:
             logging.error(f"교육 기간 생성 실패: {str(e)}")
             return None
 
-    def _upsert_education_record(self, user_uid: int, period_id: int, record: dict,
-                                 uploaded_by: str) -> dict:
-        """교육 기록 삽입 또는 업데이트"""
-        try:
-            education_type = record.get('education_type')
-            completion_status = 1 if record.get('completion_status') in [
-                1, '수료', 'Y', 'y', 'yes', True
-            ] else 0
-            education_date = record.get('education_date')
-            notes = record.get('notes', f"{uploaded_by}가 일괄 업로드")
+    def get_new_csv_template(self) -> str:
+        """
+        ✅ 새로운 CSV 템플릿 생성
+        형식: 이름,부서,수강과정,수료,미수료
+        """
+        template_content = """이름,부서,수강과정,수료,미수료
+    홍길동,개발팀,온라인교육,2,0
+    김철수,인사팀,오프라인교육,0,1
+    이영희,마케팅팀,종합교육,1,1
+    박민수,IT팀,신입교육,3,0"""
 
-            # 기존 기록 확인
-            existing = execute_query(
+        return template_content
+
+    def process_csv_bulk_upload(self, period_id: int, csv_records: list,
+                                uploaded_by: str) -> dict:
+        """
+        ✅ 수정된 CSV 형식 처리 메서드 - DatabaseManager 사용법 수정
+        """
+        success_count = 0
+        error_count = 0
+        update_count = 0
+        errors = []
+
+        try:
+            # ✅ 수정: 올바른 DatabaseManager 사용법
+            with DatabaseManager.get_db_connection() as db:
+                cursor = db.cursor()
+
+                # 1. 교육 기간 정보 조회
+                period_info = self._get_period_info(cursor, period_id)
+                if not period_info:
+                    return {'success': False, 'error': '교육 기간을 찾을 수 없습니다.'}
+
+                print(f"[DEBUG] 교육 기간 정보: {period_info}")
+
+                # 2. CSV 레코드별 처리
+                for idx, record in enumerate(csv_records, 1):
+                    try:
+                        print(f"[DEBUG] 처리 중 - 행 {idx}: {record}")
+
+                        # 필수 필드 검증
+                        required_fields = ['이름', '부서', '수강과정', '수료', '미수료']
+                        missing_fields = [
+                            field for field in required_fields if field not in record
+                        ]
+
+                        if missing_fields:
+                            raise ValueError(f"필수 필드 누락: {', '.join(missing_fields)}")
+
+                        # 사용자 검색
+                        user_id = self._find_user_by_name_dept(
+                            cursor, record['이름'], record['부서'])
+                        if not user_id:
+                            raise ValueError(
+                                f"사용자를 찾을 수 없습니다: {record['이름']} ({record['부서']})")
+
+                        print(f"[DEBUG] 사용자 발견: {record['이름']} -> user_id: {user_id}")
+
+                        # 데이터 검증 및 변환
+                        completed_count = int(record['수료']) if record['수료'] else 0
+                        incomplete_count = int(record['미수료']) if record['미수료'] else 0
+
+                        if completed_count < 0 or incomplete_count < 0:
+                            raise ValueError("수료/미수료 횟수는 0 이상이어야 합니다")
+
+                        if completed_count + incomplete_count == 0:
+                            raise ValueError("수료 또는 미수료 횟수 중 하나는 0보다 커야 합니다")
+
+                        print(
+                            f"[DEBUG] 데이터 검증 완료: 수료={completed_count}, 미수료={incomplete_count}"
+                        )
+
+                        # ✅ 새로운 스키마에 맞는 UPSERT 실행
+                        is_updated = self._upsert_education_record(
+                            cursor=cursor, user_id=user_id, period_id=period_id,
+                            course_name=record['수강과정'], completed_count=completed_count,
+                            incomplete_count=incomplete_count,
+                            education_year=period_info['education_year'],
+                            education_period=period_info['education_period'],
+                            uploaded_by=uploaded_by)
+
+                        if is_updated:
+                            update_count += 1
+                            print(f"[DEBUG] 업데이트 완료: {record['이름']}")
+                        else:
+                            success_count += 1
+                            print(f"[DEBUG] 신규 생성 완료: {record['이름']}")
+
+                    except Exception as e:
+                        error_count += 1
+                        error_msg = f"행 {idx} ({record.get('이름', 'Unknown')}): {str(e)}"
+                        errors.append(error_msg)
+                        print(f"[ERROR] CSV 처리 오류 - {error_msg}")
+
+                # 3. 트랜잭션 커밋
+                db.commit()
+                print(f"[DEBUG] 트랜잭션 커밋 완료")
+
+                return {
+                    'success': True,
+                    'message': f'처리 완료: 신규 {success_count}건, 업데이트 {update_count}건, 오류 {error_count}건',
+                    'success_count': success_count,
+                    'update_count': update_count,
+                    'error_count': error_count,
+                    'errors': errors
+                }
+
+        except Exception as e:
+            print(f"[ERROR] CSV 업로드 처리 실패: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {'success': False, 'error': f'업로드 처리 실패: {str(e)}'}
+
+    def _find_user_by_name_dept(self, cursor, username: str, department: str) -> int:
+        """
+        ✅ 사용자 검색 로직 - 기존 컨트롤러에서 가져온 로직 사용
+        """
+        print(f"[DB_DEBUG] 사용자 검색: {username} ({department})")
+
+        # 1. 정확한 이름+부서 매칭
+        cursor.execute(
+            "SELECT uid FROM users WHERE username = %s AND department = %s LIMIT 1",
+            (username, department))
+        result = cursor.fetchone()
+
+        if result:
+            print(
+                f"[DB_DEBUG] 정확 매칭 발견: {username} ({department}) -> uid: {result['uid']}"
+            )
+            return result['uid']
+
+        # 2. 이름만으로 검색
+        cursor.execute("SELECT uid, department FROM users WHERE username = %s LIMIT 1",
+                       (username, ))
+        result = cursor.fetchone()
+
+        if result:
+            print(
+                f"[DB_DEBUG] 이름으로만 사용자 발견: {username} -> 실제 부서: {result['department']}")
+            return result['uid']
+
+        # 3. 유사 이름 검색
+        cursor.execute(
+            "SELECT uid, username, department FROM users WHERE username LIKE %s LIMIT 1",
+            (f"%{username}%", ))
+        result = cursor.fetchone()
+
+        if result:
+            print(
+                f"[DB_DEBUG] 유사 이름으로 사용자 발견: {result['username']} ({result['department']})"
+            )
+            return result['uid']
+
+        print(f"[DB_DEBUG] 사용자를 찾을 수 없음: {username} ({department})")
+        return None
+
+    def _upsert_education_record(self, cursor, user_id: int, period_id: int,
+                                 course_name: str, completed_count: int,
+                                 incomplete_count: int, education_year: int,
+                                 education_period: str, uploaded_by: str) -> bool:
+        """
+        ✅ 새로운 스키마에 맞는 교육 레코드 UPSERT
+        """
+        try:
+            # 기존 레코드 확인
+            cursor.execute(
                 """
                 SELECT education_id FROM security_education 
-                WHERE user_id = %s AND period_id = %s AND education_type = %s
-                """, (user_uid, period_id, education_type), fetch_one=True)
+                WHERE user_id = %s AND period_id = %s AND course_name = %s
+            """, (user_id, period_id, course_name))
+
+            existing = cursor.fetchone()
 
             if existing:
                 # 업데이트
-                execute_query(
+                cursor.execute(
                     """
-                    UPDATE security_education 
-                    SET completion_status = %s, education_date = %s, notes = %s, updated_at = NOW()
-                    WHERE education_id = %s
-                    """, (completion_status, education_date, notes,
-                          existing['education_id']))
-                return {'success': True, 'updated': True, 'message': '기존 기록 업데이트'}
+                    UPDATE security_education SET
+                        completed_count = %s,
+                        incomplete_count = %s,
+                        notes = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = %s AND period_id = %s AND course_name = %s
+                """, (completed_count, incomplete_count, f'CSV 업데이트 - {uploaded_by}',
+                      user_id, period_id, course_name))
+                print(
+                    f"[DB_DEBUG] 업데이트 실행: user_id={user_id}, course_name={course_name}")
+                return True
             else:
-                # 새 기록 삽입
-                execute_query(
+                # 삽입
+                cursor.execute(
                     """
-                    INSERT INTO security_education 
-                    (user_id, period_id, education_type, completion_status, education_date, notes)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    """, (user_uid, period_id, education_type, completion_status,
-                          education_date, notes))
-                return {'success': True, 'updated': False, 'message': '새 기록 생성'}
+                    INSERT INTO security_education (
+                        user_id, period_id, course_name, completed_count, incomplete_count,
+                        education_year, education_period, notes, education_type
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                    (
+                        user_id,
+                        period_id,
+                        course_name,
+                        completed_count,
+                        incomplete_count,
+                        education_year,
+                        education_period,
+                        f'CSV 업로드 - {uploaded_by}',
+                        course_name  # education_type도 course_name으로 설정
+                    ))
+                print(
+                    f"[DB_DEBUG] 신규 삽입 실행: user_id={user_id}, course_name={course_name}"
+                )
+                return False
 
         except Exception as e:
-            return {'success': False, 'message': f'기록 저장 실패: {str(e)}'}
+            print(f"[ERROR] UPSERT 실행 오류: {str(e)}")
+            raise e
+
+    def _get_period_info(self, cursor, period_id: int) -> dict:
+        """교육 기간 정보 조회"""
+        cursor.execute(
+            """
+            SELECT period_id, education_year, period_name, education_type,
+                start_date, end_date, is_completed, is_active
+            FROM security_education_periods
+            WHERE period_id = %s AND is_active = 1
+        """, (period_id, ))
+
+        result = cursor.fetchone()
+        if result:
+            # education_period 추론 (기간명에서 상반기/하반기 판단)
+            period_name = result['period_name'].lower()
+            if '상반기' in period_name or 'first' in period_name:
+                education_period = 'first_half'
+            elif '하반기' in period_name or 'second' in period_name:
+                education_period = 'second_half'
+            else:
+                # 기본값은 상반기
+                education_period = 'first_half'
+
+            result['education_period'] = education_period
+            print(f"[DEBUG] 기간 정보: {result}")
+
+        return result
 
     def get_education_excel_template(self) -> str:
         """엑셀 업로드용 템플릿 생성"""
