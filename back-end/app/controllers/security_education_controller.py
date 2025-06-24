@@ -759,7 +759,7 @@ def download_template():
 @handle_exceptions
 @validate_json(['education_id'])
 def update_education_record():
-    """개별 교육 기록 수정"""
+    """개별 교육 기록 수정 - Generated Column 제외"""
     data = request.json
     education_id = data.get('education_id')
 
@@ -772,13 +772,28 @@ def update_education_record():
         if not existing_record:
             return jsonify({'error': '수정할 교육 기록을 찾을 수 없습니다.'}), HTTP_STATUS['NOT_FOUND']
 
-        # 수정할 필드들
+        # 수정할 필드들 - Generated Column 제외
         update_fields = []
         update_values = []
 
-        if 'completion_status' in data:
-            update_fields.append('completion_status = %s')
-            update_values.append(data['completion_status'])
+        # ✅ 직접 수정 가능한 필드들만 처리
+        if 'course_name' in data:
+            update_fields.append('course_name = %s')
+            update_values.append(data['course_name'])
+
+        if 'completed_count' in data:
+            update_fields.append('completed_count = %s')
+            update_values.append(
+                int(data['completed_count']
+                    ) if data['completed_count'] is not None else 0)
+
+        if 'incomplete_count' in data:
+            update_fields.append('incomplete_count = %s')
+            update_values.append(
+                int(data['incomplete_count']
+                    ) if data['incomplete_count'] is not None else 0)
+
+        # ✅ Generated Column은 제외 (total_courses, completion_rate는 자동 계산됨)
 
         if 'education_date' in data:
             update_fields.append('education_date = %s')
@@ -790,7 +805,7 @@ def update_education_record():
 
         if 'exclude_from_scoring' in data:
             update_fields.append('exclude_from_scoring = %s')
-            update_values.append(data['exclude_from_scoring'])
+            update_values.append(bool(data['exclude_from_scoring']))
 
         if 'exclude_reason' in data:
             update_fields.append('exclude_reason = %s')
@@ -801,17 +816,27 @@ def update_education_record():
 
         # 업데이트 실행
         update_values.append(education_id)  # WHERE 조건용
-        execute_query(
-            f"""
+
+        update_query = f"""
             UPDATE security_education 
             SET {', '.join(update_fields)}, updated_at = NOW()
             WHERE education_id = %s
-            """, tuple(update_values))
+        """
+
+        print(f"[DB_DEBUG] 업데이트 쿼리: {update_query}")
+        print(f"[DB_DEBUG] 파라미터: {tuple(update_values)}")
+
+        execute_query(update_query, tuple(update_values))
+
+        print(f"[DEBUG] 교육 기록 업데이트 완료: education_id={education_id}")
+        print(f"[DEBUG] 업데이트된 필드: {update_fields}")
 
         return jsonify({'success': True, 'message': '교육 기록이 성공적으로 수정되었습니다.'})
 
     except Exception as e:
         print(f"[ERROR] 교육 기록 수정 실패: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'교육 기록 수정 실패: {str(e)}'
                         }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
 
