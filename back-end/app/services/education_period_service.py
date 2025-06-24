@@ -1,10 +1,14 @@
 # back-end/app/services/education_period_service.py
 from datetime import datetime, date
 from app.utils.database import execute_query, DatabaseManager
+import logging
 
 
 class EducationPeriodService:
     """정보보호 교육 기간 관리 서비스"""
+
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
 
     def get_period_status(self, year: int = None) -> dict:
         """연도별 교육 기간 현황 조회"""
@@ -123,14 +127,14 @@ class EducationPeriodService:
             )
 
             with DatabaseManager.get_db_cursor() as cursor:
-                # 기간 정보 조회
+                # 1. 기간 정보 조회
                 print(f"[DB_DEBUG] 기간 정보 조회 중...")
                 cursor.execute(
                     """
-                        SELECT period_name, education_type, education_year, auto_pass_setting, is_completed
-                        FROM security_education_periods 
-                        WHERE period_id = %s AND is_active = 1
-                        """, (period_id, ))
+                    SELECT period_name, education_type, education_year, auto_pass_setting, is_completed
+                    FROM security_education_periods 
+                    WHERE period_id = %s AND is_active = 1
+                    """, (period_id, ))
                 period_info = cursor.fetchone()
 
                 print(f"[DB_DEBUG] 기간 정보: {period_info}")
@@ -143,12 +147,13 @@ class EducationPeriodService:
                     print(f"[DB_DEBUG] 이미 완료된 기간")
                     return {'success': False, 'message': '이미 완료된 기간입니다.'}
 
-                # 자동 통과 처리 (설정이 활성화된 경우) - 더 안전한 방식
+                # 2. 자동 통과 처리 (설정이 활성화된 경우)
                 auto_passed_count = 0
                 if period_info['auto_pass_setting']:
                     print(f"[DB_DEBUG] 자동 통과 처리 시작")
+
                     try:
-                        # 먼저 해당 기간에 이미 교육 기록이 없는 사용자들을 찾기
+                        # 해당 기간에 교육 기록이 없는 모든 사용자 조회 (is_active 조건 제거)
                         cursor.execute(
                             """
                             SELECT u.uid, u.username
@@ -163,29 +168,34 @@ class EducationPeriodService:
                         users_to_auto_pass = cursor.fetchall()
                         print(f"[DB_DEBUG] 자동 통과 대상 사용자: {len(users_to_auto_pass)}명")
 
-                        # 각 사용자별로 개별 INSERT (IGNORE 사용으로 중복 오류 방지)
+                        # 각 사용자별로 자동 통과 기록 생성
                         for user in users_to_auto_pass:
                             try:
                                 print(
                                     f"[DB_DEBUG] 자동 통과 처리: {user['username']} (uid: {user['uid']})"
                                 )
+
+                                # security_education 테이블 스키마에 맞는 자동 통과 기록 생성
+                                # period_name을 course_name으로 사용하여 의미있는 과정명 표시
                                 cursor.execute(
                                     """
-                                    INSERT IGNORE INTO security_education 
+                                    INSERT INTO security_education 
                                     (user_id, period_id, education_type, education_year, education_period,
-                                    completion_status, notes, created_at)
-                                    VALUES (%s, %s, %s, %s, 'auto_complete', 1, '기간 완료로 인한 자동 통과 처리', NOW())
-                                    """, (user['uid'], period_id,
-                                          period_info['education_type'],
-                                          period_info['education_year']))
+                                    course_name, completed_count, incomplete_count, notes, created_at)
+                                    VALUES (%s, %s, %s, %s, 'first_half', %s, 1, 0, 
+                                            '기간 완료로 인한 자동 통과 처리', NOW())
+                                    """,
+                                    (
+                                        user['uid'],
+                                        period_id,
+                                        period_info['education_type'],
+                                        period_info['education_year'],
+                                        period_info['period_name']  # 기간명을 과정명으로 사용
+                                    ))
 
                                 if cursor.rowcount > 0:
                                     auto_passed_count += 1
                                     print(f"[DB_DEBUG] {user['username']} 자동 통과 성공")
-                                else:
-                                    print(
-                                        f"[DB_DEBUG] {user['username']} 자동 통과 실패 - 이미 기록 존재"
-                                    )
 
                             except Exception as user_error:
                                 print(
@@ -198,7 +208,7 @@ class EducationPeriodService:
                         # 실제 INSERT된 데이터 확인
                         cursor.execute(
                             """
-                            SELECT u.username, se.education_type, se.completion_status, se.notes, se.created_at
+                            SELECT u.username, se.education_type, se.completion_rate, se.notes, se.created_at
                             FROM security_education se
                             JOIN users u ON se.user_id = u.uid
                             WHERE se.period_id = %s AND se.notes = '기간 완료로 인한 자동 통과 처리'
@@ -215,22 +225,28 @@ class EducationPeriodService:
 
                     except Exception as e:
                         print(f"[DB_DEBUG] 자동 통과 처리 실패: {str(e)}")
-                        # 자동 통과 처리 실패해도 계속 진행
+                        # 자동 통과 처리 실패해도 기간 완료는 계속 진행
 
-                # 기간 완료 상태 업데이트
+                # 3. 기간 완료 상태 업데이트
                 print(f"[DB_DEBUG] 기간 완료 상태 업데이트 중...")
                 cursor.execute(
                     """
-                        UPDATE security_education_periods
-                        SET is_completed = 1, completed_at = NOW(), completed_by = %s, updated_at = NOW()
-                        WHERE period_id = %s
-                        """, (completed_by, period_id))
+                    UPDATE security_education_periods
+                    SET is_completed = 1, completed_at = NOW(), completed_by = %s, updated_at = NOW()
+                    WHERE period_id = %s
+                    """, (completed_by, period_id))
 
                 print(f"[DB_DEBUG] 기간 완료 처리 성공")
 
+                # 4. 결과 메시지 생성
+                message = f"{period_info['period_name']} 기간이 완료되었습니다."
+                if auto_passed_count > 0:
+                    message += f" 미실시 사용자 {auto_passed_count}명이 자동으로 통과 처리되었습니다."
+
                 return {
                     'success': True,
-                    'message': f"{period_info['period_name']} 기간이 완료되었습니다. (자동 통과: {auto_passed_count}명)"
+                    'message': message,
+                    'auto_passed_count': auto_passed_count
                 }
 
         except Exception as e:
@@ -240,13 +256,18 @@ class EducationPeriodService:
             return {'success': False, 'message': f'완료 처리 실패: {str(e)}'}
 
     def reopen_period(self, period_id: int) -> dict:
-        """교육 기간 재개"""
+        """교육 기간 재개 (완료 상태 취소) - 모의훈련과 동일한 기능"""
         try:
+            print(f"[DB_DEBUG] 기간 재개 시작 - period_id: {period_id}")
+
             with DatabaseManager.get_db_cursor() as cursor:
-                # 기간 정보 조회
+                # 1. 기간 정보 조회
                 cursor.execute(
-                    "SELECT period_name, is_completed FROM security_education_periods WHERE period_id = %s AND is_active = 1",
-                    (period_id, ))
+                    """
+                    SELECT period_name, is_completed
+                    FROM security_education_periods 
+                    WHERE period_id = %s AND is_active = 1
+                    """, (period_id, ))
                 period_info = cursor.fetchone()
 
                 if not period_info:
@@ -255,27 +276,38 @@ class EducationPeriodService:
                 if not period_info['is_completed']:
                     return {'success': False, 'message': '완료되지 않은 기간입니다.'}
 
-                # 자동 통과 처리된 결과 삭제
+                # 2. 자동 통과 처리된 레코드 삭제 (모의훈련과 동일한 방식)
                 cursor.execute(
                     """
-                        DELETE FROM security_education
-                        WHERE period_id = %s AND notes = '기간 완료로 인한 자동 통과 처리'
-                        """, (period_id, ))
+                    DELETE FROM security_education 
+                    WHERE period_id = %s AND notes = '기간 완료로 인한 자동 통과 처리'
+                    """, (period_id, ))
 
-                # 기간 재개
+                deleted_count = cursor.rowcount
+                print(f"[DB_DEBUG] 자동 통과 기록 삭제: {deleted_count}건")
+
+                # 3. 기간 상태를 미완료로 변경
                 cursor.execute(
                     """
-                        UPDATE security_education_periods
-                        SET is_completed = 0, completed_at = NULL, completed_by = NULL, updated_at = NOW()
-                        WHERE period_id = %s
-                        """, (period_id, ))
+                    UPDATE security_education_periods
+                    SET is_completed = 0, completed_at = NULL, completed_by = NULL, updated_at = NOW()
+                    WHERE period_id = %s
+                    """, (period_id, ))
+
+                message = f"{period_info['period_name']} 기간이 재개되었습니다."
+                if deleted_count > 0:
+                    message += f" 자동 통과 처리된 {deleted_count}건의 기록이 삭제되었습니다."
 
                 return {
                     'success': True,
-                    'message': f"{period_info['period_name']} 기간이 재개되었습니다."
+                    'message': message,
+                    'deleted_count': deleted_count
                 }
 
         except Exception as e:
+            print(f"[DB_DEBUG] 재개 처리 예외: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {'success': False, 'message': f'재개 처리 실패: {str(e)}'}
 
     def check_period_exists(self, year: int, period_name: str,

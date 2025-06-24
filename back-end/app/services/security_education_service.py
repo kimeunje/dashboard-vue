@@ -489,56 +489,71 @@ class SecurityEducationService:
                                  course_name: str, completed_count: int,
                                  incomplete_count: int, education_year: int,
                                  education_period: str, uploaded_by: str) -> bool:
-        """
-        ✅ 새로운 스키마에 맞는 교육 레코드 UPSERT
-        """
+        """교육 기록 UPSERT - period_name을 course_name으로 사용하도록 수정"""
         try:
-            # 기존 레코드 확인
+            # 1. 기간 정보에서 period_name 조회
             cursor.execute(
                 """
-                SELECT education_id FROM security_education 
+                SELECT period_name, education_type 
+                FROM security_education_periods 
+                WHERE period_id = %s
+                """, (period_id, ))
+
+            period_info = cursor.fetchone()
+            if not period_info:
+                raise ValueError(f"교육 기간 정보를 찾을 수 없습니다: period_id={period_id}")
+
+            # 과정명을 기간명으로 사용 (수정 부분)
+            actual_course_name = period_info['period_name']
+            education_type = period_info['education_type']
+
+            print(f"[DB_DEBUG] 과정명 설정: {course_name} -> {actual_course_name}")
+
+            # 2. 기존 레코드 확인
+            cursor.execute(
+                """
+                SELECT education_id, completed_count, incomplete_count 
+                FROM security_education 
                 WHERE user_id = %s AND period_id = %s AND course_name = %s
-            """, (user_id, period_id, course_name))
+                """, (user_id, period_id, actual_course_name))
 
-            existing = cursor.fetchone()
+            existing_record = cursor.fetchone()
 
-            if existing:
+            if existing_record:
                 # 업데이트
                 cursor.execute(
                     """
-                    UPDATE security_education SET
-                        completed_count = %s,
-                        incomplete_count = %s,
-                        notes = %s,
-                        updated_at = CURRENT_TIMESTAMP
+                    UPDATE security_education 
+                    SET completed_count = %s, incomplete_count = %s, notes = %s, updated_at = NOW()
                     WHERE user_id = %s AND period_id = %s AND course_name = %s
-                """, (completed_count, incomplete_count, f'CSV 업데이트 - {uploaded_by}',
-                      user_id, period_id, course_name))
+                    """,
+                    (completed_count, incomplete_count, f'CSV 업데이트 - {uploaded_by}',
+                     user_id, period_id, actual_course_name))
                 print(
-                    f"[DB_DEBUG] 업데이트 실행: user_id={user_id}, course_name={course_name}")
+                    f"[DB_DEBUG] 업데이트 실행: user_id={user_id}, course_name={actual_course_name}"
+                )
                 return True
             else:
-                # 삽입
+                # 삽입 (course_name을 period_name으로 설정)
                 cursor.execute(
                     """
                     INSERT INTO security_education (
                         user_id, period_id, course_name, completed_count, incomplete_count,
                         education_year, education_period, notes, education_type
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
+                    """,
                     (
                         user_id,
                         period_id,
-                        course_name,
+                        actual_course_name,  # 기간명을 과정명으로 사용
                         completed_count,
                         incomplete_count,
                         education_year,
                         education_period,
                         f'CSV 업로드 - {uploaded_by}',
-                        course_name  # education_type도 course_name으로 설정
-                    ))
+                        education_type))
                 print(
-                    f"[DB_DEBUG] 신규 삽입 실행: user_id={user_id}, course_name={course_name}"
+                    f"[DB_DEBUG] 신규 삽입 실행: user_id={user_id}, course_name={actual_course_name}"
                 )
                 return False
 
