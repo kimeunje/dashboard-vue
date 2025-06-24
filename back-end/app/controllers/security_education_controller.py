@@ -208,9 +208,12 @@ def get_education_status():
 @handle_exceptions
 def get_education_records():
     """
-    ✅ 수정된 교육 기록 조회 (관리자용) - 새로운 스키마 지원
+    ✅ 교육 기록 조회 (관리자용) - 새로운 스키마만 사용
     
-    기존 API 경로와 파라미터 유지하면서 새로운 데이터 구조 지원
+    변경사항:
+    1. 레거시 모드 제거
+    2. mail 컬럼 사용
+    3. 데이터가 없을 때 빈 배열 반환
     """
     year = request.args.get('year', datetime.now().year, type=int)
     education_type = request.args.get('education_type', '')
@@ -219,19 +222,11 @@ def get_education_records():
     try:
         print(f"[DEBUG] 교육 기록 조회: year={year}, type={education_type}, status={status}")
 
-        # ✅ 새로운 스키마 우선 조회
-        enhanced_records = _get_education_records_enhanced(year, education_type, status)
+        # ✅ 새로운 스키마만 사용
+        records = _get_education_records_new_schema(year, education_type, status)
 
-        if enhanced_records:
-            print(f"[DEBUG] 새 스키마 기반 응답: {len(enhanced_records)}건")
-            return jsonify(enhanced_records)
-
-        # ✅ 새 스키마에 데이터가 없으면 레거시 모드
-        print(f"[DEBUG] 새 스키마에 데이터 없음, 레거시 모드 실행")
-        legacy_records = _get_education_records_legacy(year, education_type, status)
-
-        print(f"[DEBUG] 레거시 모드 응답: {len(legacy_records)}건")
-        return jsonify(legacy_records)
+        print(f"[DEBUG] 새 스키마 기반 응답: {len(records)}건")
+        return jsonify(records)
 
     except Exception as e:
         print(f"[ERROR] 교육 기록 조회 실패: {str(e)}")
@@ -239,19 +234,24 @@ def get_education_records():
                         }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
 
 
-def _get_education_records_enhanced(year, education_type, status):
+def _get_education_records_new_schema(year, education_type, status):
     """
-    ✅ 새로운 스키마 기반 교육 기록 조회
+    ✅ 새로운 스키마 기반 교육 기록 조회 - mail 컬럼 사용
+    
+    변경사항:
+    1. u.email -> u.mail as email
+    2. 함수명 변경 (enhanced -> new_schema)
+    3. 로직은 기존과 동일
     """
     try:
-        # 기본 쿼리 구성
+        # 기본 쿼리 구성 - mail 컬럼 사용
         base_query = """
             SELECT 
                 se.education_id,
                 u.user_id,
                 u.username,
                 u.department,
-                u.email,
+                u.mail as email,
                 se.course_name,
                 se.completed_count,
                 se.incomplete_count,
@@ -305,19 +305,21 @@ def _get_education_records_enhanced(year, education_type, status):
 
         records = execute_query(base_query, params, fetch_all=True)
 
+        # ✅ 데이터가 없으면 빈 배열 반환
         if not records:
+            print(f"[DEBUG] 교육 기록 없음: year={year}")
             return []
 
         # ✅ 새로운 스키마 기반 응답 데이터 변환
-        enhanced_records = []
+        result_records = []
         for record in records:
-            enhanced_record = {
+            result_record = {
                 # 기존 필드 유지 (호환성)
                 'education_id': record['education_id'],
                 'user_id': record['user_id'],
                 'username': record['username'],
                 'department': record['department'],
-                'email': record['email'],
+                'email': record['email'] or f"{record['user_id']}@company.com",
                 'education_year': record['education_year'],
                 'education_period': record['education_period'],
                 'education_type': record['education_type'],
@@ -349,131 +351,39 @@ def _get_education_records_enhanced(year, education_type, status):
                 'period_completed': bool(record['period_completed']),
 
                 # ✅ 상태 정보 (새로운 계산)
-                'status_text': _get_status_text_enhanced(record),
+                'status_text': _get_status_text_new(record),
                 'penalty_applied': record['incomplete_count'] *
                 0.5 if not record['exclude_from_scoring'] else 0.0
             }
-            enhanced_records.append(enhanced_record)
+            result_records.append(result_record)
 
-        print(f"[DEBUG] 새 스키마 기반 기록 조회 완료: {len(enhanced_records)}건")
-        return enhanced_records
+        print(f"[DEBUG] 새 스키마 기반 기록 조회 완료: {len(result_records)}건")
+        return result_records
 
     except Exception as e:
         print(f"[ERROR] 새 스키마 기록 조회 오류: {str(e)}")
+        # ✅ 에러 발생 시에도 빈 배열 반환 (시스템 안정성)
         return []
 
 
-def _get_education_records_legacy(year, education_type, status):
-    """
-    ✅ 레거시 스키마 기반 교육 기록 조회
-    """
-    try:
-        # 기존 쿼리 구조 유지
-        base_query = """
-            SELECT 
-                se.education_id,
-                u.user_id,
-                u.username,
-                u.department,
-                u.email,
-                se.education_year,
-                se.education_period,
-                se.education_type,
-                se.education_date,
-                se.completion_status,
-                se.exclude_from_scoring,
-                se.exclude_reason,
-                se.notes,
-                se.created_at,
-                se.updated_at,
-                sep.period_name,
-                sep.start_date,
-                sep.end_date,
-                sep.is_completed as period_completed,
-                se.period_id
-            FROM security_education se
-            JOIN users u ON se.user_id = u.uid
-            LEFT JOIN security_education_periods sep ON se.period_id = sep.period_id
-            WHERE se.education_year = %s
-        """
+def _get_status_text_new(record):
+    """새로운 스키마 기반 상태 텍스트 생성"""
+    if record['exclude_from_scoring']:
+        return '제외'
 
-        params = [year]
-        conditions = []
+    completion_rate = float(record['completion_rate'])
+    if completion_rate >= 100:
+        return '완료'
+    elif completion_rate >= 80:
+        return '수료'
+    elif completion_rate > 0:
+        return f'부분완료({completion_rate:.0f}%)'
+    else:
+        return '미실시'
 
-        # 교육 유형 필터
-        if education_type:
-            conditions.append("se.education_type = %s")
-            params.append(education_type)
 
-        # 상태 필터
-        if status:
-            conditions.append("se.completion_status = %s")
-            params.append(int(status))
-
-        # 조건 추가
-        if conditions:
-            base_query += " AND " + " AND ".join(conditions)
-
-        base_query += " ORDER BY u.username, se.education_type, se.created_at DESC"
-
-        records = execute_query(base_query, params, fetch_all=True)
-
-        # ✅ 레거시 데이터를 새로운 형식에 맞게 변환 (호환성 유지)
-        legacy_records = []
-        for record in records:
-            legacy_record = {
-                # 기존 필드 그대로
-                'education_id': record['education_id'],
-                'user_id': record['user_id'],
-                'username': record['username'],
-                'department': record['department'],
-                'email': record['email'],
-                'education_year': record['education_year'],
-                'education_period': record['education_period'],
-                'education_type': record['education_type'],
-                'education_date': str(record['education_date'])
-                if record['education_date'] else None,
-                'completion_status': record['completion_status'],
-                'exclude_from_scoring': bool(record['exclude_from_scoring']),
-                'exclude_reason': record['exclude_reason'],
-                'notes': record['notes'],
-                'created_at': record['created_at'].isoformat()
-                if record['created_at'] else None,
-                'updated_at': record['updated_at'].isoformat()
-                if record['updated_at'] else None,
-                'period_id': record['period_id'],
-
-                # ✅ 새로운 필드들은 레거시 데이터로 채우기
-                'course_name': record['education_type'],  # 과정명 = 교육유형
-                'completed_count': 1 if record['completion_status'] == 1 else 0,
-                'incomplete_count': 1 if record['completion_status'] == 0 else 0,
-                'total_courses': 1,
-                'completion_rate': 100.0 if record['completion_status'] == 1 else 0.0,
-
-                # 기간 정보
-                'period_name': record['period_name'],
-                'period_start_date': str(record['start_date'])
-                if record['start_date'] else None,
-                'period_end_date': str(record['end_date'])
-                if record['end_date'] else None,
-                'period_completed': bool(record['period_completed']),
-
-                # 상태 정보
-                'status_text': '수료' if record['completion_status'] == 1 else '미수료',
-                'penalty_applied': 0.5 if record['completion_status'] == 0
-                and not record['exclude_from_scoring'] else 0.0,
-
-                # 레거시 모드 표시
-                'data_mode': 'legacy'
-            }
-            legacy_records.append(legacy_record)
-
-        print(f"[DEBUG] 레거시 스키마 기록 조회 완료: {len(legacy_records)}건")
-        return legacy_records
-
-    except Exception as e:
-        print(f"[ERROR] 레거시 기록 조회 오류: {str(e)}")
-        return []
+# ✅ 레거시 함수 완전 제거
+# _get_education_records_legacy 함수는 삭제됨
 
 
 def _get_status_text_enhanced(record):
@@ -956,7 +866,14 @@ def delete_education_record():
 @admin_required
 @handle_exceptions
 def export_education_data():
-    """교육 데이터 CSV 내보내기"""
+    """
+    교육 데이터 CSV 내보내기 - 새로운 스키마 사용
+    
+    변경사항:
+    1. 새로운 스키마 컬럼 사용 (course_name, completed_count, incomplete_count 등)
+    2. mail 컬럼 사용 (u.mail as email)
+    3. 레거시 스키마 제거
+    """
     year = request.args.get('year', datetime.now().year, type=int)
     format_type = request.args.get('format', 'csv')
 
@@ -964,20 +881,40 @@ def export_education_data():
         if format_type != 'csv':
             return jsonify({'error': '현재 CSV 형식만 지원됩니다.'}), HTTP_STATUS['BAD_REQUEST']
 
-        # 교육 데이터 조회
+        # ✅ 새로운 스키마 기반 교육 데이터 조회
         education_records = execute_query(
             """
             SELECT 
-                u.user_id, u.username, u.department,
-                se.education_type, se.education_year, se.education_period,
-                se.completion_status, se.education_date, se.notes,
-                se.exclude_from_scoring, se.exclude_reason,
-                sep.period_name, sep.start_date, sep.end_date
+                u.user_id, 
+                u.username, 
+                u.department,
+                u.mail as email,
+                se.course_name,
+                se.completed_count,
+                se.incomplete_count,
+                se.total_courses,
+                se.completion_rate,
+                se.education_type, 
+                se.education_year, 
+                se.education_period,
+                se.education_date, 
+                se.notes,
+                se.exclude_from_scoring, 
+                se.exclude_reason,
+                sep.period_name, 
+                sep.start_date, 
+                sep.end_date,
+                -- ✅ 호환성을 위한 상태 계산
+                CASE 
+                    WHEN se.completion_rate >= 80 THEN '수료'
+                    WHEN se.completion_rate > 0 THEN '부분완료'
+                    ELSE '미수료'
+                END as completion_status_text
             FROM security_education se
             JOIN users u ON se.user_id = u.uid
             LEFT JOIN security_education_periods sep ON se.period_id = sep.period_id
             WHERE se.education_year = %s
-            ORDER BY u.username, se.education_type, se.created_at
+            ORDER BY u.username, se.course_name, se.created_at
             """, (year, ), fetch_all=True)
 
         if not education_records:
@@ -990,23 +927,32 @@ def export_education_data():
         # UTF-8 BOM 추가 (Excel에서 한글 인식용)
         bom = "\ufeff"
 
+        # ✅ 새로운 헤더 구성
         headers = [
-            "사용자ID", "사용자명", "부서", "교육유형", "교육연도", "교육기간", "수료상태", "교육일", "비고", "점수제외",
-            "제외사유", "기간명", "시작일", "종료일"
+            "사용자ID", "사용자명", "부서", "이메일", "과정명", "수료건수", "미수료건수", "전체과정수", "수료율(%)",
+            "교육유형", "교육연도", "교육기간", "수료상태", "교육일", "비고", "점수제외", "제외사유", "기간명", "시작일",
+            "종료일"
         ]
 
         # BOM과 함께 헤더 추가
         csv_lines.append(bom + ",".join(headers))
 
+        # ✅ 새로운 스키마 데이터 처리
         for record in education_records:
             row = [
                 str(record.get("user_id", "")).replace('"', '""'),
                 str(record.get("username", "")).replace('"', '""'),
                 str(record.get("department", "")).replace('"', '""'),
+                str(record.get("email", "")).replace('"', '""'),
+                str(record.get("course_name", "")).replace('"', '""'),
+                str(record.get("completed_count", 0)),
+                str(record.get("incomplete_count", 0)),
+                str(record.get("total_courses", 0)),
+                str(float(record.get("completion_rate", 0))),
                 str(record.get("education_type", "")).replace('"', '""'),
-                str(record.get("education_year", "")).replace('"', '""'),
+                str(record.get("education_year", "")),
                 "상반기" if record.get("education_period") == "first_half" else "하반기",
-                "수료" if record.get("completion_status") == 1 else "미수료",
+                str(record.get("completion_status_text", "")).replace('"', '""'),
                 str(record.get("education_date", "")).replace('"', '""'),
                 str(record.get("notes", "")).replace('"', '""'),
                 "제외" if record.get("exclude_from_scoring") == 1 else "포함",
