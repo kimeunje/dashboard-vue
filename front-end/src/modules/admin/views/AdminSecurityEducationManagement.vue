@@ -751,7 +751,126 @@
         </div>
       </div>
     </div>
+    <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
+      <div class="modal-content edit-modal" @click.stop>
+        <div class="modal-header">
+          <h3>교육 기록 수정</h3>
+          <button @click="closeEditModal" class="close-button">&times;</button>
+        </div>
 
+        <div class="modal-body">
+          <form @submit.prevent="saveRecord" class="edit-form">
+            <!-- 기본 정보 (읽기 전용) -->
+            <div class="form-row">
+              <div class="form-group">
+                <label>사용자명</label>
+                <input type="text" v-model="editingRecord.username" class="form-input" disabled />
+              </div>
+              <div class="form-group">
+                <label>부서</label>
+                <input type="text" v-model="editingRecord.department" class="form-input" disabled />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>교육 연도</label>
+                <input
+                  type="number"
+                  v-model="editingRecord.education_year"
+                  class="form-input"
+                  disabled
+                />
+              </div>
+              <div class="form-group">
+                <label>교육 유형</label>
+                <input
+                  type="text"
+                  v-model="editingRecord.education_type"
+                  class="form-input"
+                  disabled
+                />
+              </div>
+            </div>
+
+            <!-- 수정 가능한 필드들 -->
+            <div class="form-group">
+              <label>과정명</label>
+              <input
+                type="text"
+                v-model="editingRecord.course_name"
+                class="form-input"
+                placeholder="교육 과정명"
+              />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>수료 횟수</label>
+                <input
+                  type="number"
+                  v-model.number="editingRecord.completed_count"
+                  class="form-input"
+                  min="0"
+                  placeholder="0"
+                />
+              </div>
+              <div class="form-group">
+                <label>미수료 횟수</label>
+                <input
+                  type="number"
+                  v-model.number="editingRecord.incomplete_count"
+                  class="form-input"
+                  min="0"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>교육일</label>
+              <input type="date" v-model="editingRecord.education_date" class="form-input" />
+            </div>
+
+            <!-- 예외 처리 -->
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="editingRecord.exclude_from_scoring" />
+                점수 산정에서 제외
+              </label>
+            </div>
+
+            <div v-if="editingRecord.exclude_from_scoring" class="form-group">
+              <label>제외 사유</label>
+              <input
+                type="text"
+                v-model="editingRecord.exclude_reason"
+                class="form-input"
+                placeholder="제외 사유를 입력하세요"
+              />
+            </div>
+
+            <div class="form-group">
+              <label>비고</label>
+              <textarea
+                v-model="editingRecord.notes"
+                class="form-input"
+                rows="3"
+                placeholder="추가 정보나 비고사항"
+              ></textarea>
+            </div>
+
+            <!-- 버튼 -->
+            <div class="modal-footer">
+              <button type="button" @click="closeEditModal" class="cancel-button">취소</button>
+              <button type="submit" class="save-button" :disabled="saving">
+                {{ saving ? '저장 중...' : '저장' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
     <!-- 토스트 메시지 -->
     <div v-if="showToast" class="toast" :class="toastType">
       {{ toastMessage }}
@@ -1964,6 +2083,68 @@ const getStatusText = (record) => {
   // 레거시 기반
   return record.completion_status === 1 ? '수료' : '미수료'
 }
+
+// ✅ 누락된 saveRecord 함수 추가
+const saveRecord = async () => {
+  if (saving.value) return
+
+  saving.value = true
+
+  try {
+    // 필수 필드 검증
+    if (!editingRecord.value.education_id) {
+      throw new Error('교육 ID가 없습니다.')
+    }
+
+    // 수정할 데이터 준비
+    const updateData = {
+      education_id: editingRecord.value.education_id,
+      user_id: editingRecord.value.user_id,
+      education_year: editingRecord.value.education_year,
+      education_period: editingRecord.value.education_period,
+      education_type: editingRecord.value.education_type,
+      education_date: editingRecord.value.education_date,
+      // 새로운 스키마 필드들
+      course_name: editingRecord.value.course_name,
+      completed_count: parseInt(editingRecord.value.completed_count) || 0,
+      incomplete_count: parseInt(editingRecord.value.incomplete_count) || 0,
+      // 기존 필드들
+      exclude_from_scoring: editingRecord.value.exclude_from_scoring || false,
+      exclude_reason: editingRecord.value.exclude_reason || '',
+      notes: editingRecord.value.notes || '',
+      period_id: editingRecord.value.period_id,
+    }
+
+    console.log('[DEBUG] 교육 기록 수정 요청:', updateData)
+
+    const response = await fetch('/api/security-education/update', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(updateData),
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || '수정 실패')
+    }
+
+    displayToast(result.message || '교육 기록이 성공적으로 수정되었습니다.', 'success')
+    closeEditModal()
+    await loadEducationData() // 데이터 새로고침
+  } catch (err) {
+    console.error('교육 기록 수정 오류:', err)
+    displayToast(err.message, 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+// 추가로 필요한 상태 변수
+const saving = ref(false)
 
 const displayToast = (message, type = 'success') => {
   toastMessage.value = message
