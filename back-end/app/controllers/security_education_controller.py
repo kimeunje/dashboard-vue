@@ -46,7 +46,7 @@ def get_education_status():
                                 }), HTTP_STATUS['NOT_FOUND']
             user_id = user_data['uid']
 
-        # ✅ 새로운 스키마 기반 쿼리만 사용
+        # ✅ 새로운 스키마 기반 교육 현황 조회
         education_status = execute_query(
             """
             SELECT 
@@ -58,6 +58,7 @@ def get_education_status():
                 se.education_date,
                 se.education_type,
                 se.exclude_from_scoring,
+                se.exclude_reason,
                 se.notes,
                 sep.period_name,
                 sep.start_date,
@@ -69,11 +70,9 @@ def get_education_status():
             ORDER BY se.course_name, se.created_at
         """, (user_id, year), fetch_all=True)
 
-        print(f"[DEBUG] 조회된 교육 레코드: {len(education_status)}건")
-
-        # ✅ 데이터가 없는 경우 기본값으로 구성된 응답 반환
+        # ✅ 데이터가 없는 경우 기본값 반환
         if not education_status:
-            print(f"[DEBUG] 교육 데이터 없음, 기본값 응답 반환")
+            print(f"[DEBUG] 교육 데이터 없음 - 기본값 반환: user_id={user_id}, year={year}")
             return jsonify({
                 'year': year,
                 'education_status': [],
@@ -125,40 +124,39 @@ def get_education_status():
                         if record['course_name'])),
                 'avg_completion_rate': round(
                     sum(record['completion_rate'] or 0 for record in education_status) /
-                    len(education_status), 1) if education_status else 0.0
+                    len(education_status), 2) if education_status else 0.0
             }
         }
 
-        # ✅ 과정별 세부 정보 생성
+        # 과정별 세부 정보 구성
         course_details = {}
         for record in education_status:
-            course_name = record['course_name'] or '미지정 과정'
-            completed_count = record['completed_count'] or 0
-            incomplete_count = record['incomplete_count'] or 0
-            total_courses_record = record['total_courses'] or 0
-            completion_rate = record['completion_rate'] or 0.0
+            course_name = record['course_name']
+            completed_count = int(record['completed_count'] or 0)
+            incomplete_count = int(record['incomplete_count'] or 0)
+            total_courses_record = int(record['total_courses'] or 0)
 
-            # 상태 결정 (수료율 기반)
-            if completion_rate >= 80:
-                status = 'completed'
+            # 상태 계산
+            completion_rate = float(record['completion_rate'] or 0)
+            if record['exclude_from_scoring']:
+                status = '제외'
+            elif completion_rate >= 100:
+                status = '완료'
+            elif completion_rate >= 80:
+                status = '수료'
             elif completion_rate > 0:
-                status = 'incomplete'
+                status = f'부분완료({completion_rate:.0f}%)'
             else:
-                status = 'not_started'
+                status = '미실시'
 
             course_details[course_name] = {
-                'type': record['education_type'] or course_name,
-                'type_name': course_name,
                 'course_name': course_name,
-                # ✅ 새로운 스키마 정보
+                'education_type': record['education_type'],
                 'completed_count': completed_count,
                 'incomplete_count': incomplete_count,
                 'total_courses': total_courses_record,
-                'completion_rate': float(completion_rate),
-                # ✅ 기존 호환성 필드
-                'completed_courses': completed_count,
-                'incomplete_courses': incomplete_count,
-                'not_started_courses': max(
+                'completion_rate': completion_rate,
+                'not_started': max(
                     0, total_courses_record - completed_count - incomplete_count),
                 'status': status,
                 'education_date': str(record['education_date'])
@@ -235,124 +233,102 @@ def get_education_records():
 
 def _get_education_records_new_schema(year, education_type, status):
     """
-    ✅ 새로운 스키마 기반 교육 기록 조회 - mail 컬럼 사용
+    ✅ 새로운 스키마 기반 교육 기록 조회 - 감점 로직 통일
     
     변경사항:
-    1. u.email -> u.mail as email
-    2. 함수명 변경 (enhanced -> new_schema)
-    3. 로직은 기존과 동일
+    1. penalty_applied 계산을 다른 페이지와 동일하게 수정
+    2. exclude_from_scoring이 True인 경우 감점 없음
+    3. incomplete_count > 0이고 exclude_from_scoring이 False인 경우만 0.5점 감점
     """
     try:
-        # 기본 쿼리 구성 - mail 컬럼 사용
+        # 기본 쿼리
         base_query = """
             SELECT 
-                se.education_id,
-                u.user_id,
-                u.username,
-                u.department,
-                u.mail as email,
+                se.user_id,
                 se.course_name,
+                se.education_type,
                 se.completed_count,
                 se.incomplete_count,
                 se.total_courses,
                 se.completion_rate,
-                se.education_year,
-                se.education_period,
-                se.education_type,
                 se.education_date,
                 se.exclude_from_scoring,
                 se.exclude_reason,
                 se.notes,
-                se.created_at,
-                se.updated_at,
+                se.period_id,
+                u.user_id as username,
+                u.username as name,
+                u.department,
+                u.mail as email,
                 sep.period_name,
                 sep.start_date,
                 sep.end_date,
-                sep.is_completed as period_completed,
-                -- ✅ 기존 호환을 위한 계산 필드
-                CASE 
-                    WHEN se.completion_rate >= 80 THEN 1 
-                    ELSE 0 
-                END as completion_status,
-                se.period_id
+                sep.is_completed as period_completed
             FROM security_education se
-            JOIN users u ON se.user_id = u.uid
+            LEFT JOIN users u ON se.user_id = u.uid
             LEFT JOIN security_education_periods sep ON se.period_id = sep.period_id
             WHERE se.education_year = %s
         """
 
-        params = [year]
-        conditions = []
+        query_params = [year]
 
-        # 교육 유형 필터 (새 스키마는 course_name과 education_type 모두 확인)
+        # 필터 조건 추가
         if education_type:
-            conditions.append("(se.education_type = %s OR se.course_name LIKE %s)")
-            params.extend([education_type, f"%{education_type}%"])
+            base_query += " AND se.education_type = %s"
+            query_params.append(education_type)
 
-        # 상태 필터 (수료율 기반)
-        if status:
-            if status == '1':  # 수료
-                conditions.append("se.completion_rate >= 80")
-            elif status == '0':  # 미수료
-                conditions.append("se.completion_rate < 80")
+        if status == '1':  # 완료
+            base_query += " AND se.completion_rate >= 100"
+        elif status == '0':  # 미완료
+            base_query += " AND se.completion_rate < 100"
 
-        # 조건 추가
-        if conditions:
-            base_query += " AND " + " AND ".join(conditions)
+        base_query += " ORDER BY u.department, u.username, se.course_name"
 
-        base_query += " ORDER BY u.username, se.course_name, se.created_at DESC"
+        print(f"[DEBUG] 실행할 쿼리: {base_query}")
+        print(f"[DEBUG] 쿼리 파라미터: {query_params}")
 
-        records = execute_query(base_query, params, fetch_all=True)
+        records = execute_query(base_query, tuple(query_params), fetch_all=True)
 
-        # ✅ 데이터가 없으면 빈 배열 반환
         if not records:
-            print(f"[DEBUG] 교육 기록 없음: year={year}")
+            print(f"[DEBUG] 조회된 교육 기록 없음")
             return []
 
-        # ✅ 새로운 스키마 기반 응답 데이터 변환
         result_records = []
         for record in records:
+            # ✅ 감점 로직 수정 - 다른 페이지와 동일하게
+            penalty_applied = 0.0
+            if not record['exclude_from_scoring']:  # 제외되지 않은 경우만
+                if (record['incomplete_count'] or 0) > 0:  # incomplete_count > 0인 경우
+                    penalty_applied = 0.5  # 고정 0.5점 감점
+
             result_record = {
-                # 기존 필드 유지 (호환성)
-                'education_id': record['education_id'],
                 'user_id': record['user_id'],
                 'username': record['username'],
+                'name': record['name'],
                 'department': record['department'],
-                'email': record['email'] or f"{record['user_id']}@company.com",
-                'education_year': record['education_year'],
-                'education_period': record['education_period'],
+                'email': record['email'],
+                'course_name': record['course_name'],
                 'education_type': record['education_type'],
+                'completed_count': int(record['completed_count'] or 0),
+                'incomplete_count': int(record['incomplete_count'] or 0),
+                'total_courses': int(record['total_courses'] or 0),
+                'completion_rate': float(record['completion_rate'] or 0),
+                'status_text': _get_status_text_new(record),
                 'education_date': str(record['education_date'])
                 if record['education_date'] else None,
-                'completion_status': record['completion_status'],  # 계산된 필드
                 'exclude_from_scoring': bool(record['exclude_from_scoring']),
                 'exclude_reason': record['exclude_reason'],
                 'notes': record['notes'],
-                'created_at': record['created_at'].isoformat()
-                if record['created_at'] else None,
-                'updated_at': record['updated_at'].isoformat()
-                if record['updated_at'] else None,
                 'period_id': record['period_id'],
-
-                # ✅ 새로운 스키마 필드 추가
-                'course_name': record['course_name'],
-                'completed_count': record['completed_count'],
-                'incomplete_count': record['incomplete_count'],
-                'total_courses': record['total_courses'],
-                'completion_rate': float(record['completion_rate']),
-
-                # 기간 정보
                 'period_name': record['period_name'],
                 'period_start_date': str(record['start_date'])
                 if record['start_date'] else None,
                 'period_end_date': str(record['end_date'])
                 if record['end_date'] else None,
                 'period_completed': bool(record['period_completed']),
-
-                # ✅ 상태 정보 (새로운 계산)
-                'status_text': _get_status_text_new(record),
-                'penalty_applied': record['incomplete_count'] *
-                0.5 if not record['exclude_from_scoring'] else 0.0
+                'data_mode': 'new_schema',
+                # ✅ 핵심 수정: 감점 로직을 다른 페이지와 통일
+                'penalty_applied': penalty_applied
             }
             result_records.append(result_record)
 
