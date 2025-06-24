@@ -1704,3 +1704,355 @@
     border-color: #4b5563;
   }
 }
+
+/* 📁 front-end/src/modules/admin/views/AdminSecurityEducationManagement.vue 스타일 추가 */
+
+/* ✅ 새로운 교육 테이블 스타일 */
+.education-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.education-table th,
+.education-table td {
+  padding: 12px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.education-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+}
+
+/* ✅ 과정명 컬럼 */
+.course-name {
+  min-width: 150px;
+}
+
+.course-main {
+  font-weight: 500;
+  color: #2c3e50;
+  margin-bottom: 2px;
+}
+
+.course-meta {
+  font-size: 12px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* ✅ 교육유형 배지 */
+.type-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.type-online {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.type-offline {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.type-newbie {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.type-advanced {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.type-basic {
+  background: #f5f5f5;
+  color: #616161;
+}
+
+/* ✅ 횟수 표시 */
+.count-value {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  min-width: 24px;
+  text-align: center;
+}
+
+.count-value.success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.count-value.danger {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* ✅ 수료율 바 */
+.rate-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 100px;
+}
+
+.rate-bar {
+  flex: 1;
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.rate-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.rate-fill.rate-excellent {
+  background: linear-gradient(90deg, #28a745, #20c997);
+}
+
+.rate-fill.rate-good {
+  background: linear-gradient(90deg, #17a2b8, #6cb2eb);
+}
+
+.rate-fill.rate-warning {
+  background: linear-gradient(90deg, #ffc107, #fd7e14);
+}
+
+.rate-fill.rate-poor {
+  background: linear-gradient(90deg, #dc3545, #e83e8c);
+}
+
+.rate-text {
+  font-size: 12px;
+  font-weight: 500;
+  min-width: 35px;
+}
+
+.text-excellent {
+  color: #28a745;
+}
+.text-good {
+  color: #17a2b8;
+}
+.text-warning {
+  color: #ffc107;
+}
+.text-danger {
+  color: #dc3545;
+}
+
+/* ✅ 상태 배지 */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-completed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-passed {
+  background: #cce7ff;
+  color: #0056b3;
+}
+
+.status-partial {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-incomplete,
+.status-not-started {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-excluded {
+  background: #f8f9fa;
+  color: #6c757d;
+}
+
+/* ✅ 기간 정보 */
+.period-info {
+  min-width: 120px;
+}
+
+.period-name {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 2px;
+}
+
+.period-dates {
+  font-size: 11px;
+  color: #6c757d;
+}
+
+.period-status.completed {
+  font-size: 11px;
+  color: #28a745;
+  font-weight: 500;
+}
+
+/* ✅ 감점 표시 */
+.penalty-value {
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.penalty-value.penalty-active {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.penalty-excluded {
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* ✅ 제외 버튼 */
+.exclude-toggle {
+  background: transparent;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #6c757d;
+}
+
+.exclude-toggle:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+}
+
+.exclude-toggle.active {
+  background: #dc3545;
+  border-color: #dc3545;
+  color: white;
+}
+
+.exclude-reason {
+  font-size: 11px;
+  color: #6c757d;
+  margin-top: 2px;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ✅ 레거시 데이터 표시 */
+.data-legacy {
+  background: rgba(255, 193, 7, 0.05);
+}
+
+.legacy-indicator {
+  font-size: 10px;
+  color: #856404;
+  background: #fff3cd;
+  padding: 1px 4px;
+  border-radius: 2px;
+  margin-top: 2px;
+}
+
+/* ✅ 액션 버튼 */
+.action-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.action-btn {
+  background: transparent;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #6c757d;
+}
+
+.action-btn:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+}
+
+.action-btn.edit:hover {
+  color: #007bff;
+  border-color: #007bff;
+}
+
+.action-btn.delete:hover {
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+/* ✅ 사용자 정보 */
+.user-info {
+  min-width: 100px;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.user-id {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+/* ✅ 선택된 행 */
+.education-table tbody tr.selected {
+  background: rgba(0, 123, 255, 0.05);
+}
+
+/* ✅ 데이터 없음 */
+.no-data {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6c757d;
+}
+
+.no-data-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.no-data h3 {
+  margin-bottom: 8px;
+  color: #495057;
+}
+
+.no-data p {
+  margin: 0;
+  font-size: 14px;
+}
