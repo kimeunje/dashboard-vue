@@ -335,59 +335,149 @@ def _calculate_training_penalty_fixed(user_id, year):
 
 
 def _calculate_education_penalty(user_id, year):
-    """교육 감점 계산 - 데이터 없으면 감점 없음"""
+    """
+    ✅ 수정된 교육 감점 계산 - incomplete_count 기반
+    
+    기존: completion_status = 0인 레코드 수 × 0.5
+    신규: SUM(incomplete_count) × 0.5
+    """
     try:
-        education_records = execute_query(
-            """
-            SELECT education_period, completion_status, exclude_from_scoring
-            FROM security_education 
-            WHERE user_id = %s AND education_year = %s
-            """, (user_id, year), fetch_all=True)
+        logging.info(f"교육 감점 계산 시작: user_id={user_id}, year={year}")
 
-        # 교육 데이터가 없는 경우 감점 없음
-        if not education_records:
+        # ✅ 핵심 수정: 새로운 스키마 기반 쿼리
+        penalty_query = """
+            SELECT SUM(se.incomplete_count) as total_incomplete
+            FROM security_education se
+            LEFT JOIN security_education_periods sep ON se.period_id = sep.period_id
+            WHERE se.user_id = %s 
+              AND se.education_year = %s
+              AND se.exclude_from_scoring = 0
+        """
+
+        penalty_result = execute_query(penalty_query, (user_id, year), fetch_one=True)
+        total_incomplete = penalty_result[
+            'total_incomplete'] if penalty_result and penalty_result[
+                'total_incomplete'] else 0
+
+        # 감점 계산 (기존 로직 유지: 0.5점씩 감점)
+        education_penalty = float(total_incomplete) * 0.5
+
+        logging.info(f"교육 감점 계산 완료: 미이수 총 {total_incomplete}회, 감점 {education_penalty}점")
+
+        # ✅ 통계 정보도 새로운 스키마에 맞게 수정
+        stats_query = """
+            SELECT 
+                COUNT(*) as total_records,
+                SUM(se.completed_count) as total_completed,
+                SUM(se.incomplete_count) as total_incomplete,
+                SUM(se.total_courses) as total_courses,
+                AVG(se.completion_rate) as avg_completion_rate,
+                COUNT(DISTINCT se.course_name) as unique_courses
+            FROM security_education se
+            LEFT JOIN security_education_periods sep ON se.period_id = sep.period_id
+            WHERE se.user_id = %s 
+              AND se.education_year = %s
+              AND se.exclude_from_scoring = 0
+        """
+
+        stats_result = execute_query(stats_query, (user_id, year), fetch_one=True)
+
+        if stats_result:
             education_stats = {
-                "total_count": 0,  # 데이터가 없으면 0개로 처리
+                "total_records": int(stats_result['total_records'])
+                if stats_result['total_records'] else 0,
+                "completed_count": int(stats_result['total_completed'])
+                if stats_result['total_completed'] else 0,
+                "incomplete_count": int(stats_result['total_incomplete'])
+                if stats_result['total_incomplete'] else 0,
+                "total_courses": int(stats_result['total_courses'])
+                if stats_result['total_courses'] else 0,
+                "avg_completion_rate": float(stats_result['avg_completion_rate'])
+                if stats_result['avg_completion_rate'] else 0.0,
+                "unique_courses": int(stats_result['unique_courses'])
+                if stats_result['unique_courses'] else 0,
+                # ✅ 기존 필드도 호환성을 위해 유지
+                "total_educations": int(stats_result['total_records'])
+                if stats_result['total_records'] else 0,
+                "passed_educations": int(stats_result['total_completed'])
+                if stats_result['total_completed'] else 0,
+                "failed_educations": int(stats_result['total_incomplete'])
+                if stats_result['total_incomplete'] else 0
+            }
+        else:
+            # 기본값 설정
+            education_stats = {
+                "total_records": 0,
                 "completed_count": 0,
                 "incomplete_count": 0,
-                "excluded_count": 0,
-                "total_penalty": 0.0,  # 감점 없음
-                "message": "교육 데이터가 없어 감점하지 않음"
+                "total_courses": 0,
+                "avg_completion_rate": 0.0,
+                "unique_courses": 0,
+                "total_educations": 0,
+                "passed_educations": 0,
+                "failed_educations": 0
             }
-            return 0.0, education_stats
 
-        # 실제 교육 기록이 있는 경우만 감점 계산
-        total_count = len(education_records)
-        scoring_records = [
-            r for r in education_records if not r.get('exclude_from_scoring', False)
-        ]
-        completed_count = sum(1 for r in scoring_records if r['completion_status'] == 1)
-        incomplete_count = len(scoring_records) - completed_count
-        excluded_count = total_count - len(scoring_records)
+        logging.info(f"교육 통계: {education_stats}")
 
-        # 실제로 미이수한 교육에 대해서만 감점
-        total_penalty = incomplete_count * 0.5
-
-        education_stats = {
-            "total_count": total_count,
-            "completed_count": completed_count,
-            "incomplete_count": incomplete_count,
-            "excluded_count": excluded_count,
-            "total_penalty": round(total_penalty, 2)
-        }
-
-        return total_penalty, education_stats
+        return education_penalty, education_stats
 
     except Exception as e:
-        logging.error(f"Education penalty calculation error: {str(e)}")
-        # 에러 발생시에도 감점 없음
+        logging.error(f"교육 감점 계산 오류: {str(e)}")
+        # 기존 로직으로 폴백 (호환성 유지)
+        return _calculate_education_penalty_legacy(user_id, year)
+
+
+def _calculate_education_penalty_legacy(user_id, year):
+    """
+    ✅ 기존 로직 백업 - 새로운 스키마가 없는 경우 사용
+    """
+    try:
+        logging.warning(f"교육 감점 계산 - 레거시 모드 실행: user_id={user_id}, year={year}")
+
+        # 기존 completion_status 기반 계산
+        legacy_query = """
+            SELECT COUNT(*) as incomplete_count
+            FROM security_education se
+            WHERE se.user_id = %s 
+              AND se.education_year = %s
+              AND se.completion_status = 0
+              AND se.exclude_from_scoring = 0
+        """
+
+        result = execute_query(legacy_query, (user_id, year), fetch_one=True)
+        incomplete_count = result['incomplete_count'] if result else 0
+
+        education_penalty = float(incomplete_count) * 0.5
+
+        # 레거시 통계
+        education_stats = {
+            "total_records": incomplete_count,
+            "completed_count": 0,
+            "incomplete_count": incomplete_count,
+            "total_courses": incomplete_count,
+            "avg_completion_rate": 0.0,
+            "unique_courses": incomplete_count,
+            "total_educations": incomplete_count,
+            "passed_educations": 0,
+            "failed_educations": incomplete_count
+        }
+
+        logging.info(f"레거시 교육 감점: {education_penalty}점")
+        return education_penalty, education_stats
+
+    except Exception as e:
+        logging.error(f"레거시 교육 감점 계산 오류: {str(e)}")
         return 0.0, {
-            "total_count": 0,
+            "total_records": 0,
             "completed_count": 0,
             "incomplete_count": 0,
-            "excluded_count": 0,
-            "total_penalty": 0.0,
-            "message": "교육 데이터 조회 오류로 감점하지 않음"
+            "total_courses": 0,
+            "avg_completion_rate": 0.0,
+            "unique_courses": 0,
+            "total_educations": 0,
+            "passed_educations": 0,
+            "failed_educations": 0
         }
 
 
