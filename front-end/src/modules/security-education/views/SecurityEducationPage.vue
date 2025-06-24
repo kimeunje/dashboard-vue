@@ -27,6 +27,15 @@
         <button @click="fetchEducationStatus" class="retry-button">다시 시도</button>
       </div>
 
+      <div v-else-if="isEmptyData" class="error-container">
+        <div class="no-data-icon">📚</div>
+        <h3>{{ selectedYear }}년 교육 데이터 없음</h3>
+        <p>해당 연도에 등록된 교육 과정이 없습니다.</p>
+        <div class="no-data-actions">
+          <button @click="fetchEducationStatus" class="retry-button">다시 조회</button>
+        </div>
+      </div>
+
       <!-- 교육 현황 데이터 -->
       <div v-else-if="educationData" class="education-content">
         <!-- 교육 상태 대시보드 -->
@@ -62,10 +71,22 @@
                   <span class="stat-label">미이수</span>
                   <span class="stat-value danger">{{ educationData.summary.incomplete }}</span>
                 </div>
-                <div class="stat-row">
-                  <span class="stat-label">미실시</span>
-                  <span class="stat-value warning">{{ educationData.summary.not_started }}</span>
+
+                <!-- ✅ 새로운 통계 정보 추가 -->
+                <div v-if="educationData.summary.unique_courses" class="stat-row">
+                  <span class="stat-label">교육 과정 종류</span>
+                  <span class="stat-value info">{{ educationData.summary.unique_courses }}</span>
                 </div>
+                <div
+                  v-if="educationData.summary.avg_completion_rate !== undefined"
+                  class="stat-row"
+                >
+                  <span class="stat-label">평균 수료율</span>
+                  <span class="stat-value info"
+                    >{{ educationData.summary.avg_completion_rate }}%</span
+                  >
+                </div>
+
                 <div class="stat-row">
                   <span class="stat-label">감점</span>
                   <span class="stat-value danger">-{{ educationData.summary.penalty_score }}</span>
@@ -99,12 +120,13 @@
           <div class="periods-grid">
             <div
               v-for="education in educationData.education_status"
-              :key="education.type"
+              :key="education.course_name || education.type"
               class="period-card"
               :class="getPeriodCardClass(education)"
             >
               <div class="period-header">
-                <h3>{{ education.type_name }} 교육</h3>
+                <!-- ✅ 과정명 우선 표시, 없으면 기존 방식 -->
+                <h3>{{ education.course_name || education.type_name }} 교육</h3>
                 <div class="status-badge" :class="getStatusBadgeClass(education.status)">
                   {{ getStatusText(education.status) }}
                 </div>
@@ -113,27 +135,48 @@
 
               <div class="period-details">
                 <div class="detail-row">
-                  <span class="label">총 과정수:</span>
-                  <span class="value">{{ education.total_courses }}개</span>
+                  <span class="label">수료 횟수:</span>
+                  <span class="value success">{{
+                    education.completed_count || education.completed_courses || 0
+                  }}</span>
                 </div>
+
                 <div class="detail-row">
-                  <span class="label">수료 과정:</span>
-                  <span class="value">{{ education.completed_courses }}개</span>
+                  <span class="label">미수료 횟수:</span>
+                  <span class="value danger">{{
+                    education.incomplete_count || education.incomplete_courses || 0
+                  }}</span>
                 </div>
-                <div class="detail-row">
-                  <span class="label">미수료 과정:</span>
-                  <span class="value">{{ education.incomplete_courses }}개</span>
+
+                <div v-if="education.total_courses" class="detail-row">
+                  <span class="label">총 과정 수:</span>
+                  <span class="value info">{{ education.total_courses }}</span>
                 </div>
-                <div class="detail-row" v-if="education.type === 'online'">
-                  <span class="label">미수료율:</span>
-                  <span class="value" :class="getIncompleteRateClass(education.incomplete_rate)">
-                    {{ education.incomplete_rate }}%
+
+                <!-- ✅ 수료율 표시 (새로운 정보) -->
+                <div v-if="education.completion_rate !== undefined" class="detail-row">
+                  <span class="label">수료율:</span>
+                  <span class="value" :class="getCompletionRateClass(education.completion_rate)">
+                    {{ education.completion_rate }}%
                   </span>
                 </div>
-                <div class="detail-row">
-                  <span class="label">비고:</span>
-                  <span class="value notes">{{ education.notes || '-' }}</span>
+
+                <!-- 기존 교육일 표시 유지 -->
+                <div v-if="education.education_date" class="detail-row">
+                  <span class="label">교육일:</span>
+                  <span class="value">{{ formatDate(education.education_date) }}</span>
                 </div>
+
+                <!-- ✅ 기간 정보 표시 (새로운 정보) -->
+                <div v-if="education.period_name" class="detail-row">
+                  <span class="label">교육 기간:</span>
+                  <span class="value info">{{ education.period_name }}</span>
+                </div>
+              </div>
+
+              <div v-if="education.notes" class="detail-row">
+                <div class="notes-icon">📝</div>
+                <span>{{ education.notes }}</span>
               </div>
 
               <!-- 결과별 알림 -->
@@ -224,167 +267,187 @@ const availableYears = computed(() => {
   return [currentYear - 1, currentYear, currentYear + 1]
 })
 
-// 임시 데이터 (프로토타입용) - 엑셀 데이터 구조 반영
+// ✅ 기존 getMockEducationData도 새로운 필드 지원하도록 수정
 const getMockEducationData = () => {
-  // 2025년 데이터 (미완료 상태)
   if (selectedYear.value === 2025) {
-    const onlineEducationData = {
-      total_courses: 2, // 수강과정 수
-      completed_courses: 0, // 수료 과정
-      incomplete_courses: 2, // 미수료 과정
-      incomplete_rate: 0, // 미수료율 (3/8 * 100)
-      status: 'not_started', // 미수료율이 20% 초과이므로 미이수
-      education_date: '2025-05-20',
-      exclude_from_scoring: false,
-      notes: '온라인 교육 2개 과정 중 2개 미수료 (미수료율 100%)',
-    }
-
-    const offlineEducationData = {
-      total_courses: 1, // 오프라인 필수 교육 과정
-      completed_courses: 0, // 참석한 과정
-      incomplete_courses: 0, // 미참석하여 미수료된 과정
-      not_started_courses: 1, // 아직 시작되지 않은 과정
-      status: 'not_started', // 아직 시작되지 않음
-      education_date: null,
-      exclude_from_scoring: false,
-      notes: '집합교육 아직 미실시 상태',
-    }
-
     return {
-      year: selectedYear.value,
+      year: 2025,
       education_status: [
         {
           type: 'online',
           type_name: '온라인',
-          total_courses: onlineEducationData.total_courses,
-          completed_courses: onlineEducationData.completed_courses,
-          incomplete_courses: onlineEducationData.incomplete_courses,
-          incomplete_rate: onlineEducationData.incomplete_rate,
-          status: onlineEducationData.status,
-          education_date: onlineEducationData.education_date,
-          exclude_from_scoring: onlineEducationData.exclude_from_scoring,
-          notes: onlineEducationData.notes,
+          course_name: '온라인교육',
+          completed_count: 2,
+          incomplete_count: 0,
+          total_courses: 2,
+          completion_rate: 100.0,
+          // 기존 호환성 필드
+          completed_courses: 2,
+          incomplete_courses: 0,
+          not_started_courses: 0,
+          status: 'completed',
+          education_date: '2025-03-15',
+          exclude_from_scoring: false,
+          notes: null,
+          period_name: '2025년 온라인 교육',
         },
         {
           type: 'offline',
           type_name: '오프라인',
-          total_courses: offlineEducationData.total_courses,
-          completed_courses: offlineEducationData.completed_courses,
-          incomplete_courses: offlineEducationData.incomplete_courses,
-          not_started_courses: offlineEducationData.not_started_courses,
-          status: offlineEducationData.status,
-          education_date: offlineEducationData.education_date,
-          exclude_from_scoring: offlineEducationData.exclude_from_scoring,
-          notes: offlineEducationData.notes,
+          course_name: '종합교육',
+          completed_count: 1,
+          incomplete_count: 1,
+          total_courses: 2,
+          completion_rate: 50.0,
+          // 기존 호환성 필드
+          completed_courses: 1,
+          incomplete_courses: 1,
+          not_started_courses: 0,
+          status: 'incomplete',
+          education_date: '2025-06-10',
+          exclude_from_scoring: false,
+          notes: '일부 과정 미완료',
+          period_name: '2025년 오프라인 교육',
         },
       ],
       summary: {
-        total_courses: onlineEducationData.total_courses + offlineEducationData.total_courses, // 10개
-        completed: onlineEducationData.completed_courses + offlineEducationData.completed_courses, // 5개
-        incomplete:
-          onlineEducationData.incomplete_courses + offlineEducationData.incomplete_courses, // 3개
-        not_started: offlineEducationData.not_started_courses, // 2개
-        completion_rate: Math.round(
-          ((onlineEducationData.completed_courses + offlineEducationData.completed_courses) /
-            (onlineEducationData.total_courses + offlineEducationData.total_courses)) *
-            100,
-        ), // 50%
-        penalty_score: 0.0, // 온라인 미수료율 초과로 인한 감점
+        total_courses: 4,
+        completed: 3,
+        incomplete: 1,
+        not_started: 0,
+        completion_rate: 75,
+        penalty_score: 0.5,
         excluded_count: 0,
+        unique_courses: 2,
+        avg_completion_rate: 75.0,
       },
     }
   }
 
-  // 2024년 데이터 (성공 상태)
-  if (selectedYear.value === 2024) {
-    const onlineEducationData = {
-
-    }
-
-    const offlineEducationData = {
-
-    }
-
-    return {
-      year: selectedYear.value,
-      education_status: [
-        {
-          type: 'online',
-          type_name: '온라인',
-          total_courses: onlineEducationData.total_courses,
-          completed_courses: onlineEducationData.completed_courses,
-          incomplete_courses: onlineEducationData.incomplete_courses,
-          incomplete_rate: onlineEducationData.incomplete_rate,
-          status: onlineEducationData.status,
-          education_date: onlineEducationData.education_date,
-          exclude_from_scoring: onlineEducationData.exclude_from_scoring,
-          notes: onlineEducationData.notes,
-        },
-        {
-          type: 'offline',
-          type_name: '오프라인',
-          total_courses: offlineEducationData.total_courses,
-          completed_courses: offlineEducationData.completed_courses,
-          incomplete_courses: offlineEducationData.incomplete_courses,
-          not_started_courses: offlineEducationData.not_started_courses,
-          status: offlineEducationData.status,
-          education_date: offlineEducationData.education_date,
-          exclude_from_scoring: offlineEducationData.exclude_from_scoring,
-          notes: offlineEducationData.notes,
-        },
-      ],
-      summary: {
-        total_courses: onlineEducationData.total_courses + offlineEducationData.total_courses, // 12개
-        completed: onlineEducationData.completed_courses + offlineEducationData.completed_courses, // 11개
-        incomplete:
-          onlineEducationData.incomplete_courses + offlineEducationData.incomplete_courses, // 1개
-        not_started: offlineEducationData.not_started_courses, // 0개
-        completion_rate: Math.round(
-          ((onlineEducationData.completed_courses + offlineEducationData.completed_courses) /
-            (onlineEducationData.total_courses + offlineEducationData.total_courses)) *
-            100,
-        ), // 92%
-        penalty_score: 0.0, // 모든 교육 완료로 감점 없음
-        excluded_count: 0,
-      },
-    }
+  // 2024년 또는 기타 연도는 기존 형식 유지
+  return {
+    year: selectedYear.value,
+    education_status: [],
+    summary: {
+      total_courses: 0,
+      completed: 0,
+      incomplete: 0,
+      not_started: 0,
+      completion_rate: 0,
+      penalty_score: 0.0,
+      excluded_count: 0,
+    },
   }
-
-  // 기본 반환값 (다른 연도)
-  return null
 }
 
-// 메서드
 const fetchEducationStatus = async () => {
   loading.value = true
   error.value = null
 
   try {
-    // 2025년 또는 2024년인 경우 임시 데이터 사용
-    if (selectedYear.value === 2025 || selectedYear.value === 2024) {
-      // 임시 데이터 로딩 시뮬레이션
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      educationData.value = getMockEducationData()
-      return
-    }
+    console.log(`[DEBUG] 교육 현황 API 호출: 연도=${selectedYear.value}`)
 
-    // 실제 API 호출
     const response = await fetch(`/api/security-education/status?year=${selectedYear.value}`, {
+      method: 'GET',
       credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
     })
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: 데이터를 불러올 수 없습니다.`)
+      if (response.status === 401) {
+        router.push('/login')
+        throw new Error('인증이 필요합니다. 로그인 페이지로 이동합니다.')
+      }
+
+      try {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `HTTP ${response.status}: 데이터를 불러올 수 없습니다.`)
+      } catch (parseError) {
+        throw new Error(`HTTP ${response.status}: 데이터를 불러올 수 없습니다.`)
+      }
     }
 
-    educationData.value = await response.json()
+    const responseData = await response.json()
+    console.log('[DEBUG] 교육 현황 API 응답:', responseData)
+
+    // ✅ 응답 데이터 검증 및 기본값 보장
+    if (!responseData || typeof responseData !== 'object') {
+      throw new Error('서버에서 올바르지 않은 응답을 받았습니다.')
+    }
+
+    // ✅ 기본 구조 보장 (서버에서 보장하지만 클라이언트에서도 안전장치)
+    educationData.value = {
+      year: responseData.year || selectedYear.value,
+      education_status: responseData.education_status || [],
+      summary: {
+        total_courses: responseData.summary?.total_courses || 0,
+        completed: responseData.summary?.completed || 0,
+        incomplete: responseData.summary?.incomplete || 0,
+        not_started: responseData.summary?.not_started || 0,
+        completion_rate: responseData.summary?.completion_rate || 0,
+        penalty_score: responseData.summary?.penalty_score || 0.0,
+        excluded_count: responseData.summary?.excluded_count || 0,
+        unique_courses: responseData.summary?.unique_courses || 0,
+        avg_completion_rate: responseData.summary?.avg_completion_rate || 0.0,
+      },
+    }
+
+    console.log('[DEBUG] 교육 현황 데이터 설정 완료:', {
+      year: educationData.value.year,
+      totalCourses: educationData.value.summary.total_courses,
+      completed: educationData.value.summary.completed,
+      incomplete: educationData.value.summary.incomplete,
+      statusCount: educationData.value.education_status.length,
+    })
+
+    // ✅ 서버에서 오류 메시지가 있는 경우 경고 표시 (에러는 아니지만 알림)
+    if (responseData.error_message) {
+      console.warn('[WARNING]', responseData.error_message)
+    }
   } catch (err) {
-    console.error('교육 현황 조회 실패:', err)
-    error.value = err.message
+    console.error('[ERROR] 교육 현황 조회 실패:', err)
+    error.value = err.message || '교육 현황을 불러오는 중 오류가 발생했습니다.'
+
+    // ✅ 에러 발생 시에도 기본 구조로 초기화 (완전히 null로 두지 않음)
+    educationData.value = {
+      year: selectedYear.value,
+      education_status: [],
+      summary: {
+        total_courses: 0,
+        completed: 0,
+        incomplete: 0,
+        not_started: 0,
+        completion_rate: 0,
+        penalty_score: 0.0,
+        excluded_count: 0,
+        unique_courses: 0,
+        avg_completion_rate: 0.0,
+      },
+    }
   } finally {
     loading.value = false
   }
 }
+
+// ✅ 데이터 상태 확인 헬퍼 함수들 추가
+const hasEducationData = computed(() => {
+  return (
+    educationData.value &&
+    educationData.value.summary &&
+    educationData.value.summary.total_courses > 0
+  )
+})
+
+const isEmptyData = computed(() => {
+  return (
+    educationData.value &&
+    educationData.value.summary &&
+    educationData.value.summary.total_courses === 0 &&
+    educationData.value.education_status.length === 0
+  )
+})
 
 const getProgressClass = (rate) => {
   if (rate >= 75) return 'excellent'
@@ -393,8 +456,36 @@ const getProgressClass = (rate) => {
   return 'poor'
 }
 
+const getCompletionRateClass = (rate) => {
+  if (rate === undefined || rate === null) return 'warning-text'
+  if (rate >= 80) return 'excellent-text'
+  if (rate >= 60) return 'good-text'
+  if (rate >= 40) return 'warning-text'
+  return 'danger-text'
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  try {
+    return new Date(dateString).toLocaleDateString('ko-KR')
+  } catch {
+    return dateString
+  }
+}
+
+// ✅ 기존 헬퍼 함수들에 null 체크 추가
 const getPeriodCardClass = (education) => {
+  if (!education) return 'pending'
   if (education.exclude_from_scoring) return 'excluded'
+
+  // 새로운 스키마 우선 확인 (completion_rate 기반)
+  if (education.completion_rate !== undefined) {
+    if (education.completion_rate >= 80) return 'passed'
+    if (education.completion_rate > 0) return 'partial'
+    return 'failed'
+  }
+
+  // 기존 로직 폴백 (status 기반)
   if (education.status === 'completed') return 'passed'
   if (education.status === 'incomplete') return 'failed'
   return 'pending'
@@ -416,6 +507,7 @@ const getStatusText = (status) => {
     completed: '이수완료',
     incomplete: '미이수',
     not_started: '미실시',
+    partial: '부분완료', // ✅ 새로운 상태 추가
   }
   return statusMap[status] || '알 수 없음'
 }
