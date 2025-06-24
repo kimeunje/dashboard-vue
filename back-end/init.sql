@@ -318,31 +318,35 @@ CREATE TABLE IF NOT EXISTS `security_education` (
   `user_id` bigint(20) NOT NULL COMMENT 'users 테이블의 uid 참조',
   `education_year` int(11) NOT NULL COMMENT '교육 연도',
   `education_period` enum('first_half','second_half') NOT NULL COMMENT '교육 기간 (상반기/하반기)',
-  `education_type` varchar(100) DEFAULT '기본교육' COMMENT '교육 유형',
+  `course_name` varchar(200) NOT NULL COMMENT 'CSV의 수강과정 컬럼 값',
+  `completed_count` int(11) DEFAULT 0 COMMENT 'CSV의 수료 컬럼 값',
+  `incomplete_count` int(11) DEFAULT 0 COMMENT 'CSV의 미수료 컬럼 값',
+  `total_courses` int(11) GENERATED ALWAYS AS (`completed_count` + `incomplete_count`) STORED COMMENT '전체 과정 수',
+  `completion_rate` decimal(5,2) GENERATED ALWAYS AS (case when `completed_count` + `incomplete_count` = 0 then 0 else round(`completed_count` / (`completed_count` + `incomplete_count`) * 100,2) end) STORED COMMENT '수료율 (%)',
+  `education_type` varchar(100) DEFAULT '기본교육' COMMENT '교육 유형 (참고용)',
   `education_date` date DEFAULT NULL COMMENT '교육 수료일',
-  `completion_status` tinyint(1) DEFAULT 0 COMMENT '이수 여부 (1:이수, 0:미이수)',
   `notes` text DEFAULT NULL COMMENT '비고',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `period_id` bigint(20) DEFAULT NULL COMMENT '교육 기간 ID 참조',
   `exclude_from_scoring` tinyint(1) DEFAULT 0 COMMENT '점수 계산 제외 여부',
   `exclude_reason` text DEFAULT NULL COMMENT '제외 사유',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`education_id`),
-  UNIQUE KEY `uk_user_education` (`user_id`,`education_year`,`education_period`),
-  UNIQUE KEY `uk_user_period_type` (`user_id`,`period_id`,`education_type`),
+  UNIQUE KEY `uk_user_period_course` (`user_id`,`period_id`,`course_name`),
   KEY `idx_education_year` (`education_year`),
-  KEY `fk_education_period` (`period_id`),
-  CONSTRAINT `fk_education_period` FOREIGN KEY (`period_id`) REFERENCES `security_education_periods` (`period_id`),
-  CONSTRAINT `fk_education_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='정보보호 교육 이력';
+  KEY `idx_completion_rate` (`completion_rate`),
+  KEY `period_id` (`period_id`),
+  CONSTRAINT `security_education_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE,
+  CONSTRAINT `security_education_ibfk_2` FOREIGN KEY (`period_id`) REFERENCES `security_education_periods` (`period_id`),
+  CONSTRAINT `CONSTRAINT_1` CHECK (`completed_count` >= 0),
+  CONSTRAINT `CONSTRAINT_2` CHECK (`incomplete_count` >= 0),
+  CONSTRAINT `CONSTRAINT_3` CHECK (`completed_count` + `incomplete_count` > 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='정보보호 교육 이력 (CSV 매핑 개선 버전)';
 
 DELETE FROM `security_education`;
-INSERT INTO `security_education` (`education_id`, `user_id`, `education_year`, `education_period`, `education_type`, `education_date`, `completion_status`, `notes`, `created_at`, `updated_at`, `period_id`, `exclude_from_scoring`, `exclude_reason`) VALUES
-	(78, 1, 2025, 'first_half', '오프라인', NULL, 0, '일괄 업로드 - 미수료 2회차 (업로더: admin)', '2025-06-23 07:18:25', '2025-06-23 07:18:25', 8, 0, NULL),
-	(79, 2, 2025, 'first_half', '온라인', '2025-02-01', 1, '일괄 업로드 - 수료 1회차 (업로더: admin)', '2025-06-23 07:18:25', '2025-06-23 07:18:25', 8, 0, NULL),
-	(81, 3, 2025, 'first_half', '오프라인', NULL, 0, '일괄 업로드 - 미수료 1회차 (업로더: admin)', '2025-06-23 07:18:25', '2025-06-23 07:18:25', 8, 0, NULL),
-	(82, 4, 2025, '', '온라인', NULL, 1, '기간 완료로 인한 자동 통과 처리', '2025-06-23 07:19:02', '2025-06-23 07:19:02', 8, 0, NULL),
-	(83, 5, 2025, '', '온라인', NULL, 1, '기간 완료로 인한 자동 통과 처리', '2025-06-23 07:19:02', '2025-06-23 07:19:02', 8, 0, NULL);
+INSERT INTO `security_education` (`education_id`, `user_id`, `education_year`, `education_period`, `course_name`, `completed_count`, `incomplete_count`, `education_type`, `education_date`, `notes`, `period_id`, `exclude_from_scoring`, `exclude_reason`, `created_at`, `updated_at`) VALUES
+	(2, 1, 2025, 'first_half', '온라인교육', 2, 0, '온라인교육', NULL, 'CSV 업로드 - admin', 8, 0, NULL, '2025-06-24 03:46:28', '2025-06-24 03:46:28'),
+	(3, 1, 2025, 'first_half', '오프라인교육', 0, 2, '오프라인교육', NULL, 'CSV 업로드 - admin', 9, 0, NULL, '2025-06-24 04:45:18', '2025-06-24 04:46:36');
 
 DROP TABLE IF EXISTS `security_education_periods`;
 CREATE TABLE IF NOT EXISTS `security_education_periods` (
@@ -371,7 +375,8 @@ CREATE TABLE IF NOT EXISTS `security_education_periods` (
 
 DELETE FROM `security_education_periods`;
 INSERT INTO `security_education_periods` (`period_id`, `education_year`, `period_name`, `education_type`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `auto_pass_setting`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
-	(8, 2025, '2025년 온라인 교육 ', '온라인', '2025-02-01', '2025-10-01', 1, '2025-06-23 07:19:02', 'admin', '', 1, 'admin', '2025-06-23 07:17:19', '2025-06-23 07:19:02', 1);
+	(8, 2025, '2025년 온라인 교육 ', '온라인', '2025-02-01', '2025-10-01', 0, NULL, NULL, '', 1, 'admin', '2025-06-23 07:17:19', '2025-06-24 04:45:31', 1),
+	(9, 2025, '2025년 오프라인 교육', '오프라인', '2025-02-10', '2025-10-09', 0, NULL, NULL, '', 1, 'admin', '2025-06-24 04:44:26', '2025-06-24 04:44:26', 1);
 
 DROP TABLE IF EXISTS `security_score_summary`;
 CREATE TABLE IF NOT EXISTS `security_score_summary` (
@@ -395,11 +400,11 @@ CREATE TABLE IF NOT EXISTS `security_score_summary` (
 
 DELETE FROM `security_score_summary`;
 INSERT INTO `security_score_summary` (`summary_id`, `user_id`, `evaluation_year`, `audit_penalty`, `education_penalty`, `training_penalty`, `total_penalty`, `audit_failed_count`, `education_incomplete_count`, `training_failed_count`, `last_calculated`, `created_at`) VALUES
-	(180, 1, 2025, 0.50, 0.00, 0.00, 0.50, 1, 0, 0, '2025-06-23 06:08:42', '2025-06-20 05:32:40'),
-	(181, 2, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-20 05:32:40', '2025-06-20 05:32:40'),
-	(182, 3, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-20 05:32:40', '2025-06-20 05:32:40'),
-	(183, 4, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-20 05:32:40', '2025-06-20 05:32:40'),
-	(184, 5, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-20 05:32:40', '2025-06-20 05:32:40');
+	(195, 1, 2025, 0.50, 1.00, 0.00, 1.50, 1, 1, 0, '2025-06-24 05:01:46', '2025-06-24 01:49:05'),
+	(196, 2, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-24 01:49:05', '2025-06-24 01:49:05'),
+	(197, 3, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-24 01:49:05', '2025-06-24 01:49:05'),
+	(198, 4, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-24 01:49:05', '2025-06-24 01:49:05'),
+	(199, 5, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-24 01:49:05', '2025-06-24 01:49:05');
 
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE IF NOT EXISTS `users` (
