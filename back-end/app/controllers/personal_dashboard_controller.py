@@ -336,40 +336,22 @@ def _calculate_training_penalty_fixed(user_id, year):
 
 def _calculate_education_penalty(user_id, year):
     """
-    ✅ 수정된 교육 감점 계산 - incomplete_count 기반
+    ✅ 수정된 교육 감점 계산 - incomplete_count > 0 기반
     
-    기존: completion_status = 0인 레코드 수 × 0.5
-    신규: SUM(incomplete_count) × 0.5
+    기존: SUM(incomplete_count) × 0.5
+    신규: COUNT(incomplete_count > 0) × 0.5
     """
     try:
-        logging.info(f"교육 감점 계산 시작: user_id={user_id}, year={year}")
+        logging.info(
+            f"교육 감점 계산 시작 (incomplete_count > 0 기준): user_id={user_id}, year={year}")
 
-        # ✅ 핵심 수정: 새로운 스키마 기반 쿼리
+        # ✅ 핵심 수정: incomplete_count > 0 기반 쿼리
         penalty_query = """
-            SELECT SUM(se.incomplete_count) as total_incomplete
-            FROM security_education se
-            LEFT JOIN security_education_periods sep ON se.period_id = sep.period_id
-            WHERE se.user_id = %s 
-              AND se.education_year = %s
-              AND se.exclude_from_scoring = 0
-        """
-
-        penalty_result = execute_query(penalty_query, (user_id, year), fetch_one=True)
-        total_incomplete = penalty_result[
-            'total_incomplete'] if penalty_result and penalty_result[
-                'total_incomplete'] else 0
-
-        # 감점 계산 (기존 로직 유지: 0.5점씩 감점)
-        education_penalty = float(total_incomplete) * 0.5
-
-        logging.info(f"교육 감점 계산 완료: 미이수 총 {total_incomplete}회, 감점 {education_penalty}점")
-
-        # ✅ 통계 정보도 새로운 스키마에 맞게 수정
-        stats_query = """
             SELECT 
-                COUNT(*) as total_records,
+                COUNT(CASE WHEN se.incomplete_count > 0 THEN 1 END) as periods_with_incomplete,
                 SUM(se.completed_count) as total_completed,
                 SUM(se.incomplete_count) as total_incomplete,
+                COUNT(*) as total_records,
                 SUM(se.total_courses) as total_courses,
                 AVG(se.completion_rate) as avg_completion_rate,
                 COUNT(DISTINCT se.course_name) as unique_courses
@@ -380,51 +362,60 @@ def _calculate_education_penalty(user_id, year):
               AND se.exclude_from_scoring = 0
         """
 
-        stats_result = execute_query(stats_query, (user_id, year), fetch_one=True)
+        result = execute_query(penalty_query, (user_id, year), fetch_one=True)
 
-        if stats_result:
-            education_stats = {
-                "total_records": int(stats_result['total_records'])
-                if stats_result['total_records'] else 0,
-                "completed_count": int(stats_result['total_completed'])
-                if stats_result['total_completed'] else 0,
-                "incomplete_count": int(stats_result['total_incomplete'])
-                if stats_result['total_incomplete'] else 0,
-                "total_courses": int(stats_result['total_courses'])
-                if stats_result['total_courses'] else 0,
-                "avg_completion_rate": float(stats_result['avg_completion_rate'])
-                if stats_result['avg_completion_rate'] else 0.0,
-                "unique_courses": int(stats_result['unique_courses'])
-                if stats_result['unique_courses'] else 0,
-                # ✅ 기존 필드도 호환성을 위해 유지
-                "total_educations": int(stats_result['total_records'])
-                if stats_result['total_records'] else 0,
-                "passed_educations": int(stats_result['total_completed'])
-                if stats_result['total_completed'] else 0,
-                "failed_educations": int(stats_result['total_incomplete'])
-                if stats_result['total_incomplete'] else 0
-            }
-        else:
-            # 기본값 설정
-            education_stats = {
-                "total_records": 0,
+        if not result or result['periods_with_incomplete'] is None:
+            logging.info("교육 데이터가 없어 감점하지 않음")
+            return 0.0, {
+                "periods_with_incomplete": 0,
                 "completed_count": 0,
                 "incomplete_count": 0,
                 "total_courses": 0,
                 "avg_completion_rate": 0.0,
-                "unique_courses": 0,
-                "total_educations": 0,
-                "passed_educations": 0,
-                "failed_educations": 0
+                "total_penalty": 0.0,
+                "message": "교육 데이터가 없어 감점하지 않음"
             }
 
-        logging.info(f"교육 통계: {education_stats}")
+        # ✅ 새로운 감점 계산
+        periods_with_incomplete = int(result['periods_with_incomplete']
+                                      ) if result['periods_with_incomplete'] else 0
+        total_completed = int(
+            result['total_completed']) if result['total_completed'] else 0
+        total_incomplete = int(
+            result['total_incomplete']) if result['total_incomplete'] else 0
+        total_records = int(result['total_records']) if result['total_records'] else 0
+        total_courses = int(result['total_courses']) if result['total_courses'] else 0
+        avg_completion_rate = float(
+            result['avg_completion_rate']) if result['avg_completion_rate'] else 0.0
+        unique_courses = int(
+            result['unique_courses']) if result['unique_courses'] else 0
+
+        # ✅ 감점 계산: incomplete_count > 0인 기간 수 × 0.5점
+        education_penalty = float(periods_with_incomplete) * 0.5
+
+        logging.info(
+            f"교육 감점 계산 완료: 미완료 기간 {periods_with_incomplete}개, 감점 {education_penalty}점")
+
+        # 통계 정보
+        education_stats = {
+            "periods_with_incomplete": periods_with_incomplete,  # 새로운 필드
+            "completed_count": total_completed,
+            "incomplete_count": total_incomplete,
+            "total_records": total_records,
+            "total_courses": total_courses,
+            "avg_completion_rate": round(avg_completion_rate, 2),
+            "unique_courses": unique_courses,
+            "total_penalty": round(education_penalty, 2),
+            # 기존 호환성 필드
+            "total_educations": total_records,
+            "passed_educations": total_records - periods_with_incomplete,
+            "failed_educations": periods_with_incomplete
+        }
 
         return education_penalty, education_stats
 
     except Exception as e:
         logging.error(f"교육 감점 계산 오류: {str(e)}")
-        # 기존 로직으로 폴백 (호환성 유지)
         return _calculate_education_penalty_legacy(user_id, year)
 
 

@@ -257,15 +257,16 @@ def _calculate_user_detail_scores(user_id, year):
 
 def _calculate_education_penalty_enhanced(user_id, year):
     """
-    ✅ 새로운 교육 감점 계산 - 관리자 상세 페이지용
+    ✅ 관리자 상세 페이지용 교육 감점 계산 - incomplete_count > 0 기반
     
-    기존 personal_dashboard_controller 함수를 기반으로 하되,
-    관리자 페이지에서 필요한 상세 정보 추가 제공
+    기존: SUM(incomplete_count) × 0.5
+    신규: COUNT(incomplete_count > 0) × 0.5
     """
     try:
-        logging.info(f"교육 감점 계산 (관리자 상세): user_id={user_id}, year={year}")
+        logging.info(
+            f"교육 감점 계산 (관리자 상세, incomplete_count > 0 기준): user_id={user_id}, year={year}"
+        )
 
-        # ✅ 새로운 스키마 기반 상세 조회
         education_records = execute_query(
             """
             SELECT 
@@ -289,80 +290,84 @@ def _calculate_education_penalty_enhanced(user_id, year):
         """, (user_id, year), fetch_all=True)
 
         if not education_records:
-            # ✅ 새 스키마에 데이터가 없으면 레거시 모드
-            logging.warning(f"새 교육 스키마에 데이터 없음, 레거시 모드 실행")
             return _calculate_education_penalty_legacy_admin(user_id, year)
 
-        # ✅ 새로운 스키마 기반 계산
-        total_incomplete = sum(record['incomplete_count']
-                               for record in education_records)
-        total_completed = sum(record['completed_count'] for record in education_records)
-        total_courses = sum(record['total_courses'] for record in education_records)
-        excluded_count = len(
-            [r for r in education_records if r['exclude_from_scoring']])
+        # ✅ incomplete_count > 0 기반 계산
+        periods_with_incomplete = 0
+        total_completed = 0
+        total_incomplete = 0
+        total_courses = 0
+        excluded_count = 0
+        incomplete_items = []
+        course_summary = []
 
-        # 감점 계산 (제외된 것 제외)
-        scoring_incomplete = sum(record['incomplete_count']
-                                 for record in education_records
-                                 if not record['exclude_from_scoring'])
-        education_penalty = float(scoring_incomplete) * 0.5
+        for record in education_records:
+            completed_count = int(record['completed_count'] or 0)
+            incomplete_count = int(record['incomplete_count'] or 0)
+            course_total = int(record['total_courses'] or 0)
+            completion_rate = float(record['completion_rate'] or 0)
+            is_excluded = bool(record['exclude_from_scoring'])
 
-        # ✅ 관리자용 상세 통계 (기존 호환 + 새로운 정보)
-        education_stats = {
-            # 새로운 스키마 정보
-            "total_courses": total_courses,
-            "completed_count": total_completed,
-            "incomplete_count": total_incomplete,
-            "excluded_count": excluded_count,
-            "total_penalty": round(education_penalty, 2),
-            "avg_completion_rate": round(
-                sum(r['completion_rate'] for r in education_records) /
-                len(education_records), 1) if education_records else 0,
-            "unique_courses": len(set(r['course_name'] for r in education_records)),
+            total_completed += completed_count
+            total_incomplete += incomplete_count
+            total_courses += course_total
 
-            # ✅ 기존 호환성 필드
-            "total_count": len(education_records),
-            "total_educations": len(education_records),
-            "passed_educations": total_completed,
-            "failed_educations": total_incomplete,
+            if is_excluded:
+                excluded_count += 1
 
-            # ✅ 관리자용 상세 아이템 리스트
-            "incomplete_items": [
-                {
+            # ✅ 핵심 변경: incomplete_count가 0보다 크고 제외되지 않은 경우 감점
+            if incomplete_count > 0 and not is_excluded:
+                periods_with_incomplete += 1
+                incomplete_items.append({
+                    "education_name": record['course_name'],
                     "course_name": record['course_name'],
-                    "education_name": record['course_name'],  # 호환성
-                    "incomplete_count": record['incomplete_count'],
-                    "total_count": record['total_courses'],
-                    "completion_rate": record['completion_rate'],
-                    "penalty": record['incomplete_count'] *
-                    0.5 if not record['exclude_from_scoring'] else 0,
                     "period_name": record['period_name'],
+                    "completion_rate": completion_rate,
+                    "completed_count": completed_count,
+                    "incomplete_count": incomplete_count,
+                    "total_courses": course_total,
+                    "penalty": 0.5,  # 기간당 0.5점 감점
                     "education_date": record['education_date'],
-                    "exclude_from_scoring": bool(record['exclude_from_scoring']),
+                    "exclude_from_scoring": is_excluded,
                     "exclude_reason": record['exclude_reason'],
                     "notes": record['notes']
-                } for record in education_records if record['incomplete_count'] > 0
-            ],
+                })
 
-            # ✅ 과정별 요약
-            "course_summary": [{
+            # 과정별 요약
+            course_summary.append({
                 "course_name": record['course_name'],
-                "completed": record['completed_count'],
-                "incomplete": record['incomplete_count'],
-                "total": record['total_courses'],
-                "completion_rate": record['completion_rate'],
-                "status": "완료" if record['completion_rate'] >= 80 else
-                "미완료" if record['completion_rate'] > 0 else "미실시"
-            } for record in education_records]
+                "completed": completed_count,
+                "incomplete": incomplete_count,
+                "total": course_total,
+                "completion_rate": completion_rate,
+                "status": "완료" if incomplete_count == 0 else "미완료"
+            })
+
+        # ✅ 감점 계산: incomplete_count > 0인 기간 수 × 0.5점
+        education_penalty = float(periods_with_incomplete) * 0.5
+
+        education_stats = {
+            "total_count": len(education_records),
+            "completed_count": total_completed,
+            "incomplete_count": total_incomplete,
+            "periods_with_incomplete": periods_with_incomplete,  # 새로운 필드
+            "excluded_count": excluded_count,
+            "total_penalty": round(education_penalty, 2),
+            "total_educations": len(education_records),
+            "passed_educations": len(education_records) - periods_with_incomplete,
+            "failed_educations": periods_with_incomplete,
+            "incomplete_items": incomplete_items,
+            "course_summary": course_summary,
+            "mode": "incomplete_count_based"
         }
 
         logging.info(
-            f"교육 감점 계산 완료 (새 스키마): 총 미이수 {total_incomplete}회, 감점 {education_penalty}점")
+            f"교육 감점 계산 완료 (incomplete_count > 0 기준): 미완료 기간 {periods_with_incomplete}개, 감점 {education_penalty}점"
+        )
         return education_penalty, education_stats
 
     except Exception as e:
         logging.error(f"Enhanced 교육 감점 계산 오류: {str(e)}")
-        # 오류 발생 시 레거시 모드로 폴백
         return _calculate_education_penalty_legacy_admin(user_id, year)
 
 

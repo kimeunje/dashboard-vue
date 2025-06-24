@@ -103,15 +103,14 @@ def get_education_status():
         overall_completion_rate = round((total_completed / total_courses *
                                          100) if total_courses > 0 else 0)
 
-        # 감점 계산 (미이수 횟수 × 0.5)
-        penalty_score = sum(record['incomplete_count'] or 0
-                            for record in education_status
-                            if not record['exclude_from_scoring']) * 0.5
+        # ✅ 감점 계산 수정 (incomplete_count > 0 기반)
+        penalty_score = sum(0.5 for record in education_status if (
+            record['incomplete_count'] or 0) > 0 and not record['exclude_from_scoring'])
 
         # ✅ 응답 데이터 구성
         education_summary = {
             'year': year,
-            'education_status': [],
+            'education_status': course_details,
             'summary': {
                 'total_courses': total_courses,
                 'completed': total_completed,
@@ -120,13 +119,12 @@ def get_education_status():
                                    total_courses - total_completed - total_incomplete),
                 'completion_rate': overall_completion_rate,
                 'penalty_score': float(penalty_score),
+                'periods_with_incomplete': sum(
+                    1 for record in education_status
+                    if (record['incomplete_count'] or 0) > 0),
                 'excluded_count': excluded_count,
-                'unique_courses': len(
-                    set(record['course_name'] for record in education_status
-                        if record['course_name'])),
-                'avg_completion_rate': round(
-                    sum(record['completion_rate'] or 0 for record in education_status) /
-                    len(education_status), 1) if education_status else 0.0
+                'penalty_calculation_method': 'incomplete_count_based',
+                'penalty_description': '각 교육 기간별 미이수가 있으면 0.5점 감점'
             }
         }
 
