@@ -126,7 +126,7 @@
             >
               <div class="period-header">
                 <!-- ✅ 과정명 우선 표시, 없으면 기존 방식 -->
-                <h3>{{ education.course_name || education.type_name }} 교육</h3>
+                <h3>{{ education.course_name || education.type_name }}</h3>
                 <div class="status-badge" :class="getStatusBadgeClass(education.status)">
                   {{ getStatusText(education.status) }}
                 </div>
