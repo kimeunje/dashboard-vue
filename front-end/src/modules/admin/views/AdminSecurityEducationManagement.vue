@@ -529,12 +529,15 @@
               <table class="preview-table">
                 <thead>
                   <tr>
+                    <!-- ✅ 새로운 컬럼 구조로 변경 -->
                     <th>이름</th>
                     <th>부서</th>
-                    <th>교육유형</th>
-                    <th class="count-col">수료 횟수</th>
-                    <th class="count-col">미수료 횟수</th>
-                    <th>예상 결과</th>
+                    <th>수강과정</th>
+                    <th>수료횟수</th>
+                    <th>미수료횟수</th>
+                    <th>전체</th>
+                    <th>수료율</th>
+                    <th>상태</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -542,30 +545,71 @@
                     <td>{{ record.username }}</td>
                     <td>{{ record.department }}</td>
                     <td>{{ record.education_type }}</td>
-                    <td class="count-col">
-                      <span class="count-badge success">{{ record.completed_count || 0 }}</span>
+                    <!-- ✅ 새로운 필드들 표시 -->
+                    <td class="number-cell">{{ record.completed_count }}</td>
+                    <td class="number-cell">{{ record.incomplete_count }}</td>
+                    <td class="number-cell">
+                      {{ record.completed_count + record.incomplete_count }}
                     </td>
-                    <td class="count-col">
-                      <span class="count-badge warning">{{ record.incomplete_count || 0 }}</span>
+                    <td class="percentage-cell">
+                      {{
+                        record.completed_count + record.incomplete_count > 0
+                          ? Math.round(
+                              (record.completed_count /
+                                (record.completed_count + record.incomplete_count)) *
+                                100,
+                            )
+                          : 0
+                      }}%
                     </td>
                     <td>
-                      <!-- ✅ 개선: 백엔드에서 처리될 결과 미리보기 -->
-                      <div class="result-preview">
-                        <span v-if="record.completed_count > 0" class="result-item success">
-                          수료 {{ record.completed_count }}건
-                        </span>
-                        <span v-if="record.incomplete_count > 0" class="result-item warning">
-                          미수료 {{ record.incomplete_count }}건
-                        </span>
-                      </div>
+                      <!-- ✅ 수료율에 따른 상태 표시 -->
+                      <span
+                        :class="{
+                          'status-excellent':
+                            record.completed_count + record.incomplete_count > 0 &&
+                            record.completed_count /
+                              (record.completed_count + record.incomplete_count) >=
+                              0.8,
+                          'status-good':
+                            record.completed_count + record.incomplete_count > 0 &&
+                            record.completed_count /
+                              (record.completed_count + record.incomplete_count) >=
+                              0.6 &&
+                            record.completed_count /
+                              (record.completed_count + record.incomplete_count) <
+                              0.8,
+                          'status-poor':
+                            record.completed_count + record.incomplete_count > 0 &&
+                            record.completed_count /
+                              (record.completed_count + record.incomplete_count) <
+                              0.6,
+                          'status-none': record.completed_count + record.incomplete_count === 0,
+                        }"
+                      >
+                        {{
+                          record.completed_count + record.incomplete_count === 0
+                            ? '데이터없음'
+                            : record.completed_count /
+                                  (record.completed_count + record.incomplete_count) >=
+                                0.8
+                              ? '우수'
+                              : record.completed_count /
+                                    (record.completed_count + record.incomplete_count) >=
+                                  0.6
+                                ? '양호'
+                                : '미흡'
+                        }}
+                      </span>
                     </td>
                   </tr>
                 </tbody>
               </table>
 
-              <div v-if="uploadPreview.length > 10" class="preview-notice">
-                ... 외 {{ uploadPreview.length - 10 }}건 (처음 10건만 표시)
-              </div>
+              <!-- 더 많은 데이터가 있는 경우 안내 (기존 유지) -->
+              <p v-if="uploadPreview.length > 10" class="preview-note">
+                총 {{ uploadPreview.length }}건 중 10건만 미리보기로 표시됩니다.
+              </p>
             </div>
           </div>
         </div>
@@ -574,7 +618,7 @@
         <div class="modal-footer">
           <button @click="closeBulkUploadModal" class="cancel-button">취소</button>
           <button
-            @click="processBulkUpload"
+            @click="executeUpload"
             :disabled="!canUpload"
             class="upload-button"
             :class="{ loading: uploading }"
@@ -1052,10 +1096,10 @@ const parseFile = async (file) => {
   }
 }
 
-// ✅ 개선: 필드명 정규화만 수행 (비즈니스 로직 제거)
+// ✅ 수정: 새로운 CSV 형식에 맞는 필드 매핑
 const normalizeFieldNames = (records) => {
   const fieldMapping = {
-    // 한글-영문 필드명 매핑
+    // ✅ 새로운 CSV 형식 필드 매핑
     이름: 'username',
     사용자명: 'username',
     사용자이름: 'username',
@@ -1065,26 +1109,23 @@ const normalizeFieldNames = (records) => {
     수강과정: 'education_type',
     교육과정: 'education_type',
     과정명: 'education_type',
-    교육유형: 'education_type',
+    과정: 'education_type',
     수료: 'completed_count',
     수료횟수: 'completed_count',
     완료: 'completed_count',
-    이수: 'completed_count',
+    완료횟수: 'completed_count',
     미수료: 'incomplete_count',
     미완료: 'incomplete_count',
     미이수: 'incomplete_count',
     실패: 'incomplete_count',
-    교육일: 'education_date',
-    수료일: 'education_date',
-    완료일: 'education_date',
+    실패횟수: 'incomplete_count',
 
-    // 영문 헤더도 지원
+    // 영문 헤더도 지원 (기존 유지)
     username: 'username',
     department: 'department',
     education_type: 'education_type',
     completed_count: 'completed_count',
     incomplete_count: 'incomplete_count',
-    education_date: 'education_date',
   }
 
   return records
@@ -1093,23 +1134,107 @@ const normalizeFieldNames = (records) => {
 
       // 필드명 매핑
       Object.keys(record).forEach((key) => {
-        const mappedKey = fieldMapping[key] || key
+        const normalizedKey = key.trim().replace(/\s+/g, '')
+        const mappedKey = fieldMapping[normalizedKey] || fieldMapping[key] || key
         processedRecord[mappedKey] = record[key]
       })
 
-      // ✅ 중요: 단순 타입 변환만 수행, 비즈니스 로직은 백엔드에서
+      // ✅ 중요: 타입 변환 및 기본값 설정
       processedRecord.completed_count = Math.max(0, parseInt(processedRecord.completed_count) || 0)
       processedRecord.incomplete_count = Math.max(
         0,
         parseInt(processedRecord.incomplete_count) || 0,
       )
 
+      // 문자열 필드 정리
+      if (processedRecord.username)
+        processedRecord.username = processedRecord.username.toString().trim()
+      if (processedRecord.department)
+        processedRecord.department = processedRecord.department.toString().trim()
+      if (processedRecord.education_type)
+        processedRecord.education_type = processedRecord.education_type.toString().trim()
+
       return processedRecord
     })
     .filter((record) => record.username && record.department && record.education_type)
 }
 
-// ✅ 새로운 메서드: 클라이언트 사이드 기본 검증
+// ✅ 기존 업로드 메서드는 대부분 유지 (API 호출 부분만 약간 수정)
+const executeUpload = async () => {
+  if (!selectedUploadPeriod.value) {
+    displayToast('교육 기간을 선택해주세요.', 'warning')
+    return
+  }
+
+  if (uploadPreview.value.length === 0) {
+    displayToast('업로드할 파일을 선택해주세요.', 'warning')
+    return
+  }
+
+  uploading.value = true
+
+  try {
+    // ✅ 핵심 수정: 새로운 필드명으로 데이터 전송
+    const uploadData = {
+      period_id: selectedUploadPeriod.value,
+      records: uploadPreview.value.map((record) => ({
+        // ✅ 새로운 API가 기대하는 필드명으로 매핑
+        이름: record.username,
+        부서: record.department,
+        수강과정: record.education_type,
+        수료: record.completed_count,
+        미수료: record.incomplete_count,
+      })),
+    }
+
+    console.log('[DEBUG] 업로드 데이터 전송:', {
+      period_id: uploadData.period_id,
+      record_count: uploadData.records.length,
+      sample_record: uploadData.records[0],
+    })
+
+    // 기존 API 호출 코드 유지
+    const response = await fetch('/api/security-education/bulk-upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(uploadData),
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || '업로드 실패')
+    }
+
+    // 기존 성공 처리 로직 유지
+    const successMsg =
+      `${selectedPeriodInfo.value.period_name}에 업로드 완료!\n` +
+      `✅ 성공: ${result.success_count}건\n` +
+      (result.update_count > 0 ? `🔄 업데이트: ${result.update_count}건\n` : '') +
+      (result.error_count > 0 ? `❌ 오류: ${result.error_count}건` : '')
+
+    displayToast(successMsg, 'success')
+
+    // 오류 상세 정보 표시 (기존 유지)
+    if (result.error_count > 0 && result.errors) {
+      console.warn('업로드 오류 상세:', result.errors)
+      setTimeout(() => {
+        displayToast(`오류 상세: ${result.errors.slice(0, 3).join(', ')}`, 'warning')
+      }, 2000)
+    }
+
+    closeBulkUploadModal()
+    await loadEducationData()
+  } catch (err) {
+    console.error('업로드 오류:', err)
+    displayToast(`업로드 실패: ${err.message}`, 'error')
+  } finally {
+    uploading.value = false
+  }
+}
+
+// ✅ 수정: 새로운 CSV 형식 검증
 const validateUploadData = (records) => {
   const warnings = []
   const errors = []
@@ -1119,40 +1244,48 @@ const validateUploadData = (records) => {
     return { warnings, errors }
   }
 
-  // 기본 필드 존재 여부 검증
-  const missingFields = records.filter((r) => !r.username || !r.department || !r.education_type)
-  if (missingFields.length > 0) {
-    errors.push(`필수 필드가 누락된 레코드가 ${missingFields.length}개 있습니다.`)
-  }
+  // ✅ 새로운 필수 필드 검증 (기존과 다름)
+  const requiredFields = [
+    'username',
+    'department',
+    'education_type',
+    'completed_count',
+    'incomplete_count',
+  ]
 
-  // 교육 유형 일치성 검증
-  if (selectedPeriodInfo.value) {
-    const periodEducationType = selectedPeriodInfo.value.education_type
-    const mismatchedTypes = records.filter((r) => r.education_type !== periodEducationType)
+  for (let i = 0; i < records.length; i++) {
+    const record = records[i]
+    const missingFields = requiredFields.filter((field) => !record[field] && record[field] !== 0)
 
-    if (mismatchedTypes.length > 0) {
-      warnings.push(
-        `교육 유형이 선택된 기간(${periodEducationType})과 다른 레코드가 ${mismatchedTypes.length}개 있습니다.`,
-      )
+    if (missingFields.length > 0) {
+      errors.push(`행 ${i + 1}: 필수 필드 누락 (${missingFields.join(', ')})`)
+      continue
     }
-  }
 
-  // 중복 사용자 검증
-  const userKeys = records.map((r) => `${r.username}-${r.department}`)
-  const duplicates = userKeys.filter((key, index) => userKeys.indexOf(key) !== index)
-  if (duplicates.length > 0) {
-    warnings.push(
-      `중복된 사용자가 ${new Set(duplicates).size}명 있습니다. 마지막 데이터로 처리됩니다.`,
-    )
-  }
+    // ✅ 새로운 검증: 수료/미수료 횟수 유효성
+    const completed = parseInt(record.completed_count) || 0
+    const incomplete = parseInt(record.incomplete_count) || 0
 
-  // 횟수 검증
-  const invalidCounts = records.filter(
-    (r) =>
-      r.completed_count + r.incomplete_count === 0 || r.completed_count + r.incomplete_count > 10,
-  )
-  if (invalidCounts.length > 0) {
-    warnings.push(`교육 횟수가 비정상적인 레코드가 ${invalidCounts.length}개 있습니다.`)
+    if (completed < 0 || incomplete < 0) {
+      errors.push(`행 ${i + 1}: 수료/미수료 횟수는 0 이상이어야 합니다`)
+    }
+
+    if (completed + incomplete === 0) {
+      warnings.push(`행 ${i + 1} (${record.username}): 수료와 미수료가 모두 0입니다`)
+    }
+
+    // 기존 검증도 유지
+    if (!record.username?.trim()) {
+      errors.push(`행 ${i + 1}: 사용자명이 비어있습니다`)
+    }
+
+    if (!record.department?.trim()) {
+      errors.push(`행 ${i + 1}: 부서명이 비어있습니다`)
+    }
+
+    if (!record.education_type?.trim()) {
+      errors.push(`행 ${i + 1}: 수강과정이 비어있습니다`)
+    }
   }
 
   return { warnings, errors }
