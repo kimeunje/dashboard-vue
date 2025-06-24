@@ -168,26 +168,25 @@ class ScoreService:
 
         return total_penalty, audit_stats
 
-    # 📁 back-end/app/services/total_score_service.py
-    # 기존 파일에서 _calculate_education_penalty_from_real_data 함수만 수정
-
     def _calculate_education_penalty_from_real_data(self, cursor, user_id: int,
                                                     year: int) -> tuple:
         """
-        ✅ 수정된 교육 감점 계산 - 새로운 스키마 기반
+        ✅ 수정된 교육 감점 계산 - incomplete_count > 0 기반
         
-        기존: completion_status = 0인 레코드 수 × 0.5
-        신규: SUM(incomplete_count) × 0.5
+        기존: SUM(incomplete_count) × 0.5
+        신규: COUNT(incomplete_count > 0) × 0.5
         """
         try:
-            logging.info(f"교육 감점 계산 (ScoreService): user_id={user_id}, year={year}")
+            logging.info(
+                f"교육 감점 계산 (incomplete_count > 0 기준): user_id={user_id}, year={year}")
 
-            # ✅ 핵심 수정: 새로운 스키마 기반 쿼리
+            # ✅ 핵심 수정: incomplete_count > 0 기반 쿼리
             cursor.execute(
                 """
                 SELECT 
-                    SUM(se.incomplete_count) as total_incomplete,
+                    COUNT(CASE WHEN se.incomplete_count > 0 THEN 1 END) as periods_with_incomplete,
                     SUM(se.completed_count) as total_completed,
+                    SUM(se.incomplete_count) as total_incomplete,
                     COUNT(*) as total_records,
                     SUM(se.total_courses) as total_courses,
                     AVG(se.completion_rate) as avg_completion_rate,
@@ -201,17 +200,18 @@ class ScoreService:
 
             result = cursor.fetchone()
 
-            if not result or result['total_incomplete'] is None:
-                # ✅ 새로운 스키마에 데이터가 없는 경우 레거시 모드 실행
-                logging.warning(
-                    f"새로운 교육 스키마에 데이터 없음, 레거시 모드 실행: user_id={user_id}, year={year}")
+            if not result or result['periods_with_incomplete'] is None:
+                # 새로운 스키마에 데이터가 없는 경우 레거시 모드 실행
+                logging.warning(f"새로운 교육 스키마에 데이터 없음, 레거시 모드 실행")
                 return self._calculate_education_penalty_legacy(cursor, user_id, year)
 
-            # 새로운 스키마 기반 계산
-            total_incomplete = int(
-                result['total_incomplete']) if result['total_incomplete'] else 0
+            # ✅ 새로운 감점 계산: incomplete_count > 0인 기간 수
+            periods_with_incomplete = int(result['periods_with_incomplete']
+                                          ) if result['periods_with_incomplete'] else 0
             total_completed = int(
                 result['total_completed']) if result['total_completed'] else 0
+            total_incomplete = int(
+                result['total_incomplete']) if result['total_incomplete'] else 0
             total_records = int(
                 result['total_records']) if result['total_records'] else 0
             total_courses = int(
@@ -221,11 +221,12 @@ class ScoreService:
             unique_courses = int(
                 result['unique_courses']) if result['unique_courses'] else 0
 
-            # 감점 계산 (기존 로직 유지: 0.5점씩 감점)
-            education_penalty = float(total_incomplete) * 0.5
+            # ✅ 감점 계산: incomplete_count > 0인 기간 수 × 0.5점
+            education_penalty = float(periods_with_incomplete) * 0.5
 
-            # 통계 정보 (새로운 스키마 기반)
+            # 통계 정보
             education_stats = {
+                "periods_with_incomplete": periods_with_incomplete,  # 새로운 필드
                 "incomplete_count": total_incomplete,
                 "completed_count": total_completed,
                 "total_records": total_records,
@@ -233,21 +234,21 @@ class ScoreService:
                 "avg_completion_rate": round(avg_completion_rate, 2),
                 "unique_courses": unique_courses,
                 "total_penalty": round(education_penalty, 2),
-                # ✅ 기존 필드도 호환성을 위해 유지
+                # 기존 호환성 필드
                 "total_educations": total_records,
-                "passed_educations": total_completed,
-                "failed_educations": total_incomplete
+                "passed_educations": total_records - periods_with_incomplete,
+                "failed_educations": periods_with_incomplete,
+                "mode": "incomplete_count_based"
             }
 
             logging.info(
-                f"교육 감점 계산 완료 (새 스키마): 미이수 {total_incomplete}회, 감점 {education_penalty}점"
+                f"교육 감점 계산 완료 (incomplete_count > 0 기준): 미완료 기간 {periods_with_incomplete}개, 감점 {education_penalty}점"
             )
 
             return education_penalty, education_stats
 
         except Exception as e:
-            logging.error(f"교육 감점 계산 오류 (ScoreService): {str(e)}")
-            # 오류 발생 시 레거시 모드로 폴백
+            logging.error(f"교육 감점 계산 오류 (incomplete_count > 0 기준): {str(e)}")
             return self._calculate_education_penalty_legacy(cursor, user_id, year)
 
     def _calculate_education_penalty_legacy(self, cursor, user_id: int,
