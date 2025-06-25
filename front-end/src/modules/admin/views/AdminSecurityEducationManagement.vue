@@ -1,5 +1,6 @@
 <template>
   <div class="admin-training">
+    <!-- ===== 관리 헤더 ===== -->
     <div class="admin-header">
       <h1>정보보호 교육 관리</h1>
       <div class="admin-nav">
@@ -11,47 +12,7 @@
     </div>
 
     <div class="management-content">
-      <!-- 필터 및 검색 -->
-      <div class="filter-section">
-        <div class="filter-group">
-          <label>연도:</label>
-          <select v-model="selectedYear" @change="loadEducationData">
-            <option v-for="year in availableYears" :key="year" :value="year">{{ year }}년</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label>교육유형:</label>
-          <select v-model="selectedEducationType" @change="loadEducationData">
-            <option value="">전체</option>
-            <option value="오프라인">오프라인</option>
-            <option value="온라인">온라인</option>
-            <option value="신입교육">신입교육</option>
-            <option value="심화교육">심화교육</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label>상태:</label>
-          <select v-model="selectedStatus" @change="loadEducationData">
-            <option value="">전체</option>
-            <option value="1">수료</option>
-            <option value="0">미수료</option>
-          </select>
-        </div>
-
-        <div class="search-group">
-          <input
-            type="text"
-            v-model="searchQuery"
-            @input="searchEducationData"
-            placeholder="사용자명 또는 부서 검색..."
-            class="search-input"
-          />
-        </div>
-      </div>
-
-      <!-- 교육 기간 관리 섹션 -->
+      <!-- ===== 교육 기간 관리 섹션 ===== -->
       <div class="period-management-section">
         <div class="section-header">
           <h3>🗓️ 교육 기간 관리</h3>
@@ -72,7 +33,6 @@
             periodStatus.education_types && Object.keys(periodStatus.education_types).length > 0
           "
         >
-          <!-- 교육 유형별로 그룹화해서 표시 -->
           <div
             v-for="(typeData, educationType) in periodStatus.education_types"
             :key="educationType"
@@ -132,77 +92,86 @@
         </div>
       </div>
 
-      <!-- 액션 버튼 -->
-      <div class="action-section">
-        <button @click="showBulkUploadModal = true" class="primary-button">
-          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path
-              d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
-            />
-            <path
-              d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"
-            />
-          </svg>
-          일괄 등록
-        </button>
-
-        <button @click="exportEducationData" class="secondary-button">
-          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path
-              d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
-            />
-            <path
-              d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"
-            />
-          </svg>
-          내보내기
-        </button>
-
-        <button @click="downloadTemplate" class="outline-button">
-          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path
-              d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"
-            />
-          </svg>
-          템플릿 다운로드
-        </button>
-
-        <RouterLink to="/admin/exceptions" class="outline-button">
-          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path
-              d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"
-            />
-          </svg>
-          제외 설정
-        </RouterLink>
-      </div>
-
-      <!-- 교육 기록 테이블 -->
+      <!-- ===== 교육 기록 관리 섹션 ===== -->
       <div class="table-section">
-        <div class="table-header">
-          <h3>교육 기록 ({{ filteredRecords.length }}건)</h3>
-          <div class="bulk-actions">
-            <label class="select-all">
-              <input
-                type="checkbox"
-                v-model="selectAll"
-                @change="toggleSelectAll"
-                :indeterminate="
-                  selectedRecords.length > 0 && selectedRecords.length < paginatedRecords.length
-                "
-              />
-              전체 선택
-            </label>
-            <button
-              @click="bulkToggleException"
-              :disabled="selectedRecords.length === 0"
-              class="bulk-action-button"
-            >
-              선택 항목 제외/포함 토글
+        <!-- 액션 버튼들 -->
+        <div class="section-header">
+          <h3>📋 교육 기록 관리 ({{ filteredRecords.length }}건)</h3>
+          <div class="section-actions">
+            <button @click="downloadTemplate" class="outline-button">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path
+                  d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"
+                />
+              </svg>
+              📄 템플릿 다운로드
+            </button>
+            <button @click="showBulkUploadModal = true" class="primary-button">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path
+                  d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
+                />
+                <path
+                  d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"
+                />
+              </svg>
+              📤 일괄 등록
             </button>
           </div>
         </div>
 
+        <!-- 필터 섹션 -->
+        <div class="filter-section">
+          <div class="filter-group">
+            <label>연도:</label>
+            <select v-model="selectedYear" @change="loadEducationData">
+              <option v-for="year in availableYears" :key="year" :value="year">{{ year }}년</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>교육유형:</label>
+            <select v-model="selectedEducationType" @change="loadEducationData">
+              <option value="">전체</option>
+              <option value="오프라인">오프라인</option>
+              <option value="온라인">온라인</option>
+              <option value="신입교육">신입교육</option>
+              <option value="심화교육">심화교육</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>상태:</label>
+            <select v-model="selectedStatus" @change="loadEducationData">
+              <option value="">전체</option>
+              <option value="1">수료</option>
+              <option value="0">미수료</option>
+            </select>
+          </div>
+
+          <div class="search-group">
+            <label>검색:</label>
+            <input
+              type="text"
+              v-model="searchQuery"
+              @input="searchEducationData"
+              placeholder="사용자명 또는 부서 검색..."
+              class="search-input"
+            />
+          </div>
+        </div>
+
+        <!-- 일괄 작업 -->
+        <div class="bulk-actions" v-if="selectedRecords.length > 0">
+          <div class="select-all">
+            <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" />
+            <span>{{ selectedRecords.length }}개 선택됨</span>
+          </div>
+          <button @click="bulkToggleException" class="bulk-action-button">일괄 제외 설정</button>
+          <span class="selected-count">총 {{ filteredRecords.length }}건</span>
+        </div>
+
+        <!-- 교육 기록 테이블 -->
         <div class="table-container">
           <table class="data-table">
             <thead>
@@ -219,14 +188,11 @@
                 </th>
                 <th>사용자</th>
                 <th>부서</th>
-                <!-- ✅ 새로운 컬럼: 과정명 (기존 교육유형 대체) -->
                 <th>과정명</th>
                 <th>교육유형</th>
-                <!-- ✅ 새로운 컬럼들 -->
                 <th>수료횟수</th>
                 <th>미수료횟수</th>
                 <th>수료율</th>
-                <!-- 기존 컬럼들 -->
                 <th>상태</th>
                 <th>교육일</th>
                 <th>기간</th>
@@ -258,16 +224,15 @@
                 <!-- 사용자 정보 -->
                 <td class="user-info">
                   <div class="user-name">{{ record.name }}</div>
-                  <div class="user-id">{{ record.email }}</div>
+                  <div class="user-id">{{ record.mail }}</div>
                 </td>
 
                 <!-- 부서 -->
                 <td class="department">{{ record.department }}</td>
 
-                <!-- ✅ 과정명 (새로운 정보 우선 표시) -->
+                <!-- 과정명 -->
                 <td class="course-name">
                   <div class="course-main">{{ record.course_name || record.education_type }}</div>
-                  <!-- ✅ 새로운 스키마인 경우 총 과정 수 표시 -->
                   <div v-if="record.total_courses > 1" class="course-meta">
                     총 {{ record.total_courses }}과정
                   </div>
@@ -280,17 +245,17 @@
                   </span>
                 </td>
 
-                <!-- ✅ 수료횟수 -->
+                <!-- 수료횟수 -->
                 <td class="completed-count">
                   <span class="count-value success">{{ record.completed_count || 0 }}</span>
                 </td>
 
-                <!-- ✅ 미수료횟수 -->
+                <!-- 미수료횟수 -->
                 <td class="incomplete-count">
                   <span class="count-value danger">{{ record.incomplete_count || 0 }}</span>
                 </td>
 
-                <!-- ✅ 수료율 -->
+                <!-- 수료율 -->
                 <td class="completion-rate">
                   <div class="rate-container">
                     <div class="rate-bar">
@@ -306,25 +271,20 @@
                   </div>
                 </td>
 
-                <!-- 상태 (향상된 표시) -->
+                <!-- 상태 -->
                 <td class="status">
                   <span class="status-badge" :class="getStatusClass(record)">
                     {{ record.status_text || getStatusText(record) }}
                   </span>
-                  <!-- ✅ 레거시 데이터 표시 -->
                   <div v-if="record.data_mode === 'legacy'" class="legacy-indicator">레거시</div>
                 </td>
 
                 <!-- 교육일 -->
-                <td class="education-date">
-                  {{ formatDate(record.education_date) }}
-                </td>
+                <td class="education-date">{{ formatDate(record.education_date) }}</td>
 
-                <!-- ✅ 기간 정보 (향상된 표시) -->
+                <!-- 기간 정보 -->
                 <td class="period-info">
-                  <div v-if="record.period_name" class="period-name">
-                    {{ record.period_name }}
-                  </div>
+                  <div v-if="record.period_name" class="period-name">{{ record.period_name }}</div>
                   <div
                     v-if="record.period_start_date && record.period_end_date"
                     class="period-dates"
@@ -335,9 +295,9 @@
                   <div v-if="record.period_completed" class="period-status completed">완료됨</div>
                 </td>
 
-                <!-- ✅ 감점 (정확한 계산) -->
+                <!-- 감점 -->
                 <td class="penalty">
-                  <span v-if="record.exclude_from_scoring" class="penalty-excluded"> 제외 </span>
+                  <span v-if="record.exclude_from_scoring" class="penalty-excluded">제외</span>
                   <span
                     v-else
                     class="penalty-value"
@@ -366,8 +326,6 @@
                       />
                     </svg>
                   </button>
-
-                  <!-- ✅ 제외 사유 표시 -->
                   <div
                     v-if="record.exclude_from_scoring && record.exclude_reason"
                     class="exclude-reason"
@@ -390,7 +348,6 @@
                         />
                       </svg>
                     </button>
-
                     <button @click="deleteRecord(record)" class="action-btn delete" title="삭제">
                       <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                         <path
@@ -409,11 +366,9 @@
             <button @click="currentPage--" :disabled="currentPage <= 1" class="pagination-button">
               이전
             </button>
-
-            <span class="pagination-info">
-              {{ currentPage }} / {{ totalPages }} 페이지 (총 {{ filteredRecords.length }}건)
-            </span>
-
+            <span class="pagination-info"
+              >{{ currentPage }} / {{ totalPages }} 페이지 (총 {{ filteredRecords.length }}건)</span
+            >
             <button
               @click="currentPage++"
               :disabled="currentPage >= totalPages"
@@ -423,8 +378,17 @@
             </button>
           </div>
         </div>
+
+        <!-- 데이터가 없는 경우 -->
+        <div v-if="filteredRecords.length === 0" class="no-data">
+          <div class="no-data-icon">📚</div>
+          <h3>교육 기록이 없습니다</h3>
+          <p>필터 조건을 변경하거나 새로운 교육 데이터를 업로드해보세요.</p>
+        </div>
       </div>
     </div>
+
+    <!-- ===== 모달들 ===== -->
 
     <!-- 기간 설정 모달 -->
     <div v-if="showPeriodModal" class="modal-overlay" @click="closePeriodModal">
@@ -497,7 +461,7 @@
       </div>
     </div>
 
-    <!-- 기존 일괄 업로드 모달 수정 -->
+    <!-- 일괄 업로드 모달 -->
     <div v-if="showBulkUploadModal" class="modal-overlay" @click="closeBulkUploadModal">
       <div class="modal-content bulk-upload-modal" @click.stop>
         <div class="modal-header">
@@ -506,7 +470,7 @@
         </div>
 
         <div class="modal-body">
-          <!-- ✅ 개선: 교육 기간 선택 필수 안내 -->
+          <!-- 1단계: 교육 기간 선택 -->
           <div class="upload-step">
             <h4>1단계: 교육 기간 선택 (필수)</h4>
             <div class="period-selection">
@@ -530,7 +494,7 @@
               </select>
             </div>
 
-            <!-- ✅ 새로운 기능: 선택된 기간 정보 표시 -->
+            <!-- 선택된 기간 정보 표시 -->
             <div v-if="selectedPeriodInfo" class="selected-period-info">
               <div class="info-card">
                 <h5>선택된 교육 기간</h5>
@@ -542,15 +506,15 @@
                 </p>
                 <p>
                   <strong>상태:</strong>
-                  <span :class="getPeriodStatusClass(selectedPeriodInfo)">
-                    {{ getPeriodStatusText(selectedPeriodInfo) }}
-                  </span>
+                  <span :class="getPeriodStatusClass(selectedPeriodInfo)">{{
+                    getPeriodStatusText(selectedPeriodInfo)
+                  }}</span>
                 </p>
               </div>
             </div>
           </div>
 
-          <!-- ✅ 수정: 파일 업로드 섹션 - 기간 선택 후에만 활성화 -->
+          <!-- 2단계: 파일 업로드 -->
           <div class="upload-step" :class="{ disabled: !selectedUploadPeriod }">
             <h4>2단계: CSV/Excel 파일 업로드</h4>
 
@@ -593,18 +557,10 @@
                 @change="handleFileSelect"
                 style="display: none"
               />
-
-              <!-- ✅ 개선: 템플릿 다운로드 링크를 더 눈에 띄게 -->
-              <div class="template-section">
-                <button @click="downloadTemplate" class="template-btn">
-                  📥 업로드 템플릿 다운로드
-                </button>
-                <small>템플릿을 다운로드하여 올바른 형식으로 데이터를 준비하세요</small>
-              </div>
             </div>
           </div>
 
-          <!-- ✅ 개선: 파일 미리보기 - 백엔드 검증 결과 반영 -->
+          <!-- 3단계: 데이터 미리보기 및 검증 -->
           <div v-if="uploadPreview.length > 0" class="upload-step">
             <h4>3단계: 데이터 미리보기 및 검증</h4>
 
@@ -626,7 +582,7 @@
               </div>
             </div>
 
-            <!-- ✅ 새로운 기능: 데이터 검증 경고 -->
+            <!-- 데이터 검증 경고 -->
             <div v-if="validationWarnings.length > 0" class="validation-warnings">
               <h5>⚠️ 검증 경고사항</h5>
               <ul>
@@ -639,7 +595,6 @@
               <table class="preview-table">
                 <thead>
                   <tr>
-                    <!-- ✅ 새로운 컬럼 구조로 변경 -->
                     <th>이름</th>
                     <th>부서</th>
                     <th>수강과정</th>
@@ -655,7 +610,6 @@
                     <td>{{ record.username }}</td>
                     <td>{{ record.department }}</td>
                     <td>{{ record.education_type }}</td>
-                    <!-- ✅ 새로운 필드들 표시 -->
                     <td class="number-cell">{{ record.completed_count }}</td>
                     <td class="number-cell">{{ record.incomplete_count }}</td>
                     <td class="number-cell">
@@ -673,7 +627,6 @@
                       }}%
                     </td>
                     <td>
-                      <!-- ✅ 수료율에 따른 상태 표시 -->
                       <span
                         :class="{
                           'status-excellent':
@@ -716,14 +669,7 @@
                 </tbody>
               </table>
 
-              <!-- 데이터가 없는 경우 -->
-              <div v-if="filteredRecords.length === 0" class="no-data">
-                <div class="no-data-icon">📚</div>
-                <h3>교육 기록이 없습니다</h3>
-                <p>필터 조건을 변경하거나 새로운 교육 데이터를 업로드해보세요.</p>
-              </div>
-
-              <!-- 더 많은 데이터가 있는 경우 안내 (기존 유지) -->
+              <!-- 더 많은 데이터가 있는 경우 안내 -->
               <p v-if="uploadPreview.length > 10" class="preview-note">
                 총 {{ uploadPreview.length }}건 중 10건만 미리보기로 표시됩니다.
               </p>
@@ -731,7 +677,7 @@
           </div>
         </div>
 
-        <!-- ✅ 수정: 업로드 버튼 - 더 명확한 검증 메시지 -->
+        <!-- 업로드 버튼 -->
         <div class="modal-footer">
           <button @click="closeBulkUploadModal" class="cancel-button">취소</button>
           <button
@@ -741,16 +687,18 @@
             :class="{ loading: uploading }"
           >
             <span v-if="uploading" class="loading-spinner"></span>
-            <span v-if="uploading"> {{ selectedPeriodInfo?.period_name }}에 업로드 중... </span>
-            <span v-else-if="!selectedUploadPeriod"> 교육 기간을 선택하세요 </span>
-            <span v-else-if="uploadPreview.length === 0"> 파일을 선택하세요 </span>
-            <span v-else>
-              {{ selectedPeriodInfo?.period_name }}에 {{ uploadPreview.length }}건 업로드
-            </span>
+            <span v-if="uploading">{{ selectedPeriodInfo?.period_name }}에 업로드 중...</span>
+            <span v-else-if="!selectedUploadPeriod">교육 기간을 선택하세요</span>
+            <span v-else-if="uploadPreview.length === 0">파일을 선택하세요</span>
+            <span v-else
+              >{{ selectedPeriodInfo?.period_name }}에 {{ uploadPreview.length }}건 업로드</span
+            >
           </button>
         </div>
       </div>
     </div>
+
+    <!-- 편집 모달 -->
     <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
       <div class="modal-content edit-modal" @click.stop>
         <div class="modal-header">
@@ -871,10 +819,9 @@
         </div>
       </div>
     </div>
+
     <!-- 토스트 메시지 -->
-    <div v-if="showToast" class="toast" :class="toastType">
-      {{ toastMessage }}
-    </div>
+    <div v-if="showToast" class="toast" :class="toastType">{{ toastMessage }}</div>
   </div>
 </template>
 
@@ -882,15 +829,20 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 
-// 반응형 데이터
+// ===== 상태 관리 =====
+
+// 기본 상태
 const loading = ref(false)
+const saving = ref(false)
+
+// 필터 및 검색 상태
 const selectedYear = ref(new Date().getFullYear())
 const selectedEducationType = ref('')
 const selectedStatus = ref('')
 const searchQuery = ref('')
 
-// 교육 기간 관리
-const periodStatus = ref({ periods: [] })
+// 교육 기간 관리 상태
+const periodStatus = ref({ education_types: {} })
 const showPeriodModal = ref(false)
 const editingPeriod = ref(null)
 const periodForm = ref({
@@ -903,43 +855,44 @@ const periodForm = ref({
   auto_pass_setting: true,
 })
 
-// 교육 데이터
+// 교육 데이터 상태
 const educationData = ref([])
 const filteredRecords = ref([])
 const currentPage = ref(1)
 const pageSize = ref(20)
+
+// 선택 및 일괄 작업 상태
 const selectedRecords = ref([])
 const selectAll = ref(false)
 
-// 업로드 관련
+// 업로드 관련 상태
 const showBulkUploadModal = ref(false)
 const selectedFile = ref(null)
 const uploadPreview = ref([])
 const uploading = ref(false)
-const isDragging = ref(false)
-
-// ✅ 새로 추가된 변수들
-const selectedUploadPeriod = ref('') // 선택된 교육 기간 ID
-const availablePeriodsForUpload = ref({}) // 업로드 가능한 교육 기간들
-
-// ✅ 새로운 상태: 데이터 검증 관련
+const isDragOver = ref(false)
+const selectedUploadPeriod = ref('')
+const availablePeriodsForUpload = ref({})
 const validationWarnings = ref([])
 
-// 편집 관련
+// 편집 관련 상태
 const showEditModal = ref(false)
 const editingRecord = ref({})
 
-// 토스트
+// 토스트 상태
 const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref('success')
 
-// 계산된 속성
+// ===== 계산된 속성 =====
+
+// 연도 옵션 계산
 const availableYears = computed(() => {
   const currentYear = new Date().getFullYear()
   return [currentYear - 1, currentYear, currentYear + 1]
 })
 
+// 페이지네이션 계산
 const paginatedRecords = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
@@ -950,6 +903,7 @@ const totalPages = computed(() => {
   return Math.ceil(filteredRecords.value.length / pageSize.value)
 })
 
+// 폼 유효성 검사
 const isValidPeriodForm = computed(() => {
   return (
     periodForm.value.period_name &&
@@ -959,14 +913,40 @@ const isValidPeriodForm = computed(() => {
   )
 })
 
-// 라이프사이클
+// 선택된 기간 정보
+const selectedPeriodInfo = computed(() => {
+  if (!selectedUploadPeriod.value) return null
+
+  for (const typeData of Object.values(availablePeriodsForUpload.value)) {
+    const period = typeData.periods.find((p) => p.period_id == selectedUploadPeriod.value)
+    if (period) return period
+  }
+  return null
+})
+
+// 업로드 가능 여부
+const canUpload = computed(() => {
+  return (
+    selectedUploadPeriod.value &&
+    uploadPreview.value.length > 0 &&
+    !uploading.value &&
+    validationWarnings.value.filter((w) => w.includes('오류')).length === 0
+  )
+})
+
+// ===== 라이프사이클 =====
+
 onMounted(() => {
   loadPeriodStatus()
   loadEducationData()
   loadAvailablePeriodsForUpload()
 })
 
-// 메서드들
+// ===== 데이터 로딩 메서드 =====
+
+/**
+ * 교육 기간 현황 조회
+ */
 const loadPeriodStatus = async () => {
   try {
     console.log('[DEBUG] 기간 현황 조회 시작:', selectedYear.value)
@@ -1001,6 +981,9 @@ const loadPeriodStatus = async () => {
   }
 }
 
+/**
+ * 교육 데이터 조회
+ */
 const loadEducationData = async () => {
   loading.value = true
   try {
@@ -1028,11 +1011,41 @@ const loadEducationData = async () => {
   }
 }
 
+/**
+ * 업로드 가능한 교육 기간 목록 로드
+ */
+const loadAvailablePeriodsForUpload = async () => {
+  try {
+    const response = await fetch('/api/security-education/periods/status', {
+      credentials: 'include',
+    })
+
+    if (!response.ok) {
+      throw new Error('교육 기간 목록 로드 실패')
+    }
+
+    const result = await response.json()
+    availablePeriodsForUpload.value = result.education_types || {}
+
+    console.log('[DEBUG] 업로드 가능한 교육 기간:', availablePeriodsForUpload.value)
+  } catch (err) {
+    console.error('교육 기간 로드 오류:', err)
+    displayToast('교육 기간 목록을 불러오는데 실패했습니다.', 'error')
+  }
+}
+
+// ===== 필터링 및 검색 =====
+
+/**
+ * 검색 실행
+ */
 const searchEducationData = () => {
   applyFilters()
 }
 
-// ✅ 필터링 로직 개선 (기존 applyFilters 함수 수정)
+/**
+ * 필터 적용
+ */
 const applyFilters = () => {
   let filtered = [...educationData.value]
 
@@ -1043,7 +1056,7 @@ const applyFilters = () => {
       return (
         record.username?.toLowerCase().includes(query) ||
         record.department?.toLowerCase().includes(query) ||
-        record.course_name?.toLowerCase().includes(query) || // ✅ 과정명 검색 추가
+        record.course_name?.toLowerCase().includes(query) ||
         record.education_type?.toLowerCase().includes(query)
       )
     })
@@ -1053,7 +1066,11 @@ const applyFilters = () => {
   currentPage.value = 1
 }
 
-// 기간 관리 메서드
+// ===== 기간 관리 메서드 =====
+
+/**
+ * 기간 추가 모달 열기
+ */
 const openPeriodModal = () => {
   editingPeriod.value = null
   periodForm.value = {
@@ -1068,6 +1085,9 @@ const openPeriodModal = () => {
   showPeriodModal.value = true
 }
 
+/**
+ * 기간 편집 모달 열기
+ */
 const editPeriod = (period) => {
   editingPeriod.value = period
   periodForm.value = {
@@ -1081,6 +1101,10 @@ const editPeriod = (period) => {
   }
   showPeriodModal.value = true
 }
+
+/**
+ * 기간 저장 (추가/수정)
+ */
 const savePeriod = async () => {
   if (!isValidPeriodForm.value) {
     displayToast('필수 필드를 모두 입력해주세요.', 'error')
@@ -1142,6 +1166,9 @@ const savePeriod = async () => {
   }
 }
 
+/**
+ * 기간 완료 처리
+ */
 const completePeriod = async (period) => {
   if (!confirm(`${period.period_name} 기간을 완료 처리하시겠습니까?`)) return
 
@@ -1166,6 +1193,9 @@ const completePeriod = async (period) => {
   }
 }
 
+/**
+ * 기간 재개 처리
+ */
 const reopenPeriod = async (period) => {
   if (!confirm(`${period.period_name} 기간을 재개하시겠습니까?`)) return
 
@@ -1190,6 +1220,9 @@ const reopenPeriod = async (period) => {
   }
 }
 
+/**
+ * 기간 삭제
+ */
 const deletePeriod = async (period) => {
   if (!confirm(`${period.period_name} 기간을 삭제하시겠습니까?`)) return
 
@@ -1213,6 +1246,9 @@ const deletePeriod = async (period) => {
   }
 }
 
+/**
+ * 기간 모달 닫기
+ */
 const closePeriodModal = () => {
   showPeriodModal.value = false
   editingPeriod.value = null
@@ -1227,7 +1263,11 @@ const closePeriodModal = () => {
   }
 }
 
-// 파일 업로드 메서드
+// ===== 파일 업로드 메서드 =====
+
+/**
+ * 파일 선택 처리
+ */
 const handleFileSelect = (event) => {
   if (!selectedUploadPeriod.value) {
     displayToast('먼저 교육 기간을 선택해주세요.', 'warning')
@@ -1241,9 +1281,12 @@ const handleFileSelect = (event) => {
   }
 }
 
+/**
+ * 파일 드래그 앤 드롭 처리
+ */
 const handleFileDrop = (event) => {
   event.preventDefault()
-  isDragging.value = false
+  isDragOver.value = false
 
   if (!selectedUploadPeriod.value) {
     displayToast('먼저 교육 기간을 선택해주세요.', 'warning')
@@ -1257,12 +1300,29 @@ const handleFileDrop = (event) => {
   }
 }
 
+/**
+ * 파일 선택 트리거
+ */
+const triggerFileSelect = () => {
+  if (!selectedUploadPeriod.value) {
+    displayToast('먼저 교육 기간을 선택해주세요.', 'warning')
+    return
+  }
+  const fileInput = document.querySelector('input[type="file"]')
+  fileInput?.click()
+}
+
+/**
+ * 선택된 파일 제거
+ */
 const removeSelectedFile = () => {
   selectedFile.value = null
   uploadPreview.value = []
 }
 
-// ✅ 새로운 메서드: 교육 기간 변경 처리
+/**
+ * 교육 기간 변경 처리
+ */
 const onPeriodChange = () => {
   if (selectedFile.value) {
     // 기간 변경 시 파일 초기화하고 재검증 필요 알림
@@ -1273,7 +1333,9 @@ const onPeriodChange = () => {
   }
 }
 
-// ✅ 개선된 파일 처리: 단순 파싱만 수행 (비즈니스 로직 제거)
+/**
+ * 파일 파싱 (CSV/Excel 처리)
+ */
 const parseFile = async (file) => {
   try {
     const fileName = file.name.toLowerCase()
@@ -1312,10 +1374,10 @@ const parseFile = async (file) => {
       throw new Error('지원하지 않는 파일 형식입니다. CSV 또는 Excel 파일을 선택해주세요.')
     }
 
-    // ✅ 개선: 단순 필드 매핑만 수행 (백엔드가 비즈니스 로직 처리)
+    // 필드 매핑 및 정규화
     const processedRecords = normalizeFieldNames(records)
 
-    // ✅ 새로운 기능: 클라이언트 사이드 기본 검증
+    // 클라이언트 사이드 기본 검증
     const validation = validateUploadData(processedRecords)
 
     uploadPreview.value = processedRecords
@@ -1336,10 +1398,12 @@ const parseFile = async (file) => {
   }
 }
 
-// ✅ 수정: 새로운 CSV 형식에 맞는 필드 매핑
+/**
+ * 필드명 정규화 (한글 → 영문)
+ */
 const normalizeFieldNames = (records) => {
   const fieldMapping = {
-    // ✅ 새로운 CSV 형식 필드 매핑
+    // 새로운 CSV 형식 필드 매핑
     이름: 'username',
     사용자명: 'username',
     사용자이름: 'username',
@@ -1360,7 +1424,7 @@ const normalizeFieldNames = (records) => {
     실패: 'incomplete_count',
     실패횟수: 'incomplete_count',
 
-    // 영문 헤더도 지원 (기존 유지)
+    // 영문 헤더도 지원
     username: 'username',
     department: 'department',
     education_type: 'education_type',
@@ -1379,7 +1443,7 @@ const normalizeFieldNames = (records) => {
         processedRecord[mappedKey] = record[key]
       })
 
-      // ✅ 중요: 타입 변환 및 기본값 설정
+      // 타입 변환 및 기본값 설정
       processedRecord.completed_count = Math.max(0, parseInt(processedRecord.completed_count) || 0)
       processedRecord.incomplete_count = Math.max(
         0,
@@ -1399,82 +1463,9 @@ const normalizeFieldNames = (records) => {
     .filter((record) => record.username && record.department && record.education_type)
 }
 
-// ✅ 기존 업로드 메서드는 대부분 유지 (API 호출 부분만 약간 수정)
-const executeUpload = async () => {
-  if (!selectedUploadPeriod.value) {
-    displayToast('교육 기간을 선택해주세요.', 'warning')
-    return
-  }
-
-  if (uploadPreview.value.length === 0) {
-    displayToast('업로드할 파일을 선택해주세요.', 'warning')
-    return
-  }
-
-  uploading.value = true
-
-  try {
-    // ✅ 핵심 수정: 새로운 필드명으로 데이터 전송
-    const uploadData = {
-      period_id: selectedUploadPeriod.value,
-      records: uploadPreview.value.map((record) => ({
-        // ✅ 새로운 API가 기대하는 필드명으로 매핑
-        이름: record.username,
-        부서: record.department,
-        수강과정: record.education_type,
-        수료: record.completed_count,
-        미수료: record.incomplete_count,
-      })),
-    }
-
-    console.log('[DEBUG] 업로드 데이터 전송:', {
-      period_id: uploadData.period_id,
-      record_count: uploadData.records.length,
-      sample_record: uploadData.records[0],
-    })
-
-    // 기존 API 호출 코드 유지
-    const response = await fetch('/api/security-education/bulk-upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(uploadData),
-    })
-
-    const result = await response.json()
-
-    if (!response.ok) {
-      throw new Error(result.error || '업로드 실패')
-    }
-
-    // 기존 성공 처리 로직 유지
-    const successMsg =
-      `${selectedPeriodInfo.value.period_name}에 업로드 완료!\n` +
-      `✅ 성공: ${result.success_count}건\n` +
-      (result.update_count > 0 ? `🔄 업데이트: ${result.update_count}건\n` : '') +
-      (result.error_count > 0 ? `❌ 오류: ${result.error_count}건` : '')
-
-    displayToast(successMsg, 'success')
-
-    // 오류 상세 정보 표시 (기존 유지)
-    if (result.error_count > 0 && result.errors) {
-      console.warn('업로드 오류 상세:', result.errors)
-      setTimeout(() => {
-        displayToast(`오류 상세: ${result.errors.slice(0, 3).join(', ')}`, 'warning')
-      }, 2000)
-    }
-
-    closeBulkUploadModal()
-    await loadEducationData()
-  } catch (err) {
-    console.error('업로드 오류:', err)
-    displayToast(`업로드 실패: ${err.message}`, 'error')
-  } finally {
-    uploading.value = false
-  }
-}
-
-// ✅ 수정: 새로운 CSV 형식 검증
+/**
+ * 업로드 데이터 검증
+ */
 const validateUploadData = (records) => {
   const warnings = []
   const errors = []
@@ -1484,7 +1475,7 @@ const validateUploadData = (records) => {
     return { warnings, errors }
   }
 
-  // ✅ 새로운 필수 필드 검증 (기존과 다름)
+  // 필수 필드 검증
   const requiredFields = [
     'username',
     'department',
@@ -1502,7 +1493,7 @@ const validateUploadData = (records) => {
       continue
     }
 
-    // ✅ 새로운 검증: 수료/미수료 횟수 유효성
+    // 수료/미수료 횟수 유효성
     const completed = parseInt(record.completed_count) || 0
     const incomplete = parseInt(record.incomplete_count) || 0
 
@@ -1531,173 +1522,34 @@ const validateUploadData = (records) => {
   return { warnings, errors }
 }
 
-// 디버깅을 위한 reactive 데이터 추가
-const debugInfo = ref({
-  loadingPeriods: false,
-  periodsError: null,
-  apiResponse: null,
-})
-
-// ✅ 개선된 모달 관리
-const openBulkUploadModal = async () => {
-  console.log('[DEBUG] 업로드 모달 열기')
-
-  // 활성 기간 목록 로드
-  await loadAvailablePeriodsForUpload()
-
-  showBulkUploadModal.value = true
-  selectedFile.value = null
-  uploadPreview.value = []
-  selectedUploadPeriod.value = ''
-  validationWarnings.value = []
-}
-
-// ✅ 새로운 computed: 선택된 기간 정보
-const selectedPeriodInfo = computed(() => {
-  if (!selectedUploadPeriod.value) return null
-
-  for (const typeData of Object.values(availablePeriodsForUpload.value)) {
-    const period = typeData.periods.find((p) => p.period_id == selectedUploadPeriod.value)
-    if (period) return period
+/**
+ * 업로드 실행
+ */
+const executeUpload = async () => {
+  if (!selectedUploadPeriod.value) {
+    displayToast('교육 기간을 선택해주세요.', 'warning')
+    return
   }
-  return null
-})
 
-// ✅ 새로운 computed: 업로드 가능 여부 검증
-const canUpload = computed(() => {
-  return (
-    selectedUploadPeriod.value &&
-    uploadPreview.value.length > 0 &&
-    !uploading.value &&
-    validationWarnings.value.filter((w) => w.includes('오류')).length === 0
-  )
-})
-
-// ✅ 새로운 computed: 총 수료/미수료 횟수 계산
-const getTotalCompletedCount = () => {
-  return uploadPreview.value.reduce(
-    (sum, record) => sum + (parseInt(record.completed_count) || 0),
-    0,
-  )
-}
-
-const getTotalIncompleteCount = () => {
-  return uploadPreview.value.reduce(
-    (sum, record) => sum + (parseInt(record.incomplete_count) || 0),
-    0,
-  )
-}
-
-// ✅ 교육 기간 선택 변경 시 파일 초기화
-watch(selectedUploadPeriod, (newValue, oldValue) => {
-  if (newValue !== oldValue && selectedFile.value) {
-    // 기간이 변경되면 파일 선택 초기화
-    selectedFile.value = null
-    uploadPreview.value = []
-    displayToast('교육 기간이 변경되어 파일 선택을 초기화했습니다.', 'info')
-  }
-})
-
-// ✅ 업로드 가능한 교육 기간 목록 로드
-const loadAvailablePeriodsForUpload = async () => {
-  try {
-    const response = await fetch('/api/security-education/periods/status', {
-      credentials: 'include',
-    })
-
-    if (!response.ok) {
-      throw new Error('교육 기간 목록 로드 실패')
-    }
-
-    const result = await response.json()
-    availablePeriodsForUpload.value = result.education_types || {}
-
-    console.log('[DEBUG] 업로드 가능한 교육 기간:', availablePeriodsForUpload.value)
-  } catch (err) {
-    console.error('교육 기간 로드 오류:', err)
-    displayToast('교육 기간 목록을 불러오는데 실패했습니다.', 'error')
-  }
-}
-
-// ✅ 기간 상태 텍스트 반환
-const getPeriodStatusText = (period) => {
-  if (period.is_completed) return '완료됨'
-
-  const now = new Date()
-  const startDate = new Date(period.start_date)
-  const endDate = new Date(period.end_date)
-
-  if (now < startDate) return '예정'
-  if (now > endDate) return '종료됨'
-  return '진행중'
-}
-
-// ✅ 기간 상태 CSS 클래스 반환
-const getPeriodStatusClass = (period) => {
-  if (period.is_completed) return 'status-completed'
-
-  const now = new Date()
-  const startDate = new Date(period.start_date)
-  const endDate = new Date(period.end_date)
-
-  if (now < startDate) return 'status-upcoming'
-  if (now > endDate) return 'status-ended'
-  return 'status-active'
-}
-
-// ✅ 날짜 범위 포맷팅
-const formatDateRange = (startDate, endDate) => {
-  const start = new Date(startDate).toLocaleDateString('ko-KR')
-  const end = new Date(endDate).toLocaleDateString('ko-KR')
-  return `${start} ~ ${end}`
-}
-
-// 디버깅용 메서드 추가
-const testPeriodsAPI = async () => {
-  console.log('[DEBUG] 수동 API 테스트 시작')
-  try {
-    // 1. 전체 기간 조회 테스트
-    const allPeriodsResponse = await fetch('/api/security-education/periods', {
-      credentials: 'include',
-    })
-    const allPeriodsResult = await allPeriodsResponse.json()
-    console.log('[DEBUG] 전체 기간 조회 결과:', allPeriodsResult)
-
-    // 2. 활성 기간 조회 테스트
-    const activePeriodsResponse = await fetch(
-      `/api/security-education/periods/active?year=${selectedYear.value}`,
-      {
-        credentials: 'include',
-      },
-    )
-    const activePeriodsResult = await activePeriodsResponse.json()
-    console.log('[DEBUG] 활성 기간 조회 결과:', activePeriodsResult)
-  } catch (err) {
-    console.error('[DEBUG] API 테스트 오류:', err)
-  }
-}
-
-// ✅ 개선된 업로드 처리: 백엔드에서 모든 비즈니스 로직 처리
-const processBulkUpload = async () => {
-  if (!canUpload.value) {
-    if (!selectedUploadPeriod.value) {
-      displayToast('교육 기간을 선택해주세요.', 'warning')
-      return
-    }
-    if (uploadPreview.value.length === 0) {
-      displayToast('업로드할 파일을 선택해주세요.', 'warning')
-      return
-    }
+  if (uploadPreview.value.length === 0) {
+    displayToast('업로드할 파일을 선택해주세요.', 'warning')
     return
   }
 
   uploading.value = true
 
   try {
-    // ✅ 핵심 개선: 원시 데이터만 전송, 백엔드에서 수료/미수료 결정
+    // 새로운 필드명으로 데이터 전송
     const uploadData = {
       period_id: selectedUploadPeriod.value,
-      records: uploadPreview.value, // 단순 정규화된 데이터만 전송
+      records: uploadPreview.value.map((record) => ({
+        // 새로운 API가 기대하는 필드명으로 매핑
+        이름: record.username,
+        부서: record.department,
+        수강과정: record.education_type,
+        수료: record.completed_count,
+        미수료: record.incomplete_count,
+      })),
     }
 
     console.log('[DEBUG] 업로드 데이터 전송:', {
@@ -1719,7 +1571,7 @@ const processBulkUpload = async () => {
       throw new Error(result.error || '업로드 실패')
     }
 
-    // ✅ 개선: 백엔드 처리 결과를 명확하게 표시
+    // 성공 처리
     const successMsg =
       `${selectedPeriodInfo.value.period_name}에 업로드 완료!\n` +
       `✅ 성공: ${result.success_count}건\n` +
@@ -1728,7 +1580,7 @@ const processBulkUpload = async () => {
 
     displayToast(successMsg, 'success')
 
-    // 오류가 있는 경우 상세 정보 표시
+    // 오류 상세 정보 표시
     if (result.error_count > 0 && result.errors) {
       console.warn('업로드 오류 상세:', result.errors)
       setTimeout(() => {
@@ -1746,7 +1598,9 @@ const processBulkUpload = async () => {
   }
 }
 
-// ✅ 모달 닫기 함수 수정
+/**
+ * 업로드 모달 닫기
+ */
 const closeBulkUploadModal = () => {
   showBulkUploadModal.value = false
   selectedFile.value = null
@@ -1754,7 +1608,12 @@ const closeBulkUploadModal = () => {
   selectedUploadPeriod.value = ''
   validationWarnings.value = []
 }
-// ✅ 편집 레코드 함수 개선 (기존 editRecord 함수 수정)
+
+// ===== 교육 기록 관리 메서드 =====
+
+/**
+ * 교육 기록 수정 모달 열기
+ */
 const editRecord = (record) => {
   // 새로운 스키마 데이터를 기존 형식으로 변환
   editingRecord.value = {
@@ -1766,7 +1625,7 @@ const editRecord = (record) => {
     education_period: record.education_period,
     education_type: record.education_type,
     education_date: record.education_date,
-    // ✅ 새로운 필드들
+    // 새로운 필드들
     course_name: record.course_name,
     completed_count: record.completed_count || 0,
     incomplete_count: record.incomplete_count || 0,
@@ -1782,309 +1641,9 @@ const editRecord = (record) => {
   showEditModal.value = true
 }
 
-// ✅ 상태 통계 계산 함수 (템플릿에서 사용)
-const getRecordsSummary = () => {
-  if (!filteredRecords.value.length) return null
-
-  const total = filteredRecords.value.length
-  const completed = filteredRecords.value.filter((r) => {
-    if (r.completion_rate !== undefined) {
-      return r.completion_rate >= 80
-    }
-    return r.completion_status === 1
-  }).length
-
-  const excluded = filteredRecords.value.filter((r) => r.exclude_from_scoring).length
-
-  return {
-    total,
-    completed,
-    incomplete: total - completed,
-    excluded,
-    completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
-  }
-}
-
-// ✅ 새로운 스키마 데이터 감지 함수
-const hasEnhancedData = computed(() => {
-  return educationData.value.some(
-    (record) => record.course_name && record.completion_rate !== undefined,
-  )
-})
-
-const deleteRecord = async (record) => {
-  if (!confirm('이 교육 기록을 삭제하시겠습니까?')) return
-
-  try {
-    const response = await fetch('/api/security-education/delete', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        user_id: record.user_id,
-        period_id: record.period_id,
-        education_type: record.education_type,
-      }),
-    })
-
-    const result = await response.json()
-
-    if (!response.ok) {
-      throw new Error(result.error || '삭제 실패')
-    }
-
-    displayToast(result.message, 'success')
-    await loadEducationData()
-  } catch (err) {
-    console.error('기록 삭제 오류:', err)
-    displayToast(err.message, 'error')
-  }
-}
-
-const closeEditModal = () => {
-  showEditModal.value = false
-  editingRecord.value = {}
-}
-
-// 선택 관리
-const toggleSelectAll = () => {
-  if (selectAll.value) {
-    selectedRecords.value = [...paginatedRecords.value]
-  } else {
-    selectedRecords.value = []
-  }
-}
-
-const updateSelectAll = () => {
-  selectAll.value =
-    paginatedRecords.value.length > 0 &&
-    selectedRecords.value.length === paginatedRecords.value.length
-}
-
-// 예외처리
-const toggleExceptionStatus = async (record) => {
-  if (!confirm(`${record.username}의 교육 제외 상태를 변경하시겠습니까?`)) return
-
-  try {
-    const newExcludeStatus = !record.exclude_from_scoring
-
-    const response = await fetch('/api/security-education/toggle-exception', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        user_id: record.user_id,
-        period_id: record.period_id,
-        education_type: record.education_type,
-        exclude: newExcludeStatus,
-        exclude_reason: newExcludeStatus ? '관리자 설정' : '',
-      }),
-    })
-
-    const result = await response.json()
-
-    if (!response.ok) {
-      throw new Error(result.error || '제외 상태 변경 실패')
-    }
-
-    record.exclude_from_scoring = newExcludeStatus
-    record.exclude_reason = newExcludeStatus ? '관리자 설정' : ''
-
-    displayToast(result.message || '제외 상태가 변경되었습니다.', 'success')
-    await loadEducationData()
-  } catch (err) {
-    console.error('제외 상태 변경 오류:', err)
-    displayToast(err.message, 'error')
-  }
-}
-
-const bulkToggleException = async () => {
-  if (selectedRecords.value.length === 0) return
-
-  try {
-    const response = await fetch('/api/security-education/bulk-toggle-exception', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        records: selectedRecords.value.map((r) => ({
-          user_id: r.user_id,
-          period_id: r.period_id,
-          education_type: r.education_type,
-        })),
-      }),
-    })
-
-    const result = await response.json()
-
-    if (!response.ok) {
-      throw new Error(result.error || '일괄 제외 상태 변경 실패')
-    }
-
-    displayToast(result.message, 'success')
-    selectedRecords.value = []
-    await loadEducationData()
-  } catch (err) {
-    console.error('일괄 제외 상태 변경 오류:', err)
-    displayToast(err.message, 'error')
-  }
-}
-
-// 내보내기
-const exportEducationData = async () => {
-  try {
-    const params = new URLSearchParams({
-      year: selectedYear.value,
-      format: 'csv',
-    })
-
-    const response = await fetch(`/api/security-education/export?${params}`, {
-      method: 'GET',
-      credentials: 'include',
-      headers: { Accept: 'text/csv' },
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || '데이터 내보내기에 실패했습니다.')
-    }
-
-    const blob = await response.blob()
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', `정보보호교육_데이터_${selectedYear.value}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-
-    displayToast('데이터가 성공적으로 내보내졌습니다.', 'success')
-  } catch (err) {
-    console.error('내보내기 실패:', err)
-    displayToast(err.message, 'error')
-  }
-}
-
-const downloadTemplate = async () => {
-  try {
-    const response = await fetch('/api/security-education/template/download', {
-      credentials: 'include',
-    })
-
-    if (!response.ok) throw new Error('템플릿 다운로드 실패')
-
-    const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = '정보보호교육_업로드_템플릿.csv'
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
-  } catch (err) {
-    console.error('템플릿 다운로드 오류:', err)
-    displayToast('템플릿 다운로드에 실패했습니다.', 'error')
-  }
-}
-
-// ✅ 날짜 포맷 함수들
-const formatDate = (dateString) => {
-  if (!dateString) return '-'
-  try {
-    return new Date(dateString).toLocaleDateString('ko-KR')
-  } catch {
-    return dateString
-  }
-}
-
-const formatDateShort = (dateString) => {
-  if (!dateString) return '-'
-  try {
-    return new Date(dateString).toLocaleDateString('ko-KR', {
-      month: '2-digit',
-      day: '2-digit',
-    })
-  } catch {
-    return dateString
-  }
-}
-
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
-
-const truncateText = (text, maxLength) => {
-  if (!text) return '-'
-  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
-}
-
-// ✅ 새로운 헬퍼 함수들
-const getTypeClass = (educationType) => {
-  const typeMap = {
-    온라인: 'type-online',
-    오프라인: 'type-offline',
-    신입교육: 'type-newbie',
-    심화교육: 'type-advanced',
-    기본교육: 'type-basic',
-  }
-  return typeMap[educationType] || 'type-default'
-}
-
-const getRateClass = (rate) => {
-  if (rate >= 80) return 'rate-excellent'
-  if (rate >= 60) return 'rate-good'
-  if (rate >= 40) return 'rate-warning'
-  return 'rate-poor'
-}
-
-const getRateTextClass = (rate) => {
-  if (rate >= 80) return 'text-excellent'
-  if (rate >= 60) return 'text-good'
-  if (rate >= 40) return 'text-warning'
-  return 'text-danger'
-}
-
-const getStatusClass = (record) => {
-  if (record.exclude_from_scoring) return 'status-excluded'
-
-  // 새로운 스키마 기반
-  if (record.completion_rate !== undefined) {
-    if (record.completion_rate >= 100) return 'status-completed'
-    if (record.completion_rate >= 80) return 'status-passed'
-    if (record.completion_rate > 0) return 'status-partial'
-    return 'status-not-started'
-  }
-
-  // 레거시 스키마 기반
-  if (record.completion_status === 1) return 'status-completed'
-  return 'status-incomplete'
-}
-
-const getStatusText = (record) => {
-  if (record.status_text) return record.status_text
-
-  if (record.exclude_from_scoring) return '제외'
-
-  // 새로운 스키마 기반
-  if (record.completion_rate !== undefined) {
-    if (record.completion_rate >= 100) return '완료'
-    if (record.completion_rate >= 80) return '수료'
-    if (record.completion_rate > 0) return `부분완료(${record.completion_rate.toFixed(0)}%)`
-    return '미실시'
-  }
-
-  // 레거시 기반
-  return record.completion_status === 1 ? '수료' : '미수료'
-}
-
-// ✅ 누락된 saveRecord 함수 추가
+/**
+ * 교육 기록 저장
+ */
 const saveRecord = async () => {
   if (saving.value) return
 
@@ -2143,9 +1702,342 @@ const saveRecord = async () => {
   }
 }
 
-// 추가로 필요한 상태 변수
-const saving = ref(false)
+/**
+ * 교육 기록 삭제
+ */
+const deleteRecord = async (record) => {
+  if (!confirm('이 교육 기록을 삭제하시겠습니까?')) return
 
+  try {
+    const response = await fetch('/api/security-education/delete', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        user_id: record.user_id,
+        period_id: record.period_id,
+        education_type: record.education_type,
+      }),
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || '삭제 실패')
+    }
+
+    displayToast(result.message, 'success')
+    await loadEducationData()
+  } catch (err) {
+    console.error('기록 삭제 오류:', err)
+    displayToast(err.message, 'error')
+  }
+}
+
+/**
+ * 편집 모달 닫기
+ */
+const closeEditModal = () => {
+  showEditModal.value = false
+  editingRecord.value = {}
+}
+
+// ===== 선택 및 일괄 작업 =====
+
+/**
+ * 전체 선택/해제 토글
+ */
+const toggleSelectAll = () => {
+  if (selectAll.value) {
+    selectedRecords.value = [...paginatedRecords.value]
+  } else {
+    selectedRecords.value = []
+  }
+}
+
+/**
+ * 전체 선택 상태 업데이트
+ */
+const updateSelectAll = () => {
+  selectAll.value =
+    paginatedRecords.value.length > 0 &&
+    selectedRecords.value.length === paginatedRecords.value.length
+}
+
+/**
+ * 개별 제외 상태 토글
+ */
+const toggleExceptionStatus = async (record) => {
+  if (!confirm(`${record.username}의 교육 제외 상태를 변경하시겠습니까?`)) return
+
+  try {
+    const newExcludeStatus = !record.exclude_from_scoring
+
+    const response = await fetch('/api/security-education/toggle-exception', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        user_id: record.user_id,
+        period_id: record.period_id,
+        education_type: record.education_type,
+        exclude: newExcludeStatus,
+        exclude_reason: newExcludeStatus ? '관리자 설정' : '',
+      }),
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || '제외 상태 변경 실패')
+    }
+
+    record.exclude_from_scoring = newExcludeStatus
+    record.exclude_reason = newExcludeStatus ? '관리자 설정' : ''
+
+    displayToast(result.message || '제외 상태가 변경되었습니다.', 'success')
+    await loadEducationData()
+  } catch (err) {
+    console.error('제외 상태 변경 오류:', err)
+    displayToast(err.message, 'error')
+  }
+}
+
+/**
+ * 일괄 제외 상태 토글
+ */
+const bulkToggleException = async () => {
+  if (selectedRecords.value.length === 0) return
+
+  try {
+    const response = await fetch('/api/security-education/bulk-toggle-exception', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        records: selectedRecords.value.map((r) => ({
+          user_id: r.user_id,
+          period_id: r.period_id,
+          education_type: r.education_type,
+        })),
+      }),
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || '일괄 제외 상태 변경 실패')
+    }
+
+    displayToast(result.message, 'success')
+    selectedRecords.value = []
+    await loadEducationData()
+  } catch (err) {
+    console.error('일괄 제외 상태 변경 오류:', err)
+    displayToast(err.message, 'error')
+  }
+}
+
+// ===== 데이터 내보내기 =====
+
+/**
+ * 템플릿 다운로드
+ */
+const downloadTemplate = async () => {
+  try {
+    const response = await fetch('/api/security-education/template/download', {
+      credentials: 'include',
+    })
+
+    if (!response.ok) throw new Error('템플릿 다운로드 실패')
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = '정보보호교육_업로드_템플릿.csv'
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+  } catch (err) {
+    console.error('템플릿 다운로드 오류:', err)
+    displayToast('템플릿 다운로드에 실패했습니다.', 'error')
+  }
+}
+
+// ===== 유틸리티 메서드 =====
+
+/**
+ * 날짜 포맷팅
+ */
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  try {
+    return new Date(dateString).toLocaleDateString('ko-KR')
+  } catch {
+    return dateString
+  }
+}
+
+/**
+ * 짧은 날짜 포맷팅
+ */
+const formatDateShort = (dateString) => {
+  if (!dateString) return '-'
+  try {
+    return new Date(dateString).toLocaleDateString('ko-KR', {
+      month: '2-digit',
+      day: '2-digit',
+    })
+  } catch {
+    return dateString
+  }
+}
+
+/**
+ * 날짜 범위 포맷팅
+ */
+const formatDateRange = (startDate, endDate) => {
+  const start = new Date(startDate).toLocaleDateString('ko-KR')
+  const end = new Date(endDate).toLocaleDateString('ko-KR')
+  return `${start} ~ ${end}`
+}
+
+/**
+ * 파일 크기 포맷팅
+ */
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+/**
+ * 교육 유형별 CSS 클래스 반환
+ */
+const getTypeClass = (educationType) => {
+  const typeMap = {
+    온라인: 'type-online',
+    오프라인: 'type-offline',
+    신입교육: 'type-newbie',
+    심화교육: 'type-advanced',
+    기본교육: 'type-basic',
+  }
+  return typeMap[educationType] || 'type-default'
+}
+
+/**
+ * 수료율별 CSS 클래스 반환
+ */
+const getRateClass = (rate) => {
+  if (rate >= 80) return 'rate-excellent'
+  if (rate >= 60) return 'rate-good'
+  if (rate >= 40) return 'rate-warning'
+  return 'rate-poor'
+}
+
+/**
+ * 수료율 텍스트 CSS 클래스 반환
+ */
+const getRateTextClass = (rate) => {
+  if (rate >= 80) return 'text-excellent'
+  if (rate >= 60) return 'text-good'
+  if (rate >= 40) return 'text-warning'
+  return 'text-danger'
+}
+
+/**
+ * 상태별 CSS 클래스 반환
+ */
+const getStatusClass = (record) => {
+  if (record.exclude_from_scoring) return 'status-excluded'
+
+  // 새로운 스키마 기반
+  if (record.completion_rate !== undefined) {
+    if (record.completion_rate >= 100) return 'status-completed'
+    if (record.completion_rate >= 80) return 'status-passed'
+    if (record.completion_rate > 0) return 'status-partial'
+    return 'status-not-started'
+  }
+
+  // 레거시 스키마 기반
+  if (record.completion_status === 1) return 'status-completed'
+  return 'status-incomplete'
+}
+
+/**
+ * 상태 텍스트 반환
+ */
+const getStatusText = (record) => {
+  if (record.status_text) return record.status_text
+
+  if (record.exclude_from_scoring) return '제외'
+
+  // 새로운 스키마 기반
+  if (record.completion_rate !== undefined) {
+    if (record.completion_rate >= 100) return '완료'
+    if (record.completion_rate >= 80) return '수료'
+    if (record.completion_rate > 0) return `부분완료(${record.completion_rate.toFixed(0)}%)`
+    return '미실시'
+  }
+
+  // 레거시 기반
+  return record.completion_status === 1 ? '수료' : '미수료'
+}
+
+/**
+ * 기간 상태 텍스트 반환
+ */
+const getPeriodStatusText = (period) => {
+  if (period.is_completed) return '완료됨'
+
+  const now = new Date()
+  const startDate = new Date(period.start_date)
+  const endDate = new Date(period.end_date)
+
+  if (now < startDate) return '예정'
+  if (now > endDate) return '종료됨'
+  return '진행중'
+}
+
+/**
+ * 기간 상태 CSS 클래스 반환
+ */
+const getPeriodStatusClass = (period) => {
+  if (period.is_completed) return 'status-completed'
+
+  const now = new Date()
+  const startDate = new Date(period.start_date)
+  const endDate = new Date(period.end_date)
+
+  if (now < startDate) return 'status-upcoming'
+  if (now > endDate) return 'status-ended'
+  return 'status-active'
+}
+
+/**
+ * 업로드 미리보기 통계 계산
+ */
+const getTotalCompletedCount = () => {
+  return uploadPreview.value.reduce(
+    (sum, record) => sum + (parseInt(record.completed_count) || 0),
+    0,
+  )
+}
+
+const getTotalIncompleteCount = () => {
+  return uploadPreview.value.reduce(
+    (sum, record) => sum + (parseInt(record.incomplete_count) || 0),
+    0,
+  )
+}
+
+/**
+ * 토스트 메시지 표시
+ */
 const displayToast = (message, type = 'success') => {
   toastMessage.value = message
   toastType.value = type
@@ -2156,10 +2048,21 @@ const displayToast = (message, type = 'success') => {
   }, 3000)
 }
 
-// 워처
+// ===== 감시자 (Watchers) =====
+
+// 연도 변경 시 데이터 새로고침
 watch(selectedYear, () => {
   loadPeriodStatus()
   loadEducationData()
+})
+
+// 업로드 기간 선택 변경 시 파일 초기화
+watch(selectedUploadPeriod, (newValue, oldValue) => {
+  if (newValue !== oldValue && selectedFile.value) {
+    selectedFile.value = null
+    uploadPreview.value = []
+    displayToast('교육 기간이 변경되어 파일 선택을 초기화했습니다.', 'info')
+  }
 })
 </script>
 
