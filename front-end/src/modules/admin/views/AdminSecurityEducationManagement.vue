@@ -1223,11 +1223,63 @@ const reopenPeriod = async (period) => {
 /**
  * 기간 삭제
  */
+// AdminSecurityEducationManagement.vue - 수정된 deletePeriod 함수
+
 const deletePeriod = async (period) => {
   if (!confirm(`${period.period_name} 기간을 삭제하시겠습니까?`)) return
 
   try {
+    console.log('[DEBUG] 교육 기간 삭제 요청:', period.period_id)
+
+    // 1차 삭제 시도 (일반 삭제)
     const response = await fetch(`/api/security-education/periods/${period.period_id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    })
+
+    const result = await response.json()
+    console.log('[DEBUG] 삭제 응답:', response.status, result)
+
+    // ✅ 성공한 경우
+    if (response.ok) {
+      displayToast(result.message, 'success')
+      await loadPeriodStatus()
+      return
+    }
+
+    // ✅ 400 오류이고 확인이 필요한 경우
+    if (response.status === 400 && result.requires_confirmation) {
+      console.log('[DEBUG] 확인 필요:', result.education_count, '건의 교육 기록')
+
+      // 강제 삭제 확인
+      const forceDelete = confirm(
+        `${result.error}\n\n모든 관련 데이터를 포함하여 완전히 삭제하시겠습니까?\n\n※ 이 작업은 되돌릴 수 없습니다.`,
+      )
+
+      if (forceDelete) {
+        await forceDeletePeriod(period.period_id)
+      } else {
+        displayToast('삭제가 취소되었습니다.', 'info')
+      }
+      return
+    }
+
+    // ✅ 기타 오류인 경우
+    throw new Error(result.error || result.message || '삭제 실패')
+  } catch (err) {
+    console.error('기간 삭제 오류:', err)
+    displayToast(err.message, 'error')
+  }
+}
+
+/**
+ * 기간 강제 삭제 (교육 기록 포함)
+ */
+const forceDeletePeriod = async (periodId) => {
+  try {
+    console.log('[DEBUG] 교육 기간 강제 삭제 요청:', periodId)
+
+    const response = await fetch(`/api/security-education/periods/${periodId}/force-delete`, {
       method: 'DELETE',
       credentials: 'include',
     })
@@ -1235,13 +1287,14 @@ const deletePeriod = async (period) => {
     const result = await response.json()
 
     if (!response.ok) {
-      throw new Error(result.error || '삭제 실패')
+      throw new Error(result.error || '강제 삭제 실패')
     }
 
     displayToast(result.message, 'success')
     await loadPeriodStatus()
+    await loadEducationData() // 교육 데이터도 새로고침
   } catch (err) {
-    console.error('기간 삭제 오류:', err)
+    console.error('강제 삭제 오류:', err)
     displayToast(err.message, 'error')
   }
 }

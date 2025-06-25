@@ -39,25 +39,25 @@ class EducationPeriodService:
             WHERE education_year = %s AND is_active = 1
             ORDER BY education_type, start_date
             """,
-            (year, ),
+            (year,),
             fetch_all=True,
         )
 
         # 교육 유형별로 그룹화
         education_types = {}
         for period in periods:
-            education_type = period['education_type']
+            education_type = period["education_type"]
             if education_type not in education_types:
                 education_types[education_type] = {
-                    'type_name': education_type,
-                    'periods': []
+                    "type_name": education_type,
+                    "periods": [],
                 }
-            education_types[education_type]['periods'].append(period)
+            education_types[education_type]["periods"].append(period)
 
         return {
-            'year': year,
-            'education_types': education_types,
-            'total_periods': len(periods)
+            "year": year,
+            "education_types": education_types,
+            "total_periods": len(periods),
         }
 
     def create_period(self, period_data: dict, created_by: str) -> dict:
@@ -66,28 +66,35 @@ class EducationPeriodService:
             print(f"[DB_DEBUG] 기간 생성 요청: {period_data}")
 
             # 1. 중복 검사
-            if self.check_period_exists(period_data['education_year'],
-                                        period_data['period_name'],
-                                        period_data['education_type']):
+            if self.check_period_exists(
+                period_data["education_year"],
+                period_data["period_name"],
+                period_data["education_type"],
+            ):
                 print(f"[DB_DEBUG] 중복 기간 발견")
-                return {'success': False, 'message': '동일한 연도, 기간명, 교육유형의 기간이 이미 존재합니다.'}
+                return {
+                    "success": False,
+                    "message": "동일한 연도, 기간명, 교육유형의 기간이 이미 존재합니다.",
+                }
 
             # 2. 날짜 겹침 검사
-            overlap_check = self.check_date_overlap(period_data['education_type'],
-                                                    period_data['start_date'],
-                                                    period_data['end_date'])
+            overlap_check = self.check_date_overlap(
+                period_data["education_type"],
+                period_data["start_date"],
+                period_data["end_date"],
+            )
 
-            if overlap_check['has_overlap']:
+            if overlap_check["has_overlap"]:
                 overlap_details = []
-                for period in overlap_check['overlapping_periods']:
+                for period in overlap_check["overlapping_periods"]:
                     overlap_details.append(
                         f"{period['year']}년 {period['period_name']} ({period['start_date']} ~ {period['end_date']})"
                     )
 
                 return {
-                    'success': False,
-                    'message': f"날짜가 겹치는 기간이 있습니다: {', '.join(overlap_details)}",
-                    'overlapping_periods': overlap_check['overlapping_periods']
+                    "success": False,
+                    "message": f"날짜가 겹치는 기간이 있습니다: {', '.join(overlap_details)}",
+                    "overlapping_periods": overlap_check["overlapping_periods"],
                 }
 
             # 3. 기간 생성 (return_id 제거하고 DatabaseManager 사용)
@@ -100,24 +107,32 @@ class EducationPeriodService:
                     (education_year, period_name, education_type, start_date, end_date, 
                     description, auto_pass_setting, created_by)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (period_data['education_year'], period_data['period_name'],
-                          period_data['education_type'], period_data['start_date'],
-                          period_data['end_date'], period_data.get('description', ''),
-                          period_data.get('auto_pass_setting', 1), created_by))
+                    """,
+                    (
+                        period_data["education_year"],
+                        period_data["period_name"],
+                        period_data["education_type"],
+                        period_data["start_date"],
+                        period_data["end_date"],
+                        period_data.get("description", ""),
+                        period_data.get("auto_pass_setting", 1),
+                        created_by,
+                    ),
+                )
 
                 period_id = cursor.lastrowid
 
             print(f"[DB_DEBUG] 기간 생성 완료, period_id: {period_id}")
 
             return {
-                'success': True,
-                'message': f"{period_data['period_name']} 기간이 생성되었습니다.",
-                'period_id': period_id
+                "success": True,
+                "message": f"{period_data['period_name']} 기간이 생성되었습니다.",
+                "period_id": period_id,
             }
 
         except Exception as e:
             print(f"[DB_DEBUG] 기간 생성 예외: {str(e)}")
-            return {'success': False, 'message': f'기간 생성 실패: {str(e)}'}
+            return {"success": False, "message": f"기간 생성 실패: {str(e)}"}
 
     def complete_period(self, period_id: int, completed_by: str) -> dict:
         """교육 기간 완료 처리 (자동 통과 기능 포함)"""
@@ -134,22 +149,27 @@ class EducationPeriodService:
                     SELECT period_name, education_type, education_year, auto_pass_setting, is_completed
                     FROM security_education_periods 
                     WHERE period_id = %s AND is_active = 1
-                    """, (period_id, ))
+                    """,
+                    (period_id,),
+                )
                 period_info = cursor.fetchone()
 
                 print(f"[DB_DEBUG] 기간 정보: {period_info}")
 
                 if not period_info:
                     print(f"[DB_DEBUG] 기간 정보 없음")
-                    return {'success': False, 'message': '해당 기간을 찾을 수 없습니다.'}
+                    return {
+                        "success": False,
+                        "message": "해당 기간을 찾을 수 없습니다.",
+                    }
 
-                if period_info['is_completed']:
+                if period_info["is_completed"]:
                     print(f"[DB_DEBUG] 이미 완료된 기간")
-                    return {'success': False, 'message': '이미 완료된 기간입니다.'}
+                    return {"success": False, "message": "이미 완료된 기간입니다."}
 
                 # 2. 자동 통과 처리 (설정이 활성화된 경우)
                 auto_passed_count = 0
-                if period_info['auto_pass_setting']:
+                if period_info["auto_pass_setting"]:
                     print(f"[DB_DEBUG] 자동 통과 처리 시작")
 
                     try:
@@ -163,10 +183,14 @@ class EducationPeriodService:
                                 FROM security_education 
                                 WHERE period_id = %s
                             )
-                            """, (period_id, ))
+                            """,
+                            (period_id,),
+                        )
 
                         users_to_auto_pass = cursor.fetchall()
-                        print(f"[DB_DEBUG] 자동 통과 대상 사용자: {len(users_to_auto_pass)}명")
+                        print(
+                            f"[DB_DEBUG] 자동 통과 대상 사용자: {len(users_to_auto_pass)}명"
+                        )
 
                         # 각 사용자별로 자동 통과 기록 생성
                         for user in users_to_auto_pass:
@@ -186,16 +210,21 @@ class EducationPeriodService:
                                             '기간 완료로 인한 자동 통과 처리', NOW())
                                     """,
                                     (
-                                        user['uid'],
+                                        user["uid"],
                                         period_id,
-                                        period_info['education_type'],
-                                        period_info['education_year'],
-                                        period_info['period_name']  # 기간명을 과정명으로 사용
-                                    ))
+                                        period_info["education_type"],
+                                        period_info["education_year"],
+                                        period_info[
+                                            "period_name"
+                                        ],  # 기간명을 과정명으로 사용
+                                    ),
+                                )
 
                                 if cursor.rowcount > 0:
                                     auto_passed_count += 1
-                                    print(f"[DB_DEBUG] {user['username']} 자동 통과 성공")
+                                    print(
+                                        f"[DB_DEBUG] {user['username']} 자동 통과 성공"
+                                    )
 
                             except Exception as user_error:
                                 print(
@@ -214,7 +243,9 @@ class EducationPeriodService:
                             WHERE se.period_id = %s AND se.notes = '기간 완료로 인한 자동 통과 처리'
                             ORDER BY se.created_at DESC
                             LIMIT 5
-                            """, (period_id, ))
+                            """,
+                            (period_id,),
+                        )
 
                         inserted_records = cursor.fetchall()
                         print(f"[DB_DEBUG] INSERT 확인 - {len(inserted_records)}건:")
@@ -234,7 +265,9 @@ class EducationPeriodService:
                     UPDATE security_education_periods
                     SET is_completed = 1, completed_at = NOW(), completed_by = %s, updated_at = NOW()
                     WHERE period_id = %s
-                    """, (completed_by, period_id))
+                    """,
+                    (completed_by, period_id),
+                )
 
                 print(f"[DB_DEBUG] 기간 완료 처리 성공")
 
@@ -244,16 +277,17 @@ class EducationPeriodService:
                     message += f" 미실시 사용자 {auto_passed_count}명이 자동으로 통과 처리되었습니다."
 
                 return {
-                    'success': True,
-                    'message': message,
-                    'auto_passed_count': auto_passed_count
+                    "success": True,
+                    "message": message,
+                    "auto_passed_count": auto_passed_count,
                 }
 
         except Exception as e:
             print(f"[DB_DEBUG] 완료 처리 예외: {str(e)}")
             import traceback
+
             traceback.print_exc()
-            return {'success': False, 'message': f'완료 처리 실패: {str(e)}'}
+            return {"success": False, "message": f"완료 처리 실패: {str(e)}"}
 
     def reopen_period(self, period_id: int) -> dict:
         """교육 기간 재개 (완료 상태 취소) - 모의훈련과 동일한 기능"""
@@ -267,21 +301,28 @@ class EducationPeriodService:
                     SELECT period_name, is_completed
                     FROM security_education_periods 
                     WHERE period_id = %s AND is_active = 1
-                    """, (period_id, ))
+                    """,
+                    (period_id,),
+                )
                 period_info = cursor.fetchone()
 
                 if not period_info:
-                    return {'success': False, 'message': '해당 기간을 찾을 수 없습니다.'}
+                    return {
+                        "success": False,
+                        "message": "해당 기간을 찾을 수 없습니다.",
+                    }
 
-                if not period_info['is_completed']:
-                    return {'success': False, 'message': '완료되지 않은 기간입니다.'}
+                if not period_info["is_completed"]:
+                    return {"success": False, "message": "완료되지 않은 기간입니다."}
 
                 # 2. 자동 통과 처리된 레코드 삭제 (모의훈련과 동일한 방식)
                 cursor.execute(
                     """
                     DELETE FROM security_education 
                     WHERE period_id = %s AND notes = '기간 완료로 인한 자동 통과 처리'
-                    """, (period_id, ))
+                    """,
+                    (period_id,),
+                )
 
                 deleted_count = cursor.rowcount
                 print(f"[DB_DEBUG] 자동 통과 기록 삭제: {deleted_count}건")
@@ -292,37 +333,47 @@ class EducationPeriodService:
                     UPDATE security_education_periods
                     SET is_completed = 0, completed_at = NULL, completed_by = NULL, updated_at = NOW()
                     WHERE period_id = %s
-                    """, (period_id, ))
+                    """,
+                    (period_id,),
+                )
 
                 message = f"{period_info['period_name']} 기간이 재개되었습니다."
                 if deleted_count > 0:
-                    message += f" 자동 통과 처리된 {deleted_count}건의 기록이 삭제되었습니다."
+                    message += (
+                        f" 자동 통과 처리된 {deleted_count}건의 기록이 삭제되었습니다."
+                    )
 
                 return {
-                    'success': True,
-                    'message': message,
-                    'deleted_count': deleted_count
+                    "success": True,
+                    "message": message,
+                    "deleted_count": deleted_count,
                 }
 
         except Exception as e:
             print(f"[DB_DEBUG] 재개 처리 예외: {str(e)}")
             import traceback
-            traceback.print_exc()
-            return {'success': False, 'message': f'재개 처리 실패: {str(e)}'}
 
-    def check_period_exists(self, year: int, period_name: str,
-                            education_type: str) -> bool:
+            traceback.print_exc()
+            return {"success": False, "message": f"재개 처리 실패: {str(e)}"}
+
+    def check_period_exists(
+        self, year: int, period_name: str, education_type: str
+    ) -> bool:
         """기간 중복 체크"""
         result = execute_query(
             """
             SELECT COUNT(*) as count
             FROM security_education_periods
             WHERE education_year = %s AND period_name = %s AND education_type = %s AND is_active = 1
-            """, (year, period_name, education_type), fetch_one=True)
-        return result['count'] > 0
+            """,
+            (year, period_name, education_type),
+            fetch_one=True,
+        )
+        return result["count"] > 0
 
-    def check_date_overlap(self, education_type: str, start_date, end_date,
-                           exclude_period_id: int = None) -> dict:
+    def check_date_overlap(
+        self, education_type: str, start_date, end_date, exclude_period_id: int = None
+    ) -> dict:
         """날짜 겹침 검사 - 더 상세한 로깅 추가"""
         try:
             from datetime import datetime
@@ -361,42 +412,171 @@ class EducationPeriodService:
             overlapping_periods = []
 
             for period in existing_periods:
-                existing_start = period['start_date']
-                existing_end = period['end_date']
+                existing_start = period["start_date"]
+                existing_end = period["end_date"]
 
                 # 날짜 겹침 검사 로직
                 is_overlapping = (
-                    (start_date <= existing_start <= end_date) or  # 새 기간이 기존 기간 시작일을 포함
-                    (start_date <= existing_end <= end_date) or  # 새 기간이 기존 기간 종료일을 포함
-                    (existing_start <= start_date <= existing_end)
-                    or  # 기존 기간이 새 기간 시작일을 포함
-                    (existing_start <= end_date <= existing_end)  # 기존 기간이 새 기간 종료일을 포함
+                    (
+                        start_date <= existing_start <= end_date
+                    )  # 새 기간이 기존 기간 시작일을 포함
+                    or (
+                        start_date <= existing_end <= end_date
+                    )  # 새 기간이 기존 기간 종료일을 포함
+                    or (
+                        existing_start <= start_date <= existing_end
+                    )  # 기존 기간이 새 기간 시작일을 포함
+                    or (
+                        existing_start <= end_date <= existing_end
+                    )  # 기존 기간이 새 기간 종료일을 포함
                 )
 
-                print(f"[DB_DEBUG] 겹침 검사 - {period['period_name']}: {is_overlapping}")
+                print(
+                    f"[DB_DEBUG] 겹침 검사 - {period['period_name']}: {is_overlapping}"
+                )
 
                 if is_overlapping:
-                    overlapping_periods.append({
-                        'period_id': period['period_id'],
-                        'period_name': period['period_name'],
-                        'start_date': str(existing_start),
-                        'end_date': str(existing_end),
-                        'year': period['education_year']
-                    })
+                    overlapping_periods.append(
+                        {
+                            "period_id": period["period_id"],
+                            "period_name": period["period_name"],
+                            "start_date": str(existing_start),
+                            "end_date": str(existing_end),
+                            "year": period["education_year"],
+                        }
+                    )
 
             print(f"[DB_DEBUG] 겹치는 기간 수: {len(overlapping_periods)}")
 
             return {
-                'has_overlap': len(overlapping_periods) > 0,
-                'overlapping_periods': overlapping_periods,
-                'message': f"{len(overlapping_periods)}개의 겹치는 기간이 발견되었습니다."
-                if overlapping_periods else "겹치는 기간이 없습니다."
+                "has_overlap": len(overlapping_periods) > 0,
+                "overlapping_periods": overlapping_periods,
+                "message": (
+                    f"{len(overlapping_periods)}개의 겹치는 기간이 발견되었습니다."
+                    if overlapping_periods
+                    else "겹치는 기간이 없습니다."
+                ),
             }
 
         except Exception as e:
             print(f"[DB_DEBUG] 날짜 겹침 검사 오류: {str(e)}")
             return {
-                'has_overlap': False,
-                'overlapping_periods': [],
-                'message': f"검사 중 오류 발생: {str(e)}"
+                "has_overlap": False,
+                "overlapping_periods": [],
+                "message": f"검사 중 오류 발생: {str(e)}",
             }
+
+    def delete_education_period(self, period_id: int) -> dict:
+        """교육 기간 삭제"""
+        try:
+            with DatabaseManager.get_db_cursor() as cursor:
+                print(f"[DB_DEBUG] 교육 기간 삭제 시작: period_id={period_id}")
+
+                # 1. 기간 정보 조회
+                cursor.execute(
+                    """
+                    SELECT period_name, education_type, education_year
+                    FROM security_education_periods
+                    WHERE period_id = %s AND is_active = 1
+                    """,
+                    (period_id,),
+                )
+                period_info = cursor.fetchone()
+
+                if not period_info:
+                    return {
+                        "success": False,
+                        "message": "해당 교육 기간을 찾을 수 없습니다.",
+                    }
+
+                print(f"[DB_DEBUG] 삭제할 기간: {period_info['period_name']}")
+
+                # 2. 관련 교육 기록이 있는지 확인
+                cursor.execute(
+                    "SELECT COUNT(*) as count FROM security_education WHERE period_id = %s",
+                    (period_id,),
+                )
+                education_count = cursor.fetchone()["count"]
+
+                if education_count > 0:
+                    # 교육 기록이 있는 경우 - 사용자에게 확인 필요
+                    return {
+                        "success": False,
+                        "message": f"이 기간에 {education_count}건의 교육 기록이 있습니다. 정말 삭제하시겠습니까?",
+                        "education_count": education_count,
+                        "requires_confirmation": True,
+                    }
+
+                # 3. 교육 기간 삭제 (소프트 삭제)
+                cursor.execute(
+                    """
+                    UPDATE security_education_periods
+                    SET is_active = 0, updated_at = NOW()
+                    WHERE period_id = %s
+                    """,
+                    (period_id,),
+                )
+
+                return {
+                    "success": True,
+                    "message": f"{period_info['period_name']} 기간이 삭제되었습니다.",
+                }
+
+        except Exception as e:
+            print(f"[DB_DEBUG] 교육 기간 삭제 예외: {str(e)}")
+            import traceback
+
+            traceback.print_exc()
+            return {"success": False, "message": f"삭제 실패: {str(e)}"}
+
+    def force_delete_education_period(self, period_id: int) -> dict:
+        """교육 기간 강제 삭제 (교육 기록 포함)"""
+        try:
+            with DatabaseManager.get_db_cursor() as cursor:
+                print(f"[DB_DEBUG] 교육 기간 강제 삭제 시작: period_id={period_id}")
+
+                # 1. 기간 정보 조회
+                cursor.execute(
+                    """
+                    SELECT period_name, education_type
+                    FROM security_education_periods
+                    WHERE period_id = %s AND is_active = 1
+                    """,
+                    (period_id,),
+                )
+                period_info = cursor.fetchone()
+
+                if not period_info:
+                    return {
+                        "success": False,
+                        "message": "해당 교육 기간을 찾을 수 없습니다.",
+                    }
+
+                # 2. 관련 교육 기록 삭제
+                cursor.execute(
+                    "DELETE FROM security_education WHERE period_id = %s", (period_id,)
+                )
+                deleted_records = cursor.rowcount
+
+                # 3. 교육 기간 삭제 (소프트 삭제)
+                cursor.execute(
+                    """
+                    UPDATE security_education_periods
+                    SET is_active = 0, updated_at = NOW()
+                    WHERE period_id = %s
+                    """,
+                    (period_id,),
+                )
+
+                message = f"{period_info['period_name']} 기간이 삭제되었습니다."
+                if deleted_records > 0:
+                    message += f" (관련 교육 기록 {deleted_records}건도 함께 삭제됨)"
+
+                return {"success": True, "message": message}
+
+        except Exception as e:
+            print(f"[DB_DEBUG] 교육 기간 강제 삭제 예외: {str(e)}")
+            import traceback
+
+            traceback.print_exc()
+            return {"success": False, "message": f"강제 삭제 실패: {str(e)}"}
