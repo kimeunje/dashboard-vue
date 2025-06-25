@@ -1259,6 +1259,7 @@ def reopen_period(period_id):
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
+
 @education_bp.route("/periods/<int:period_id>", methods=["DELETE"])
 @admin_required
 @handle_exceptions
@@ -1266,21 +1267,21 @@ def delete_education_period(period_id):
     """교육 기간 삭제"""
     try:
         result = period_service.delete_education_period(period_id)
-        
+
         if result["success"]:
             return jsonify({"message": result["message"]})
         else:
             # requires_confirmation이 있는 경우 400으로 반환
             status_code = HTTP_STATUS["BAD_REQUEST"]
             response_data = {"error": result["message"]}
-            
+
             # 확인이 필요한 경우 추가 정보 포함
             if result.get("requires_confirmation"):
                 response_data["requires_confirmation"] = True
                 response_data["education_count"] = result.get("education_count", 0)
-            
+
             return jsonify(response_data), status_code
-            
+
     except Exception as e:
         print(f"[ERROR] 교육 기간 삭제 실패: {str(e)}")
         return (
@@ -1296,15 +1297,44 @@ def force_delete_education_period(period_id):
     """교육 기간 강제 삭제 (교육 기록 포함)"""
     try:
         result = period_service.force_delete_education_period(period_id)
-        
+
         if result["success"]:
             return jsonify({"message": result["message"]})
         else:
             return jsonify({"error": result["message"]}), HTTP_STATUS["BAD_REQUEST"]
-            
+
     except Exception as e:
         print(f"[ERROR] 교육 기간 강제 삭제 실패: {str(e)}")
         return (
             jsonify({"error": f"교육 기간 강제 삭제 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
+
+
+@education_bp.route("/periods/<int:period_id>", methods=["PUT"])
+@admin_required
+@handle_exceptions
+@validate_json(
+    ["education_year", "period_name", "education_type", "start_date", "end_date"]
+)
+def update_education_period(period_id):
+    """교육 기간 수정"""
+    data = request.json
+    updated_by = request.current_user.get("user_id", "admin")
+
+    try:
+        print(f"[DEBUG] 교육 기간 수정 요청: period_id={period_id}, data={data}")
+
+        result = period_service.update_period(period_id, data, updated_by)
+
+        if result["success"]:
+            return jsonify(result)
+        else:
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
+
+    except Exception as e:
+        print(f"[ERROR] 교육 기간 수정 실패: {str(e)}")
+        return (
+            jsonify({"error": f"기간 수정 실패: {str(e)}"}),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )

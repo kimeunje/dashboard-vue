@@ -10,6 +10,33 @@ class EducationPeriodService:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
+    def format_date_for_frontend(self, date_value):
+        """날짜를 프론트엔드용 YYYY-MM-DD 형식으로 변환"""
+        if not date_value:
+            return None
+
+        # 이미 문자열인 경우
+        if isinstance(date_value, str):
+            try:
+                # YYYY-MM-DD 형식인지 확인
+                if (
+                    len(date_value) == 10
+                    and date_value[4] == "-"
+                    and date_value[7] == "-"
+                ):
+                    return date_value
+                # 다른 형식이면 파싱해서 변환
+                parsed_date = datetime.strptime(date_value, "%Y-%m-%d")
+                return parsed_date.strftime("%Y-%m-%d")
+            except:
+                return date_value
+
+        # date 또는 datetime 객체인 경우
+        try:
+            return date_value.strftime("%Y-%m-%d")
+        except:
+            return str(date_value) if date_value else None
+
     def get_period_status(self, year: int = None) -> dict:
         """연도별 교육 기간 현황 조회"""
         if year is None:
@@ -20,6 +47,7 @@ class EducationPeriodService:
             """
             SELECT 
                 period_id,
+                education_year,
                 period_name,
                 education_type,
                 start_date,
@@ -42,6 +70,20 @@ class EducationPeriodService:
             (year,),
             fetch_all=True,
         )
+
+        # 안전한 날짜 형식 변환
+        for period in periods:
+            period["start_date"] = self.format_date_for_frontend(period["start_date"])
+            period["end_date"] = self.format_date_for_frontend(period["end_date"])
+
+            # completed_at도 변환
+            if period["completed_at"]:
+                try:
+                    period["completed_at"] = period["completed_at"].strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
+                except:
+                    pass
 
         # 교육 유형별로 그룹화
         education_types = {}
@@ -580,3 +622,118 @@ class EducationPeriodService:
 
             traceback.print_exc()
             return {"success": False, "message": f"강제 삭제 실패: {str(e)}"}
+
+    def update_period(self, period_id: int, period_data: dict, updated_by: str) -> dict:
+        """교육 기간 수정"""
+        try:
+            print(f"[DB_DEBUG] 교육 기간 수정 시작: period_id={period_id}")
+            print(f"[DB_DEBUG] 수정 데이터: {period_data}")
+
+            with DatabaseManager.get_db_cursor() as cursor:
+                # 1. 기존 기간 정보 조회
+                cursor.execute(
+                    """
+                    SELECT period_name, education_type, education_year, is_completed
+                    FROM security_education_periods
+                    WHERE period_id = %s AND is_active = 1
+                    """,
+                    (period_id,),
+                )
+                existing_period = cursor.fetchone()
+
+                if not existing_period:
+                    return {
+                        "success": False,
+                        "message": "수정할 교육 기간을 찾을 수 없습니다.",
+                    }
+
+                # 2. 완료된 기간은 수정 불가
+                if existing_period["is_completed"]:
+                    return {
+                        "success": False,
+                        "message": "완료된 교육 기간은 수정할 수 없습니다.",
+                    }
+
+                # 3. 중복 검사 (자기 자신 제외)
+                cursor.execute(
+                    """
+                    SELECT COUNT(*) as count
+                    FROM security_education_periods
+                    WHERE education_year = %s AND period_name = %s AND education_type = %s 
+                    AND period_id != %s AND is_active = 1
+                    """,
+                    (
+                        period_data["education_year"],
+                        period_data["period_name"],
+                        period_data["education_type"],
+                        period_id,
+                    ),
+                )
+
+                if cursor.fetchone()["count"] > 0:
+                    return {
+                        "success": False,
+                        "message": "동일한 연도, 기간명, 교육유형의 기간이 이미 존재합니다.",
+                    }
+
+                # 4. 날짜 겹침 검사 (자기 자신 제외)
+                overlap_result = self.check_date_overlap(
+                    period_data["education_type"],
+                    period_data["start_date"],
+                    period_data["end_date"],
+                    exclude_period_id=period_id,
+                )
+
+                if overlap_result["has_overlap"]:
+                    return {
+                        "success": False,
+                        "message": overlap_result["message"],
+                        "overlapping_periods": overlap_result["overlapping_periods"],
+                    }
+
+                # 5. 기간 정보 업데이트
+                cursor.execute(
+                    """
+                    UPDATE security_education_periods
+                    SET 
+                        education_year = %s,
+                        period_name = %s,
+                        education_type = %s,
+                        start_date = %s,
+                        end_date = %s,
+                        description = %s,
+                        auto_pass_setting = %s,
+                        updated_at = NOW()
+                    WHERE period_id = %s AND is_active = 1
+                    """,
+                    (
+                        period_data["education_year"],
+                        period_data["period_name"],
+                        period_data["education_type"],
+                        period_data["start_date"],
+                        period_data["end_date"],
+                        period_data.get("description", ""),
+                        period_data.get("auto_pass_setting", True),
+                        period_id,
+                    ),
+                )
+
+                if cursor.rowcount == 0:
+                    return {
+                        "success": False,
+                        "message": "교육 기간 수정에 실패했습니다.",
+                    }
+
+                print(f"[DB_DEBUG] 교육 기간 수정 완료: {period_data['period_name']}")
+
+                return {
+                    "success": True,
+                    "message": f"{period_data['period_name']} 기간이 수정되었습니다.",
+                }
+
+        except Exception as e:
+            print(f"[DB_DEBUG] 교육 기간 수정 예외: {str(e)}")
+            import traceback
+
+            traceback.print_exc()
+            return {"success": False, "message": f"수정 실패: {str(e)}"}

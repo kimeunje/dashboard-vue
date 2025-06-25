@@ -1089,7 +1089,12 @@ const openPeriodModal = () => {
  * 기간 편집 모달 열기
  */
 const editPeriod = (period) => {
+  console.log('[DEBUG] 수정할 기간 데이터:', period)
+
+  // 수정 모드로 설정
   editingPeriod.value = period
+
+  // 기존 값들을 폼에 설정
   periodForm.value = {
     education_year: period.education_year,
     period_name: period.period_name,
@@ -1097,8 +1102,12 @@ const editPeriod = (period) => {
     start_date: period.start_date,
     end_date: period.end_date,
     description: period.description || '',
-    auto_pass_setting: period.auto_pass_setting !== undefined ? period.auto_pass_setting : true,
+    auto_pass_setting: period.auto_pass_setting === 1 || period.auto_pass_setting === true
   }
+
+  console.log('[DEBUG] 폼에 설정된 값들:', periodForm.value)
+
+  // 모달 열기
   showPeriodModal.value = true
 }
 
