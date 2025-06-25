@@ -1102,7 +1102,7 @@ const editPeriod = (period) => {
     start_date: period.start_date,
     end_date: period.end_date,
     description: period.description || '',
-    auto_pass_setting: period.auto_pass_setting === 1 || period.auto_pass_setting === true
+    auto_pass_setting: period.auto_pass_setting === 1 || period.auto_pass_setting === true,
   }
 
   console.log('[DEBUG] 폼에 설정된 값들:', periodForm.value)
@@ -1145,8 +1145,24 @@ const savePeriod = async () => {
     console.log('[DEBUG] 서버 응답:', result)
 
     if (!response.ok) {
-      // 더 구체적인 에러 메시지 표시
-      let errorMessage = result.error || '기간 저장 실패'
+      // ✅ 완료된 기간 수정 시 특별 처리
+      if (result.message && result.message.includes('완료된 교육 기간은 수정할 수 없습니다')) {
+        const confirmReopen = confirm(
+          `이 기간은 완료 상태입니다.\n\n완료 상태를 해제하고 수정하시겠습니까?\n\n` +
+            `※ 완료 상태 해제 시 자동 통과 처리된 데이터가 삭제될 수 있습니다.`,
+        )
+
+        if (confirmReopen) {
+          await reopenAndEdit()
+          return
+        } else {
+          displayToast('수정이 취소되었습니다.', 'info')
+          return
+        }
+      }
+
+      // 기타 오류 처리
+      let errorMessage = result.error || result.message || '기간 저장 실패'
 
       // 겹치는 기간이 있는 경우 상세 정보 표시
       if (result.overlapping_periods && result.overlapping_periods.length > 0) {
@@ -1172,6 +1188,57 @@ const savePeriod = async () => {
     if (err.message.includes('\n')) {
       console.warn('전체 에러 메시지:', err.message)
     }
+  }
+}
+
+/**
+ * 기간 재개 후 수정
+ */
+const reopenAndEdit = async () => {
+  try {
+    console.log('[DEBUG] 기간 재개 후 수정 시작:', editingPeriod.value.period_id)
+
+    // 1. 기간 재개
+    const reopenResponse = await fetch(
+      `/api/security-education/periods/${editingPeriod.value.period_id}/reopen`,
+      {
+        method: 'POST',
+        credentials: 'include',
+      },
+    )
+
+    const reopenResult = await reopenResponse.json()
+
+    if (!reopenResponse.ok) {
+      throw new Error(reopenResult.error || '재개 실패')
+    }
+
+    displayToast('기간이 재개되었습니다. 수정을 진행합니다.', 'success')
+
+    // 2. 수정 재시도
+    const updateResponse = await fetch(
+      `/api/security-education/periods/${editingPeriod.value.period_id}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(periodForm.value),
+      },
+    )
+
+    const updateResult = await updateResponse.json()
+
+    if (!updateResponse.ok) {
+      throw new Error(updateResult.error || '수정 실패')
+    }
+
+    displayToast(updateResult.message || '기간이 수정되었습니다.', 'success')
+    closePeriodModal()
+    await loadPeriodStatus()
+    await loadEducationData()
+  } catch (err) {
+    console.error('재개 후 수정 오류:', err)
+    displayToast(err.message, 'error')
   }
 }
 
