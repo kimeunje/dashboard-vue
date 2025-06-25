@@ -319,9 +319,7 @@ def get_education_records():
 
 
 def _get_education_records(year, education_type, status):
-    """새로운 스키마 전용 교육 기록 조회 (레거시 제거)"""
     try:
-        # 기본 쿼리 (새로운 스키마만)
         base_query = """
             SELECT 
                 se.education_id,
@@ -337,10 +335,11 @@ def _get_education_records(year, education_type, status):
                 se.exclude_reason,
                 se.notes,
                 se.period_id,
-                u.user_id as username,
-                u.username as name,
+                u.uid,
+                u.user_id,
+                u.username,
                 u.department,
-                u.mail as email,
+                u.mail,
                 sep.period_name,
                 sep.start_date,
                 sep.end_date,
@@ -378,15 +377,15 @@ def _get_education_records(year, education_type, status):
                 else 0.0
             )
 
-            # ✅ 상태 텍스트 생성
             status_text = _get_status_text(record)
 
             result_record = {
                 "education_id": record["education_id"],
-                "user_id": record["username"],
-                "username": record["name"],
+                "user_id": record["uid"],
+                "login_id": record["user_id"],
+                "username": record["username"],
                 "department": record["department"],
-                "email": record["email"],
+                "mail": record["mail"],
                 "course_name": record["course_name"],
                 "education_type": record["education_type"],
                 "completed_count": record["completed_count"] or 0,
@@ -400,6 +399,7 @@ def _get_education_records(year, education_type, status):
                 "exclude_from_scoring": bool(record["exclude_from_scoring"]),
                 "exclude_reason": record["exclude_reason"],
                 "notes": record["notes"],
+                "period_id": record["period_id"],
                 "period_name": record["period_name"],
                 "start_date": (
                     str(record["start_date"]) if record["start_date"] else None
@@ -418,7 +418,6 @@ def _get_education_records(year, education_type, status):
         return []
 
 
-# ✅ 1. 중복된 _get_status_text 함수들 통합
 def _get_status_text(record):
     """통합된 상태 텍스트 생성 함수 (레거시 제거)"""
     if record["exclude_from_scoring"]:

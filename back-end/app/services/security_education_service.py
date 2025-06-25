@@ -596,14 +596,13 @@ class SecurityEducationService:
         ]
         return "\n".join(template_data)
 
-    def toggle_education_exception(self, user_id: str, period_id: int,
-                                   education_type: str, exclude: bool,
-                                   exclude_reason: str = "") -> dict:
-        """교육 예외 처리 토글"""
+    def toggle_education_exception(self, user_id: int, period_id: int, education_type: str, 
+                                exclude: bool, exclude_reason: str = "") -> dict:
+        """교육 예외 처리 토글 - user_id는 이제 숫자 uid"""
         try:
-            # 사용자 확인
+            # ✅ user_id가 이미 숫자 uid이므로 바로 사용
             user = execute_query("SELECT uid, username FROM users WHERE uid = %s",
-                                 (user_id, ), fetch_one=True)
+                                (user_id, ), fetch_one=True)
 
             if not user:
                 return {'success': False, 'message': '사용자를 찾을 수 없습니다.'}
@@ -619,7 +618,7 @@ class SecurityEducationService:
                     updated_at = NOW()
                 WHERE user_id = %s AND period_id = %s AND education_type = %s
                 """, (1 if exclude else 0, exclude_reason if exclude else "", user_uid,
-                      period_id, education_type))
+                    period_id, education_type))
 
             if result == 0:
                 return {'success': False, 'message': '해당 교육 기록을 찾을 수 없습니다.'}
@@ -633,13 +632,13 @@ class SecurityEducationService:
         except Exception as e:
             return {'success': False, 'message': f'예외 처리 실패: {str(e)}'}
 
-    def delete_education_record(self, user_id: str, period_id: int,
-                                education_type: str) -> dict:
-        """교육 기록 삭제"""
+
+    def delete_education_record(self, user_id: int, period_id: int, education_type: str) -> dict:
+        """교육 기록 삭제 - user_id는 이제 숫자 uid"""
         try:
-            # 사용자 확인
+            # ✅ user_id가 이미 숫자 uid이므로 바로 사용
             user = execute_query("SELECT uid, username FROM users WHERE uid = %s",
-                                 (user_id, ), fetch_one=True)
+                                (user_id, ), fetch_one=True)
 
             if not user:
                 return {'success': False, 'message': '사용자를 찾을 수 없습니다.'}
