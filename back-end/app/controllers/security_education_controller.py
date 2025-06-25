@@ -244,6 +244,7 @@ def _get_education_records_new_schema(year, education_type, status):
         # 기본 쿼리
         base_query = """
             SELECT 
+                se.education_id,
                 se.user_id,
                 se.course_name,
                 se.education_type,
@@ -302,6 +303,7 @@ def _get_education_records_new_schema(year, education_type, status):
                     penalty_applied = 0.5  # 고정 0.5점 감점
 
             result_record = {
+                'education_id': record['education_id'],
                 'user_id': record['user_id'],
                 'username': record['username'],
                 'name': record['name'],
