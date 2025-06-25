@@ -15,17 +15,16 @@ education_bp = Blueprint('security_education', __name__)
 education_service = SecurityEducationService()
 period_service = EducationPeriodService()
 
-# 📁 back-end/app/controllers/security_education_controller.py
-# 기존 파일에서 get_education_status 함수만 수정
 
-
-@education_bp.route('/status', methods=['GET'])
+@education_bp.route('/user-summary', methods=['GET'])
 @token_required
 @handle_exceptions
-def get_education_status():
+def get_user_education_summary():
     """
-    ✅ 새로운 스키마 전용 사용자별 교육 현황 조회
-    데이터가 없는 경우 기본값 반환, 레거시 모드 제거
+    ✅ 사용자별 교육 현황 요약 조회 (새로운 스키마 전용)
+    - 레거시 모드 완전 제거
+    - 명확한 함수명으로 변경
+    - 새로운 스키마만 지원
     """
     year = request.args.get('year', datetime.now().year, type=int)
 
@@ -34,11 +33,12 @@ def get_education_status():
     username = current_user.get('username')
 
     try:
-        print(f"[DEBUG] 교육 현황 조회: username={username}, user_id={user_id}, year={year}")
+        print(
+            f"[DEBUG] 사용자 교육 요약 조회: username={username}, user_id={user_id}, year={year}"
+        )
 
         # ✅ 사용자 ID 조회 (username으로 uid 찾기)
         if not user_id:
-            from app.utils.database import execute_query
             user_data = execute_query("SELECT uid FROM users WHERE user_id = %s",
                                       (username, ), fetch_one=True)
             if not user_data:
@@ -46,7 +46,7 @@ def get_education_status():
                                 }), HTTP_STATUS['NOT_FOUND']
             user_id = user_data['uid']
 
-        # ✅ 새로운 스키마 기반 교육 현황 조회
+        # ✅ 새로운 스키마 기반 교육 현황 조회만 수행
         education_status = execute_query(
             """
             SELECT 
@@ -89,7 +89,38 @@ def get_education_status():
                 }
             })
 
-        # ✅ 새로운 스키마 기반 응답 생성
+        # ✅ 새로운 스키마 기반 통계 계산
+        course_details = {}
+
+        for record in education_status:
+            course_name = record['course_name']
+
+            # 상태 텍스트 생성
+            status = _get_status_text(record)
+
+            course_details[course_name] = {
+                'course_name': course_name,
+                'education_type': record['education_type'],
+                'completed_count': record['completed_count'] or 0,
+                'incomplete_count': record['incomplete_count'] or 0,
+                'total_courses': record['total_courses'] or 0,
+                'completion_rate': float(record['completion_rate'] or 0),
+                'not_started': max(0, (record['total_courses'] or 0) -
+                                   (record['completed_count'] or 0) -
+                                   (record['incomplete_count'] or 0)),
+                'status': status,
+                'education_date': str(record['education_date'])
+                if record['education_date'] else None,
+                'exclude_from_scoring': bool(record['exclude_from_scoring']),
+                'notes': record['notes'],
+                'period_name': record['period_name'],
+                'start_date': str(record['start_date'])
+                if record['start_date'] else None,
+                'end_date': str(record['end_date']) if record['end_date'] else None,
+                'is_completed': bool(record['is_completed'])
+            }
+
+        # ✅ 전체 요약 통계 계산
         total_completed = sum(record['completed_count'] or 0
                               for record in education_status)
         total_incomplete = sum(record['incomplete_count'] or 0
@@ -102,14 +133,25 @@ def get_education_status():
         overall_completion_rate = round((total_completed / total_courses *
                                          100) if total_courses > 0 else 0)
 
-        # ✅ 감점 계산 수정 (incomplete_count > 0 기반)
+        # ✅ 감점 계산 (미완료가 있고 제외되지 않은 과정에 대해서만)
         penalty_score = sum(0.5 for record in education_status if (
             record['incomplete_count'] or 0) > 0 and not record['exclude_from_scoring'])
+
+        # ✅ 고유 과정 수 계산
+        unique_courses = len(set(record['course_name'] for record in education_status))
+
+        # ✅ 평균 수료율 계산
+        valid_rates = [
+            float(record['completion_rate'] or 0) for record in education_status
+            if not record['exclude_from_scoring']
+        ]
+        avg_completion_rate = round(
+            sum(valid_rates) / len(valid_rates) if valid_rates else 0, 1)
 
         # ✅ 응답 데이터 구성
         education_summary = {
             'year': year,
-            'education_status': [],
+            'education_status': list(course_details.values()),
             'summary': {
                 'total_courses': total_courses,
                 'completed': total_completed,
@@ -119,69 +161,20 @@ def get_education_status():
                 'completion_rate': overall_completion_rate,
                 'penalty_score': float(penalty_score),
                 'excluded_count': excluded_count,
-                'unique_courses': len(
-                    set(record['course_name'] for record in education_status
-                        if record['course_name'])),
-                'avg_completion_rate': round(
-                    sum(record['completion_rate'] or 0 for record in education_status) /
-                    len(education_status), 2) if education_status else 0.0
+                'unique_courses': unique_courses,
+                'avg_completion_rate': avg_completion_rate
             }
         }
-
-        # 과정별 세부 정보 구성
-        course_details = {}
-        for record in education_status:
-            course_name = record['course_name']
-            completed_count = int(record['completed_count'] or 0)
-            incomplete_count = int(record['incomplete_count'] or 0)
-            total_courses_record = int(record['total_courses'] or 0)
-
-            # 상태 계산
-            completion_rate = float(record['completion_rate'] or 0)
-            if record['exclude_from_scoring']:
-                status = '제외'
-            elif completion_rate >= 100:
-                status = '완료'
-            elif completion_rate >= 80:
-                status = '수료'
-            elif completion_rate > 0:
-                status = f'부분완료({completion_rate:.0f}%)'
-            else:
-                status = '미실시'
-
-            course_details[course_name] = {
-                'course_name': course_name,
-                'education_type': record['education_type'],
-                'completed_count': completed_count,
-                'incomplete_count': incomplete_count,
-                'total_courses': total_courses_record,
-                'completion_rate': completion_rate,
-                'not_started': max(
-                    0, total_courses_record - completed_count - incomplete_count),
-                'status': status,
-                'education_date': str(record['education_date'])
-                if record['education_date'] else None,
-                'exclude_from_scoring': bool(record['exclude_from_scoring']),
-                'notes': record['notes'],
-                # ✅ 기간 정보
-                'period_name': record['period_name'],
-                'start_date': str(record['start_date'])
-                if record['start_date'] else None,
-                'end_date': str(record['end_date']) if record['end_date'] else None,
-                'is_completed': bool(record['is_completed'])
-            }
-
-        education_summary['education_status'] = list(course_details.values())
 
         print(f"[DEBUG] 새 스키마 기반 응답 생성 완료: {len(course_details)}개 과정")
         return jsonify(education_summary)
 
     except Exception as e:
-        print(f"[ERROR] 교육 현황 조회 실패: {str(e)}")
+        print(f"[ERROR] 사용자 교육 요약 조회 실패: {str(e)}")
         import traceback
         traceback.print_exc()
 
-        # ✅ 오류 발생 시에도 기본값 반환 (빈 응답보다는 구조화된 기본값)
+        # ✅ 오류 발생 시에도 기본값 반환
         return jsonify({
             'year': year,
             'education_status': [],
@@ -197,7 +190,7 @@ def get_education_status():
                 'avg_completion_rate': 0.0
             },
             'error_message': '데이터 조회 중 오류가 발생했지만 기본 구조로 응답합니다.'
-        }), HTTP_STATUS['OK']  # 500 대신 200으로 응답하여 프론트엔드에서 처리 가능
+        }), HTTP_STATUS['OK']
 
 
 @education_bp.route('/records', methods=['GET'])
@@ -205,12 +198,7 @@ def get_education_status():
 @handle_exceptions
 def get_education_records():
     """
-    ✅ 교육 기록 조회 (관리자용) - 새로운 스키마만 사용
-    
-    변경사항:
-    1. 레거시 모드 제거
-    2. mail 컬럼 사용
-    3. 데이터가 없을 때 빈 배열 반환
+    ✅ 교육 기록 조회 (관리자용)
     """
     year = request.args.get('year', datetime.now().year, type=int)
     education_type = request.args.get('education_type', '')
@@ -220,7 +208,7 @@ def get_education_records():
         print(f"[DEBUG] 교육 기록 조회: year={year}, type={education_type}, status={status}")
 
         # ✅ 새로운 스키마만 사용
-        records = _get_education_records_new_schema(year, education_type, status)
+        records = _get_education_records(year, education_type, status)
 
         print(f"[DEBUG] 새 스키마 기반 응답: {len(records)}건")
         return jsonify(records)
@@ -231,17 +219,10 @@ def get_education_records():
                         }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
 
 
-def _get_education_records_new_schema(year, education_type, status):
-    """
-    ✅ 새로운 스키마 기반 교육 기록 조회 - 감점 로직 통일
-    
-    변경사항:
-    1. penalty_applied 계산을 다른 페이지와 동일하게 수정
-    2. exclude_from_scoring이 True인 경우 감점 없음
-    3. incomplete_count > 0이고 exclude_from_scoring이 False인 경우만 0.5점 감점
-    """
+def _get_education_records(year, education_type, status):
+    """새로운 스키마 전용 교육 기록 조회 (레거시 제거)"""
     try:
-        # 기본 쿼리
+        # 기본 쿼리 (새로운 스키마만)
         base_query = """
             SELECT 
                 se.education_id,
@@ -279,57 +260,47 @@ def _get_education_records_new_schema(year, education_type, status):
             query_params.append(education_type)
 
         if status == '1':  # 완료
-            base_query += " AND se.completion_rate >= 100"
+            base_query += " AND se.completion_rate >= 80"
         elif status == '0':  # 미완료
-            base_query += " AND se.completion_rate < 100"
+            base_query += " AND se.completion_rate < 80"
 
-        base_query += " ORDER BY u.department, u.username, se.course_name"
-
-        print(f"[DEBUG] 실행할 쿼리: {base_query}")
-        print(f"[DEBUG] 쿼리 파라미터: {query_params}")
+        base_query += " ORDER BY u.user_id, se.course_name"
 
         records = execute_query(base_query, tuple(query_params), fetch_all=True)
-
-        if not records:
-            print(f"[DEBUG] 조회된 교육 기록 없음")
-            return []
+        print(f"[DEBUG] 새 스키마 조회 결과: {len(records)}건")
 
         result_records = []
         for record in records:
-            # ✅ 감점 로직 수정 - 다른 페이지와 동일하게
-            penalty_applied = 0.0
-            if not record['exclude_from_scoring']:  # 제외되지 않은 경우만
-                if (record['incomplete_count'] or 0) > 0:  # incomplete_count > 0인 경우
-                    penalty_applied = 0.5  # 고정 0.5점 감점
+            # ✅ 감점 계산 (단순화)
+            penalty_applied = (0.5 if (record['incomplete_count'] or 0) > 0
+                               and not record['exclude_from_scoring'] else 0.0)
+
+            # ✅ 상태 텍스트 생성
+            status_text = _get_status_text(record)
 
             result_record = {
                 'education_id': record['education_id'],
-                'user_id': record['user_id'],
-                'username': record['username'],
-                'name': record['name'],
+                'user_id': record['username'],
+                'username': record['name'],
                 'department': record['department'],
                 'email': record['email'],
                 'course_name': record['course_name'],
                 'education_type': record['education_type'],
-                'completed_count': int(record['completed_count'] or 0),
-                'incomplete_count': int(record['incomplete_count'] or 0),
-                'total_courses': int(record['total_courses'] or 0),
+                'completed_count': record['completed_count'] or 0,
+                'incomplete_count': record['incomplete_count'] or 0,
+                'total_courses': record['total_courses'] or 0,
                 'completion_rate': float(record['completion_rate'] or 0),
-                'status_text': _get_status_text_new(record),
+                'completion_status_text': status_text,
                 'education_date': str(record['education_date'])
                 if record['education_date'] else None,
                 'exclude_from_scoring': bool(record['exclude_from_scoring']),
                 'exclude_reason': record['exclude_reason'],
                 'notes': record['notes'],
-                'period_id': record['period_id'],
                 'period_name': record['period_name'],
-                'period_start_date': str(record['start_date'])
+                'start_date': str(record['start_date'])
                 if record['start_date'] else None,
-                'period_end_date': str(record['end_date'])
-                if record['end_date'] else None,
+                'end_date': str(record['end_date']) if record['end_date'] else None,
                 'period_completed': bool(record['period_completed']),
-                'data_mode': 'new_schema',
-                # ✅ 핵심 수정: 감점 로직을 다른 페이지와 통일
                 'penalty_applied': penalty_applied
             }
             result_records.append(result_record)
@@ -339,36 +310,16 @@ def _get_education_records_new_schema(year, education_type, status):
 
     except Exception as e:
         print(f"[ERROR] 새 스키마 기록 조회 오류: {str(e)}")
-        # ✅ 에러 발생 시에도 빈 배열 반환 (시스템 안정성)
         return []
 
 
-def _get_status_text_new(record):
-    """새로운 스키마 기반 상태 텍스트 생성"""
+# ✅ 1. 중복된 _get_status_text 함수들 통합
+def _get_status_text(record):
+    """통합된 상태 텍스트 생성 함수 (레거시 제거)"""
     if record['exclude_from_scoring']:
         return '제외'
 
-    completion_rate = float(record['completion_rate'])
-    if completion_rate >= 100:
-        return '완료'
-    elif completion_rate >= 80:
-        return '수료'
-    elif completion_rate > 0:
-        return f'부분완료({completion_rate:.0f}%)'
-    else:
-        return '미실시'
-
-
-# ✅ 레거시 함수 완전 제거
-# _get_education_records_legacy 함수는 삭제됨
-
-
-def _get_status_text_enhanced(record):
-    """새로운 스키마 기반 상태 텍스트 생성"""
-    if record['exclude_from_scoring']:
-        return '제외'
-
-    completion_rate = float(record['completion_rate'])
+    completion_rate = float(record['completion_rate'] or 0)
     if completion_rate >= 100:
         return '완료'
     elif completion_rate >= 80:
