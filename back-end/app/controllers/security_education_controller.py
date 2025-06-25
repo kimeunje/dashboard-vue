@@ -4,33 +4,36 @@ from datetime import datetime
 from urllib.parse import quote
 from app.services.security_education_service import SecurityEducationService
 from app.services.education_period_service import EducationPeriodService
-from app.utils.decorators import token_required, admin_required, handle_exceptions, validate_json
+from app.utils.decorators import (
+    token_required,
+    admin_required,
+    handle_exceptions,
+    validate_json,
+)
 from app.utils.constants import HTTP_STATUS
 from app.utils.database import execute_query, DatabaseManager
 
 # Blueprint 생성
-education_bp = Blueprint('security_education', __name__)
+education_bp = Blueprint("security_education", __name__)
 
 # 서비스 인스턴스
 education_service = SecurityEducationService()
 period_service = EducationPeriodService()
 
 
-@education_bp.route('/user-summary', methods=['GET'])
+@education_bp.route("/user-summary", methods=["GET"])
 @token_required
 @handle_exceptions
 def get_user_education_summary():
     """
-    ✅ 사용자별 교육 현황 요약 조회 (새로운 스키마 전용)
-    - 레거시 모드 완전 제거
-    - 명확한 함수명으로 변경
-    - 새로운 스키마만 지원
+    ✅ 사용자별 교육 현황 요약 조회 (수정된 버전)
+    - 기간 완료 여부를 고려한 상태 판단 추가
     """
-    year = request.args.get('year', datetime.now().year, type=int)
+    year = request.args.get("year", datetime.now().year, type=int)
 
     current_user = request.current_user
-    user_id = current_user.get('uid')
-    username = current_user.get('username')
+    user_id = current_user.get("uid")
+    username = current_user.get("username")
 
     try:
         print(
@@ -39,14 +42,17 @@ def get_user_education_summary():
 
         # ✅ 사용자 ID 조회 (username으로 uid 찾기)
         if not user_id:
-            user_data = execute_query("SELECT uid FROM users WHERE user_id = %s",
-                                      (username, ), fetch_one=True)
+            user_data = execute_query(
+                "SELECT uid FROM users WHERE user_id = %s", (username,), fetch_one=True
+            )
             if not user_data:
-                return jsonify({'error': '사용자 정보를 찾을 수 없습니다.'
-                                }), HTTP_STATUS['NOT_FOUND']
-            user_id = user_data['uid']
+                return (
+                    jsonify({"error": "사용자 정보를 찾을 수 없습니다."}),
+                    HTTP_STATUS["NOT_FOUND"],
+                )
+            user_id = user_data["uid"]
 
-        # ✅ 새로운 스키마 기반 교육 현황 조회만 수행
+        # ✅ 수정된 교육 현황 조회 - 기간 완료 여부를 고려한 상태 판단
         education_status = execute_query(
             """
             SELECT 
@@ -63,149 +69,240 @@ def get_user_education_summary():
                 sep.period_name,
                 sep.start_date,
                 sep.end_date,
-                sep.is_completed
+                sep.is_completed as period_completed,
+                -- ✅ 핵심 수정: 기간 완료 여부를 고려한 상태 결정
+                CASE 
+                    -- 1. 기간이 완료된 경우 무조건 완료로 처리 (자동 통과 포함)
+                    WHEN sep.is_completed = 1 THEN 'completed'
+                    -- 2. 기간이 진행 중인 경우 수료율로 판단
+                    WHEN CURDATE() >= sep.start_date AND CURDATE() <= sep.end_date THEN
+                        CASE 
+                            WHEN se.completion_rate >= 80 THEN 'completed'
+                            WHEN se.completion_rate > 0 THEN 'incomplete'
+                            ELSE 'in_progress'
+                        END
+                    -- 3. 기간이 시작되지 않은 경우
+                    WHEN CURDATE() < sep.start_date THEN 'not_started'
+                    -- 4. 기간이 종료되었지만 완료 처리되지 않은 경우
+                    WHEN CURDATE() > sep.end_date AND sep.is_completed = 0 THEN
+                        CASE 
+                            WHEN se.completion_rate >= 80 THEN 'completed'
+                            WHEN se.completion_rate > 0 THEN 'incomplete'
+                            ELSE 'expired'
+                        END
+                    ELSE 'unknown'
+                END as status
             FROM security_education se
             LEFT JOIN security_education_periods sep ON se.period_id = sep.period_id
             WHERE se.user_id = %s AND se.education_year = %s
             ORDER BY se.course_name, se.created_at
-        """, (user_id, year), fetch_all=True)
+        """,
+            (user_id, year),
+            fetch_all=True,
+        )
+
+        # ✅ 기간은 있지만 교육 기록이 없는 경우도 확인
+        missing_periods = execute_query(
+            """
+            SELECT 
+                sep.period_name as course_name,
+                0 as completed_count,
+                0 as incomplete_count, 
+                0 as total_courses,
+                0 as completion_rate,
+                NULL as education_date,
+                sep.education_type,
+                0 as exclude_from_scoring,
+                NULL as exclude_reason,
+                NULL as notes,
+                sep.period_name,
+                sep.start_date,
+                sep.end_date,
+                sep.is_completed as period_completed,
+                CASE 
+                    -- 기간이 완료되었지만 교육 기록이 없는 경우 (자동 통과 대상)
+                    WHEN sep.is_completed = 1 THEN 'completed'  
+                    -- 기간이 진행 중인 경우
+                    WHEN CURDATE() >= sep.start_date AND CURDATE() <= sep.end_date THEN 'in_progress'
+                    -- 기간이 시작되지 않은 경우
+                    WHEN CURDATE() < sep.start_date THEN 'not_started'
+                    -- 기간이 종료된 경우
+                    WHEN CURDATE() > sep.end_date THEN 'expired'
+                    ELSE 'unknown'
+                END as status
+            FROM security_education_periods sep
+            WHERE sep.education_year = %s 
+            AND sep.is_active = 1
+            AND NOT EXISTS (
+                SELECT 1 FROM security_education se 
+                WHERE se.period_id = sep.period_id AND se.user_id = %s
+            )
+            """,
+            (year, user_id),
+            fetch_all=True,
+        )
+
+        # 두 결과 합치기
+        all_education_status = list(education_status) + list(missing_periods)
 
         # ✅ 데이터가 없는 경우 기본값 반환
-        if not education_status:
-            print(f"[DEBUG] 교육 데이터 없음 - 기본값 반환: user_id={user_id}, year={year}")
-            return jsonify({
-                'year': year,
-                'education_status': [],
-                'summary': {
-                    'total_courses': 0,
-                    'completed': 0,
-                    'incomplete': 0,
-                    'not_started': 0,
-                    'completion_rate': 0,
-                    'penalty_score': 0.0,
-                    'excluded_count': 0,
-                    'unique_courses': 0,
-                    'avg_completion_rate': 0.0
+        if not all_education_status:
+            print(
+                f"[DEBUG] 교육 데이터 없음 - 기본값 반환: user_id={user_id}, year={year}"
+            )
+            return jsonify(
+                {
+                    "year": year,
+                    "education_status": [],
+                    "summary": {
+                        "total_courses": 0,
+                        "completed": 0,
+                        "incomplete": 0,
+                        "not_started": 0,
+                        "completion_rate": 0,
+                        "penalty_score": 0.0,
+                        "excluded_count": 0,
+                        "unique_courses": 0,
+                        "avg_completion_rate": 0.0,
+                    },
                 }
-            })
+            )
 
         # ✅ 새로운 스키마 기반 통계 계산
         course_details = {}
+        total_completed = 0
+        total_incomplete = 0
+        total_not_started = 0
+        total_penalty = 0.0
+        excluded_count = 0
 
-        for record in education_status:
-            course_name = record['course_name']
+        for record in all_education_status:
+            course_name = record["course_name"]
+            status = record["status"]  # ✅ DB에서 계산된 상태 사용
 
-            # 상태 텍스트 생성
-            status = _get_status_text(record)
+            # 상태별 집계
+            if status == "completed":
+                total_completed += 1
+            elif status in ["incomplete", "expired"]:
+                total_incomplete += 1
+                # 감점 계산 (제외되지 않은 경우만)
+                if not record["exclude_from_scoring"]:
+                    total_penalty += 0.5
+            elif status == "not_started":
+                total_not_started += 1
+
+            if record["exclude_from_scoring"]:
+                excluded_count += 1
 
             course_details[course_name] = {
-                'course_name': course_name,
-                'education_type': record['education_type'],
-                'completed_count': record['completed_count'] or 0,
-                'incomplete_count': record['incomplete_count'] or 0,
-                'total_courses': record['total_courses'] or 0,
-                'completion_rate': float(record['completion_rate'] or 0),
-                'not_started': max(0, (record['total_courses'] or 0) -
-                                   (record['completed_count'] or 0) -
-                                   (record['incomplete_count'] or 0)),
-                'status': status,
-                'education_date': str(record['education_date'])
-                if record['education_date'] else None,
-                'exclude_from_scoring': bool(record['exclude_from_scoring']),
-                'notes': record['notes'],
-                'period_name': record['period_name'],
-                'start_date': str(record['start_date'])
-                if record['start_date'] else None,
-                'end_date': str(record['end_date']) if record['end_date'] else None,
-                'is_completed': bool(record['is_completed'])
+                "course_name": course_name,
+                "education_type": record["education_type"],
+                "completed_count": record["completed_count"],
+                "incomplete_count": record["incomplete_count"],
+                "total_courses": record["total_courses"],
+                "completion_rate": float(record["completion_rate"] or 0),
+                "education_date": record["education_date"],
+                "exclude_from_scoring": bool(record["exclude_from_scoring"]),
+                "exclude_reason": record["exclude_reason"],
+                "notes": record["notes"],
+                "period_name": record["period_name"],
+                "start_date": (
+                    str(record["start_date"]) if record["start_date"] else None
+                ),
+                "end_date": str(record["end_date"]) if record["end_date"] else None,
+                "period_completed": bool(record["period_completed"]),
+                "status": status,  # ✅ 상태 추가
+                "type_name": record["education_type"],
             }
 
-        # ✅ 전체 요약 통계 계산
-        total_completed = sum(record['completed_count'] or 0
-                              for record in education_status)
-        total_incomplete = sum(record['incomplete_count'] or 0
-                               for record in education_status)
-        total_courses = sum(record['total_courses'] or 0 for record in education_status)
-        excluded_count = len(
-            [e for e in education_status if e['exclude_from_scoring'] == 1])
-
-        # 전체 수료율 계산
-        overall_completion_rate = round((total_completed / total_courses *
-                                         100) if total_courses > 0 else 0)
-
-        # ✅ 감점 계산 (미완료가 있고 제외되지 않은 과정에 대해서만)
-        penalty_score = sum(0.5 for record in education_status if (
-            record['incomplete_count'] or 0) > 0 and not record['exclude_from_scoring'])
+        # ✅ 전체 통계 계산
+        total_courses = len(course_details)
+        overall_completion_rate = round(
+            (total_completed / total_courses * 100) if total_courses > 0 else 0, 1
+        )
 
         # ✅ 고유 과정 수 계산
-        unique_courses = len(set(record['course_name'] for record in education_status))
+        unique_courses = len(
+            set(record["course_name"] for record in all_education_status)
+        )
 
         # ✅ 평균 수료율 계산
         valid_rates = [
-            float(record['completion_rate'] or 0) for record in education_status
-            if not record['exclude_from_scoring']
+            float(record["completion_rate"] or 0)
+            for record in all_education_status
+            if not record["exclude_from_scoring"]
         ]
         avg_completion_rate = round(
-            sum(valid_rates) / len(valid_rates) if valid_rates else 0, 1)
+            sum(valid_rates) / len(valid_rates) if valid_rates else 0, 1
+        )
 
         # ✅ 응답 데이터 구성
         education_summary = {
-            'year': year,
-            'education_status': list(course_details.values()),
-            'summary': {
-                'total_courses': total_courses,
-                'completed': total_completed,
-                'incomplete': total_incomplete,
-                'not_started': max(0,
-                                   total_courses - total_completed - total_incomplete),
-                'completion_rate': overall_completion_rate,
-                'penalty_score': float(penalty_score),
-                'excluded_count': excluded_count,
-                'unique_courses': unique_courses,
-                'avg_completion_rate': avg_completion_rate
-            }
+            "year": year,
+            "education_status": list(course_details.values()),
+            "summary": {
+                "total_courses": total_courses,
+                "completed": total_completed,
+                "incomplete": total_incomplete,
+                "not_started": total_not_started,
+                "completion_rate": overall_completion_rate,
+                "penalty_score": float(total_penalty),
+                "excluded_count": excluded_count,
+                "unique_courses": unique_courses,
+                "avg_completion_rate": avg_completion_rate,
+            },
         }
 
-        print(f"[DEBUG] 새 스키마 기반 응답 생성 완료: {len(course_details)}개 과정")
+        print(
+            f"[DEBUG] 수정된 응답 생성 완료: 완료={total_completed}, 미완료={total_incomplete}, 미시작={total_not_started}"
+        )
         return jsonify(education_summary)
 
     except Exception as e:
         print(f"[ERROR] 사용자 교육 요약 조회 실패: {str(e)}")
         import traceback
+
         traceback.print_exc()
 
         # ✅ 오류 발생 시에도 기본값 반환
-        return jsonify({
-            'year': year,
-            'education_status': [],
-            'summary': {
-                'total_courses': 0,
-                'completed': 0,
-                'incomplete': 0,
-                'not_started': 0,
-                'completion_rate': 0,
-                'penalty_score': 0.0,
-                'excluded_count': 0,
-                'unique_courses': 0,
-                'avg_completion_rate': 0.0
-            },
-            'error_message': '데이터 조회 중 오류가 발생했지만 기본 구조로 응답합니다.'
-        }), HTTP_STATUS['OK']
+        return (
+            jsonify(
+                {
+                    "year": year,
+                    "education_status": [],
+                    "summary": {
+                        "total_courses": 0,
+                        "completed": 0,
+                        "incomplete": 0,
+                        "not_started": 0,
+                        "completion_rate": 0,
+                        "penalty_score": 0.0,
+                        "excluded_count": 0,
+                        "unique_courses": 0,
+                        "avg_completion_rate": 0.0,
+                    },
+                    "error_message": "데이터 조회 중 오류가 발생했지만 기본 구조로 응답합니다.",
+                }
+            ),
+            HTTP_STATUS["OK"],
+        )
 
 
-@education_bp.route('/records', methods=['GET'])
+@education_bp.route("/records", methods=["GET"])
 @admin_required
 @handle_exceptions
 def get_education_records():
     """
     ✅ 교육 기록 조회 (관리자용)
     """
-    year = request.args.get('year', datetime.now().year, type=int)
-    education_type = request.args.get('education_type', '')
-    status = request.args.get('status', '')
+    year = request.args.get("year", datetime.now().year, type=int)
+    education_type = request.args.get("education_type", "")
+    status = request.args.get("status", "")
 
     try:
-        print(f"[DEBUG] 교육 기록 조회: year={year}, type={education_type}, status={status}")
+        print(
+            f"[DEBUG] 교육 기록 조회: year={year}, type={education_type}, status={status}"
+        )
 
         # ✅ 새로운 스키마만 사용
         records = _get_education_records(year, education_type, status)
@@ -215,8 +312,10 @@ def get_education_records():
 
     except Exception as e:
         print(f"[ERROR] 교육 기록 조회 실패: {str(e)}")
-        return jsonify({'error': f'기록 조회 실패: {str(e)}'
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": f"기록 조회 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 def _get_education_records(year, education_type, status):
@@ -259,9 +358,9 @@ def _get_education_records(year, education_type, status):
             base_query += " AND se.education_type = %s"
             query_params.append(education_type)
 
-        if status == '1':  # 완료
+        if status == "1":  # 완료
             base_query += " AND se.completion_rate >= 80"
-        elif status == '0':  # 미완료
+        elif status == "0":  # 미완료
             base_query += " AND se.completion_rate < 80"
 
         base_query += " ORDER BY u.user_id, se.course_name"
@@ -272,36 +371,42 @@ def _get_education_records(year, education_type, status):
         result_records = []
         for record in records:
             # ✅ 감점 계산 (단순화)
-            penalty_applied = (0.5 if (record['incomplete_count'] or 0) > 0
-                               and not record['exclude_from_scoring'] else 0.0)
+            penalty_applied = (
+                0.5
+                if (record["incomplete_count"] or 0) > 0
+                and not record["exclude_from_scoring"]
+                else 0.0
+            )
 
             # ✅ 상태 텍스트 생성
             status_text = _get_status_text(record)
 
             result_record = {
-                'education_id': record['education_id'],
-                'user_id': record['username'],
-                'username': record['name'],
-                'department': record['department'],
-                'email': record['email'],
-                'course_name': record['course_name'],
-                'education_type': record['education_type'],
-                'completed_count': record['completed_count'] or 0,
-                'incomplete_count': record['incomplete_count'] or 0,
-                'total_courses': record['total_courses'] or 0,
-                'completion_rate': float(record['completion_rate'] or 0),
-                'completion_status_text': status_text,
-                'education_date': str(record['education_date'])
-                if record['education_date'] else None,
-                'exclude_from_scoring': bool(record['exclude_from_scoring']),
-                'exclude_reason': record['exclude_reason'],
-                'notes': record['notes'],
-                'period_name': record['period_name'],
-                'start_date': str(record['start_date'])
-                if record['start_date'] else None,
-                'end_date': str(record['end_date']) if record['end_date'] else None,
-                'period_completed': bool(record['period_completed']),
-                'penalty_applied': penalty_applied
+                "education_id": record["education_id"],
+                "user_id": record["username"],
+                "username": record["name"],
+                "department": record["department"],
+                "email": record["email"],
+                "course_name": record["course_name"],
+                "education_type": record["education_type"],
+                "completed_count": record["completed_count"] or 0,
+                "incomplete_count": record["incomplete_count"] or 0,
+                "total_courses": record["total_courses"] or 0,
+                "completion_rate": float(record["completion_rate"] or 0),
+                "completion_status_text": status_text,
+                "education_date": (
+                    str(record["education_date"]) if record["education_date"] else None
+                ),
+                "exclude_from_scoring": bool(record["exclude_from_scoring"]),
+                "exclude_reason": record["exclude_reason"],
+                "notes": record["notes"],
+                "period_name": record["period_name"],
+                "start_date": (
+                    str(record["start_date"]) if record["start_date"] else None
+                ),
+                "end_date": str(record["end_date"]) if record["end_date"] else None,
+                "period_completed": bool(record["period_completed"]),
+                "penalty_applied": penalty_applied,
             }
             result_records.append(result_record)
 
@@ -316,57 +421,61 @@ def _get_education_records(year, education_type, status):
 # ✅ 1. 중복된 _get_status_text 함수들 통합
 def _get_status_text(record):
     """통합된 상태 텍스트 생성 함수 (레거시 제거)"""
-    if record['exclude_from_scoring']:
-        return '제외'
+    if record["exclude_from_scoring"]:
+        return "제외"
 
-    completion_rate = float(record['completion_rate'] or 0)
+    completion_rate = float(record["completion_rate"] or 0)
     if completion_rate >= 100:
-        return '완료'
+        return "완료"
     elif completion_rate >= 80:
-        return '수료'
+        return "수료"
     elif completion_rate > 0:
-        return f'부분완료({completion_rate:.0f}%)'
+        return f"부분완료({completion_rate:.0f}%)"
     else:
-        return '미실시'
+        return "미실시"
 
 
-@education_bp.route('/admin/records', methods=['GET'])
+@education_bp.route("/admin/records", methods=["GET"])
 @admin_required
 @handle_exceptions
 def get_all_education_records():
     """모든 교육 기록 조회 (기존)"""
-    year = request.args.get('year', datetime.now().year, type=int)
-    education_type = request.args.get('education_type')
+    year = request.args.get("year", datetime.now().year, type=int)
+    education_type = request.args.get("education_type")
 
     try:
         records = education_service.get_all_education_records(year, education_type)
-        return jsonify({'records': records})
+        return jsonify({"records": records})
     except Exception as e:
-        return jsonify({'error': f'기록 조회 실패: {str(e)}'
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": f"기록 조회 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
-@education_bp.route('/admin/overview', methods=['GET'])
+@education_bp.route("/admin/overview", methods=["GET"])
 @admin_required
 @handle_exceptions
 def get_education_overview():
     """교육 현황 개요 (관리자용)"""
-    year = request.args.get('year', datetime.now().year, type=int)
+    year = request.args.get("year", datetime.now().year, type=int)
 
     try:
         result = education_service.get_education_status(None, year)  # 전체 현황
         return jsonify(result)
     except Exception as e:
-        return jsonify({'error': f'현황 조회 실패: {str(e)}'
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": f"현황 조회 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
-@education_bp.route('/periods/active', methods=['GET'])
+@education_bp.route("/periods/active", methods=["GET"])
 @admin_required
 @handle_exceptions
 def get_active_periods():
     """활성 교육 기간 조회"""
-    year = request.args.get('year', datetime.now().year, type=int)
+    year = request.args.get("year", datetime.now().year, type=int)
 
     try:
         # 활성 기간 조회 (완료되지 않은 기간들)
@@ -386,100 +495,126 @@ def get_active_periods():
             AND is_active = 1 
             AND is_completed = 0
             ORDER BY education_type, start_date
-            """, (year, ), fetch_all=True)
+            """,
+            (year,),
+            fetch_all=True,
+        )
 
         print(f"[DB_DEBUG] 조회된 활성 기간 수: {len(periods)}")
 
         # 날짜 포맷팅
         for period in periods:
-            if period['start_date']:
-                period['start_date'] = period['start_date'].strftime('%Y-%m-%d')
-            if period['end_date']:
-                period['end_date'] = period['end_date'].strftime('%Y-%m-%d')
+            if period["start_date"]:
+                period["start_date"] = period["start_date"].strftime("%Y-%m-%d")
+            if period["end_date"]:
+                period["end_date"] = period["end_date"].strftime("%Y-%m-%d")
 
-        return jsonify({
-            'success': True,
-            'periods': periods,
-            'year': year,
-            'total_count': len(periods)
-        })
+        return jsonify(
+            {
+                "success": True,
+                "periods": periods,
+                "year": year,
+                "total_count": len(periods),
+            }
+        )
 
     except Exception as e:
         print(f"[DB_DEBUG] 활성 기간 조회 실패: {e}")
-        return jsonify({
-            'success': False,
-            'error': f'활성 기간 조회 실패: {str(e)}',
-            'periods': [],
-            'year': year,
-            'total_count': 0
-        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": f"활성 기간 조회 실패: {str(e)}",
+                    "periods": [],
+                    "year": year,
+                    "total_count": 0,
+                }
+            ),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
-@education_bp.route('/bulk-upload', methods=['POST'])
+@education_bp.route("/bulk-upload", methods=["POST"])
 @admin_required
 @handle_exceptions
-@validate_json(['period_id', 'records'])
+@validate_json(["period_id", "records"])
 def bulk_upload():
     """
     ✅ 수정된 CSV 업로드 로직 - 새로운 스키마에 맞게 개선
-    
+
     기존 구조 유지하면서 다음만 변경:
     1. CSV 형식: 이름,부서,수강과정,수료,미수료
     2. DB 매핑: course_name, completed_count, incomplete_count 사용
     3. 기존 completion_status 대신 새로운 컬럼 사용
     """
     data = request.json
-    period_id = data.get('period_id')
-    records = data.get('records', [])
+    period_id = data.get("period_id")
+    records = data.get("records", [])
 
     # 기본 검증 (기존 로직 유지)
     if not period_id:
-        return jsonify({'error': '교육 기간을 선택해주세요.'}), HTTP_STATUS['BAD_REQUEST']
+        return (
+            jsonify({"error": "교육 기간을 선택해주세요."}),
+            HTTP_STATUS["BAD_REQUEST"],
+        )
 
     if not records:
-        return jsonify({'error': '업로드할 기록이 없습니다.'}), HTTP_STATUS['BAD_REQUEST']
+        return (
+            jsonify({"error": "업로드할 기록이 없습니다."}),
+            HTTP_STATUS["BAD_REQUEST"],
+        )
 
     try:
         # 업로더 정보 (기존 로직 유지)
-        uploaded_by = getattr(request, 'current_user', {}).get('user_id', 'admin')
+        uploaded_by = getattr(request, "current_user", {}).get("user_id", "admin")
 
-        print(f"[DEBUG] 교육 업로드 시작 - period_id: {period_id}, records: {len(records)}건")
+        print(
+            f"[DEBUG] 교육 업로드 시작 - period_id: {period_id}, records: {len(records)}건"
+        )
 
         # ✅ 핵심 수정: 새로운 CSV 형식 처리를 위한 서비스 호출
         result = education_service.process_csv_bulk_upload(
             period_id=period_id,
             csv_records=records,  # CSV 원본 데이터
-            uploaded_by=uploaded_by)
+            uploaded_by=uploaded_by,
+        )
 
-        if result['success']:
+        if result["success"]:
             print(f"[DEBUG] 교육 업로드 성공: {result['message']}")
 
             # 기존 응답 형식 유지
             response_data = {
-                'success': True,
-                'message': result['message'],
-                'success_count': result['success_count'],
-                'update_count': result.get('update_count', 0),
-                'error_count': result.get('error_count', 0)
+                "success": True,
+                "message": result["message"],
+                "success_count": result["success_count"],
+                "update_count": result.get("update_count", 0),
+                "error_count": result.get("error_count", 0),
             }
 
-            if result.get('error_count', 0) > 0:
-                response_data['errors'] = result.get('errors', [])
+            if result.get("error_count", 0) > 0:
+                response_data["errors"] = result.get("errors", [])
 
             return jsonify(response_data)
         else:
             print(f"[DEBUG] 교육 업로드 실패: {result.get('error')}")
-            return jsonify({
-                'success': False,
-                'error': result.get('error', '업로드 처리 실패')
-            }), HTTP_STATUS['BAD_REQUEST']
+            return (
+                jsonify(
+                    {"success": False, "error": result.get("error", "업로드 처리 실패")}
+                ),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
 
     except Exception as e:
         print(f"[ERROR] 교육 업로드 예외: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': f'업로드 처리 중 오류가 발생했습니다: {str(e)}'
-        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": f"업로드 처리 중 오류가 발생했습니다: {str(e)}",
+                }
+            ),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 def bulk_update_education_with_period(self, period_id: int, records: list) -> dict:
@@ -499,23 +634,25 @@ def bulk_update_education_with_period(self, period_id: int, records: list) -> di
                        education_year, is_completed, is_active
                 FROM security_education_periods
                 WHERE period_id = %s
-                """, (period_id, ))
+                """,
+                (period_id,),
+            )
 
             period_info = cursor.fetchone()
             if not period_info:
                 raise ValueError("교육 기간을 찾을 수 없습니다.")
 
-            expected_education_type = period_info['education_type']
-            education_year = period_info['education_year']
+            expected_education_type = period_info["education_type"]
+            education_year = period_info["education_year"]
 
             print(f"[DB_DEBUG] 기간 정보: {period_info}")
 
             for record in records:
                 try:
                     # 사용자 조회
-                    username = record.get('username', '').strip()
-                    department = record.get('department', '').strip()
-                    education_type = record.get('education_type', '').strip()
+                    username = record.get("username", "").strip()
+                    department = record.get("department", "").strip()
+                    education_type = record.get("education_type", "").strip()
 
                     if not username or not department:
                         errors.append(f"필수 정보 누락: {username} ({department})")
@@ -526,16 +663,20 @@ def bulk_update_education_with_period(self, period_id: int, records: list) -> di
                     if education_type != expected_education_type:
                         errors.append(
                             f"교육 유형 불일치: {username} - "
-                            f"기대값({expected_education_type}) vs 실제값({education_type})")
+                            f"기대값({expected_education_type}) vs 실제값({education_type})"
+                        )
                         error_count += 1
                         continue
 
                     # 사용자 조회 (기존 로직과 동일)
                     user_uid = self._find_user_by_name_and_department(
-                        cursor, username, department)
+                        cursor, username, department
+                    )
 
                     if not user_uid:
-                        errors.append(f"사용자를 찾을 수 없음: {username} ({department})")
+                        errors.append(
+                            f"사용자를 찾을 수 없음: {username} ({department})"
+                        )
                         error_count += 1
                         continue
 
@@ -544,11 +685,13 @@ def bulk_update_education_with_period(self, period_id: int, records: list) -> di
                         """
                         DELETE FROM security_education
                         WHERE user_id = %s AND period_id = %s AND education_type = %s
-                        """, (user_uid, period_id, education_type))
+                        """,
+                        (user_uid, period_id, education_type),
+                    )
 
                     # 새 레코드들 생성
-                    completed_count = int(record.get('completed_count', 0))
-                    incomplete_count = int(record.get('incomplete_count', 0))
+                    completed_count = int(record.get("completed_count", 0))
+                    incomplete_count = int(record.get("incomplete_count", 0))
 
                     # 수료 레코드 생성
                     for i in range(completed_count):
@@ -558,8 +701,15 @@ def bulk_update_education_with_period(self, period_id: int, records: list) -> di
                             (user_id, period_id, education_type, completion_status, 
                              education_year, notes, created_at)
                             VALUES (%s, %s, %s, 1, %s, %s, NOW())
-                            """, (user_uid, period_id, education_type, education_year,
-                                  f"엑셀 업로드 - 수료 {i+1}회차"))
+                            """,
+                            (
+                                user_uid,
+                                period_id,
+                                education_type,
+                                education_year,
+                                f"엑셀 업로드 - 수료 {i+1}회차",
+                            ),
+                        )
 
                     # 미수료 레코드 생성
                     for i in range(incomplete_count):
@@ -569,8 +719,15 @@ def bulk_update_education_with_period(self, period_id: int, records: list) -> di
                             (user_id, period_id, education_type, completion_status,
                              education_year, notes, created_at)
                             VALUES (%s, %s, %s, 0, %s, %s, NOW())
-                            """, (user_uid, period_id, education_type, education_year,
-                                  f"엑셀 업로드 - 미수료 {i+1}회차"))
+                            """,
+                            (
+                                user_uid,
+                                period_id,
+                                education_type,
+                                education_year,
+                                f"엑셀 업로드 - 미수료 {i+1}회차",
+                            ),
+                        )
 
                     success_count += 1
                     print(
@@ -587,70 +744,77 @@ def bulk_update_education_with_period(self, period_id: int, records: list) -> di
             cursor.execute("COMMIT")
 
             return {
-                'success': True,
-                'success_count': success_count,
-                'error_count': error_count,
-                'errors': errors,
-                'message': f'총 {len(records)}건 중 {success_count}건 성공, {error_count}건 실패',
-                'period_info': {
-                    'period_id': period_id,
-                    'period_name': period_info['period_name'],
-                    'education_type': period_info['education_type']
-                }
+                "success": True,
+                "success_count": success_count,
+                "error_count": error_count,
+                "errors": errors,
+                "message": f"총 {len(records)}건 중 {success_count}건 성공, {error_count}건 실패",
+                "period_info": {
+                    "period_id": period_id,
+                    "period_name": period_info["period_name"],
+                    "education_type": period_info["education_type"],
+                },
             }
 
     except Exception as e:
         print(f"[DB_DEBUG] 일괄 업로드 실패: {e}")
         return {
-            'success': False,
-            'success_count': success_count,
-            'error_count': error_count + 1,
-            'errors': errors + [f"시스템 오류: {str(e)}"],
-            'message': f'업로드 처리 중 오류가 발생했습니다: {str(e)}'
+            "success": False,
+            "success_count": success_count,
+            "error_count": error_count + 1,
+            "errors": errors + [f"시스템 오류: {str(e)}"],
+            "message": f"업로드 처리 중 오류가 발생했습니다: {str(e)}",
         }
 
 
-def _find_user_by_name_and_department(self, cursor, username: str,
-                                      department: str) -> int:
+def _find_user_by_name_and_department(
+    self, cursor, username: str, department: str
+) -> int:
     """사용자명과 부서로 사용자 찾기 (기존 로직과 동일)"""
     print(f"[DB_DEBUG] 사용자 조회: {username} ({department})")
 
     # 1. 정확 매칭 (이름 + 부서)
     cursor.execute(
         "SELECT uid FROM users WHERE username = %s AND department = %s LIMIT 1",
-        (username, department))
+        (username, department),
+    )
     result = cursor.fetchone()
 
     if result:
         print(f"[DB_DEBUG] 정확 매칭으로 사용자 발견: {username} ({department})")
-        return result['uid']
+        return result["uid"]
 
     # 2. 이름만으로 검색
-    cursor.execute("SELECT uid, department FROM users WHERE username = %s LIMIT 1",
-                   (username, ))
-    result = cursor.fetchone()
-
-    if result:
-        print(f"[DB_DEBUG] 이름으로만 사용자 발견: {username} -> 실제 부서: {result['department']}")
-        return result['uid']
-
-    # 3. 유사 이름 검색
     cursor.execute(
-        "SELECT uid, username, department FROM users WHERE username LIKE %s LIMIT 1",
-        (f"%{username}%", ))
+        "SELECT uid, department FROM users WHERE username = %s LIMIT 1", (username,)
+    )
     result = cursor.fetchone()
 
     if result:
         print(
-            f"[DB_DEBUG] 유사 이름으로 사용자 발견: {result['username']} ({result['department']})")
-        return result['uid']
+            f"[DB_DEBUG] 이름으로만 사용자 발견: {username} -> 실제 부서: {result['department']}"
+        )
+        return result["uid"]
+
+    # 3. 유사 이름 검색
+    cursor.execute(
+        "SELECT uid, username, department FROM users WHERE username LIKE %s LIMIT 1",
+        (f"%{username}%",),
+    )
+    result = cursor.fetchone()
+
+    if result:
+        print(
+            f"[DB_DEBUG] 유사 이름으로 사용자 발견: {result['username']} ({result['department']})"
+        )
+        return result["uid"]
 
     print(f"[DB_DEBUG] 사용자를 찾을 수 없음: {username} ({department})")
     return None
 
 
 # ✅ 템플릿 다운로드도 새로운 형식으로 수정
-@education_bp.route('/template/download', methods=['GET'])
+@education_bp.route("/template/download", methods=["GET"])
 @admin_required
 @handle_exceptions
 def download_template():
@@ -659,88 +823,103 @@ def download_template():
         # ✅ 수정: 새로운 CSV 형식의 템플릿 생성
         csv_data = education_service.get_new_csv_template()
 
-        csv_bytes = csv_data.encode('utf-8')
+        csv_bytes = csv_data.encode("utf-8")
         response = make_response(csv_bytes)
 
-        response.headers['Content-Type'] = 'text/csv; charset=utf-8'
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
+        response.headers["Content-Type"] = "text/csv; charset=utf-8"
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
 
         # 한글 파일명 인코딩
-        filename = '정보보호교육_업로드_템플릿.csv'
-        encoded_filename = quote(filename.encode('utf-8'))
+        filename = "정보보호교육_업로드_템플릿.csv"
+        encoded_filename = quote(filename.encode("utf-8"))
 
-        response.headers['Content-Disposition'] = (
+        response.headers["Content-Disposition"] = (
             f"attachment; "
             f"filename*=UTF-8''{encoded_filename}; "
-            f'filename="education_template.csv"')
+            f'filename="education_template.csv"'
+        )
 
         return response
     except Exception as e:
-        return jsonify({'error': f'템플릿 다운로드 실패: {str(e)}'
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": f"템플릿 다운로드 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
-@education_bp.route('/update', methods=['PUT'])
+@education_bp.route("/update", methods=["PUT"])
 @admin_required
 @handle_exceptions
-@validate_json(['education_id'])
+@validate_json(["education_id"])
 def update_education_record():
     """개별 교육 기록 수정 - Generated Column 제외"""
     data = request.json
-    education_id = data.get('education_id')
+    education_id = data.get("education_id")
 
     try:
         # 기존 레코드 조회
         existing_record = execute_query(
             "SELECT * FROM security_education WHERE education_id = %s",
-            (education_id, ), fetch_one=True)
+            (education_id,),
+            fetch_one=True,
+        )
 
         if not existing_record:
-            return jsonify({'error': '수정할 교육 기록을 찾을 수 없습니다.'}), HTTP_STATUS['NOT_FOUND']
+            return (
+                jsonify({"error": "수정할 교육 기록을 찾을 수 없습니다."}),
+                HTTP_STATUS["NOT_FOUND"],
+            )
 
         # 수정할 필드들 - Generated Column 제외
         update_fields = []
         update_values = []
 
         # ✅ 직접 수정 가능한 필드들만 처리
-        if 'course_name' in data:
-            update_fields.append('course_name = %s')
-            update_values.append(data['course_name'])
+        if "course_name" in data:
+            update_fields.append("course_name = %s")
+            update_values.append(data["course_name"])
 
-        if 'completed_count' in data:
-            update_fields.append('completed_count = %s')
+        if "completed_count" in data:
+            update_fields.append("completed_count = %s")
             update_values.append(
-                int(data['completed_count']
-                    ) if data['completed_count'] is not None else 0)
+                int(data["completed_count"])
+                if data["completed_count"] is not None
+                else 0
+            )
 
-        if 'incomplete_count' in data:
-            update_fields.append('incomplete_count = %s')
+        if "incomplete_count" in data:
+            update_fields.append("incomplete_count = %s")
             update_values.append(
-                int(data['incomplete_count']
-                    ) if data['incomplete_count'] is not None else 0)
+                int(data["incomplete_count"])
+                if data["incomplete_count"] is not None
+                else 0
+            )
 
         # ✅ Generated Column은 제외 (total_courses, completion_rate는 자동 계산됨)
 
-        if 'education_date' in data:
-            update_fields.append('education_date = %s')
-            update_values.append(data['education_date'])
+        if "education_date" in data:
+            update_fields.append("education_date = %s")
+            update_values.append(data["education_date"])
 
-        if 'notes' in data:
-            update_fields.append('notes = %s')
-            update_values.append(data['notes'])
+        if "notes" in data:
+            update_fields.append("notes = %s")
+            update_values.append(data["notes"])
 
-        if 'exclude_from_scoring' in data:
-            update_fields.append('exclude_from_scoring = %s')
-            update_values.append(bool(data['exclude_from_scoring']))
+        if "exclude_from_scoring" in data:
+            update_fields.append("exclude_from_scoring = %s")
+            update_values.append(bool(data["exclude_from_scoring"]))
 
-        if 'exclude_reason' in data:
-            update_fields.append('exclude_reason = %s')
-            update_values.append(data['exclude_reason'])
+        if "exclude_reason" in data:
+            update_fields.append("exclude_reason = %s")
+            update_values.append(data["exclude_reason"])
 
         if not update_fields:
-            return jsonify({'error': '수정할 항목이 없습니다.'}), HTTP_STATUS['BAD_REQUEST']
+            return (
+                jsonify({"error": "수정할 항목이 없습니다."}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
 
         # 업데이트 실행
         update_values.append(education_id)  # WHERE 조건용
@@ -759,80 +938,96 @@ def update_education_record():
         print(f"[DEBUG] 교육 기록 업데이트 완료: education_id={education_id}")
         print(f"[DEBUG] 업데이트된 필드: {update_fields}")
 
-        return jsonify({'success': True, 'message': '교육 기록이 성공적으로 수정되었습니다.'})
+        return jsonify(
+            {"success": True, "message": "교육 기록이 성공적으로 수정되었습니다."}
+        )
 
     except Exception as e:
         print(f"[ERROR] 교육 기록 수정 실패: {str(e)}")
         import traceback
+
         traceback.print_exc()
-        return jsonify({'error': f'교육 기록 수정 실패: {str(e)}'
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": f"교육 기록 수정 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
-@education_bp.route('/toggle-exception', methods=['POST'])
+@education_bp.route("/toggle-exception", methods=["POST"])
 @admin_required
 @handle_exceptions
-@validate_json(['user_id', 'period_id', 'education_type', 'exclude'])
+@validate_json(["user_id", "period_id", "education_type", "exclude"])
 def toggle_education_exception():
     """교육 예외 처리 토글"""
     data = request.json
 
     try:
         result = education_service.toggle_education_exception(
-            data['user_id'], data['period_id'], data['education_type'], data['exclude'],
-            data.get('exclude_reason', ''))
+            data["user_id"],
+            data["period_id"],
+            data["education_type"],
+            data["exclude"],
+            data.get("exclude_reason", ""),
+        )
 
-        if result['success']:
+        if result["success"]:
             return jsonify(result)
         else:
-            return jsonify(result), HTTP_STATUS['BAD_REQUEST']
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
 
     except Exception as e:
-        return jsonify({'error': f'예외 처리 실패: {str(e)}'
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": f"예외 처리 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
-@education_bp.route('/delete', methods=['DELETE'])
+@education_bp.route("/delete", methods=["DELETE"])
 @admin_required
 @handle_exceptions
-@validate_json(['user_id', 'period_id', 'education_type'])
+@validate_json(["user_id", "period_id", "education_type"])
 def delete_education_record():
     """교육 기록 삭제"""
     data = request.json
 
     try:
-        result = education_service.delete_education_record(data['user_id'],
-                                                           data['period_id'],
-                                                           data['education_type'])
+        result = education_service.delete_education_record(
+            data["user_id"], data["period_id"], data["education_type"]
+        )
 
-        if result['success']:
+        if result["success"]:
             return jsonify(result)
         else:
-            return jsonify(result), HTTP_STATUS['BAD_REQUEST']
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
 
     except Exception as e:
-        return jsonify({'error': f'삭제 실패: {str(e)}'
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": f"삭제 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
-@education_bp.route('/export', methods=['GET'])
+@education_bp.route("/export", methods=["GET"])
 @admin_required
 @handle_exceptions
 def export_education_data():
     """
     교육 데이터 CSV 내보내기 - 새로운 스키마 사용
-    
+
     변경사항:
     1. 새로운 스키마 컬럼 사용 (course_name, completed_count, incomplete_count 등)
     2. mail 컬럼 사용 (u.mail as email)
     3. 레거시 스키마 제거
     """
-    year = request.args.get('year', datetime.now().year, type=int)
-    format_type = request.args.get('format', 'csv')
+    year = request.args.get("year", datetime.now().year, type=int)
+    format_type = request.args.get("format", "csv")
 
     try:
-        if format_type != 'csv':
-            return jsonify({'error': '현재 CSV 형식만 지원됩니다.'}), HTTP_STATUS['BAD_REQUEST']
+        if format_type != "csv":
+            return (
+                jsonify({"error": "현재 CSV 형식만 지원됩니다."}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
 
         # ✅ 새로운 스키마 기반 교육 데이터 조회
         education_records = execute_query(
@@ -868,11 +1063,16 @@ def export_education_data():
             LEFT JOIN security_education_periods sep ON se.period_id = sep.period_id
             WHERE se.education_year = %s
             ORDER BY u.username, se.course_name, se.created_at
-            """, (year, ), fetch_all=True)
+            """,
+            (year,),
+            fetch_all=True,
+        )
 
         if not education_records:
-            return jsonify({'error': f'{year}년 교육 데이터가 없습니다.'
-                            }), HTTP_STATUS['NOT_FOUND']
+            return (
+                jsonify({"error": f"{year}년 교육 데이터가 없습니다."}),
+                HTTP_STATUS["NOT_FOUND"],
+            )
 
         # CSV 데이터 생성
         csv_lines = []
@@ -882,9 +1082,26 @@ def export_education_data():
 
         # ✅ 새로운 헤더 구성
         headers = [
-            "사용자ID", "사용자명", "부서", "이메일", "과정명", "수료건수", "미수료건수", "전체과정수", "수료율(%)",
-            "교육유형", "교육연도", "교육기간", "수료상태", "교육일", "비고", "점수제외", "제외사유", "기간명", "시작일",
-            "종료일"
+            "사용자ID",
+            "사용자명",
+            "부서",
+            "이메일",
+            "과정명",
+            "수료건수",
+            "미수료건수",
+            "전체과정수",
+            "수료율(%)",
+            "교육유형",
+            "교육연도",
+            "교육기간",
+            "수료상태",
+            "교육일",
+            "비고",
+            "점수제외",
+            "제외사유",
+            "기간명",
+            "시작일",
+            "종료일",
         ]
 
         # BOM과 함께 헤더 추가
@@ -904,7 +1121,11 @@ def export_education_data():
                 str(float(record.get("completion_rate", 0))),
                 str(record.get("education_type", "")).replace('"', '""'),
                 str(record.get("education_year", "")),
-                "상반기" if record.get("education_period") == "first_half" else "하반기",
+                (
+                    "상반기"
+                    if record.get("education_period") == "first_half"
+                    else "하반기"
+                ),
                 str(record.get("completion_status_text", "")).replace('"', '""'),
                 str(record.get("education_date", "")).replace('"', '""'),
                 str(record.get("notes", "")).replace('"', '""'),
@@ -920,95 +1141,107 @@ def export_education_data():
         csv_content = "\n".join(csv_lines)
 
         # 응답 생성
-        response = make_response(csv_content.encode('utf-8'))
-        response.headers['Content-Type'] = 'text/csv; charset=utf-8'
-        response.headers[
-            'Content-Disposition'] = f'attachment; filename="교육데이터_{year}.csv"'
+        response = make_response(csv_content.encode("utf-8"))
+        response.headers["Content-Type"] = "text/csv; charset=utf-8"
+        response.headers["Content-Disposition"] = (
+            f'attachment; filename="교육데이터_{year}.csv"'
+        )
 
         return response
 
     except Exception as e:
         print(f"[ERROR] 교육 데이터 내보내기 실패: {str(e)}")
-        return jsonify({'error': f'데이터 내보내기 실패: {str(e)}'
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": f"데이터 내보내기 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 # ✅ 교육 기간 상태 조회 API 추가
-@education_bp.route('/periods/status', methods=['GET'])
+@education_bp.route("/periods/status", methods=["GET"])
 @admin_required
 @handle_exceptions
 def get_periods_status():
     """업로드 가능한 교육 기간 목록 조회"""
-    year = request.args.get('year', datetime.now().year, type=int)
+    year = request.args.get("year", datetime.now().year, type=int)
 
     try:
         result = period_service.get_period_status(year)
         return jsonify(result)
     except Exception as e:
         print(f"[ERROR] 교육 기간 상태 조회 실패: {str(e)}")
-        return jsonify({'error': f'교육 기간 상태 조회 실패: {str(e)}'
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": f"교육 기간 상태 조회 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
-@education_bp.route('/periods', methods=['GET'])
+@education_bp.route("/periods", methods=["GET"])
 @admin_required
 @handle_exceptions
 def get_period_status():
     """교육 기간 현황 조회 (기존 엔드포인트)"""
-    year = request.args.get('year', datetime.now().year, type=int)
+    year = request.args.get("year", datetime.now().year, type=int)
 
     try:
         result = period_service.get_period_status(year)
         return jsonify(result)
     except Exception as e:
-        return jsonify({'error': f'기간 조회 실패: {str(e)}'
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": f"기간 조회 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
-@education_bp.route('/periods', methods=['POST'])
+@education_bp.route("/periods", methods=["POST"])
 @admin_required
 @handle_exceptions
 @validate_json(
-    ['education_year', 'period_name', 'education_type', 'start_date', 'end_date'])
+    ["education_year", "period_name", "education_type", "start_date", "end_date"]
+)
 def create_period():
     """새 교육 기간 생성"""
     data = request.json
-    created_by = request.current_user.get('user_id', 'admin')
+    created_by = request.current_user.get("user_id", "admin")
 
     try:
         result = period_service.create_period(data, created_by)
 
-        if result['success']:
-            return jsonify(result), HTTP_STATUS['CREATED']
+        if result["success"]:
+            return jsonify(result), HTTP_STATUS["CREATED"]
         else:
-            return jsonify(result), HTTP_STATUS['BAD_REQUEST']
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
 
     except Exception as e:
-        return jsonify({'error': f'기간 생성 실패: {str(e)}'
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": f"기간 생성 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
-@education_bp.route('/periods/<int:period_id>/complete', methods=['POST'])
+@education_bp.route("/periods/<int:period_id>/complete", methods=["POST"])
 @admin_required
 @handle_exceptions
 def complete_period(period_id):
     """교육 기간 완료 처리"""
-    completed_by = request.current_user.get('user_id', 'admin')
+    completed_by = request.current_user.get("user_id", "admin")
 
     try:
         result = period_service.complete_period(period_id, completed_by)
 
-        if result['success']:
+        if result["success"]:
             return jsonify(result)
         else:
-            return jsonify(result), HTTP_STATUS['BAD_REQUEST']
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
 
     except Exception as e:
-        return jsonify({'error': f'완료 처리 실패: {str(e)}'
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": f"완료 처리 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
-@education_bp.route('/periods/<int:period_id>/reopen', methods=['POST'])
+@education_bp.route("/periods/<int:period_id>/reopen", methods=["POST"])
 @admin_required
 @handle_exceptions
 def reopen_period(period_id):
@@ -1016,11 +1249,13 @@ def reopen_period(period_id):
     try:
         result = period_service.reopen_period(period_id)
 
-        if result['success']:
+        if result["success"]:
             return jsonify(result)
         else:
-            return jsonify(result), HTTP_STATUS['BAD_REQUEST']
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
 
     except Exception as e:
-        return jsonify({'error': f'재개 처리 실패: {str(e)}'
-                        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
+        return (
+            jsonify({"error": f"재개 처리 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
