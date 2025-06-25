@@ -602,7 +602,7 @@ class SecurityEducationService:
         """교육 예외 처리 토글"""
         try:
             # 사용자 확인
-            user = execute_query("SELECT uid, username FROM users WHERE user_id = %s",
+            user = execute_query("SELECT uid, username FROM users WHERE uid = %s",
                                  (user_id, ), fetch_one=True)
 
             if not user:
@@ -638,7 +638,7 @@ class SecurityEducationService:
         """교육 기록 삭제"""
         try:
             # 사용자 확인
-            user = execute_query("SELECT uid, username FROM users WHERE user_id = %s",
+            user = execute_query("SELECT uid, username FROM users WHERE uid = %s",
                                  (user_id, ), fetch_one=True)
 
             if not user:
@@ -1367,65 +1367,3 @@ class SecurityEducationService:
             "홍길동,개발팀,오프라인,1,0", "김철수,운영팀,오프라인,0,1", "이영희,기획팀,온라인,2,1", "박민수,인사팀,온라인,3,0"
         ]
         return "\n".join(template_data)
-
-    # 기존 메서드들은 그대로 유지...
-    def toggle_education_exception(self, user_id: str, period_id: int,
-                                   education_type: str, exclude: bool,
-                                   exclude_reason: str = "") -> dict:
-        """교육 예외 처리 토글"""
-        try:
-            user = execute_query("SELECT uid, username FROM users WHERE user_id = %s",
-                                 (user_id, ), fetch_one=True)
-
-            if not user:
-                return {'success': False, 'message': '사용자를 찾을 수 없습니다.'}
-
-            user_uid = user['uid']
-
-            result = execute_query(
-                """
-                UPDATE security_education 
-                SET exclude_from_scoring = %s, 
-                    exclude_reason = %s,
-                    updated_at = NOW()
-                WHERE user_id = %s AND period_id = %s AND education_type = %s
-                """, (1 if exclude else 0, exclude_reason if exclude else "", user_uid,
-                      period_id, education_type))
-
-            if result == 0:
-                return {'success': False, 'message': '해당 교육 기록을 찾을 수 없습니다.'}
-
-            action = "제외" if exclude else "포함"
-            return {
-                'success': True,
-                'message': f"{user['username']}의 교육이 점수 계산에서 {action}되었습니다."
-            }
-
-        except Exception as e:
-            return {'success': False, 'message': f'예외 처리 실패: {str(e)}'}
-
-    def delete_education_record(self, user_id: str, period_id: int,
-                                education_type: str) -> dict:
-        """교육 기록 삭제"""
-        try:
-            user = execute_query("SELECT uid, username FROM users WHERE user_id = %s",
-                                 (user_id, ), fetch_one=True)
-
-            if not user:
-                return {'success': False, 'message': '사용자를 찾을 수 없습니다.'}
-
-            user_uid = user['uid']
-
-            result = execute_query(
-                """
-                DELETE FROM security_education 
-                WHERE user_id = %s AND period_id = %s AND education_type = %s
-                """, (user_uid, period_id, education_type))
-
-            if result == 0:
-                return {'success': False, 'message': '삭제할 교육 기록을 찾을 수 없습니다.'}
-
-            return {'success': True, 'message': f"{user['username']}의 교육 기록이 삭제되었습니다."}
-
-        except Exception as e:
-            return {'success': False, 'message': f'삭제 실패: {str(e)}'}
