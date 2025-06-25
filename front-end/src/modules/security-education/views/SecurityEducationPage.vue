@@ -345,20 +345,25 @@ const fetchEducationStatus = async () => {
   error.value = null
 
   try {
-    console.log(`[DEBUG] 교육 현황 API 호출: 연도=${selectedYear.value}`)
+    console.log('[DEBUG] 사용자 교육 요약 조회 시작:', selectedYear.value)
 
-    const response = await fetch(`/api/security-education/status?year=${selectedYear.value}`, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
+    // ✅ 새로운 엔드포인트 사용
+    const response = await fetch(
+      `/api/security-education/user-summary?year=${selectedYear.value}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authStore.token}`,
+        },
       },
-    })
+    )
 
+    // 응답 처리 로직은 동일하게 유지...
     if (!response.ok) {
       if (response.status === 401) {
-        router.push('/login')
-        throw new Error('인증이 필요합니다. 로그인 페이지로 이동합니다.')
+        authStore.logout()
+        throw new Error('로그인이 만료되었습니다. 다시 로그인 페이지로 이동합니다.')
       }
 
       try {
@@ -370,14 +375,14 @@ const fetchEducationStatus = async () => {
     }
 
     const responseData = await response.json()
-    console.log('[DEBUG] 교육 현황 API 응답:', responseData)
+    console.log('[DEBUG] 사용자 교육 요약 API 응답:', responseData)
 
     // ✅ 응답 데이터 검증 및 기본값 보장
     if (!responseData || typeof responseData !== 'object') {
       throw new Error('서버에서 올바르지 않은 응답을 받았습니다.')
     }
 
-    // ✅ 기본 구조 보장 (서버에서 보장하지만 클라이언트에서도 안전장치)
+    // ✅ 레거시 관련 코드 제거, 새로운 스키마만 지원
     educationData.value = {
       year: responseData.year || selectedYear.value,
       education_status: responseData.education_status || [],
@@ -402,15 +407,15 @@ const fetchEducationStatus = async () => {
       statusCount: educationData.value.education_status.length,
     })
 
-    // ✅ 서버에서 오류 메시지가 있는 경우 경고 표시 (에러는 아니지만 알림)
+    // ✅ 서버에서 오류 메시지가 있는 경우 경고 표시
     if (responseData.error_message) {
       console.warn('[WARNING]', responseData.error_message)
     }
   } catch (err) {
-    console.error('[ERROR] 교육 현황 조회 실패:', err)
+    console.error('[ERROR] 사용자 교육 요약 조회 실패:', err)
     error.value = err.message || '교육 현황을 불러오는 중 오류가 발생했습니다.'
 
-    // ✅ 에러 발생 시에도 기본 구조로 초기화 (완전히 null로 두지 않음)
+    // ✅ 에러 발생 시에도 기본 구조로 초기화
     educationData.value = {
       year: selectedYear.value,
       education_status: [],
@@ -473,21 +478,19 @@ const formatDate = (dateString) => {
   }
 }
 
-// ✅ 기존 헬퍼 함수들에 null 체크 추가
+// ✅ 레거시 관련 헬퍼 함수들 정리 (completion_rate 기반으로 통일)
 const getPeriodCardClass = (education) => {
   if (!education) return 'pending'
   if (education.exclude_from_scoring) return 'excluded'
 
-  // 새로운 스키마 우선 확인 (completion_rate 기반)
+  // ✅ 새로운 스키마만 지원 (completion_rate 기반)
   if (education.completion_rate !== undefined) {
     if (education.completion_rate >= 80) return 'passed'
     if (education.completion_rate > 0) return 'partial'
     return 'failed'
   }
 
-  // 기존 로직 폴백 (status 기반)
-  if (education.status === 'completed') return 'passed'
-  if (education.status === 'incomplete') return 'failed'
+  // ✅ 폴백 제거 (레거시 지원 중단)
   return 'pending'
 }
 
@@ -502,14 +505,24 @@ const getIncompleteRateClass = (rate) => {
   return 'danger-text'
 }
 
-const getStatusText = (status) => {
-  const statusMap = {
-    completed: '이수완료',
-    incomplete: '미이수',
-    not_started: '미실시',
-    partial: '부분완료', // ✅ 새로운 상태 추가
+const getStatusText = (education) => {
+  // ✅ 서버에서 제공하는 status 텍스트를 우선 사용
+  if (education.status) {
+    return education.status
   }
-  return statusMap[status] || '알 수 없음'
+
+  // ✅ 클라이언트 사이드 폴백 (새로운 스키마만)
+  if (education.exclude_from_scoring) return '제외'
+
+  if (education.completion_rate !== undefined) {
+    const rate = education.completion_rate
+    if (rate >= 100) return '완료'
+    if (rate >= 80) return '수료'
+    if (rate > 0) return `부분완료(${rate.toFixed(0)}%)`
+    return '미실시'
+  }
+
+  return '알 수 없음'
 }
 
 // 라이프사이클 훅
