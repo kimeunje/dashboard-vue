@@ -257,8 +257,8 @@
 
                 <!-- 사용자 정보 -->
                 <td class="user-info">
-                  <div class="user-name">{{ record.username }}</div>
-                  <div class="user-id">{{ record.user_id }}</div>
+                  <div class="user-name">{{ record.name }}</div>
+                  <div class="user-id">{{ record.email }}</div>
                 </td>
 
                 <!-- 부서 -->
