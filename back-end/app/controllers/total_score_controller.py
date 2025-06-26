@@ -27,10 +27,12 @@ def get_security_score_summary():
         response_data = {
             "user_id": score_data["user_id"],
             "year": score_data["year"],
-            "audit_penalty": score_data["audit_penalty"],  # 수정: audit_score -> audit_penalty
+            "audit_penalty": score_data[
+                "audit_penalty"],  # 수정: audit_score -> audit_penalty
             "education_penalty": score_data["education_penalty"],
             "training_penalty": score_data["training_penalty"],
-            "total_penalty": score_data["total_penalty"],  # 수정: total_score -> total_penalty
+            "total_penalty": score_data[
+                "total_penalty"],  # 수정: total_score -> total_penalty
             # 수정: grade 제거 (KPI에서 등급 불필요)
             "education_stats": score_data["education_stats"],
             "training_stats": score_data["training_stats"],
@@ -42,7 +44,10 @@ def get_security_score_summary():
         return jsonify({"message": str(e)}), HTTP_STATUS["NOT_FOUND"]
     except Exception as e:
         return (
-            jsonify({"error": "감점 계산 중 오류가 발생했습니다.", "details": str(e)}),  # 수정: 점수 -> 감점
+            jsonify({
+                "error": "감점 계산 중 오류가 발생했습니다.",
+                "details": str(e)
+            }),  # 수정: 점수 -> 감점
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -64,12 +69,10 @@ def get_security_dashboard_overview():
         return jsonify({"message": str(e)}), HTTP_STATUS["NOT_FOUND"]
     except Exception as e:
         return (
-            jsonify(
-                {
-                    "error": "대시보드 데이터 조회 중 오류가 발생했습니다.",
-                    "details": str(e),
-                }
-            ),
+            jsonify({
+                "error": "대시보드 데이터 조회 중 오류가 발생했습니다.",
+                "details": str(e),
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -89,9 +92,8 @@ def calculate_security_score():
         # 사용자 ID 조회
         from app.utils.database import execute_query
 
-        user_data = execute_query(
-            "SELECT uid FROM users WHERE user_id = %s", (username,), fetch_one=True
-        )
+        user_data = execute_query("SELECT uid FROM users WHERE user_id = %s",
+                                  (username, ), fetch_one=True)
 
         if not user_data:
             return (
@@ -102,17 +104,17 @@ def calculate_security_score():
         # 감점 재계산
         score_data = score_service.calculate_security_score(user_data["uid"], year)
 
-        return jsonify(
-            {
-                "message": "KPI 보안 감점이 성공적으로 재계산되었습니다.",  # 수정
-                "penalty_data": score_data,  # 수정: score_data -> penalty_data
-            }
-        )
+        return jsonify({
+            "message": "KPI 보안 감점이 성공적으로 재계산되었습니다.",  # 수정
+            "penalty_data": score_data,  # 수정: score_data -> penalty_data
+        })
     except Exception as e:
         return (
-            jsonify(
-                {"error": "감점 재계산 중 오류가 발생했습니다.", "details": str(e)}  # 수정
-            ),
+            jsonify({
+                "error": "감점 재계산 중 오류가 발생했습니다.",
+                "details": str(e)
+            }  # 수정
+                    ),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -129,9 +131,8 @@ def get_score_history():
         from app.utils.database import execute_query
 
         # 사용자 ID 조회
-        user_data = execute_query(
-            "SELECT uid FROM users WHERE user_id = %s", (username,), fetch_one=True
-        )
+        user_data = execute_query("SELECT uid FROM users WHERE user_id = %s",
+                                  (username, ), fetch_one=True)
         if not user_data:
             return (
                 jsonify({"error": "사용자를 찾을 수 없습니다."}),
@@ -148,16 +149,16 @@ def get_score_history():
         for year in years:
             try:
                 score_data = score_service.calculate_security_score(user_id, year)
-                history.append(
-                    {
-                        "year": year,
-                        "total_penalty": score_data["total_penalty"],  # 수정: total_score -> total_penalty
-                        # 수정: grade 제거
-                        "audit_penalty": score_data["audit_penalty"],  # 수정: audit_score -> audit_penalty
-                        "education_penalty": score_data["education_penalty"],
-                        "training_penalty": score_data["training_penalty"],
-                    }
-                )
+                history.append({
+                    "year": year,
+                    "total_penalty": score_data[
+                        "total_penalty"],  # 수정: total_score -> total_penalty
+                    # 수정: grade 제거
+                    "audit_penalty": score_data[
+                        "audit_penalty"],  # 수정: audit_score -> audit_penalty
+                    "education_penalty": score_data["education_penalty"],
+                    "training_penalty": score_data["training_penalty"],
+                })
             except Exception as e:
                 # 해당 연도 데이터가 없으면 건너뛰기
                 continue
@@ -165,9 +166,11 @@ def get_score_history():
         return jsonify({"username": username, "history": history})
     except Exception as e:
         return (
-            jsonify(
-                {"error": "감점 이력 조회 중 오류가 발생했습니다.", "details": str(e)}  # 수정
-            ),
+            jsonify({
+                "error": "감점 이력 조회 중 오류가 발생했습니다.",
+                "details": str(e)
+            }  # 수정
+                    ),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -186,9 +189,8 @@ def get_score_breakdown():
         from app.utils.database import execute_query, DatabaseManager
 
         # 사용자 ID 조회
-        user_data = execute_query(
-            "SELECT uid FROM users WHERE user_id = %s", (username,), fetch_one=True
-        )
+        user_data = execute_query("SELECT uid FROM users WHERE user_id = %s",
+                                  (username, ), fetch_one=True)
         if not user_data:
             return (
                 jsonify({"error": "사용자를 찾을 수 없습니다."}),
@@ -227,8 +229,7 @@ def get_score_breakdown():
             # 교육 상세 정보 (감점 중심)
             cursor.execute(
                 """
-                SELECT 
-                    education_period,
+                SELECT
                     education_type,
                     education_date,
                     completion_status,
@@ -242,7 +243,6 @@ def get_score_breakdown():
                     END as penalty_applied
                 FROM security_education
                 WHERE user_id = %s AND education_year = %s
-                ORDER BY education_period
                 """,
                 (user_id, year),
             )
@@ -274,17 +274,18 @@ def get_score_breakdown():
             )
             training_breakdown = cursor.fetchall()
 
-        return jsonify(
-            {
-                "year": year,
-                "audit_breakdown": audit_breakdown,
-                "education_breakdown": education_breakdown,
-                "training_breakdown": training_breakdown,
-            }
-        )
+        return jsonify({
+            "year": year,
+            "audit_breakdown": audit_breakdown,
+            "education_breakdown": education_breakdown,
+            "training_breakdown": training_breakdown,
+        })
     except Exception as e:
         return (
-            jsonify({"error": "감점 분석 중 오류가 발생했습니다.", "details": str(e)}),  # 수정
+            jsonify({
+                "error": "감점 분석 중 오류가 발생했습니다.",
+                "details": str(e)
+            }),  # 수정
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -308,72 +309,64 @@ def get_improvement_recommendations():
         # 교육 관련 권장사항
         if score_data["education_penalty"] > 0:
             incomplete_count = score_data["education_stats"]["incomplete_count"]
-            recommendations.append(
-                {
-                    "priority": "high",
-                    "category": "education",
-                    "title": "정보보호 교육 이수",
-                    "description": f'미이수된 교육이 {incomplete_count}회 있습니다. 교육을 완료하여 -{score_data["education_penalty"]}점 감점을 해소하세요.',
-                    "penalty_score": score_data["education_penalty"],  # 수정: impact_score -> penalty_score
-                    "action_url": "/security-education",
-                }
-            )
+            recommendations.append({
+                "priority": "high",
+                "category": "education",
+                "title": "정보보호 교육 이수",
+                "description": f'미이수된 교육이 {incomplete_count}회 있습니다. 교육을 완료하여 -{score_data["education_penalty"]}점 감점을 해소하세요.',
+                "penalty_score": score_data[
+                    "education_penalty"],  # 수정: impact_score -> penalty_score
+                "action_url": "/security-education",
+            })
 
         # 모의훈련 관련 권장사항
         if score_data["training_penalty"] > 0:
             failed_count = score_data["training_stats"]["failed_count"]
-            recommendations.append(
-                {
-                    "priority": "high",
-                    "category": "training",
-                    "title": "악성메일 대응 능력 향상",
-                    "description": f'모의훈련에서 {failed_count}회 실패했습니다. 악성메일 식별 능력을 향상시켜 -{score_data["training_penalty"]}점 감점을 해소하세요.',
-                    "penalty_score": score_data["training_penalty"],  # 수정
-                    "action_url": "/phishing-training",
-                }
-            )
+            recommendations.append({
+                "priority": "high",
+                "category": "training",
+                "title": "악성메일 대응 능력 향상",
+                "description": f'모의훈련에서 {failed_count}회 실패했습니다. 악성메일 식별 능력을 향상시켜 -{score_data["training_penalty"]}점 감점을 해소하세요.',
+                "penalty_score": score_data["training_penalty"],  # 수정
+                "action_url": "/phishing-training",
+            })
 
         # 감사 관련 권장사항
         if score_data["audit_penalty"] > 0:
             failed_count = score_data["audit_stats"]["failed_count"]
-            recommendations.append(
-                {
-                    "priority": "medium",
-                    "category": "audit",
-                    "title": "보안 설정 개선",
-                    "description": f'{failed_count}개 보안 설정이 정책에 맞지 않습니다. 감사 결과를 확인하고 조치하여 -{score_data["audit_penalty"]}점 감점을 해소하세요.',
-                    "penalty_score": score_data["audit_penalty"],  # 수정
-                    "action_url": "/security-audit/results",
-                }
-            )
+            recommendations.append({
+                "priority": "medium",
+                "category": "audit",
+                "title": "보안 설정 개선",
+                "description": f'{failed_count}개 보안 설정이 정책에 맞지 않습니다. 감사 결과를 확인하고 조치하여 -{score_data["audit_penalty"]}점 감점을 해소하세요.',
+                "penalty_score": score_data["audit_penalty"],  # 수정
+                "action_url": "/security-audit/results",
+            })
 
         # 총 감점에 따른 일반적인 권장사항
         if score_data["total_penalty"] >= 2.0:  # 수정: 80점 기준 -> 2점 이상 감점
-            recommendations.append(
-                {
-                    "priority": "info",
-                    "category": "general",
-                    "title": "종합적인 보안 의식 개선",
-                    "description": f'현재 총 -{score_data["total_penalty"]}점 감점되었습니다. 정기적인 보안 교육 참여와 정책 준수를 권장합니다.',
-                    "penalty_score": 0,  # 수정
-                    "action_url": "/security-audit/solutions",
-                }
-            )
+            recommendations.append({
+                "priority": "info",
+                "category": "general",
+                "title": "종합적인 보안 의식 개선",
+                "description": f'현재 총 -{score_data["total_penalty"]}점 감점되었습니다. 정기적인 보안 교육 참여와 정책 준수를 권장합니다.',
+                "penalty_score": 0,  # 수정
+                "action_url": "/security-audit/solutions",
+            })
 
-        return jsonify(
-            {
-                "current_penalty": score_data["total_penalty"],  # 수정: current_score -> current_penalty
-                # 수정: grade 제거
-                "potential_improvement": score_data["education_penalty"]
-                + score_data["training_penalty"]
-                + score_data["audit_penalty"],
-                "recommendations": recommendations,
-            }
-        )
+        return jsonify({
+            "current_penalty": score_data[
+                "total_penalty"],  # 수정: current_score -> current_penalty
+            # 수정: grade 제거
+            "potential_improvement": score_data["education_penalty"] +
+            score_data["training_penalty"] + score_data["audit_penalty"],
+            "recommendations": recommendations,
+        })
     except Exception as e:
         return (
-            jsonify(
-                {"error": "권장사항 조회 중 오류가 발생했습니다.", "details": str(e)}
-            ),
+            jsonify({
+                "error": "권장사항 조회 중 오류가 발생했습니다.",
+                "details": str(e)
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )

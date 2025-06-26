@@ -49,23 +49,20 @@ def get_available_items():
 @handle_exceptions
 def check_user_training_exception_by_year(user_id, year, training_period):
     """특정 사용자의 특정 연도/기간 모의훈련 제외 설정 확인"""
-    result = exception_service.is_training_excluded_for_user(
-        user_id, year, training_period
-    )
+    result = exception_service.is_training_excluded_for_user(user_id, year,
+                                                             training_period)
     return jsonify(result)
 
 
 @exception_bp.route(
-    "/check-user-education/<int:user_id>/<int:year>/<string:education_period>",
+    "/check-user-education/<int:user_id>/<int:year>",
     methods=["GET"],
 )
 @admin_required
 @handle_exceptions
-def check_user_education_exception_by_year(user_id, year, education_period):
+def check_user_education_exception_by_year(user_id, year):
     """특정 사용자의 특정 연도/기간 교육 제외 설정 확인"""
-    result = exception_service.is_education_excluded_for_user(
-        user_id, year, education_period
-    )
+    result = exception_service.is_education_excluded_for_user(user_id, year)
     return jsonify(result)
 
 
@@ -86,14 +83,12 @@ def check_user_item_exception_by_year():
     if item_type == "training":
         for period in ["first_half", "second_half"]:
             result = exception_service.is_training_excluded_for_user(
-                user_id, year, period
-            )
+                user_id, year, period)
             results[period] = result
     elif item_type == "education":
         for period in ["first_half", "second_half"]:
             result = exception_service.is_education_excluded_for_user(
-                user_id, year, period
-            )
+                user_id, year, period)
             results[period] = result
     else:
         return (
@@ -101,9 +96,12 @@ def check_user_item_exception_by_year():
             400,
         )
 
-    return jsonify(
-        {"user_id": user_id, "year": year, "item_type": item_type, "results": results}
-    )
+    return jsonify({
+        "user_id": user_id,
+        "year": year,
+        "item_type": item_type,
+        "results": results
+    })
 
 
 @exception_bp.route("/available-items-by-year", methods=["GET"])
@@ -134,9 +132,8 @@ def get_available_items_by_year():
     return jsonify(filtered_items)
 
 
-@exception_bp.route(
-    "/check-user-training/<int:user_id>/<string:training_period>", methods=["GET"]
-)
+@exception_bp.route("/check-user-training/<int:user_id>/<string:training_period>",
+                    methods=["GET"])
 @admin_required
 @handle_exceptions
 def check_user_training_exception(user_id, training_period):
@@ -217,9 +214,8 @@ def add_user_exception():
             )
 
     # 사용자 존재 확인
-    user_exists = execute_query(
-        "SELECT uid FROM users WHERE uid = %s", (data["user_id"],), fetch_one=True
-    )
+    user_exists = execute_query("SELECT uid FROM users WHERE uid = %s",
+                                (data["user_id"], ), fetch_one=True)
 
     if not user_exists:
         return (
@@ -316,9 +312,8 @@ def add_department_exception():
         return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
 
 
-@exception_bp.route(
-    "/user-exceptions/<int:user_id>/<string:item_type>", methods=["DELETE"]
-)
+@exception_bp.route("/user-exceptions/<int:user_id>/<string:item_type>",
+                    methods=["DELETE"])
 @admin_required
 @handle_exceptions
 def remove_user_exception(user_id, item_type):
@@ -331,9 +326,8 @@ def remove_user_exception(user_id, item_type):
         return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
 
 
-@exception_bp.route(
-    "/department-exceptions/<string:department>/<string:item_type>", methods=["DELETE"]
-)
+@exception_bp.route("/department-exceptions/<string:department>/<string:item_type>",
+                    methods=["DELETE"])
 @admin_required
 @handle_exceptions
 def remove_department_exception(department, item_type):
@@ -369,7 +363,7 @@ def get_checklist_items():
             # checklist_items에서 일반 감사 항목 조회
             if check_type:
                 condition = "WHERE check_type = %s"
-                params = (check_type,)
+                params = (check_type, )
             else:
                 condition = ""
                 params = ()
@@ -431,7 +425,7 @@ def get_users():
 
     if department:
         condition = "WHERE department = %s"
-        params = (department,)
+        params = (department, )
     else:
         condition = ""
         params = ()
@@ -490,13 +484,11 @@ def bulk_add_exceptions():
                 start_date = None
                 end_date = None
                 if exception.get("start_date"):
-                    start_date = datetime.strptime(
-                        exception["start_date"], "%Y-%m-%d"
-                    ).date()
+                    start_date = datetime.strptime(exception["start_date"],
+                                                   "%Y-%m-%d").date()
                 if exception.get("end_date"):
-                    end_date = datetime.strptime(
-                        exception["end_date"], "%Y-%m-%d"
-                    ).date()
+                    end_date = datetime.strptime(exception["end_date"],
+                                                 "%Y-%m-%d").date()
 
                 result = exception_service.add_user_exception(
                     user_id=exception["user_id"],
@@ -516,13 +508,11 @@ def bulk_add_exceptions():
                 start_date = None
                 end_date = None
                 if exception.get("start_date"):
-                    start_date = datetime.strptime(
-                        exception["start_date"], "%Y-%m-%d"
-                    ).date()
+                    start_date = datetime.strptime(exception["start_date"],
+                                                   "%Y-%m-%d").date()
                 if exception.get("end_date"):
-                    end_date = datetime.strptime(
-                        exception["end_date"], "%Y-%m-%d"
-                    ).date()
+                    end_date = datetime.strptime(exception["end_date"],
+                                                 "%Y-%m-%d").date()
 
                 result = exception_service.add_department_exception(
                     department=exception["department"],
@@ -534,12 +524,10 @@ def bulk_add_exceptions():
                     created_by=current_user["username"],
                 )
             else:
-                error_list.append(
-                    {
-                        "exception": exception,
-                        "error": "user_id 또는 department 중 하나와 item_id가 필요합니다.",
-                    }
-                )
+                error_list.append({
+                    "exception": exception,
+                    "error": "user_id 또는 department 중 하나와 item_id가 필요합니다.",
+                })
                 continue
 
             if result["success"]:
@@ -550,14 +538,12 @@ def bulk_add_exceptions():
         except Exception as e:
             error_list.append({"exception": exception, "error": str(e)})
 
-    return jsonify(
-        {
-            "success_count": success_count,
-            "total_count": len(exceptions),
-            "error_count": len(error_list),
-            "errors": error_list,
-        }
-    )
+    return jsonify({
+        "success_count": success_count,
+        "total_count": len(exceptions),
+        "error_count": len(error_list),
+        "errors": error_list,
+    })
 
 
 @exception_bp.route("/export", methods=["GET"])
@@ -578,63 +564,57 @@ def export_exceptions():
         writer = csv.writer(output)
 
         # 헤더 작성
-        writer.writerow(
-            [
-                "유형",
-                "사용자ID",
-                "사용자명",
-                "부서",
-                "항목ID",
-                "항목명",
-                "카테고리",
-                "제외사유",
-                "제외유형",
-                "시작일",
-                "종료일",
-                "생성자",
-                "생성일",
-            ]
-        )
+        writer.writerow([
+            "유형",
+            "사용자ID",
+            "사용자명",
+            "부서",
+            "항목ID",
+            "항목명",
+            "카테고리",
+            "제외사유",
+            "제외유형",
+            "시작일",
+            "종료일",
+            "생성자",
+            "생성일",
+        ])
 
         # 사용자별 제외 설정
         for exc in user_exceptions:
-            writer.writerow(
-                [
-                    "사용자별",
-                    exc["user_login_id"],
-                    exc["username"],
-                    exc["department"],
-                    exc["item_id"],
-                    exc["item_name"],
-                    exc["category"],
-                    exc["exclude_reason"],
-                    exc["exclude_type"],
-                    exc["start_date"] or "",
-                    exc["end_date"] or "",
-                    exc["created_by"],
-                    exc["created_at"],
-                ]
-            )
+            writer.writerow([
+                "사용자별",
+                exc["user_login_id"],
+                exc["username"],
+                exc["department"],
+                exc["item_id"],
+                exc["item_name"],
+                exc["category"],
+                exc["exclude_reason"],
+                exc["exclude_type"],
+                exc["start_date"] or "",
+                exc["end_date"] or "",
+                exc["created_by"],
+                exc["created_at"],
+            ])
 
         # 부서별 제외 설정
         for exc in dept_exceptions:
-            writer.writerow(
-                [
-                    "부서별",
-                    "",
-                    "",
-                    exc["department"],
-                    exc["item_id"],
-                    exc["item_name"],
-                    exc["category"],
-                    exc["exclude_reason"],
-                    exc["exclude_type"],
-                    exc["start_date"] or "",
-                    exc["end_date"] or "",
-                    exc["created_by"],
-                    exc["created_at"],
-                ]
-            )
+            writer.writerow([
+                "부서별",
+                "",
+                "",
+                exc["department"],
+                exc["item_id"],
+                exc["item_name"],
+                exc["category"],
+                exc["exclude_reason"],
+                exc["exclude_type"],
+                exc["start_date"] or "",
+                exc["end_date"] or "",
+                exc["created_by"],
+                exc["created_at"],
+            ])
 
         csv_data = output.getvalue()
         output.close()
@@ -644,18 +624,15 @@ def export_exceptions():
         response = make_response(csv_data)
         response.headers["Content-Type"] = "text/csv; charset=utf-8"
         response.headers["Content-Disposition"] = (
-            "attachment; filename=exception_settings.csv"
-        )
+            "attachment; filename=exception_settings.csv")
         return response
 
     else:
         # JSON 형식
-        return jsonify(
-            {
-                "user_exceptions": user_exceptions,
-                "department_exceptions": dept_exceptions,
-                "export_date": datetime.now().isoformat(),
-                "total_user_exceptions": len(user_exceptions),
-                "total_department_exceptions": len(dept_exceptions),
-            }
-        )
+        return jsonify({
+            "user_exceptions": user_exceptions,
+            "department_exceptions": dept_exceptions,
+            "export_date": datetime.now().isoformat(),
+            "total_user_exceptions": len(user_exceptions),
+            "total_department_exceptions": len(dept_exceptions),
+        })

@@ -130,8 +130,7 @@ def get_user_education_summary():
                     ELSE 'unknown'
                 END as status
             FROM security_education_periods sep
-            WHERE sep.education_year = %s 
-            AND sep.is_active = 1
+            WHERE sep.education_year = %s
             AND NOT EXISTS (
                 SELECT 1 FROM security_education se 
                 WHERE se.period_id = sep.period_id AND se.user_id = %s
@@ -470,8 +469,7 @@ def get_active_periods():
                     ELSE 'unknown'
                 END as status
             FROM security_education_periods
-            WHERE education_year = %s 
-            AND is_active = 1 
+            WHERE education_year = %s
             AND is_completed = 0
             ORDER BY education_type, start_date
             """,
@@ -603,7 +601,7 @@ def bulk_update_education_with_period(self, period_id: int, records: list) -> di
             cursor.execute(
                 """
                 SELECT period_id, period_name, education_type, 
-                       education_year, is_completed, is_active
+                       education_year, is_completed
                 FROM security_education_periods
                 WHERE period_id = %s
                 """,
@@ -1000,7 +998,6 @@ def export_education_data():
                 se.completion_rate,
                 se.education_type, 
                 se.education_year, 
-                se.education_period,
                 se.education_date, 
                 se.notes,
                 se.exclude_from_scoring, 
@@ -1077,7 +1074,6 @@ def export_education_data():
                 str(float(record.get("completion_rate", 0))),
                 str(record.get("education_type", "")).replace('"', '""'),
                 str(record.get("education_year", "")),
-                ("상반기" if record.get("education_period") == "first_half" else "하반기"),
                 str(record.get("completion_status_text", "")).replace('"', '""'),
                 str(record.get("education_date", "")).replace('"', '""'),
                 str(record.get("notes", "")).replace('"', '""'),
@@ -1317,7 +1313,6 @@ def get_periods_with_statistics():
             sep.created_by,
             sep.created_at,
             sep.updated_at,
-            sep.is_active,
             -- 통계 정보 (사용자 상태 기반)
             COUNT(DISTINCT se.user_id) as total_participants,
             -- 성공: incomplete_count = 0인 사용자 수
@@ -1338,7 +1333,7 @@ def get_periods_with_statistics():
             ) as success_rate
         FROM security_education_periods sep
         LEFT JOIN security_education se ON sep.period_id = se.period_id
-        WHERE sep.education_year = %s AND sep.is_active = 1
+        WHERE sep.education_year = %s
         GROUP BY sep.period_id
         ORDER BY sep.education_type, sep.start_date DESC
         """
@@ -1366,6 +1361,7 @@ def get_periods_with_statistics():
             period_info = {
                 'period_id': period['period_id'],
                 'period_name': period['period_name'],
+                'education_year': period['education_year'],
                 'education_type': period['education_type'],
                 'start_date': period['start_date'].isoformat()
                 if period['start_date'] else None,

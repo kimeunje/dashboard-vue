@@ -760,8 +760,7 @@ def _get_education_details_fixed(user_id, year):
     try:
         # security_education 테이블 구조에 맞게 조회
         education_query = """
-            SELECT 
-                education_period,
+            SELECT
                 completion_status,
                 completion_date
             FROM security_education
@@ -777,7 +776,7 @@ def _get_education_details_fixed(user_id, year):
             "total_count": len(incomplete_items),
             "incomplete_items": [
                 {
-                    "education_name": f"{year}년 {item['education_period']} 정보보호 교육",
+                    "education_name": f"{year}년 정보보호 교육",
                     "due_date": None,  # 마감일 정보가 없음
                     "penalty": 0.5
                 } for item in incomplete_items
