@@ -42,9 +42,8 @@ def get_user_education_summary():
 
         # ✅ 사용자 ID 조회 (username으로 uid 찾기)
         if not user_id:
-            user_data = execute_query(
-                "SELECT uid FROM users WHERE user_id = %s", (username,), fetch_one=True
-            )
+            user_data = execute_query("SELECT uid FROM users WHERE user_id = %s",
+                                      (username, ), fetch_one=True)
             if not user_data:
                 return (
                     jsonify({"error": "사용자 정보를 찾을 수 없습니다."}),
@@ -147,26 +146,22 @@ def get_user_education_summary():
 
         # ✅ 데이터가 없는 경우 기본값 반환
         if not all_education_status:
-            print(
-                f"[DEBUG] 교육 데이터 없음 - 기본값 반환: user_id={user_id}, year={year}"
-            )
-            return jsonify(
-                {
-                    "year": year,
-                    "education_status": [],
-                    "summary": {
-                        "total_courses": 0,
-                        "completed": 0,
-                        "incomplete": 0,
-                        "not_started": 0,
-                        "completion_rate": 0,
-                        "penalty_score": 0.0,
-                        "excluded_count": 0,
-                        "unique_courses": 0,
-                        "avg_completion_rate": 0.0,
-                    },
-                }
-            )
+            print(f"[DEBUG] 교육 데이터 없음 - 기본값 반환: user_id={user_id}, year={year}")
+            return jsonify({
+                "year": year,
+                "education_status": [],
+                "summary": {
+                    "total_courses": 0,
+                    "completed": 0,
+                    "incomplete": 0,
+                    "not_started": 0,
+                    "completion_rate": 0,
+                    "penalty_score": 0.0,
+                    "excluded_count": 0,
+                    "unique_courses": 0,
+                    "avg_completion_rate": 0.0,
+                },
+            })
 
         # ✅ 새로운 스키마 기반 통계 계산
         course_details = {}
@@ -206,9 +201,8 @@ def get_user_education_summary():
                 "exclude_reason": record["exclude_reason"],
                 "notes": record["notes"],
                 "period_name": record["period_name"],
-                "start_date": (
-                    str(record["start_date"]) if record["start_date"] else None
-                ),
+                "start_date": (str(record["start_date"])
+                               if record["start_date"] else None),
                 "end_date": str(record["end_date"]) if record["end_date"] else None,
                 "period_completed": bool(record["period_completed"]),
                 "status": status,  # ✅ 상태 추가
@@ -218,23 +212,19 @@ def get_user_education_summary():
         # ✅ 전체 통계 계산
         total_courses = len(course_details)
         overall_completion_rate = round(
-            (total_completed / total_courses * 100) if total_courses > 0 else 0, 1
-        )
+            (total_completed / total_courses * 100) if total_courses > 0 else 0, 1)
 
         # ✅ 고유 과정 수 계산
         unique_courses = len(
-            set(record["course_name"] for record in all_education_status)
-        )
+            set(record["course_name"] for record in all_education_status))
 
         # ✅ 평균 수료율 계산
         valid_rates = [
-            float(record["completion_rate"] or 0)
-            for record in all_education_status
+            float(record["completion_rate"] or 0) for record in all_education_status
             if not record["exclude_from_scoring"]
         ]
         avg_completion_rate = round(
-            sum(valid_rates) / len(valid_rates) if valid_rates else 0, 1
-        )
+            sum(valid_rates) / len(valid_rates) if valid_rates else 0, 1)
 
         # ✅ 응답 데이터 구성
         education_summary = {
@@ -266,24 +256,22 @@ def get_user_education_summary():
 
         # ✅ 오류 발생 시에도 기본값 반환
         return (
-            jsonify(
-                {
-                    "year": year,
-                    "education_status": [],
-                    "summary": {
-                        "total_courses": 0,
-                        "completed": 0,
-                        "incomplete": 0,
-                        "not_started": 0,
-                        "completion_rate": 0,
-                        "penalty_score": 0.0,
-                        "excluded_count": 0,
-                        "unique_courses": 0,
-                        "avg_completion_rate": 0.0,
-                    },
-                    "error_message": "데이터 조회 중 오류가 발생했지만 기본 구조로 응답합니다.",
-                }
-            ),
+            jsonify({
+                "year": year,
+                "education_status": [],
+                "summary": {
+                    "total_courses": 0,
+                    "completed": 0,
+                    "incomplete": 0,
+                    "not_started": 0,
+                    "completion_rate": 0,
+                    "penalty_score": 0.0,
+                    "excluded_count": 0,
+                    "unique_courses": 0,
+                    "avg_completion_rate": 0.0,
+                },
+                "error_message": "데이터 조회 중 오류가 발생했지만 기본 구조로 응답합니다.",
+            }),
             HTTP_STATUS["OK"],
         )
 
@@ -300,9 +288,7 @@ def get_education_records():
     status = request.args.get("status", "")
 
     try:
-        print(
-            f"[DEBUG] 교육 기록 조회: year={year}, type={education_type}, status={status}"
-        )
+        print(f"[DEBUG] 교육 기록 조회: year={year}, type={education_type}, status={status}")
 
         # ✅ 새로운 스키마만 사용
         records = _get_education_records(year, education_type, status)
@@ -370,12 +356,8 @@ def _get_education_records(year, education_type, status):
         result_records = []
         for record in records:
             # ✅ 감점 계산 (단순화)
-            penalty_applied = (
-                0.5
-                if (record["incomplete_count"] or 0) > 0
-                and not record["exclude_from_scoring"]
-                else 0.0
-            )
+            penalty_applied = (0.5 if (record["incomplete_count"] or 0) > 0
+                               and not record["exclude_from_scoring"] else 0.0)
 
             status_text = _get_status_text(record)
 
@@ -393,17 +375,15 @@ def _get_education_records(year, education_type, status):
                 "total_courses": record["total_courses"] or 0,
                 "completion_rate": float(record["completion_rate"] or 0),
                 "completion_status_text": status_text,
-                "education_date": (
-                    str(record["education_date"]) if record["education_date"] else None
-                ),
+                "education_date": (str(record["education_date"])
+                                   if record["education_date"] else None),
                 "exclude_from_scoring": bool(record["exclude_from_scoring"]),
                 "exclude_reason": record["exclude_reason"],
                 "notes": record["notes"],
                 "period_id": record["period_id"],
                 "period_name": record["period_name"],
-                "start_date": (
-                    str(record["start_date"]) if record["start_date"] else None
-                ),
+                "start_date": (str(record["start_date"])
+                               if record["start_date"] else None),
                 "end_date": str(record["end_date"]) if record["end_date"] else None,
                 "period_completed": bool(record["period_completed"]),
                 "penalty_applied": penalty_applied,
@@ -495,7 +475,7 @@ def get_active_periods():
             AND is_completed = 0
             ORDER BY education_type, start_date
             """,
-            (year,),
+            (year, ),
             fetch_all=True,
         )
 
@@ -508,27 +488,23 @@ def get_active_periods():
             if period["end_date"]:
                 period["end_date"] = period["end_date"].strftime("%Y-%m-%d")
 
-        return jsonify(
-            {
-                "success": True,
-                "periods": periods,
-                "year": year,
-                "total_count": len(periods),
-            }
-        )
+        return jsonify({
+            "success": True,
+            "periods": periods,
+            "year": year,
+            "total_count": len(periods),
+        })
 
     except Exception as e:
         print(f"[DB_DEBUG] 활성 기간 조회 실패: {e}")
         return (
-            jsonify(
-                {
-                    "success": False,
-                    "error": f"활성 기간 조회 실패: {str(e)}",
-                    "periods": [],
-                    "year": year,
-                    "total_count": 0,
-                }
-            ),
+            jsonify({
+                "success": False,
+                "error": f"활성 기간 조회 실패: {str(e)}",
+                "periods": [],
+                "year": year,
+                "total_count": 0,
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -567,9 +543,7 @@ def bulk_upload():
         # 업로더 정보 (기존 로직 유지)
         uploaded_by = getattr(request, "current_user", {}).get("user_id", "admin")
 
-        print(
-            f"[DEBUG] 교육 업로드 시작 - period_id: {period_id}, records: {len(records)}건"
-        )
+        print(f"[DEBUG] 교육 업로드 시작 - period_id: {period_id}, records: {len(records)}건")
 
         # ✅ 핵심 수정: 새로운 CSV 형식 처리를 위한 서비스 호출
         result = education_service.process_csv_bulk_upload(
@@ -597,21 +571,20 @@ def bulk_upload():
         else:
             print(f"[DEBUG] 교육 업로드 실패: {result.get('error')}")
             return (
-                jsonify(
-                    {"success": False, "error": result.get("error", "업로드 처리 실패")}
-                ),
+                jsonify({
+                    "success": False,
+                    "error": result.get("error", "업로드 처리 실패")
+                }),
                 HTTP_STATUS["BAD_REQUEST"],
             )
 
     except Exception as e:
         print(f"[ERROR] 교육 업로드 예외: {str(e)}")
         return (
-            jsonify(
-                {
-                    "success": False,
-                    "error": f"업로드 처리 중 오류가 발생했습니다: {str(e)}",
-                }
-            ),
+            jsonify({
+                "success": False,
+                "error": f"업로드 처리 중 오류가 발생했습니다: {str(e)}",
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -634,7 +607,7 @@ def bulk_update_education_with_period(self, period_id: int, records: list) -> di
                 FROM security_education_periods
                 WHERE period_id = %s
                 """,
-                (period_id,),
+                (period_id, ),
             )
 
             period_info = cursor.fetchone()
@@ -662,20 +635,16 @@ def bulk_update_education_with_period(self, period_id: int, records: list) -> di
                     if education_type != expected_education_type:
                         errors.append(
                             f"교육 유형 불일치: {username} - "
-                            f"기대값({expected_education_type}) vs 실제값({education_type})"
-                        )
+                            f"기대값({expected_education_type}) vs 실제값({education_type})")
                         error_count += 1
                         continue
 
                     # 사용자 조회 (기존 로직과 동일)
                     user_uid = self._find_user_by_name_and_department(
-                        cursor, username, department
-                    )
+                        cursor, username, department)
 
                     if not user_uid:
-                        errors.append(
-                            f"사용자를 찾을 수 없음: {username} ({department})"
-                        )
+                        errors.append(f"사용자를 찾을 수 없음: {username} ({department})")
                         error_count += 1
                         continue
 
@@ -766,9 +735,8 @@ def bulk_update_education_with_period(self, period_id: int, records: list) -> di
         }
 
 
-def _find_user_by_name_and_department(
-    self, cursor, username: str, department: str
-) -> int:
+def _find_user_by_name_and_department(self, cursor, username: str,
+                                      department: str) -> int:
     """사용자명과 부서로 사용자 찾기 (기존 로직과 동일)"""
     print(f"[DB_DEBUG] 사용자 조회: {username} ({department})")
 
@@ -784,28 +752,24 @@ def _find_user_by_name_and_department(
         return result["uid"]
 
     # 2. 이름만으로 검색
-    cursor.execute(
-        "SELECT uid, department FROM users WHERE username = %s LIMIT 1", (username,)
-    )
+    cursor.execute("SELECT uid, department FROM users WHERE username = %s LIMIT 1",
+                   (username, ))
     result = cursor.fetchone()
 
     if result:
-        print(
-            f"[DB_DEBUG] 이름으로만 사용자 발견: {username} -> 실제 부서: {result['department']}"
-        )
+        print(f"[DB_DEBUG] 이름으로만 사용자 발견: {username} -> 실제 부서: {result['department']}")
         return result["uid"]
 
     # 3. 유사 이름 검색
     cursor.execute(
         "SELECT uid, username, department FROM users WHERE username LIKE %s LIMIT 1",
-        (f"%{username}%",),
+        (f"%{username}%", ),
     )
     result = cursor.fetchone()
 
     if result:
         print(
-            f"[DB_DEBUG] 유사 이름으로 사용자 발견: {result['username']} ({result['department']})"
-        )
+            f"[DB_DEBUG] 유사 이름으로 사용자 발견: {result['username']} ({result['department']})")
         return result["uid"]
 
     print(f"[DB_DEBUG] 사용자를 찾을 수 없음: {username} ({department})")
@@ -837,8 +801,7 @@ def download_template():
         response.headers["Content-Disposition"] = (
             f"attachment; "
             f"filename*=UTF-8''{encoded_filename}; "
-            f'filename="education_template.csv"'
-        )
+            f'filename="education_template.csv"')
 
         return response
     except Exception as e:
@@ -861,7 +824,7 @@ def update_education_record():
         # 기존 레코드 조회
         existing_record = execute_query(
             "SELECT * FROM security_education WHERE education_id = %s",
-            (education_id,),
+            (education_id, ),
             fetch_one=True,
         )
 
@@ -883,18 +846,14 @@ def update_education_record():
         if "completed_count" in data:
             update_fields.append("completed_count = %s")
             update_values.append(
-                int(data["completed_count"])
-                if data["completed_count"] is not None
-                else 0
-            )
+                int(data["completed_count"]
+                    ) if data["completed_count"] is not None else 0)
 
         if "incomplete_count" in data:
             update_fields.append("incomplete_count = %s")
             update_values.append(
-                int(data["incomplete_count"])
-                if data["incomplete_count"] is not None
-                else 0
-            )
+                int(data["incomplete_count"]
+                    ) if data["incomplete_count"] is not None else 0)
 
         # ✅ Generated Column은 제외 (total_courses, completion_rate는 자동 계산됨)
 
@@ -937,9 +896,7 @@ def update_education_record():
         print(f"[DEBUG] 교육 기록 업데이트 완료: education_id={education_id}")
         print(f"[DEBUG] 업데이트된 필드: {update_fields}")
 
-        return jsonify(
-            {"success": True, "message": "교육 기록이 성공적으로 수정되었습니다."}
-        )
+        return jsonify({"success": True, "message": "교육 기록이 성공적으로 수정되었습니다."})
 
     except Exception as e:
         print(f"[ERROR] 교육 기록 수정 실패: {str(e)}")
@@ -990,9 +947,9 @@ def delete_education_record():
     data = request.json
 
     try:
-        result = education_service.delete_education_record(
-            data["user_id"], data["period_id"], data["education_type"]
-        )
+        result = education_service.delete_education_record(data["user_id"],
+                                                           data["period_id"],
+                                                           data["education_type"])
 
         if result["success"]:
             return jsonify(result)
@@ -1063,7 +1020,7 @@ def export_education_data():
             WHERE se.education_year = %s
             ORDER BY u.username, se.course_name, se.created_at
             """,
-            (year,),
+            (year, ),
             fetch_all=True,
         )
 
@@ -1120,11 +1077,7 @@ def export_education_data():
                 str(float(record.get("completion_rate", 0))),
                 str(record.get("education_type", "")).replace('"', '""'),
                 str(record.get("education_year", "")),
-                (
-                    "상반기"
-                    if record.get("education_period") == "first_half"
-                    else "하반기"
-                ),
+                ("상반기" if record.get("education_period") == "first_half" else "하반기"),
                 str(record.get("completion_status_text", "")).replace('"', '""'),
                 str(record.get("education_date", "")).replace('"', '""'),
                 str(record.get("notes", "")).replace('"', '""'),
@@ -1143,8 +1096,7 @@ def export_education_data():
         response = make_response(csv_content.encode("utf-8"))
         response.headers["Content-Type"] = "text/csv; charset=utf-8"
         response.headers["Content-Disposition"] = (
-            f'attachment; filename="교육데이터_{year}.csv"'
-        )
+            f'attachment; filename="교육데이터_{year}.csv"')
 
         return response
 
@@ -1196,8 +1148,7 @@ def get_period_status():
 @admin_required
 @handle_exceptions
 @validate_json(
-    ["education_year", "period_name", "education_type", "start_date", "end_date"]
-)
+    ["education_year", "period_name", "education_type", "start_date", "end_date"])
 def create_period():
     """새 교육 기간 생성"""
     data = request.json
@@ -1315,8 +1266,7 @@ def force_delete_education_period(period_id):
 @admin_required
 @handle_exceptions
 @validate_json(
-    ["education_year", "period_name", "education_type", "start_date", "end_date"]
-)
+    ["education_year", "period_name", "education_type", "start_date", "end_date"])
 def update_education_period(period_id):
     """교육 기간 수정"""
     data = request.json
@@ -1338,3 +1288,252 @@ def update_education_period(period_id):
             jsonify({"error": f"기간 수정 실패: {str(e)}"}),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
+
+
+@education_bp.route('/periods/statistics', methods=['GET'])
+@admin_required
+@handle_exceptions
+def get_periods_with_statistics():
+    """교육 기간 목록과 통계 정보 조회"""
+    try:
+        year = request.args.get('year', type=int)
+        if not year:
+            year = datetime.now().year
+
+        # 교육 기간별 통계를 포함한 쿼리
+        query = """
+        SELECT 
+            sep.period_id,
+            sep.education_year,
+            sep.period_name,
+            sep.education_type,
+            sep.start_date,
+            sep.end_date,
+            sep.is_completed,
+            sep.completed_at,
+            sep.completed_by,
+            sep.description,
+            sep.auto_pass_setting,
+            sep.created_by,
+            sep.created_at,
+            sep.updated_at,
+            sep.is_active,
+            -- 통계 정보 (사용자 상태 기반)
+            COUNT(DISTINCT se.user_id) as total_participants,
+            -- 성공: incomplete_count = 0인 사용자 수
+            COUNT(DISTINCT CASE WHEN se.incomplete_count = 0 THEN se.user_id END) as success_user_count,
+            -- 실패: incomplete_count > 0인 사용자 수  
+            COUNT(DISTINCT CASE WHEN se.incomplete_count > 0 THEN se.user_id END) as failure_user_count,
+            -- 성공률: 성공한 사용자 / 전체 참가자
+            COALESCE(
+                CASE 
+                    WHEN COUNT(DISTINCT se.user_id) > 0 
+                    THEN ROUND(
+                        (COUNT(DISTINCT CASE WHEN se.incomplete_count = 0 THEN se.user_id END) / COUNT(DISTINCT se.user_id)) * 100, 
+                        2
+                    )
+                    ELSE 0 
+                END, 
+                0
+            ) as success_rate
+        FROM security_education_periods sep
+        LEFT JOIN security_education se ON sep.period_id = se.period_id
+        WHERE sep.education_year = %s AND sep.is_active = 1
+        GROUP BY sep.period_id
+        ORDER BY sep.education_type, sep.start_date DESC
+        """
+
+        periods = execute_query(query, (year, ), fetch_all=True)
+
+        # 교육 유형별로 그룹화
+        education_types = {}
+
+        for period in periods:
+            education_type = period['education_type']
+
+            if education_type not in education_types:
+                education_types[education_type] = {
+                    'type_name': education_type,
+                    'periods': [],
+                    'total_participants': 0,
+                    'total_success': 0,
+                    'total_failure': 0
+                }
+
+            # 기간별 상태 결정
+            status = determine_period_status(period)
+
+            period_info = {
+                'period_id': period['period_id'],
+                'period_name': period['period_name'],
+                'education_type': period['education_type'],
+                'start_date': period['start_date'].isoformat()
+                if period['start_date'] else None,
+                'end_date': period['end_date'].isoformat()
+                if period['end_date'] else None,
+                'is_completed': bool(period['is_completed']),
+                'completed_at': period['completed_at'].isoformat()
+                if period['completed_at'] else None,
+                'completed_by': period['completed_by'],
+                'description': period['description'],
+                'status': status,
+                # 통계 정보
+                'statistics': {
+                    'total_participants': int(period['total_participants'] or 0),
+                    'success_user_count': int(period['success_user_count'] or 0),
+                    'failure_user_count': int(period['failure_user_count'] or 0),
+                    'success_rate': float(period['success_rate'] or 0),
+                    'total_attempts': int(period['total_participants']
+                                          or 0)  # 총 참가자와 동일
+                }
+            }
+
+            education_types[education_type]['periods'].append(period_info)
+
+            # 교육 유형별 통계 누적
+            education_types[education_type]['total_participants'] += period_info[
+                'statistics']['total_participants']
+            education_types[education_type]['total_success'] += period_info[
+                'statistics']['success_user_count']
+            education_types[education_type]['total_failure'] += period_info[
+                'statistics']['failure_user_count']
+
+        # 교육 유형별 성공률 계산
+        for type_data in education_types.values():
+            if type_data['total_participants'] > 0:
+                type_data['success_rate'] = round(
+                    (type_data['total_success'] / type_data['total_participants']) *
+                    100, 2)
+            else:
+                type_data['success_rate'] = 0.0
+
+        return jsonify({
+            'success': True,
+            'year': year,
+            'education_types': education_types,
+            'total_periods': len(periods)
+        })
+
+    except Exception as e:
+        print(f"교육 기간 통계 조회 실패: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': '교육 기간 통계 조회에 실패했습니다.',
+            'error': str(e)
+        }), 500
+
+
+@education_bp.route('/periods/<int:period_id>/statistics', methods=['GET'])
+@admin_required
+@handle_exceptions
+def get_period_detailed_statistics(period_id):
+    """특정 교육 기간의 상세 통계"""
+    try:
+        # 기간별 상세 통계 쿼리
+        detailed_stats = execute_query(
+            """
+            SELECT 
+                u.username,
+                u.department,
+                se.completed_count,
+                se.incomplete_count,
+                se.total_courses,
+                se.completion_rate,
+                se.education_date,
+                se.exclude_from_scoring,
+                se.exclude_reason
+            FROM security_education se
+            JOIN users u ON se.user_id = u.uid  
+            WHERE se.period_id = %s
+            ORDER BY u.department, u.username
+        """, (period_id, ), fetch_all=True)
+
+        # 부서별 통계 계산
+        department_stats = {}
+        for record in detailed_stats:
+            dept = record['department']
+            if dept not in department_stats:
+                department_stats[dept] = {
+                    'department': dept,
+                    'participants': 0,
+                    'success_users': 0,
+                    'failure_users': 0,
+                    'success_rate': 0
+                }
+
+            department_stats[dept]['participants'] += 1
+            # 사용자 상태 기반 판단
+            if record['incomplete_count'] == 0:
+                department_stats[dept]['success_users'] += 1
+            else:
+                department_stats[dept]['failure_users'] += 1
+
+        # 부서별 성공률 계산
+        for dept_stat in department_stats.values():
+            if dept_stat['participants'] > 0:
+                dept_stat['success_rate'] = round(
+                    (dept_stat['success_users'] / dept_stat['participants']) * 100, 2)
+            else:
+                dept_stat['success_rate'] = 0
+
+        # 전체 요약 통계
+        total_participants = len(detailed_stats)
+        success_users = len([r for r in detailed_stats if r['incomplete_count'] == 0])
+        failure_users = len([r for r in detailed_stats if r['incomplete_count'] > 0])
+
+        return jsonify({
+            'success': True,
+            'period_id': period_id,
+            'participant_details': [
+                {
+                    'username': r['username'],
+                    'department': r['department'],
+                    'completed_count': r['completed_count'] or 0,
+                    'incomplete_count': r['incomplete_count'] or 0,
+                    'completion_rate': float(r['completion_rate'] or 0),
+                    'education_date': r['education_date'].isoformat()
+                    if r['education_date'] else None,
+                    'exclude_from_scoring': bool(r['exclude_from_scoring']),
+                    'exclude_reason': r['exclude_reason'],
+                    'user_status': 'success'
+                    if r['incomplete_count'] == 0 else 'failure'  # 사용자 상태 추가
+                } for r in detailed_stats
+            ],
+            'department_statistics': list(department_stats.values()),
+            'summary': {
+                'total_participants': total_participants,
+                'success_users': success_users,
+                'failure_users': failure_users,
+                'overall_success_rate': round((success_users / total_participants) *
+                                              100, 2) if total_participants > 0 else 0
+            }
+        })
+
+    except Exception as e:
+        print(f"교육 기간 상세 통계 조회 실패: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': '상세 통계 조회에 실패했습니다.',
+            'error': str(e)
+        }), 500
+
+
+def determine_period_status(period):
+    """교육 기간 상태 결정"""
+    from datetime import date
+
+    today = date.today()
+    start_date = period['start_date']
+    end_date = period['end_date']
+    is_completed = period['is_completed']
+
+    if is_completed:
+        return 'completed'
+    elif today < start_date:
+        return 'not_started'
+    elif start_date <= today <= end_date:
+        return 'in_progress'
+    elif today > end_date:
+        return 'expired'
+    else:
+        return 'unknown'
