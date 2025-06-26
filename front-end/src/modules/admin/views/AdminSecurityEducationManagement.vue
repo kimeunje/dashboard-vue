@@ -55,8 +55,8 @@
                 <!-- 기존 카드 헤더 -->
                 <div class="card-header">
                   <h5>{{ period.period_name }}</h5>
-                  <div class="status-badge" :class="period.status">
-                    {{ period.status }}
+                  <div class="status-badge" :class="getCardHeaderStatusClass(period)">
+                    {{ getCardHeaderStatusText(period) }}
                   </div>
                 </div>
 
@@ -373,8 +373,6 @@
               <option value="">전체</option>
               <option value="오프라인">오프라인</option>
               <option value="온라인">온라인</option>
-              <option value="신입교육">신입교육</option>
-              <option value="심화교육">심화교육</option>
             </select>
           </div>
 
@@ -651,7 +649,7 @@
             <input
               type="text"
               v-model="periodForm.period_name"
-              placeholder="예: 1차 오프라인 교육, 신입사원 교육"
+              placeholder="예: 1차 오프라인 교육, 상반기 온라인 교육"
               class="form-input"
             />
           </div>
@@ -660,8 +658,6 @@
             <select v-model="periodForm.education_type" class="form-input">
               <option value="오프라인">오프라인</option>
               <option value="온라인">온라인</option>
-              <option value="신입교육">신입교육</option>
-              <option value="심화교육">심화교육</option>
             </select>
           </div>
           <div class="form-row">
@@ -2051,7 +2047,6 @@ const editRecord = (record) => {
     username: record.username,
     department: record.department,
     education_year: record.education_year,
-    education_period: record.education_period,
     education_type: record.education_type,
     education_date: record.education_date,
     // 새로운 필드들
@@ -2089,7 +2084,6 @@ const saveRecord = async () => {
       education_id: editingRecord.value.education_id,
       user_id: editingRecord.value.user_id,
       education_year: editingRecord.value.education_year,
-      education_period: editingRecord.value.education_period,
       education_type: editingRecord.value.education_type,
       education_date: editingRecord.value.education_date,
       // 새로운 스키마 필드들
@@ -2351,8 +2345,6 @@ const getTypeClass = (educationType) => {
   const typeMap = {
     온라인: 'type-online',
     오프라인: 'type-offline',
-    신입교육: 'type-newbie',
-    심화교육: 'type-advanced',
     기본교육: 'type-basic',
   }
   return typeMap[educationType] || 'type-default'
@@ -2444,6 +2436,55 @@ const getPeriodStatusClass = (period) => {
   if (now < startDate) return 'status-upcoming'
   if (now > endDate) return 'status-ended'
   return 'status-active'
+}
+
+/**
+ * 카드 헤더 전용: 기간 상태 텍스트 변환
+ * determine_period_status 함수에서 반환되는 값들을 변환
+ * @param {Object} record - 기간 레코드 객체 (record.status 포함)
+ * @returns {string} 변환된 상태 텍스트
+ */
+const getCardHeaderStatusText = (record) => {
+  const status = record.status
+
+  switch (status) {
+    case 'completed':
+      return '완료됨'
+    case 'not_started':
+      return '시작전'
+    case 'in_progress':
+      return '진행중'
+    case 'expired':
+      return '기간만료'
+    case 'unknown':
+      return '알 수 없음'
+    default:
+      return status || '미정'
+  }
+}
+
+/**
+ * 카드 헤더 전용: 기간 상태 CSS 클래스 반환
+ * @param {Object} record - 기간 레코드 객체
+ * @returns {string} CSS 클래스명
+ */
+const getCardHeaderStatusClass = (record) => {
+  const status = record.status
+
+  switch (status) {
+    case 'completed':
+      return 'card-status-completed'
+    case 'not_started':
+      return 'card-status-not-started'
+    case 'in_progress':
+      return 'card-status-in-progress'
+    case 'expired':
+      return 'card-status-expired'
+    case 'unknown':
+      return 'card-status-unknown'
+    default:
+      return 'card-status-default'
+  }
 }
 
 /**
