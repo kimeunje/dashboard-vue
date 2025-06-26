@@ -26,7 +26,7 @@
           </button>
         </div>
 
-        <!-- 교육 기간 카드들 -->
+        <!-- 교육 기간 카드들 (기존 구조에 통계 정보 추가) -->
         <div
           class="period-cards"
           v-if="
@@ -38,7 +38,13 @@
             :key="educationType"
             class="education-type-group"
           >
-            <h4 class="type-header">{{ educationType }} 교육</h4>
+            <!-- 교육 유형 헤더에 통계 정보 추가 -->
+            <div class="type-header-with-stats">
+              <div class="type-title-section">
+                <h4 class="type-header">{{ educationType }} 교육</h4>
+              </div>
+            </div>
+
             <div class="type-periods">
               <div
                 v-for="period in typeData.periods"
@@ -46,37 +52,144 @@
                 class="period-card"
                 :class="[`status-${period.status}`, { completed: period.is_completed }]"
               >
+                <!-- 기존 카드 헤더 -->
                 <div class="card-header">
                   <h5>{{ period.period_name }}</h5>
-                  <div class="period-type">{{ period.education_type }}</div>
                   <div class="status-badge" :class="period.status">
-                    {{ getStatusText(period.status, period.is_completed) }}
+                    {{ period.status }}
                   </div>
                 </div>
+
+                <!-- 통계 섹션 추가 -->
+                <div class="period-statistics" v-if="period.statistics">
+                  <div class="stats-title">📈 교육 통계</div>
+                  <div class="stats-grid-compact">
+                    <div class="stat-compact">
+                      <span class="stat-number">{{
+                        period.statistics.total_participants || 0
+                      }}</span>
+                      <span class="stat-text">참가자</span>
+                    </div>
+                    <div class="stat-compact success">
+                      <span class="stat-number">{{
+                        period.statistics.success_user_count || 0
+                      }}</span>
+                      <span class="stat-text">성공자</span>
+                    </div>
+                    <div class="stat-compact failure">
+                      <span class="stat-number">{{
+                        period.statistics.failure_user_count || 0
+                      }}</span>
+                      <span class="stat-text">실패자</span>
+                    </div>
+                    <div
+                      class="stat-compact rate"
+                      :class="getSuccessRateClass(period.statistics.success_rate)"
+                    >
+                      <span class="stat-number">{{
+                        formatSuccessRate(period.statistics.success_rate)
+                      }}</span>
+                      <span class="stat-text">성공률</span>
+                    </div>
+                  </div>
+
+                  <!-- 프로그레스 바 -->
+                  <div class="progress-bar" v-if="period.statistics.total_participants > 0">
+                    <div
+                      class="progress-fill"
+                      :style="`width: ${period.statistics.success_rate}%`"
+                      :class="getSuccessRateClass(period.statistics.success_rate)"
+                    ></div>
+                  </div>
+                  <div class="no-data" v-else>아직 교육 데이터가 없습니다.</div>
+                </div>
+
+                <!-- 기존 카드 바디 -->
                 <div class="card-body">
                   <div class="period-info">
                     <span class="info-item">
                       📅 {{ formatDate(period.start_date) }} ~ {{ formatDate(period.end_date) }}
                     </span>
-                    <span class="info-item" v-if="period.completed_participants !== undefined">
-                      👥 {{ period.completed_participants || 0 }}명 수료
+                    <span
+                      class="info-item"
+                      v-if="period.statistics && period.statistics.total_participants > 0"
+                    >
+                      👥 {{ period.statistics.total_participants }}명 참여
                     </span>
                   </div>
                   <div class="card-actions">
-                    <button @click="editPeriod(period)" class="edit-button" title="수정">✏️</button>
+                    <!-- 완료되지 않은 경우: 수정, 완료 처리, 삭제 버튼 표시 -->
+                    <!-- <button
+                      @click="viewDetailedStatistics(period)"
+                      class="stats-button"
+                      :disabled="loadingStats || !period.is_completed"
+                    >
+                      <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                          d="M1.5 1a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5h-13zm2 2h10v10H3.5V3z"
+                        />
+                        <path
+                          d="M6 7a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3A.5.5 0 0 1 6 7zM6 9a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3A.5.5 0 0 1 6 9z"
+                        />
+                      </svg>
+                      상세 통계
+                    </button> -->
+
+                    <!-- 수정 버튼: 완료된 상태에서는 비활성화 -->
                     <button
-                      v-if="!period.is_completed"
+                      @click="editPeriod(period)"
+                      class="edit-button"
+                      :disabled="period.is_completed"
+                    >
+                      <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                          d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L14.5 5.207l-3-3L12.146.146zM11.207 1.5L1.5 11.207V14.5h3.293L14.5 4.707l-3-3L11.207 1.5z"
+                        />
+                      </svg>
+                      수정
+                    </button>
+
+                    <!-- 완료 처리 버튼: 완료되지 않은 경우에만 활성화 -->
+                    <button
                       @click="completePeriod(period)"
                       class="complete-button"
-                      title="완료 처리"
+                      :disabled="period.is_completed"
                     >
-                      ✅
+                      <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                          d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"
+                        />
+                      </svg>
+                      완료 처리
                     </button>
-                    <button v-else @click="reopenPeriod(period)" class="reopen-button" title="재개">
-                      🔄
+
+                    <!-- 재개 버튼: 완료된 경우에만 활성화 -->
+                    <button
+                      @click="reopenPeriod(period)"
+                      class="reopen-button"
+                      :disabled="!period.is_completed"
+                    >
+                      <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+                        <path
+                          d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"
+                        />
+                      </svg>
+                      재개
                     </button>
-                    <button @click="deletePeriod(period)" class="delete-button" title="삭제">
-                      🗑️
+
+                    <!-- 삭제 버튼: 완료된 상태에서는 비활성화 -->
+                    <button
+                      @click="deletePeriod(period)"
+                      class="delete-button"
+                      :disabled="period.is_completed"
+                    >
+                      <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                          d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 5.883 16h4.234a2 2 0 0 0 1.992-1.84l.853-10.66h.538a.5.5 0 0 0 0-1H11z"
+                        />
+                      </svg>
+                      삭제
                     </button>
                   </div>
                 </div>
@@ -85,13 +198,138 @@
           </div>
         </div>
 
-        <!-- 기간이 없을 때 -->
-        <div v-else class="no-periods">
-          <p>등록된 교육 기간이 없습니다.</p>
-          <p class="text-muted">위의 "기간 추가" 버튼을 클릭하여 새로운 교육 기간을 등록하세요.</p>
+        <!-- 상세 통계 모달 -->
+        <div v-if="showDetailStatsModal" class="modal-overlay" @click="closeDetailStatsModal">
+          <div class="modal-content stats-modal" @click.stop>
+            <div class="modal-header">
+              <h3>📊 상세 교육 통계</h3>
+              <button @click="closeDetailStatsModal" class="close-button">&times;</button>
+            </div>
+
+            <div class="modal-body" v-if="selectedPeriodStats">
+              <!-- 기간 정보 -->
+              <div class="period-info-section">
+                <h4>{{ selectedPeriodStats.period_info.period_name }}</h4>
+                <p>
+                  {{ selectedPeriodStats.period_info.education_type }} |
+                  {{ formatDate(selectedPeriodStats.period_info.start_date) }} ~
+                  {{ formatDate(selectedPeriodStats.period_info.end_date) }}
+                </p>
+              </div>
+
+              <!-- 전체 통계 -->
+              <div class="summary-stats">
+                <div class="summary-grid">
+                  <div class="summary-item">
+                    <div class="summary-value">
+                      {{ selectedPeriodStats.summary.total_participants }}
+                    </div>
+                    <div class="summary-label">총 참가자</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-value success">
+                      {{ selectedPeriodStats.summary.success_users }}
+                    </div>
+                    <div class="summary-label">성공자 수</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-value failure">
+                      {{ selectedPeriodStats.summary.failure_users }}
+                    </div>
+                    <div class="summary-label">실패자 수</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 부서별 통계 -->
+              <div class="department-stats" v-if="selectedPeriodStats.department_statistics">
+                <h5>부서별 통계</h5>
+                <div class="department-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>부서</th>
+                        <th>참가자</th>
+                        <th>성공자</th>
+                        <th>실패자</th>
+                        <th>성공률</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="dept in selectedPeriodStats.department_statistics"
+                        :key="dept.department"
+                      >
+                        <td>{{ dept.department }}</td>
+                        <td>{{ dept.participants }}</td>
+                        <td class="success">{{ dept.success_users }}</td>
+                        <td class="failure">{{ dept.failure_users }}</td>
+                        <td :class="getSuccessRateClass(dept.success_rate)">
+                          {{ formatSuccessRate(dept.success_rate) }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- 개별 참가자 상세 (필요시 토글) -->
+              <div class="participant-details" v-if="selectedPeriodStats.participant_details">
+                <h5>개별 참가자 상세 ({{ selectedPeriodStats.participant_details.length }}명)</h5>
+                <div class="participant-table" style="max-height: 300px; overflow-y: auto">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>이름</th>
+                        <th>부서</th>
+                        <th>수료</th>
+                        <th>미수료</th>
+                        <th>수료율</th>
+                        <th>상태</th>
+                        <th>제외여부</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="participant in selectedPeriodStats.participant_details"
+                        :key="participant.username"
+                      >
+                        <td>{{ participant.username }}</td>
+                        <td>{{ participant.department }}</td>
+                        <td class="success">{{ participant.completed_count || 0 }}</td>
+                        <td class="failure">{{ participant.incomplete_count || 0 }}</td>
+                        <td :class="getRateClass(participant.completion_rate)">
+                          {{
+                            participant.completion_rate
+                              ? participant.completion_rate.toFixed(1) + '%'
+                              : '0%'
+                          }}
+                        </td>
+                        <td>
+                          <span v-if="participant.user_status === 'success'" class="success-badge"
+                            >성공</span
+                          >
+                          <span v-else class="failure-badge">실패</span>
+                        </td>
+                        <td>
+                          <span v-if="participant.exclude_from_scoring" class="excluded-badge"
+                            >제외</span
+                          >
+                          <span v-else class="included-badge">포함</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button @click="closeDetailStatsModal" class="secondary-button">닫기</button>
+            </div>
+          </div>
         </div>
       </div>
-
       <!-- ===== 교육 기록 관리 섹션 ===== -->
       <div class="table-section">
         <!-- 액션 버튼들 -->
@@ -884,6 +1122,11 @@ const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref('success')
 
+// 기존 반응형 데이터에 추가
+const showDetailStatsModal = ref(false)
+const selectedPeriodStats = ref(null)
+const loadingStats = ref(false)
+
 // ===== 계산된 속성 =====
 
 // 연도 옵션 계산
@@ -951,8 +1194,9 @@ const loadPeriodStatus = async () => {
   try {
     console.log('[DEBUG] 기간 현황 조회 시작:', selectedYear.value)
 
+    // 통계가 포함된 API 호출
     const response = await fetch(
-      `/api/security-education/periods/status?year=${selectedYear.value}`,
+      `/api/security-education/periods/statistics?year=${selectedYear.value}`,
       {
         credentials: 'include',
       },
@@ -963,7 +1207,7 @@ const loadPeriodStatus = async () => {
     }
 
     const data = await response.json()
-    console.log('[DEBUG] 서버 응답 데이터:', data)
+    console.log('[DEBUG] 서버 응답 데이터 (통계 포함):', data)
 
     periodStatus.value = data
 
@@ -979,6 +1223,62 @@ const loadPeriodStatus = async () => {
     console.error('기간 현황 조회 오류:', err)
     displayToast('기간 현황을 불러오는데 실패했습니다.', 'error')
   }
+}
+
+/**
+ * 특정 교육 기간의 상세 통계 조회
+ */
+const viewDetailedStatistics = async (period) => {
+  loadingStats.value = true
+  try {
+    const response = await fetch(`/api/security-education/periods/${period.period_id}/statistics`, {
+      credentials: 'include',
+    })
+
+    if (!response.ok) {
+      throw new Error('상세 통계 조회 실패')
+    }
+
+    const data = await response.json()
+    selectedPeriodStats.value = {
+      ...data,
+      period_info: period,
+    }
+    showDetailStatsModal.value = true
+  } catch (err) {
+    console.error('상세 통계 조회 오류:', err)
+    displayToast('상세 통계를 불러오는데 실패했습니다.', 'error')
+  } finally {
+    loadingStats.value = false
+  }
+}
+
+/**
+ * 상세 통계 모달 닫기
+ */
+const closeDetailStatsModal = () => {
+  showDetailStatsModal.value = false
+  selectedPeriodStats.value = null
+}
+
+// ===== 유틸리티 메서드 추가 =====
+
+/**
+ * 성공률 포맷팅
+ */
+const formatSuccessRate = (rate) => {
+  if (rate === null || rate === undefined) return '0%'
+  return `${Math.round(rate * 10) / 10}%`
+}
+
+/**
+ * 성공률별 CSS 클래스 반환
+ */
+const getSuccessRateClass = (rate) => {
+  if (rate >= 90) return 'rate-excellent'
+  if (rate >= 80) return 'rate-good'
+  if (rate >= 70) return 'rate-warning'
+  return 'rate-poor'
 }
 
 /**
@@ -2108,7 +2408,6 @@ const getStatusText = (record) => {
   // 새로운 스키마 기반
   if (record.completion_rate !== undefined) {
     if (record.completion_rate >= 100) return '완료'
-    if (record.completion_rate >= 80) return '수료'
     if (record.completion_rate > 0) return `부분완료(${record.completion_rate.toFixed(0)}%)`
     return '미실시'
   }
@@ -2183,6 +2482,7 @@ const displayToast = (message, type = 'success') => {
 watch(selectedYear, () => {
   loadPeriodStatus()
   loadEducationData()
+  loadAvailablePeriodsForUpload()
 })
 
 // 업로드 기간 선택 변경 시 파일 초기화
