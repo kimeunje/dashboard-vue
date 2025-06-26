@@ -61,7 +61,7 @@ class EducationPeriodService:
                     ELSE 'unknown'
                 END as status
             FROM security_education_periods
-            WHERE education_year = %s AND is_active = 1
+            WHERE education_year = %s
             ORDER BY education_type, start_date
             """,
             (year, ),
@@ -186,7 +186,7 @@ class EducationPeriodService:
                     """
                     SELECT period_name, education_type, education_year, auto_pass_setting, is_completed
                     FROM security_education_periods 
-                    WHERE period_id = %s AND is_active = 1
+                    WHERE period_id = %s
                     """,
                     (period_id, ),
                 )
@@ -211,7 +211,6 @@ class EducationPeriodService:
                     print(f"[DB_DEBUG] 자동 통과 처리 시작")
 
                     try:
-                        # 해당 기간에 교육 기록이 없는 모든 사용자 조회 (is_active 조건 제거)
                         cursor.execute(
                             """
                             SELECT u.uid, u.username
@@ -240,9 +239,9 @@ class EducationPeriodService:
                                 cursor.execute(
                                     """
                                     INSERT INTO security_education 
-                                    (user_id, period_id, education_type, education_year, education_period,
+                                    (user_id, period_id, education_type, education_year,
                                     course_name, completed_count, incomplete_count, notes, created_at)
-                                    VALUES (%s, %s, %s, %s, 'first_half', %s, 1, 0, 
+                                    VALUES (%s, %s, %s, %s, %s, 1, 0, 
                                             '기간 완료로 인한 자동 통과 처리', NOW())
                                     """,
                                     (
@@ -332,7 +331,7 @@ class EducationPeriodService:
                     """
                     SELECT period_name, is_completed
                     FROM security_education_periods 
-                    WHERE period_id = %s AND is_active = 1
+                    WHERE period_id = %s
                     """,
                     (period_id, ),
                 )
@@ -393,7 +392,7 @@ class EducationPeriodService:
             """
             SELECT COUNT(*) as count
             FROM security_education_periods
-            WHERE education_year = %s AND period_name = %s AND education_type = %s AND is_active = 1
+            WHERE education_year = %s AND period_name = %s AND education_type = %s
             """,
             (year, period_name, education_type),
             fetch_one=True,
@@ -420,7 +419,7 @@ class EducationPeriodService:
             query = """
                     SELECT period_id, period_name, start_date, end_date, education_year       
                     FROM security_education_periods
-                    WHERE education_type = %s AND is_active = 1
+                    WHERE education_type = %s
                 """
             params = [education_type]
 
@@ -482,17 +481,16 @@ class EducationPeriodService:
             }
 
     def delete_education_period(self, period_id: int) -> dict:
-        """교육 기간 삭제"""
+        """교육 기간 하드 삭제"""
         try:
             with DatabaseManager.get_db_cursor() as cursor:
-                print(f"[DB_DEBUG] 교육 기간 삭제 시작: period_id={period_id}")
+                print(f"[DB_DEBUG] 교육 기간 하드 삭제 시작: period_id={period_id}")
 
-                # 1. 기간 정보 조회
                 cursor.execute(
                     """
                     SELECT period_name, education_type, education_year
                     FROM security_education_periods
-                    WHERE period_id = %s AND is_active = 1
+                    WHERE period_id = %s
                     """,
                     (period_id, ),
                 )
@@ -522,40 +520,34 @@ class EducationPeriodService:
                         "requires_confirmation": True,
                     }
 
-                # 3. 교육 기간 삭제 (소프트 삭제)
+                # 3. 교육 기간 하드 삭제
                 cursor.execute(
-                    """
-                    UPDATE security_education_periods
-                    SET is_active = 0, updated_at = NOW()
-                    WHERE period_id = %s
-                    """,
+                    "DELETE FROM security_education_periods WHERE period_id = %s",
                     (period_id, ),
                 )
 
                 return {
                     "success": True,
-                    "message": f"{period_info['period_name']} 기간이 삭제되었습니다.",
+                    "message": f"{period_info['period_name']} 기간이 완전히 삭제되었습니다.",
                 }
 
         except Exception as e:
             print(f"[DB_DEBUG] 교육 기간 삭제 예외: {str(e)}")
             import traceback
-
             traceback.print_exc()
             return {"success": False, "message": f"삭제 실패: {str(e)}"}
 
     def force_delete_education_period(self, period_id: int) -> dict:
-        """교육 기간 강제 삭제 (교육 기록 포함)"""
+        """교육 기간 강제 하드 삭제 (교육 기록 포함)"""
         try:
             with DatabaseManager.get_db_cursor() as cursor:
-                print(f"[DB_DEBUG] 교육 기간 강제 삭제 시작: period_id={period_id}")
+                print(f"[DB_DEBUG] 교육 기간 강제 하드 삭제 시작: period_id={period_id}")
 
-                # 1. 기간 정보 조회
                 cursor.execute(
                     """
                     SELECT period_name, education_type
                     FROM security_education_periods
-                    WHERE period_id = %s AND is_active = 1
+                    WHERE period_id = %s
                     """,
                     (period_id, ),
                 )
@@ -567,22 +559,18 @@ class EducationPeriodService:
                         "message": "해당 교육 기간을 찾을 수 없습니다.",
                     }
 
-                # 2. 관련 교육 기록 삭제
+                # 2. 관련 교육 기록 하드 삭제
                 cursor.execute("DELETE FROM security_education WHERE period_id = %s",
                                (period_id, ))
                 deleted_records = cursor.rowcount
 
-                # 3. 교육 기간 삭제 (소프트 삭제)
+                # 3. 교육 기간 하드 삭제
                 cursor.execute(
-                    """
-                    UPDATE security_education_periods
-                    SET is_active = 0, updated_at = NOW()
-                    WHERE period_id = %s
-                    """,
+                    "DELETE FROM security_education_periods WHERE period_id = %s",
                     (period_id, ),
                 )
 
-                message = f"{period_info['period_name']} 기간이 삭제되었습니다."
+                message = f"{period_info['period_name']} 기간이 완전히 삭제되었습니다."
                 if deleted_records > 0:
                     message += f" (관련 교육 기록 {deleted_records}건도 함께 삭제됨)"
 
@@ -591,7 +579,6 @@ class EducationPeriodService:
         except Exception as e:
             print(f"[DB_DEBUG] 교육 기간 강제 삭제 예외: {str(e)}")
             import traceback
-
             traceback.print_exc()
             return {"success": False, "message": f"강제 삭제 실패: {str(e)}"}
 
@@ -607,7 +594,7 @@ class EducationPeriodService:
                     """
                     SELECT period_name, education_type, education_year, is_completed
                     FROM security_education_periods
-                    WHERE period_id = %s AND is_active = 1
+                    WHERE period_id = %s
                     """,
                     (period_id, ),
                 )
@@ -632,7 +619,7 @@ class EducationPeriodService:
                     SELECT COUNT(*) as count
                     FROM security_education_periods
                     WHERE education_year = %s AND period_name = %s AND education_type = %s 
-                    AND period_id != %s AND is_active = 1
+                    AND period_id != %s
                     """,
                     (
                         period_data["education_year"],
@@ -676,7 +663,7 @@ class EducationPeriodService:
                         description = %s,
                         auto_pass_setting = %s,
                         updated_at = NOW()
-                    WHERE period_id = %s AND is_active = 1
+                    WHERE period_id = %s
                     """,
                     (
                         period_data["education_year"],
@@ -733,7 +720,6 @@ class EducationPeriodService:
                 sep.created_by,
                 sep.created_at,
                 sep.updated_at,
-                sep.is_active,
                 -- 통계 정보
                 COUNT(DISTINCT se.user_id) as total_participants,
                 COALESCE(SUM(se.completed_count), 0) as total_success_count,
@@ -751,7 +737,7 @@ class EducationPeriodService:
                 ) as success_rate
             FROM security_education_periods sep
             LEFT JOIN security_education se ON sep.period_id = se.period_id
-            WHERE sep.education_year = %s AND sep.is_active = 1
+            WHERE sep.education_year = %s
             GROUP BY sep.period_id
             ORDER BY sep.education_type, sep.start_date DESC
             """
@@ -778,6 +764,7 @@ class EducationPeriodService:
 
                 period_info = {
                     'period_id': period['period_id'],
+                    'education_year': period['education_year'],
                     'period_name': period['period_name'],
                     'education_type': period['education_type'],
                     'start_date': period['start_date'].isoformat()

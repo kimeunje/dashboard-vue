@@ -35,7 +35,7 @@ class SecurityEducationService:
         # 사용자 정보 조회
         user = execute_query(
             "SELECT uid, username, department FROM users WHERE user_id = %s",
-            (user_id,),
+            (user_id, ),
             fetch_one=True,
         )
 
@@ -93,7 +93,7 @@ class SecurityEducationService:
                 JOIN security_education_periods sep ON se.period_id = sep.period_id
                 WHERE sep.education_year = %s
                 """,
-            (year,),
+            (year, ),
             fetch_one=True,
         )
 
@@ -112,7 +112,7 @@ class SecurityEducationService:
                 GROUP BY se.education_type
                 ORDER BY se.education_type
                 """,
-            (year,),
+            (year, ),
             fetch_all=True,
         )
 
@@ -131,11 +131,11 @@ class SecurityEducationService:
                     COUNT(DISTINCT se.user_id) as participated_users
                 FROM security_education_periods sep
                 LEFT JOIN security_education se ON sep.period_id = se.period_id
-                WHERE sep.education_year = %s AND sep.is_active = 1
+                WHERE sep.education_year = %s
                 GROUP BY sep.period_id
                 ORDER BY sep.start_date
                 """,
-            (year,),
+            (year, ),
             fetch_all=True,
         )
 
@@ -149,22 +149,17 @@ class SecurityEducationService:
     def _calculate_education_summary(self, education_records: list) -> dict:
         """교육 기록을 바탕으로 요약 통계 계산"""
         total_courses = len(education_records)
-        completed = sum(
-            1 for record in education_records if record["completion_status"] == 1
-        )
-        incomplete = sum(
-            1 for record in education_records if record["completion_status"] == 0
-        )
-        excluded = sum(
-            1 for record in education_records if record["exclude_from_scoring"] == 1
-        )
+        completed = sum(1 for record in education_records
+                        if record["completion_status"] == 1)
+        incomplete = sum(1 for record in education_records
+                         if record["completion_status"] == 0)
+        excluded = sum(1 for record in education_records
+                       if record["exclude_from_scoring"] == 1)
 
         # 점수 계산용 미완료 수 (제외된 항목 제외)
         penalty_incomplete = sum(
-            1
-            for record in education_records
-            if record["completion_status"] == 0 and not record["exclude_from_scoring"]
-        )
+            1 for record in education_records
+            if record["completion_status"] == 0 and not record["exclude_from_scoring"])
 
         return {
             "total_courses": total_courses,
@@ -174,8 +169,7 @@ class SecurityEducationService:
             "penalty_incomplete": penalty_incomplete,
             "penalty_points": penalty_incomplete * 0.5,  # 미완료당 0.5점 감점
             "completion_rate": round(
-                (completed / total_courses * 100) if total_courses > 0 else 0, 1
-            ),
+                (completed / total_courses * 100) if total_courses > 0 else 0, 1),
         }
 
     def bulk_update_education(self, records: list, uploaded_by: str = "admin") -> dict:
@@ -216,7 +210,6 @@ class SecurityEducationService:
                         # 교육 기간 찾기 또는 생성
                         period_id = self._get_or_create_education_period(
                             record.get("education_year", current_year),
-                            record.get("education_period", "1차"),
                             record.get("education_type"),
                             uploaded_by,
                         )
@@ -228,24 +221,20 @@ class SecurityEducationService:
 
                         # 교육 기록 업서트 (INSERT OR UPDATE)
                         result = self._upsert_education_record(
-                            user_uid, period_id, record, uploaded_by
-                        )
+                            user_uid, period_id, record, uploaded_by)
 
                         if result["success"]:
                             success_count += 1
                             if result["updated"]:
                                 update_count += 1
 
-                            processed_users.append(
-                                {
-                                    "username": record.get("username"),
-                                    "department": record.get("department"),
-                                    "education_type": record.get("education_type"),
-                                    "action": (
-                                        "updated" if result["updated"] else "created"
-                                    ),
-                                }
-                            )
+                            processed_users.append({
+                                "username": record.get("username"),
+                                "department": record.get("department"),
+                                "education_type": record.get("education_type"),
+                                "action": ("updated"
+                                           if result["updated"] else "created"),
+                            })
                         else:
                             errors.append(f"행 {i+1}: {result['message']}")
                             error_count += 1
@@ -291,19 +280,17 @@ class SecurityEducationService:
         # 2. 정확한 이름만 매칭 (부서 무시)
         user = execute_query(
             "SELECT uid, department FROM users WHERE username = %s LIMIT 1",
-            (username,),
+            (username, ),
             fetch_one=True,
         )
         if user:
-            logging.info(
-                f"이름으로만 사용자 발견: {username} -> 실제 부서: {user['department']}"
-            )
+            logging.info(f"이름으로만 사용자 발견: {username} -> 실제 부서: {user['department']}")
             return user["uid"]
 
         # 3. 유사한 이름 검색 (LIKE 사용)
         user = execute_query(
             "SELECT uid, username, department FROM users WHERE username LIKE %s LIMIT 1",
-            (f"%{username}%",),
+            (f"%{username}%", ),
             fetch_one=True,
         )
         if user:
@@ -317,27 +304,24 @@ class SecurityEducationService:
         if username_no_space != username:
             user = execute_query(
                 "SELECT uid, username FROM users WHERE REPLACE(username, ' ', '') = %s LIMIT 1",
-                (username_no_space,),
+                (username_no_space, ),
                 fetch_one=True,
             )
             if user:
-                logging.info(
-                    f"공백 제거 후 사용자 발견: {username} -> {user['username']}"
-                )
+                logging.info(f"공백 제거 후 사용자 발견: {username} -> {user['username']}")
                 return user["uid"]
 
         logging.warning(f"사용자를 찾을 수 없음: {username} ({department})")
         return None
 
-    def _get_or_create_education_period(
-        self, year: int, period_name: str, education_type: str, created_by: str
-    ) -> int:
+    def _get_or_create_education_period(self, year: int, period_name: str,
+                                        education_type: str, created_by: str) -> int:
         """교육 기간 찾기 또는 생성"""
         # 기존 기간 찾기
         period = execute_query(
             """
             SELECT period_id FROM security_education_periods 
-            WHERE education_year = %s AND period_name = %s AND education_type = %s AND is_active = 1
+            WHERE education_year = %s AND period_name = %s AND education_type = %s
             """,
             (year, period_name, education_type),
             fetch_one=True,
@@ -367,8 +351,7 @@ class SecurityEducationService:
             )
 
             logging.info(
-                f"새 교육 기간 생성: {year}년 {period_name} {education_type} (ID: {period_id})"
-            )
+                f"새 교육 기간 생성: {year}년 {period_name} {education_type} (ID: {period_id})")
             return period_id
 
         except Exception as e:
@@ -388,9 +371,8 @@ class SecurityEducationService:
 
         return template_content
 
-    def process_csv_bulk_upload(
-        self, period_id: int, csv_records: list, uploaded_by: str
-    ) -> dict:
+    def process_csv_bulk_upload(self, period_id: int, csv_records: list,
+                                uploaded_by: str) -> dict:
         """
         ✅ 수정된 CSV 형식 처리 메서드 - DatabaseManager 사용법 수정
         """
@@ -423,36 +405,26 @@ class SecurityEducationService:
                         ]
 
                         if missing_fields:
-                            raise ValueError(
-                                f"필수 필드 누락: {', '.join(missing_fields)}"
-                            )
+                            raise ValueError(f"필수 필드 누락: {', '.join(missing_fields)}")
 
                         # 사용자 검색
                         user_id = self._find_user_by_name_dept(
-                            cursor, record["이름"], record["부서"]
-                        )
+                            cursor, record["이름"], record["부서"])
                         if not user_id:
                             raise ValueError(
-                                f"사용자를 찾을 수 없습니다: {record['이름']} ({record['부서']})"
-                            )
+                                f"사용자를 찾을 수 없습니다: {record['이름']} ({record['부서']})")
 
-                        print(
-                            f"[DEBUG] 사용자 발견: {record['이름']} -> user_id: {user_id}"
-                        )
+                        print(f"[DEBUG] 사용자 발견: {record['이름']} -> user_id: {user_id}")
 
                         # 데이터 검증 및 변환
                         completed_count = int(record["수료"]) if record["수료"] else 0
-                        incomplete_count = (
-                            int(record["미수료"]) if record["미수료"] else 0
-                        )
+                        incomplete_count = (int(record["미수료"]) if record["미수료"] else 0)
 
                         if completed_count < 0 or incomplete_count < 0:
                             raise ValueError("수료/미수료 횟수는 0 이상이어야 합니다")
 
                         if completed_count + incomplete_count == 0:
-                            raise ValueError(
-                                "수료 또는 미수료 횟수 중 하나는 0보다 커야 합니다"
-                            )
+                            raise ValueError("수료 또는 미수료 횟수 중 하나는 0보다 커야 합니다")
 
                         print(
                             f"[DEBUG] 데이터 검증 완료: 수료={completed_count}, 미수료={incomplete_count}"
@@ -467,7 +439,6 @@ class SecurityEducationService:
                             completed_count=completed_count,
                             incomplete_count=incomplete_count,
                             education_year=period_info["education_year"],
-                            education_period=period_info["education_period"],
                             uploaded_by=uploaded_by,
                         )
 
@@ -481,8 +452,7 @@ class SecurityEducationService:
                     except Exception as e:
                         error_count += 1
                         error_msg = (
-                            f"행 {idx} ({record.get('이름', 'Unknown')}): {str(e)}"
-                        )
+                            f"행 {idx} ({record.get('이름', 'Unknown')}): {str(e)}")
                         errors.append(error_msg)
                         print(f"[ERROR] CSV 처리 오류 - {error_msg}")
 
@@ -526,21 +496,19 @@ class SecurityEducationService:
             return result["uid"]
 
         # 2. 이름만으로 검색
-        cursor.execute(
-            "SELECT uid, department FROM users WHERE username = %s LIMIT 1", (username,)
-        )
+        cursor.execute("SELECT uid, department FROM users WHERE username = %s LIMIT 1",
+                       (username, ))
         result = cursor.fetchone()
 
         if result:
             print(
-                f"[DB_DEBUG] 이름으로만 사용자 발견: {username} -> 실제 부서: {result['department']}"
-            )
+                f"[DB_DEBUG] 이름으로만 사용자 발견: {username} -> 실제 부서: {result['department']}")
             return result["uid"]
 
         # 3. 유사 이름 검색
         cursor.execute(
             "SELECT uid, username, department FROM users WHERE username LIKE %s LIMIT 1",
-            (f"%{username}%",),
+            (f"%{username}%", ),
         )
         result = cursor.fetchone()
 
@@ -562,7 +530,6 @@ class SecurityEducationService:
         completed_count: int,
         incomplete_count: int,
         education_year: int,
-        education_period: str,
         uploaded_by: str,
     ) -> bool:
         """교육 기록 UPSERT - period_name을 course_name으로 사용하도록 수정"""
@@ -574,14 +541,12 @@ class SecurityEducationService:
                 FROM security_education_periods 
                 WHERE period_id = %s
                 """,
-                (period_id,),
+                (period_id, ),
             )
 
             period_info = cursor.fetchone()
             if not period_info:
-                raise ValueError(
-                    f"교육 기간 정보를 찾을 수 없습니다: period_id={period_id}"
-                )
+                raise ValueError(f"교육 기간 정보를 찾을 수 없습니다: period_id={period_id}")
 
             # 과정명을 기간명으로 사용 (수정 부분)
             actual_course_name = period_info["period_name"]
@@ -628,8 +593,8 @@ class SecurityEducationService:
                     """
                     INSERT INTO security_education (
                         user_id, period_id, course_name, completed_count, incomplete_count,
-                        education_year, education_period, notes, education_type
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        education_year, notes, education_type
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         user_id,
@@ -638,7 +603,6 @@ class SecurityEducationService:
                         completed_count,
                         incomplete_count,
                         education_year,
-                        education_period,
                         f"CSV 업로드 - {uploaded_by}",
                         education_type,
                     ),
@@ -657,27 +621,14 @@ class SecurityEducationService:
         cursor.execute(
             """
             SELECT period_id, education_year, period_name, education_type,
-                start_date, end_date, is_completed, is_active
+                start_date, end_date, is_completed
             FROM security_education_periods
-            WHERE period_id = %s AND is_active = 1
+            WHERE period_id = %s
         """,
-            (period_id,),
+            (period_id, ),
         )
 
         result = cursor.fetchone()
-        if result:
-            # education_period 추론 (기간명에서 상반기/하반기 판단)
-            period_name = result["period_name"].lower()
-            if "상반기" in period_name or "first" in period_name:
-                education_period = "first_half"
-            elif "하반기" in period_name or "second" in period_name:
-                education_period = "second_half"
-            else:
-                # 기본값은 상반기
-                education_period = "first_half"
-
-            result["education_period"] = education_period
-            print(f"[DEBUG] 기간 정보: {result}")
 
         return result
 
@@ -705,7 +656,7 @@ class SecurityEducationService:
             # ✅ user_id가 이미 숫자 uid이므로 바로 사용
             user = execute_query(
                 "SELECT uid, username FROM users WHERE uid = %s",
-                (user_id,),
+                (user_id, ),
                 fetch_one=True,
             )
 
@@ -747,15 +698,14 @@ class SecurityEducationService:
         except Exception as e:
             return {"success": False, "message": f"예외 처리 실패: {str(e)}"}
 
-    def delete_education_record(
-        self, user_id: int, period_id: int, education_type: str
-    ) -> dict:
+    def delete_education_record(self, user_id: int, period_id: int,
+                                education_type: str) -> dict:
         """교육 기록 삭제 - user_id는 이제 숫자 uid"""
         try:
             # ✅ user_id가 이미 숫자 uid이므로 바로 사용
             user = execute_query(
                 "SELECT uid, username FROM users WHERE uid = %s",
-                (user_id,),
+                (user_id, ),
                 fetch_one=True,
             )
 
@@ -787,9 +737,8 @@ class SecurityEducationService:
         except Exception as e:
             return {"success": False, "message": f"삭제 실패: {str(e)}"}
 
-    def get_all_education_records(
-        self, year: int = None, education_type: str = None, status: str = None
-    ) -> list:
+    def get_all_education_records(self, year: int = None, education_type: str = None,
+                                  status: str = None) -> list:
         """모든 교육 기록 조회 (관리자용) - status 파라미터 추가"""
         if year is None:
             year = datetime.now().year
@@ -871,11 +820,10 @@ class SecurityEducationService:
                     completed_by,
                     description,
                     auto_pass_setting,
-                    is_active
                 FROM security_education_periods 
-                WHERE period_id = %s AND is_active = 1
+                WHERE period_id = %s
                 """,
-                (period_id,),
+                (period_id, ),
                 fetch_one=True,
             )
 
@@ -884,9 +832,8 @@ class SecurityEducationService:
             print(f"[ERROR] 교육 기간 정보 조회 실패: {str(e)}")
             return None
 
-    def bulk_update_education_with_period(
-        self, period_id: int, records: list, uploaded_by: str
-    ) -> dict:
+    def bulk_update_education_with_period(self, period_id: int, records: list,
+                                          uploaded_by: str) -> dict:
         """특정 교육 기간에 대한 교육 결과 일괄 업로드"""
         try:
             print(
@@ -900,8 +847,7 @@ class SecurityEducationService:
 
             if period_info["is_completed"]:
                 raise ValueError(
-                    f"완료된 교육 기간({period_info['period_name']})에는 업로드할 수 없습니다."
-                )
+                    f"완료된 교육 기간({period_info['period_name']})에는 업로드할 수 없습니다.")
 
             print(
                 f"[DEBUG] 교육 기간 검증 완료: {period_info['period_name']} ({period_info['education_type']})"
@@ -928,15 +874,12 @@ class SecurityEducationService:
                             continue
 
                         # 사용자 UID 조회
-                        cursor.execute(
-                            "SELECT uid FROM users WHERE username = %s", (username,)
-                        )
+                        cursor.execute("SELECT uid FROM users WHERE username = %s",
+                                       (username, ))
                         user_result = cursor.fetchone()
 
                         if not user_result:
-                            error_msg = (
-                                f"행 {idx+1}: 사용자 '{username}'를 찾을 수 없습니다."
-                            )
+                            error_msg = (f"행 {idx+1}: 사용자 '{username}'를 찾을 수 없습니다.")
                             errors.append(error_msg)
                             error_count += 1
                             continue
@@ -945,10 +888,8 @@ class SecurityEducationService:
 
                         # 3. 교육 유형 검증 (기간의 교육 유형과 일치해야 함)
                         record_education_type = record.get("education_type", "").strip()
-                        if (
-                            record_education_type
-                            and record_education_type != period_info["education_type"]
-                        ):
+                        if (record_education_type and record_education_type
+                                != period_info["education_type"]):
                             print(
                                 f"[WARNING] 교육 유형 불일치 - 기간: {period_info['education_type']}, 레코드: {record_education_type}"
                             )
@@ -979,9 +920,9 @@ class SecurityEducationService:
                             cursor.execute(
                                 """
                                 INSERT INTO security_education 
-                                (user_id, period_id, education_type, education_year, education_period, 
+                                (user_id, period_id, education_type, education_year, 
                                 completion_status, notes, created_at)
-                                VALUES (%s, %s, %s, %s, %s, 1, %s, NOW())
+                                VALUES (%s, %s, %s, %s, 1, %s, NOW())
                                 """,
                                 (
                                     user_uid,
@@ -989,8 +930,7 @@ class SecurityEducationService:
                                     period_info["education_type"],
                                     period_info["education_year"],
                                     self._get_education_period_from_date(
-                                        period_info["start_date"]
-                                    ),
+                                        period_info["start_date"]),
                                     f"일괄 업로드 - 수료 {i+1}회차 (업로더: {uploaded_by})",
                                 ),
                             )
@@ -1001,9 +941,9 @@ class SecurityEducationService:
                             cursor.execute(
                                 """
                                 INSERT INTO security_education 
-                                (user_id, period_id, education_type, education_year, education_period, 
+                                (user_id, period_id, education_type, education_year, 
                                 completion_status, notes, created_at)
-                                VALUES (%s, %s, %s, %s, %s, 0, %s, NOW())
+                                VALUES (%s, %s, %s, %s, 0, %s, NOW())
                                 """,
                                 (
                                     user_uid,
@@ -1011,8 +951,7 @@ class SecurityEducationService:
                                     period_info["education_type"],
                                     period_info["education_year"],
                                     self._get_education_period_from_date(
-                                        period_info["start_date"]
-                                    ),
+                                        period_info["start_date"]),
                                     f"일괄 업로드 - 미수료 {i+1}회차 (업로더: {uploaded_by})",
                                 ),
                             )
@@ -1023,9 +962,7 @@ class SecurityEducationService:
                         else:
                             success_count += 1
 
-                        print(
-                            f"[DEBUG] {username} 처리 완료: {records_created}개 레코드 생성"
-                        )
+                        print(f"[DEBUG] {username} 처리 완료: {records_created}개 레코드 생성")
 
                     except Exception as e:
                         error_msg = f"행 {idx+1} ({record.get('username', 'Unknown')}): {str(e)}"
@@ -1099,9 +1036,8 @@ class SecurityEducationService:
             print(f"[WARNING] 교육 기간 결정 실패: {str(e)}, 기본값 'first_half' 사용")
             return "first_half"
 
-    def _find_user_by_name_and_department(
-        self, cursor, username: str, department: str
-    ) -> int:
+    def _find_user_by_name_and_department(self, cursor, username: str,
+                                          department: str) -> int:
         """사용자명과 부서로 사용자 찾기"""
         print(f"[DB_DEBUG] 사용자 조회: {username} ({department})")
 
@@ -1117,21 +1053,19 @@ class SecurityEducationService:
             return result["uid"]
 
         # 2. 이름만으로 검색
-        cursor.execute(
-            "SELECT uid, department FROM users WHERE username = %s LIMIT 1", (username,)
-        )
+        cursor.execute("SELECT uid, department FROM users WHERE username = %s LIMIT 1",
+                       (username, ))
         result = cursor.fetchone()
 
         if result:
             print(
-                f"[DB_DEBUG] 이름으로만 사용자 발견: {username} -> 실제 부서: {result['department']}"
-            )
+                f"[DB_DEBUG] 이름으로만 사용자 발견: {username} -> 실제 부서: {result['department']}")
             return result["uid"]
 
         # 3. 유사 이름 검색
         cursor.execute(
             "SELECT uid, username, department FROM users WHERE username LIKE %s LIMIT 1",
-            (f"%{username}%",),
+            (f"%{username}%", ),
         )
         result = cursor.fetchone()
 
@@ -1145,9 +1079,8 @@ class SecurityEducationService:
         return None
 
     # ✅ 개선된 일괄 업로드 처리 - 비즈니스 로직을 백엔드로 이전
-    def process_bulk_upload(
-        self, period_id: int, records: List[Dict], uploaded_by: str
-    ) -> Dict[str, Any]:
+    def process_bulk_upload(self, period_id: int, records: List[Dict],
+                            uploaded_by: str) -> Dict[str, Any]:
         """
         교육 결과 일괄 업로드 - 개선된 백엔드 로직
 
@@ -1158,8 +1091,7 @@ class SecurityEducationService:
         """
         try:
             self.logger.info(
-                f"교육 일괄 업로드 시작 - period_id: {period_id}, records: {len(records)}건"
-            )
+                f"교육 일괄 업로드 시작 - period_id: {period_id}, records: {len(records)}건")
 
             # 1. 교육 기간 정보 조회 및 검증
             period_info = self._get_and_validate_period(period_id)
@@ -1168,8 +1100,7 @@ class SecurityEducationService:
 
             # 2. 업로드된 레코드들을 처리
             processed_results = self._process_education_records(
-                records, period_info, uploaded_by
-            )
+                records, period_info, uploaded_by)
 
             # 3. 데이터베이스에 저장
             save_results = self._save_education_records(processed_results, period_id)
@@ -1184,9 +1115,8 @@ class SecurityEducationService:
                 "update_count": save_results["update_count"],
                 "error_count": save_results["error_count"],
                 "errors": save_results["errors"][:10],  # 최대 10개 오류만 반환
-                "message": self._generate_upload_message(
-                    save_results, period_info["period_name"]
-                ),
+                "message": self._generate_upload_message(save_results,
+                                                         period_info["period_name"]),
             }
 
         except Exception as e:
@@ -1201,9 +1131,9 @@ class SecurityEducationService:
                 SELECT period_id, period_name, education_type, education_year, 
                        start_date, end_date, is_completed, auto_pass_setting
                 FROM security_education_periods 
-                WHERE period_id = %s AND is_active = 1
+                WHERE period_id = %s
                 """,
-                (period_id,),
+                (period_id, ),
                 fetch_one=True,
             )
 
@@ -1221,9 +1151,8 @@ class SecurityEducationService:
             self.logger.error(f"교육 기간 조회 실패: {str(e)}")
             return None
 
-    def _process_education_records(
-        self, records: List[Dict], period_info: Dict, uploaded_by: str
-    ) -> List[Dict]:
+    def _process_education_records(self, records: List[Dict], period_info: Dict,
+                                   uploaded_by: str) -> List[Dict]:
         """
         교육 레코드 처리 - 핵심 비즈니스 로직
 
@@ -1235,9 +1164,8 @@ class SecurityEducationService:
         for idx, record in enumerate(records):
             try:
                 # 1. 사용자 정보 검증
-                user_info = self._validate_and_get_user(
-                    record.get("username"), record.get("department")
-                )
+                user_info = self._validate_and_get_user(record.get("username"),
+                                                        record.get("department"))
                 if not user_info:
                     self.logger.warning(
                         f"사용자를 찾을 수 없음: {record.get('username')} ({record.get('department')})"
@@ -1246,32 +1174,27 @@ class SecurityEducationService:
 
                 # 2. 교육 유형 검증
                 education_type = self._validate_education_type(
-                    record.get("education_type"), period_info["education_type"]
-                )
+                    record.get("education_type"), period_info["education_type"])
                 if not education_type:
                     self.logger.warning(
-                        f"유효하지 않은 교육 유형: {record.get('education_type')}"
-                    )
+                        f"유효하지 않은 교육 유형: {record.get('education_type')}")
                     continue
 
                 # 3. ✅ 핵심 개선: 수료/미수료 결정 로직을 백엔드에서 처리
                 completion_records = self._determine_completion_status(
-                    record, period_info, uploaded_by
-                )
+                    record, period_info, uploaded_by)
 
                 # 4. 처리된 레코드 추가
                 for comp_record in completion_records:
-                    comp_record.update(
-                        {
-                            "user_id": user_info["uid"],
-                            "username": user_info["username"],
-                            "department": user_info["department"],
-                            "education_type": education_type,
-                            "period_id": period_info["period_id"],
-                            "education_year": period_info["education_year"],
-                            "row_index": idx + 1,
-                        }
-                    )
+                    comp_record.update({
+                        "user_id": user_info["uid"],
+                        "username": user_info["username"],
+                        "department": user_info["department"],
+                        "education_type": education_type,
+                        "period_id": period_info["period_id"],
+                        "education_year": period_info["education_year"],
+                        "row_index": idx + 1,
+                    })
                     processed_records.append(comp_record)
 
             except Exception as e:
@@ -1281,9 +1204,8 @@ class SecurityEducationService:
         self.logger.info(f"레코드 처리 완료: {len(processed_records)}개 생성")
         return processed_records
 
-    def _determine_completion_status(
-        self, record: Dict, period_info: Dict, uploaded_by: str
-    ) -> List[Dict]:
+    def _determine_completion_status(self, record: Dict, period_info: Dict,
+                                     uploaded_by: str) -> List[Dict]:
         """
         ✅ 핵심 개선: 수료/미수료 결정 로직을 백엔드에서 처리
 
@@ -1300,42 +1222,35 @@ class SecurityEducationService:
         incomplete_count = self._safe_int_conversion(record.get("incomplete_count", 0))
 
         # 비즈니스 규칙 검증
-        validation_result = self._validate_education_counts(
-            completed_count, incomplete_count, period_info
-        )
+        validation_result = self._validate_education_counts(completed_count,
+                                                            incomplete_count,
+                                                            period_info)
         if not validation_result["valid"]:
             self.logger.warning(f"교육 횟수 검증 실패: {validation_result['message']}")
             return []
 
         # 수료 레코드 생성
         for i in range(completed_count):
-            completion_records.append(
-                {
-                    "completion_status": 1,  # 수료
-                    "education_date": self._determine_education_date(
-                        record, period_info
-                    ),
-                    "notes": f"일괄 업로드 - 수료 {i+1}회차 (업로더: {uploaded_by})",
-                    "exclude_from_scoring": False,
-                    "exclude_reason": None,
-                }
-            )
+            completion_records.append({
+                "completion_status": 1,  # 수료
+                "education_date": self._determine_education_date(record, period_info),
+                "notes": f"일괄 업로드 - 수료 {i+1}회차 (업로더: {uploaded_by})",
+                "exclude_from_scoring": False,
+                "exclude_reason": None,
+            })
 
         # 미수료 레코드 생성
         for i in range(incomplete_count):
-            completion_records.append(
-                {
-                    "completion_status": 0,  # 미수료
-                    "education_date": None,  # 미수료는 날짜 없음
-                    "notes": f"일괄 업로드 - 미수료 {i+1}회차 (업로더: {uploaded_by})",
-                    "exclude_from_scoring": False,
-                    "exclude_reason": None,
-                }
-            )
+            completion_records.append({
+                "completion_status": 0,  # 미수료
+                "education_date": None,  # 미수료는 날짜 없음
+                "notes": f"일괄 업로드 - 미수료 {i+1}회차 (업로더: {uploaded_by})",
+                "exclude_from_scoring": False,
+                "exclude_reason": None,
+            })
 
         self.logger.debug(
-            f"수료/미수료 결정 완료: 수료 {completed_count}개, 미수료 {incomplete_count}개"
-        )
+            f"수료/미수료 결정 완료: 수료 {completed_count}개, 미수료 {incomplete_count}개")
         return completion_records
 
     def _safe_int_conversion(self, value: Any) -> int:
@@ -1348,9 +1263,8 @@ class SecurityEducationService:
             self.logger.warning(f"정수 변환 실패: {value}")
             return 0
 
-    def _validate_education_counts(
-        self, completed: int, incomplete: int, period_info: Dict
-    ) -> Dict:
+    def _validate_education_counts(self, completed: int, incomplete: int,
+                                   period_info: Dict) -> Dict:
         """교육 횟수 검증 - 비즈니스 규칙 적용"""
 
         # 기본 검증
@@ -1377,9 +1291,8 @@ class SecurityEducationService:
 
         return {"valid": True, "message": "검증 통과"}
 
-    def _determine_education_date(
-        self, record: Dict, period_info: Dict
-    ) -> Optional[str]:
+    def _determine_education_date(self, record: Dict,
+                                  period_info: Dict) -> Optional[str]:
         """교육 완료 날짜 결정"""
         # 1. 레코드에 명시적 날짜가 있는 경우
         if record.get("education_date"):
@@ -1418,14 +1331,13 @@ class SecurityEducationService:
             # 2. 이름만으로 검색 (부서가 다를 수 있음)
             user = execute_query(
                 "SELECT uid, username, department FROM users WHERE username = %s LIMIT 1",
-                (username.strip(),),
+                (username.strip(), ),
                 fetch_one=True,
             )
 
             if user:
                 self.logger.info(
-                    f"부서 불일치 - 템플릿: {department}, DB: {user['department']}"
-                )
+                    f"부서 불일치 - 템플릿: {department}, DB: {user['department']}")
                 return user
 
             return None
@@ -1434,15 +1346,14 @@ class SecurityEducationService:
             self.logger.error(f"사용자 조회 실패: {str(e)}")
             return None
 
-    def _validate_education_type(
-        self, education_type: str, period_education_type: str
-    ) -> Optional[str]:
+    def _validate_education_type(self, education_type: str,
+                                 period_education_type: str) -> Optional[str]:
         """교육 유형 검증"""
         if not education_type:
             return None
 
         # 표준화된 교육 유형 목록
-        valid_types = ["오프라인", "온라인", "신입교육", "심화교육"]
+        valid_types = ["오프라인", "온라인"]
 
         # 정확한 매칭
         if education_type in valid_types:
@@ -1451,16 +1362,14 @@ class SecurityEducationService:
                 return education_type
             else:
                 self.logger.warning(
-                    f"교육 유형 불일치 - 템플릿: {education_type}, 기간: {period_education_type}"
-                )
+                    f"교육 유형 불일치 - 템플릿: {education_type}, 기간: {period_education_type}")
                 # 경고하지만 처리는 계속 (유연성 제공)
                 return education_type
 
         return None
 
-    def _save_education_records(
-        self, processed_records: List[Dict], period_id: int
-    ) -> Dict:
+    def _save_education_records(self, processed_records: List[Dict],
+                                period_id: int) -> Dict:
         """처리된 교육 레코드를 데이터베이스에 저장"""
         success_count = 0
         update_count = 0
@@ -1485,10 +1394,10 @@ class SecurityEducationService:
                         cursor.execute(
                             """
                             INSERT INTO security_education 
-                            (user_id, period_id, education_type, education_year, education_period,
+                            (user_id, period_id, education_type, education_year,
                              completion_status, education_date, notes, exclude_from_scoring, 
                              exclude_reason, created_at, updated_at)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                             """,
                             (
                                 record["user_id"],
@@ -1496,8 +1405,7 @@ class SecurityEducationService:
                                 record["education_type"],
                                 record["education_year"],
                                 self._get_education_period_from_date(
-                                    record.get("education_date")
-                                ),
+                                    record.get("education_date")),
                                 record["completion_status"],
                                 record.get("education_date"),
                                 record["notes"],
@@ -1548,9 +1456,7 @@ class SecurityEducationService:
         if update_count > 0:
             return f"{period_name}에 업로드 완료 (신규: {success_count}건, 업데이트: {update_count}건, 오류: {error_count}건)"
         else:
-            return (
-                f"{period_name}에 {success_count}건 업로드 완료 (오류: {error_count}건)"
-            )
+            return (f"{period_name}에 {success_count}건 업로드 완료 (오류: {error_count}건)")
 
     # ✅ 추가 개선: 교육 기간 정보 조회
     def get_period_info(self, period_id: int) -> Optional[Dict]:
