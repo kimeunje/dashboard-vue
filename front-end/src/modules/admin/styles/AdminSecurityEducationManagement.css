@@ -263,7 +263,7 @@
 
 .period-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 16px;
 }
 
@@ -273,6 +273,7 @@
   padding: 16px;
   background-color: white;
   transition: all 0.2s ease;
+  margin-bottom: 20px;
 }
 
 .period-card:hover {
@@ -347,7 +348,7 @@
   padding: 4px 8px;
   border: none;
   border-radius: 4px;
-  background-color: transparent;
+  /* background-color: transparent; */
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.2s ease;
@@ -1368,4 +1369,523 @@
   .upload-button {
     min-width: 100%;
   }
+}
+
+/* AdminSecurityEducationManagement.css에 추가할 스타일 */
+
+/* 교육 유형 헤더 개선 */
+.type-header-with-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+
+.type-title-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.type-stats-summary {
+  display: flex;
+  gap: 12px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+
+/* 기간 카드 내 통계 섹션 */
+.period-statistics {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.stats-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stats-grid-compact {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.stat-compact {
+  text-align: center;
+  padding: 8px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.stat-compact.success {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.stat-compact.failure {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.stat-compact.rate {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.stat-compact.rate.rate-excellent {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.stat-compact.rate.rate-good {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.stat-compact.rate.rate-warning {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.stat-compact.rate.rate-poor {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.stat-number {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 2px;
+}
+
+.stat-text {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* 프로그레스 바 */
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+  background: #10b981;
+}
+
+.progress-fill.rate-excellent {
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+.progress-fill.rate-good {
+  background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.progress-fill.rate-warning {
+  background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+}
+
+.progress-fill.rate-poor {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+.no-data {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+  font-style: italic;
+  padding: 8px;
+}
+
+/* 카드 액션 버튼들 - ManualCheckManagement 스타일 적용 */
+.card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.card-actions button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-actions button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.card-actions button:hover::before {
+  left: 100%;
+}
+
+.card-actions button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.card-actions button:disabled::before {
+  display: none;
+}
+
+/* 비활성화 버튼 호버 시에도 배경 유지 */
+.card-actions button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+  background-color: #9ca3af;
+}
+
+.stats-button {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.stats-button:hover:not(:disabled) {
+  background-color: #2563eb;
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.stats-button:disabled {
+  background-color: #9ca3af;
+}
+
+.edit-button {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.edit-button:hover:not(:disabled) {
+  background-color: #2563eb;
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.edit-button:disabled {
+  background-color: #9ca3af;
+}
+
+.complete-button {
+  background-color: #10b981;
+  border-color: #10b981;
+}
+
+.complete-button:hover:not(:disabled) {
+  background-color: #059669;
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.complete-button:disabled {
+  background-color: #9ca3af;
+}
+
+.reopen-button {
+  background-color: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.reopen-button:hover:not(:disabled) {
+  background-color: #d97706;
+  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+}
+
+.reopen-button:disabled {
+  background-color: #9ca3af;
+}
+
+.delete-button {
+  background-color: #ef4444;
+  border-color: #ef4444;
+}
+
+.delete-button:hover:not(:disabled) {
+  background-color: #dc2626;
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+}
+
+.delete-button:disabled {
+  background-color: #9ca3af;
+}
+
+/* 반응형 대응 및 레이아웃 개선 */
+@media (max-width: 1024px) {
+  .card-actions {
+    gap: 6px;
+  }
+
+  .card-actions button {
+    padding: 6px 12px;
+    font-size: 10px;
+    min-height: 26px;
+  }
+}
+
+@media (max-width: 768px) {
+  .card-actions {
+    gap: 4px;
+    flex-direction: column;
+  }
+
+  .card-actions button {
+    padding: 8px 12px;
+    font-size: 11px;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-actions button {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+}
+
+/* 카드 레이아웃 개선 */
+.period-card .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.period-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+/* 상세 통계 모달 */
+.stats-modal {
+  max-width: 900px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.period-info-section {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.period-info-section h4 {
+  margin: 0 0 8px 0;
+  color: #1f2937;
+  font-size: 18px;
+}
+
+.period-info-section p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.summary-stats {
+  margin-bottom: 24px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.summary-item {
+  text-align: center;
+  padding: 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.summary-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.summary-value.success {
+  color: #10b981;
+}
+
+.summary-value.failure {
+  color: #ef4444;
+}
+
+.summary-label {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* 부서별/참가자별 테이블 */
+.department-stats,
+.participant-details {
+  margin-bottom: 24px;
+}
+
+.department-stats h5,
+.participant-details h5 {
+  margin: 0 0 12px 0;
+  color: #1f2937;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.department-table,
+.participant-table {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.department-table table,
+.participant-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.department-table th,
+.participant-table th {
+  background: #f8fafc;
+  color: #374151;
+  font-weight: 600;
+  padding: 12px 8px;
+  text-align: left;
+  font-size: 14px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.department-table td,
+.participant-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+}
+
+.department-table td.success,
+.participant-table td.success {
+  color: #059669;
+  font-weight: 600;
+}
+
+.department-table td.failure,
+.participant-table td.failure {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.excluded-badge {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.included-badge {
+  background: #f0fdf4;
+  color: #059669;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.success-badge {
+  background: #f0fdf4;
+  color: #059669;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.failure-badge {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 성공률별 색상 클래스 */
+.rate-excellent {
+  color: #059669 !important;
+}
+
+.rate-good {
+  color: #0284c7 !important;
+}
+
+.rate-warning {
+  color: #d97706 !important;
+}
+
+.rate-poor {
+  color: #dc2626 !important;
 }
