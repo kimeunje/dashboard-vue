@@ -39,7 +39,15 @@ INSERT INTO `audit_log` (`log_id`, `user_id`, `item_id`, `actual_value`, `passed
 	(81, 1, 5, '{"maximumPasswordAge": "90"}', 1, '암호 변경 주기가 적절하게 설정되어 있습니다.', NULL, '2025-06-19 05:16:23'),
 	(82, 1, 6, '{"passwordHistorySize": "5"}', 1, '동일 암호 사용 제한이 적절하게 설정되어 있습니다.', NULL, '2025-06-19 05:16:24'),
 	(83, 1, 7, '{"folders": ["IPC$", "Users", "공유폴더"]}', 0, '불필요한 공유 폴더가 있습니다. 필요하지 않은 공유 폴더를 제거해주세요.', NULL, '2025-06-19 05:16:25'),
-	(84, 1, 8, '{"fDenyTSConnections": 1}', 1, '원격 데스크톱이 적절하게 제한되어 있습니다.', NULL, '2025-06-19 05:16:27');
+	(84, 1, 8, '{"fDenyTSConnections": 1}', 1, '원격 데스크톱이 적절하게 제한되어 있습니다.', NULL, '2025-06-19 05:16:27'),
+	(85, 1, 1, '{"screenSaverTime": "600", "screenSaverSecure": "1", "screenSaverEnabled": "1"}', 1, '화면 보호기가 정상적으로 설정되어 있습니다.', NULL, '2025-06-25 01:10:25'),
+	(86, 1, 2, '{"UpToDate": 1, "DisplayName": "알약", "RealTimeProtection": 1}', 1, '알약 백신이 정상적으로 설치되어 있으며, 실시간 보호 및 최신 업데이트가 적용되어 있습니다.', NULL, '2025-06-25 01:10:20'),
+	(87, 1, 3, '{"minimumPasswordLength": "8"}', 1, '암호 길이가 정책에 맞게 설정되어 있습니다.', NULL, '2025-06-25 01:10:30'),
+	(88, 1, 4, '{"passwordComplexity": "1"}', 1, '암호 복잡도가 적절하게 설정되어 있습니다.', NULL, '2025-06-25 01:10:30'),
+	(89, 1, 5, '{"maximumPasswordAge": "90"}', 1, '암호 변경 주기가 적절하게 설정되어 있습니다.', NULL, '2025-06-25 01:10:30'),
+	(90, 1, 6, '{"passwordHistorySize": "5"}', 1, '동일 암호 사용 제한이 적절하게 설정되어 있습니다.', NULL, '2025-06-25 01:10:30'),
+	(91, 1, 7, '{"folders": ["IPC$", "Users", "공유폴더"]}', 0, '불필요한 공유 폴더가 있습니다. 필요하지 않은 공유 폴더를 제거해주세요. [제외사유: 테스트]', '테스트', '2025-06-25 01:10:36'),
+	(92, 1, 8, '{"fDenyTSConnections": 1}', 1, '원격 데스크톱이 적절하게 제한되어 있습니다.', NULL, '2025-06-25 01:10:40');
 
 DROP TABLE IF EXISTS `checklist_items`;
 CREATE TABLE IF NOT EXISTS `checklist_items` (
@@ -196,11 +204,11 @@ CREATE TABLE IF NOT EXISTS `manual_check_periods` (
 
 DELETE FROM `manual_check_periods`;
 INSERT INTO `manual_check_periods` (`period_id`, `check_type`, `period_year`, `period_name`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `auto_pass_setting`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
-	(14, 'seal_check', 2025, '상반기', '2025-07-10', '2025-07-30', 1, '2025-06-15 16:41:29', 'admin', '', 1, 'admin', '2025-06-14 10:56:12', '2025-06-15 16:41:29', 1),
-	(15, 'seal_check', 2025, '3월', '2025-04-03', '2025-04-13', 1, '2025-06-15 16:41:28', 'admin', '', 1, 'admin', '2025-06-14 11:19:26', '2025-06-15 16:41:28', 1),
-	(16, 'file_encryption', 2025, '2323', '2025-01-01', '2025-04-01', 1, '2025-06-14 15:26:22', 'admin', '', 1, 'admin', '2025-06-14 11:46:46', '2025-06-14 15:26:22', 1),
-	(17, 'seal_check', 2025, '42342', '2025-05-10', '2025-06-16', 1, '2025-06-14 15:30:16', 'admin', '', 1, 'admin', '2025-06-14 11:47:18', '2025-06-14 15:30:16', 1),
-	(18, 'file_encryption', 2025, '6월 검사', '2025-06-13', '2025-06-15', 0, NULL, NULL, '', 1, 'admin', '2025-06-14 14:38:58', '2025-06-14 15:25:08', 1);
+	(14, 'seal_check', 2025, '상반기', '2025-07-10', '2025-07-30', 1, '2025-06-25 00:45:57', 'eunjekim8', '', 1, 'admin', '2025-06-14 10:56:12', '2025-06-25 00:45:57', 1),
+	(15, 'seal_check', 2025, '3월', '2025-04-03', '2025-04-13', 1, '2025-06-25 00:45:54', 'eunjekim8', '', 1, 'admin', '2025-06-14 11:19:26', '2025-06-25 00:45:54', 1),
+	(16, 'file_encryption', 2025, '2323', '2025-01-01', '2025-04-01', 1, '2025-06-26 01:55:24', 'eunjekim8', '', 1, 'admin', '2025-06-14 11:46:46', '2025-06-26 01:55:24', 1),
+	(17, 'seal_check', 2025, '42342', '2025-05-10', '2025-06-16', 1, '2025-06-25 00:45:55', 'eunjekim8', '', 1, 'admin', '2025-06-14 11:47:18', '2025-06-25 00:45:55', 1),
+	(18, 'file_encryption', 2025, '6월 검사', '2025-06-13', '2025-06-15', 1, '2025-06-25 00:45:58', 'eunjekim8', '', 1, 'admin', '2025-06-14 14:38:58', '2025-06-25 00:45:58', 1);
 
 DROP TABLE IF EXISTS `manual_check_results`;
 CREATE TABLE IF NOT EXISTS `manual_check_results` (
@@ -253,6 +261,32 @@ CREATE TABLE IF NOT EXISTS `manual_check_results` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='수시 점검 결과';
 
 DELETE FROM `manual_check_results`;
+INSERT INTO `manual_check_results` (`check_id`, `user_id`, `check_item_code`, `source_ip`, `check_year`, `check_period`, `check_date`, `checker_name`, `seal_status`, `seal_number`, `seal_notes`, `malware_scan_result`, `threats_found`, `threats_cleaned`, `antivirus_version`, `malware_notes`, `malware_name`, `malware_classification`, `malware_path`, `detection_item`, `encryption_status`, `files_scanned`, `unencrypted_files`, `encryption_completed`, `encryption_notes`, `round_number`, `ssn_included`, `overall_result`, `total_score`, `penalty_points`, `notes`, `exclude_from_scoring`, `exclude_reason`, `created_at`, `updated_at`, `period_id`) VALUES
+	(8, 4, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:54', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:54', '2025-06-25 00:45:54', 15),
+	(9, 3, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:54', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:54', '2025-06-25 00:45:54', 15),
+	(10, 1, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:54', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:54', '2025-06-25 00:45:54', 15),
+	(11, 5, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:54', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:54', '2025-06-25 00:45:54', 15),
+	(12, 2, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:54', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:54', '2025-06-25 00:45:54', 15),
+	(15, 4, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:55', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:55', '2025-06-25 00:45:55', 17),
+	(16, 3, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:55', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:55', '2025-06-25 00:45:55', 17),
+	(17, 1, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:55', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:55', '2025-06-25 00:45:55', 17),
+	(18, 5, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:55', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:55', '2025-06-25 00:45:55', 17),
+	(19, 2, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:55', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:55', '2025-06-25 00:45:55', 17),
+	(22, 4, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:57', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:57', '2025-06-25 00:45:57', 14),
+	(23, 3, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:57', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:57', '2025-06-25 00:45:57', 14),
+	(24, 1, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:57', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:57', '2025-06-25 00:45:57', 14),
+	(25, 5, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:57', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:57', '2025-06-25 00:45:57', 14),
+	(26, 2, 'seal_check', NULL, 2025, 'auto_complete', '2025-06-25 09:45:57', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:57', '2025-06-25 00:45:57', 14),
+	(29, 4, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-25 09:45:58', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:58', '2025-06-25 00:45:58', 18),
+	(30, 3, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-25 09:45:58', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:58', '2025-06-25 00:45:58', 18),
+	(31, 1, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-25 09:45:58', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:58', '2025-06-25 00:45:58', 18),
+	(32, 5, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-25 09:45:58', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:58', '2025-06-25 00:45:58', 18),
+	(33, 2, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-25 09:45:58', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-25 00:45:58', '2025-06-25 00:45:58', 18),
+	(90, 4, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-26 10:55:24', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-26 01:55:24', '2025-06-26 01:55:24', 16),
+	(91, 3, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-26 10:55:24', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-26 01:55:24', '2025-06-26 01:55:24', 16),
+	(92, 1, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-26 10:55:24', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-26 01:55:24', '2025-06-26 01:55:24', 16),
+	(93, 5, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-26 10:55:24', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-26 01:55:24', '2025-06-26 01:55:24', 16),
+	(94, 2, 'file_encryption', NULL, 2025, 'auto_complete', '2025-06-26 10:55:24', '자동완료', NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL, 0, 'pass', 100.00, 0.00, '기간 완료로 인한 자동 통과 처리', 0, NULL, '2025-06-26 01:55:24', '2025-06-26 01:55:24', 16);
 
 DROP TABLE IF EXISTS `phishing_training`;
 CREATE TABLE IF NOT EXISTS `phishing_training` (
@@ -278,12 +312,6 @@ CREATE TABLE IF NOT EXISTS `phishing_training` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 이력';
 
 DELETE FROM `phishing_training`;
-INSERT INTO `phishing_training` (`training_id`, `user_id`, `training_year`, `training_period`, `email_sent_time`, `action_time`, `log_type`, `mail_type`, `user_email`, `ip_address`, `training_result`, `response_time_minutes`, `notes`, `created_at`, `updated_at`) VALUES
-	(403, 4, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-23 05:09:10', '2025-06-23 05:09:10'),
-	(404, 3, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-23 05:09:10', '2025-06-23 05:09:10'),
-	(405, 1, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-23 05:09:10', '2025-06-23 05:09:10'),
-	(406, 5, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-23 05:09:10', '2025-06-23 05:09:10'),
-	(407, 2, 2025, 'first_half', NULL, NULL, NULL, NULL, NULL, NULL, 'pass', NULL, '기간 완료로 인한 자동 통과 처리', '2025-06-23 05:09:10', '2025-06-23 05:09:10');
 
 DROP TABLE IF EXISTS `phishing_training_periods`;
 CREATE TABLE IF NOT EXISTS `phishing_training_periods` (
@@ -310,14 +338,13 @@ CREATE TABLE IF NOT EXISTS `phishing_training_periods` (
 DELETE FROM `phishing_training_periods`;
 INSERT INTO `phishing_training_periods` (`period_id`, `training_year`, `training_period`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
 	(24, 2025, 'second_half', '2025-07-02', '2025-08-09', 0, NULL, NULL, '', 'admin', '2025-06-08 12:29:43', '2025-06-08 12:29:43', 1),
-	(25, 2025, 'first_half', '2025-06-02', '2025-06-04', 1, '2025-06-23 05:09:10', 'eunjekim8', '', 'admin', '2025-06-08 12:31:46', '2025-06-23 05:09:10', 1);
+	(25, 2025, 'first_half', '2025-06-02', '2025-06-04', 0, NULL, NULL, '', 'admin', '2025-06-08 12:31:46', '2025-06-26 01:20:09', 1);
 
 DROP TABLE IF EXISTS `security_education`;
 CREATE TABLE IF NOT EXISTS `security_education` (
   `education_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `user_id` bigint(20) NOT NULL COMMENT 'users 테이블의 uid 참조',
   `education_year` int(11) NOT NULL COMMENT '교육 연도',
-  `education_period` enum('first_half','second_half') NOT NULL COMMENT '교육 기간 (상반기/하반기)',
   `course_name` varchar(200) NOT NULL COMMENT 'CSV의 수강과정 컬럼 값',
   `completed_count` int(11) DEFAULT 0 COMMENT 'CSV의 수료 컬럼 값',
   `incomplete_count` int(11) DEFAULT 0 COMMENT 'CSV의 미수료 컬럼 값',
@@ -344,9 +371,27 @@ CREATE TABLE IF NOT EXISTS `security_education` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='정보보호 교육 이력 (CSV 매핑 개선 버전)';
 
 DELETE FROM `security_education`;
-INSERT INTO `security_education` (`education_id`, `user_id`, `education_year`, `education_period`, `course_name`, `completed_count`, `incomplete_count`, `education_type`, `education_date`, `notes`, `period_id`, `exclude_from_scoring`, `exclude_reason`, `created_at`, `updated_at`) VALUES
-	(2, 1, 2025, 'first_half', '온라인교육', 2, 0, '온라인교육', NULL, 'CSV 업로드 - admin', 8, 0, NULL, '2025-06-24 03:46:28', '2025-06-24 03:46:28'),
-	(3, 1, 2025, 'first_half', '오프라인교육', 0, 2, '오프라인교육', NULL, 'CSV 업로드 - admin', 9, 0, NULL, '2025-06-24 04:45:18', '2025-06-24 04:46:36');
+INSERT INTO `security_education` (`education_id`, `user_id`, `education_year`, `course_name`, `completed_count`, `incomplete_count`, `education_type`, `education_date`, `notes`, `period_id`, `exclude_from_scoring`, `exclude_reason`, `created_at`, `updated_at`) VALUES
+	(487, 1, 2025, '1차 오프라인 교육', 2, 0, '오프라인', NULL, 'CSV 업로드 - admin', 25, 1, '관리자 설정', '2025-06-26 04:38:11', '2025-06-26 04:48:51'),
+	(510, 3, 2025, '13535', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 24, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
+	(511, 4, 2025, '13535', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 24, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
+	(512, 1, 2025, '13535', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 24, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
+	(513, 2, 2025, '13535', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 24, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
+	(514, 5, 2025, '13535', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 24, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
+	(515, 3, 2025, '1차 오프라인 교육', 1, 0, '오프라인', NULL, '기간 완료로 인한 자동 통과 처리', 25, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
+	(516, 4, 2025, '1차 오프라인 교육', 1, 0, '오프라인', NULL, '기간 완료로 인한 자동 통과 처리', 25, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
+	(517, 2, 2025, '1차 오프라인 교육', 1, 0, '오프라인', NULL, '기간 완료로 인한 자동 통과 처리', 25, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
+	(518, 5, 2025, '1차 오프라인 교육', 1, 0, '오프라인', NULL, '기간 완료로 인한 자동 통과 처리', 25, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
+	(544, 3, 2025, '3차 오프라인 교육', 1, 0, '오프라인', NULL, '기간 완료로 인한 자동 통과 처리', 27, 0, NULL, '2025-06-26 05:37:46', '2025-06-26 05:37:46'),
+	(545, 4, 2025, '3차 오프라인 교육', 1, 0, '오프라인', NULL, '기간 완료로 인한 자동 통과 처리', 27, 0, NULL, '2025-06-26 05:37:46', '2025-06-26 05:37:46'),
+	(546, 1, 2025, '3차 오프라인 교육', 1, 4, '오프라인', NULL, '기간 완료로 인한 자동 통과 처리', 27, 0, '', '2025-06-26 05:37:46', '2025-06-26 05:40:41'),
+	(547, 2, 2025, '3차 오프라인 교육', 1, 0, '오프라인', NULL, '기간 완료로 인한 자동 통과 처리', 27, 0, NULL, '2025-06-26 05:37:46', '2025-06-26 05:37:46'),
+	(548, 5, 2025, '3차 오프라인 교육', 1, 0, '오프라인', NULL, '기간 완료로 인한 자동 통과 처리', 27, 0, NULL, '2025-06-26 05:37:46', '2025-06-26 05:37:46'),
+	(549, 3, 2025, '2차 온라인 교육', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 28, 0, NULL, '2025-06-26 05:37:53', '2025-06-26 05:37:53'),
+	(550, 4, 2025, '2차 온라인 교육', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 28, 0, NULL, '2025-06-26 05:37:53', '2025-06-26 05:37:53'),
+	(551, 1, 2025, '2차 온라인 교육', 1, 2, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 28, 0, '', '2025-06-26 05:37:53', '2025-06-26 05:40:38'),
+	(552, 2, 2025, '2차 온라인 교육', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 28, 0, NULL, '2025-06-26 05:37:53', '2025-06-26 05:37:53'),
+	(553, 5, 2025, '2차 온라인 교육', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 28, 0, NULL, '2025-06-26 05:37:53', '2025-06-26 05:37:53');
 
 DROP TABLE IF EXISTS `security_education_periods`;
 CREATE TABLE IF NOT EXISTS `security_education_periods` (
@@ -364,19 +409,20 @@ CREATE TABLE IF NOT EXISTS `security_education_periods` (
   `created_by` varchar(50) NOT NULL COMMENT '생성한 관리자',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `is_active` tinyint(1) DEFAULT 1 COMMENT '활성 상태',
   PRIMARY KEY (`period_id`),
   UNIQUE KEY `uk_year_period_type` (`education_year`,`period_name`,`education_type`),
   KEY `idx_education_year` (`education_year`),
   KEY `idx_education_type` (`education_type`),
-  KEY `idx_is_completed` (`is_completed`),
-  KEY `idx_active` (`is_active`)
+  KEY `idx_is_completed` (`is_completed`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='정보보호 교육 기간 설정';
 
 DELETE FROM `security_education_periods`;
-INSERT INTO `security_education_periods` (`period_id`, `education_year`, `period_name`, `education_type`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `auto_pass_setting`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
-	(8, 2025, '2025년 온라인 교육 ', '온라인', '2025-02-01', '2025-10-01', 0, NULL, NULL, '', 1, 'admin', '2025-06-23 07:17:19', '2025-06-24 04:45:31', 1),
-	(9, 2025, '2025년 오프라인 교육', '오프라인', '2025-02-10', '2025-10-09', 0, NULL, NULL, '', 1, 'admin', '2025-06-24 04:44:26', '2025-06-24 04:44:26', 1);
+INSERT INTO `security_education_periods` (`period_id`, `education_year`, `period_name`, `education_type`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `auto_pass_setting`, `created_by`, `created_at`, `updated_at`) VALUES
+	(24, 2025, '13535', '온라인', '2025-06-05', '2025-06-13', 1, '2025-06-26 04:39:11', 'admin', '', 1, 'admin', '2025-06-26 04:24:55', '2025-06-26 04:39:11'),
+	(25, 2025, '1차 오프라인 교육', '오프라인', '2025-02-05', '2025-03-02', 1, '2025-06-26 04:39:11', 'admin', '', 1, 'admin', '2025-06-26 04:37:53', '2025-06-26 04:39:11'),
+	(26, 2025, '2차 오프라인 교육', '오프라인', '2025-05-14', '2025-06-11', 1, '2025-06-26 04:44:36', 'admin', '', 0, 'admin', '2025-06-26 04:39:05', '2025-06-26 04:44:36'),
+	(27, 2025, '3차 오프라인 교육', '오프라인', '2025-11-13', '2025-11-15', 1, '2025-06-26 05:37:46', 'admin', '', 1, 'admin', '2025-06-26 04:39:39', '2025-06-26 05:37:46'),
+	(28, 2025, '2차 온라인 교육', '온라인', '2025-12-11', '2025-12-13', 1, '2025-06-26 05:37:53', 'admin', '', 1, 'admin', '2025-06-26 04:41:47', '2025-06-26 05:37:53');
 
 DROP TABLE IF EXISTS `security_score_summary`;
 CREATE TABLE IF NOT EXISTS `security_score_summary` (
@@ -384,11 +430,11 @@ CREATE TABLE IF NOT EXISTS `security_score_summary` (
   `user_id` bigint(20) NOT NULL COMMENT 'users 테이블의 uid 참조',
   `evaluation_year` int(11) NOT NULL COMMENT '평가 연도',
   `audit_penalty` decimal(5,2) DEFAULT 0.00 COMMENT '감사 감점 (실패 항목 * 0.5)',
-  `education_penalty` decimal(5,2) DEFAULT 0.00 COMMENT '교육 감점 (미이수 * 0.5)',
+  `education_penalty` decimal(5,2) DEFAULT 0.00 COMMENT '교육 감점 (미완료 기간당 0.5점)',
   `training_penalty` decimal(5,2) DEFAULT 0.00 COMMENT '모의훈련 감점 (실패 * 0.5)',
   `total_penalty` decimal(5,2) DEFAULT 0.00 COMMENT '총 감점 (최대 -5.0점)',
   `audit_failed_count` int(11) DEFAULT 0 COMMENT '감사 실패 항목 수',
-  `education_incomplete_count` int(11) DEFAULT 0 COMMENT '교육 미이수 횟수',
+  `education_incomplete_count` int(11) DEFAULT 0 COMMENT '미완료 교육 기간 수 (0.5점씩 감점)',
   `training_failed_count` int(11) DEFAULT 0 COMMENT '모의훈련 실패 횟수',
   `last_calculated` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `created_at` timestamp NULL DEFAULT current_timestamp(),
@@ -396,11 +442,11 @@ CREATE TABLE IF NOT EXISTS `security_score_summary` (
   UNIQUE KEY `uk_user_year` (`user_id`,`evaluation_year`),
   KEY `idx_evaluation_year` (`evaluation_year`),
   CONSTRAINT `fk_score_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='KPI 보안 점수 요약 (감점 기준)';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='KPI 보안 점수 요약 (교육 기간별 감점 기준)';
 
 DELETE FROM `security_score_summary`;
 INSERT INTO `security_score_summary` (`summary_id`, `user_id`, `evaluation_year`, `audit_penalty`, `education_penalty`, `training_penalty`, `total_penalty`, `audit_failed_count`, `education_incomplete_count`, `training_failed_count`, `last_calculated`, `created_at`) VALUES
-	(195, 1, 2025, 0.50, 1.00, 0.00, 1.50, 1, 1, 0, '2025-06-24 05:01:46', '2025-06-24 01:49:05'),
+	(195, 1, 2025, 1.00, 1.00, 0.00, 2.00, 1, 1, 0, '2025-06-26 05:40:43', '2025-06-24 01:49:05'),
 	(196, 2, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-24 01:49:05', '2025-06-24 01:49:05'),
 	(197, 3, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-24 01:49:05', '2025-06-24 01:49:05'),
 	(198, 4, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-24 01:49:05', '2025-06-24 01:49:05'),
@@ -490,7 +536,9 @@ CREATE TABLE IF NOT EXISTS `user_extended_exceptions` (
 DELETE FROM `user_extended_exceptions`;
 INSERT INTO `user_extended_exceptions` (`exception_id`, `user_id`, `item_id`, `item_type`, `item_name`, `item_category`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
 	(18, 5, 'training_2025_first_half', 'training_period', '2025년 상반기 악성메일 모의훈련', '악성메일 모의훈련', '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:28:10', '2025-06-15 14:41:08', 0),
-	(19, 5, 'training_period', 'training_period', '2025년 first_half(상반기) 모의훈련', '모의훈련', '관리자 설정', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:41:14', '2025-06-15 14:41:49', 1);
+	(19, 5, 'training_period', 'training_period', '2025년 first_half(상반기) 모의훈련', '모의훈련', '관리자 설정', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:41:14', '2025-06-15 14:41:49', 1),
+	(20, 3, 'training_period', 'training_period', '2025년 first_half(상반기) 모의훈련', '모의훈련', '관리자 설정', 'permanent', NULL, NULL, 'eunjekim8', '2025-06-25 00:47:46', '2025-06-25 00:47:46', 1),
+	(21, 4, 'training_period', 'training_period', '2025년 first_half(상반기) 모의훈련', '모의훈련', '관리자 설정', 'permanent', NULL, NULL, 'eunjekim8', '2025-06-25 00:47:48', '2025-06-25 00:47:48', 1);
 
 DROP TABLE IF EXISTS `user_item_exceptions`;
 CREATE TABLE IF NOT EXISTS `user_item_exceptions` (
@@ -521,7 +569,8 @@ DELETE FROM `user_item_exceptions`;
 INSERT INTO `user_item_exceptions` (`exception_id`, `user_id`, `item_id`, `exclude_reason`, `exclude_type`, `start_date`, `end_date`, `created_by`, `created_at`, `updated_at`, `is_active`, `item_type`, `item_name`, `item_category`) VALUES
 	(19, 5, 9, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:03:27', '2025-06-15 14:41:57', 0, 'manual', 'PC 봉인씰 확인', '물리보안'),
 	(20, 5, 6, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:03:49', '2025-06-15 14:24:12', 0, 'audit', '동일 패스워드 설정 제한', '접근통제'),
-	(21, 5, 8, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:24:55', '2025-06-15 14:24:55', 1, 'audit', '원격데스크톱 제한', '접근통제');
+	(21, 5, 8, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:24:55', '2025-06-15 14:24:55', 1, 'audit', '원격데스크톱 제한', '접근통제'),
+	(22, 1, 7, '테스트', 'permanent', NULL, NULL, 'eunjekim8', '2025-06-25 00:44:23', '2025-06-25 00:44:23', 1, 'audit', '공유폴더 확인', '접근통제');
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
