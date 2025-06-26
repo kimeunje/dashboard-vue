@@ -292,24 +292,34 @@ DROP TABLE IF EXISTS `phishing_training`;
 CREATE TABLE IF NOT EXISTS `phishing_training` (
   `training_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `user_id` bigint(20) NOT NULL COMMENT 'users 테이블의 uid 참조',
+  `period_id` bigint(20) NOT NULL COMMENT '훈련 기간 ID 참조',
   `training_year` int(11) NOT NULL COMMENT '훈련 연도',
-  `training_period` enum('first_half','second_half') NOT NULL COMMENT '훈련 기간 (상반기/하반기)',
-  `email_sent_time` datetime DEFAULT NULL COMMENT '메일 발송 시각',
-  `action_time` datetime DEFAULT NULL COMMENT '사용자 액션 시각',
-  `log_type` varchar(100) DEFAULT NULL COMMENT '로그 유형 (클릭/열람 등)',
-  `mail_type` varchar(200) DEFAULT NULL COMMENT '메일 유형',
-  `user_email` varchar(255) DEFAULT NULL COMMENT '사용자 이메일',
-  `ip_address` varchar(45) DEFAULT NULL COMMENT 'IP 주소',
-  `training_result` enum('pass','fail','pending') DEFAULT 'pending' COMMENT '훈련 결과',
-  `response_time_minutes` int(11) DEFAULT NULL COMMENT '응답 시간 (분)',
+  `email_sent_time` timestamp NULL DEFAULT NULL COMMENT '메일발송시각',
+  `action_time` timestamp NULL DEFAULT NULL COMMENT '수행시각 (사용자가 행동한 시간)',
+  `log_type` varchar(100) DEFAULT NULL COMMENT '로그유형 (스크립트 첨부파일 열람, 이메일 열람2 등)',
+  `mail_type` varchar(100) DEFAULT NULL COMMENT '메일유형 (퇴직연금 운용, 세금계산서, 카카오톡 등)',
+  `target_email` varchar(255) DEFAULT NULL COMMENT '대상 이메일 주소',
+  `training_result` enum('success','fail','no_response') DEFAULT 'no_response' COMMENT '훈련 결과 (성공, 실패, 무응답)',
+  `response_time_minutes` int(11) DEFAULT NULL COMMENT '응답 시간 (분 단위)',
   `notes` text DEFAULT NULL COMMENT '비고',
+  `exclude_from_scoring` tinyint(1) DEFAULT 0 COMMENT '점수 계산 제외 여부',
+  `exclude_reason` text DEFAULT NULL COMMENT '제외 사유',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`training_id`),
-  UNIQUE KEY `uk_user_training` (`user_id`,`training_year`,`training_period`),
+  UNIQUE KEY `uk_user_period_email` (`user_id`,`period_id`,`target_email`),
   KEY `idx_training_year` (`training_year`),
-  CONSTRAINT `fk_training_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 이력';
+  KEY `idx_training_result` (`training_result`),
+  KEY `idx_log_type` (`log_type`),
+  KEY `idx_mail_type` (`mail_type`),
+  KEY `period_id` (`period_id`),
+  KEY `idx_email_sent_time` (`email_sent_time`),
+  KEY `idx_action_time` (`action_time`),
+  KEY `idx_user_year_result` (`user_id`,`training_year`,`training_result`),
+  KEY `idx_target_email` (`target_email`),
+  CONSTRAINT `phishing_training_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`uid`) ON DELETE CASCADE,
+  CONSTRAINT `phishing_training_ibfk_2` FOREIGN KEY (`period_id`) REFERENCES `phishing_training_periods` (`period_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='피싱 훈련 이력 (엑셀 업로드 매핑)';
 
 DELETE FROM `phishing_training`;
 
@@ -317,28 +327,44 @@ DROP TABLE IF EXISTS `phishing_training_periods`;
 CREATE TABLE IF NOT EXISTS `phishing_training_periods` (
   `period_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `training_year` int(11) NOT NULL COMMENT '훈련 연도',
-  `training_period` enum('first_half','second_half') NOT NULL COMMENT '훈련 기간 (상반기/하반기)',
+  `period_name` varchar(50) NOT NULL COMMENT '기간명 (1차 피싱 훈련, 2차 피싱 훈련 등)',
+  `training_type` varchar(100) NOT NULL COMMENT '훈련 유형 (이메일 피싱, SMS 피싱, 전화 피싱 등)',
   `start_date` date NOT NULL COMMENT '훈련 시작일',
   `end_date` date NOT NULL COMMENT '훈련 종료일',
-  `is_completed` tinyint(1) DEFAULT 0 COMMENT '완료 여부 (0: 미완료, 1: 완료)',
+  `is_completed` tinyint(1) DEFAULT 0 COMMENT '완료 여부',
   `completed_at` timestamp NULL DEFAULT NULL COMMENT '완료 처리 시각',
   `completed_by` varchar(50) DEFAULT NULL COMMENT '완료 처리한 관리자',
-  `description` text DEFAULT NULL COMMENT '기간 설명',
+  `description` text DEFAULT NULL COMMENT '훈련 설명',
+  `auto_pass_setting` tinyint(1) DEFAULT 1 COMMENT '자동 통과 처리 여부',
   `created_by` varchar(50) NOT NULL COMMENT '생성한 관리자',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `is_active` tinyint(1) DEFAULT 1 COMMENT '활성 상태',
   PRIMARY KEY (`period_id`),
-  UNIQUE KEY `uk_year_period` (`training_year`,`training_period`),
+  UNIQUE KEY `uk_year_period_type` (`training_year`,`period_name`,`training_type`),
   KEY `idx_training_year` (`training_year`),
-  KEY `idx_is_completed` (`is_completed`),
-  KEY `idx_active` (`is_active`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='악성메일 모의훈련 기간 설정';
+  KEY `idx_training_type` (`training_type`),
+  KEY `idx_is_completed` (`is_completed`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='피싱 훈련 기간 설정';
 
 DELETE FROM `phishing_training_periods`;
-INSERT INTO `phishing_training_periods` (`period_id`, `training_year`, `training_period`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `created_by`, `created_at`, `updated_at`, `is_active`) VALUES
-	(24, 2025, 'second_half', '2025-07-02', '2025-08-09', 0, NULL, NULL, '', 'admin', '2025-06-08 12:29:43', '2025-06-08 12:29:43', 1),
-	(25, 2025, 'first_half', '2025-06-02', '2025-06-04', 0, NULL, NULL, '', 'admin', '2025-06-08 12:31:46', '2025-06-26 01:20:09', 1);
+INSERT INTO `phishing_training_periods` (`period_id`, `training_year`, `period_name`, `training_type`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `auto_pass_setting`, `created_by`, `created_at`, `updated_at`) VALUES
+	(1, 2025, '1차 피싱 훈련', '이메일 피싱', '2025-06-01', '2025-06-30', 0, NULL, NULL, '2025년 1차 이메일 피싱 모의훈련', 1, 'admin', '2025-06-26 06:16:33', '2025-06-26 06:16:33'),
+	(2, 2025, '2차 피싱 훈련', '이메일 피싱', '2025-09-01', '2025-09-30', 0, NULL, NULL, '2025년 2차 이메일 피싱 모의훈련', 1, 'admin', '2025-06-26 06:16:33', '2025-06-26 06:16:33'),
+	(3, 2025, '1차 SMS 훈련', 'SMS 피싱', '2025-03-01', '2025-03-31', 0, NULL, NULL, '2025년 1차 SMS 피싱 모의훈련', 1, 'admin', '2025-06-26 06:16:33', '2025-06-26 06:16:33');
+
+DROP VIEW IF EXISTS `phishing_training_stats`;
+CREATE TABLE `phishing_training_stats` (
+	`training_year` INT(11) NOT NULL COMMENT '훈련 연도',
+	`period_id` BIGINT(20) NOT NULL COMMENT '훈련 기간 ID 참조',
+	`period_name` VARCHAR(1) NOT NULL COMMENT '기간명 (1차 피싱 훈련, 2차 피싱 훈련 등)' COLLATE 'utf8mb4_unicode_ci',
+	`training_type` VARCHAR(1) NOT NULL COMMENT '훈련 유형 (이메일 피싱, SMS 피싱, 전화 피싱 등)' COLLATE 'utf8mb4_unicode_ci',
+	`total_targets` BIGINT(21) NOT NULL,
+	`success_count` BIGINT(21) NOT NULL,
+	`fail_count` BIGINT(21) NOT NULL,
+	`no_response_count` BIGINT(21) NOT NULL,
+	`success_rate` DECIMAL(26,2) NULL,
+	`fail_rate` DECIMAL(26,2) NULL
+) ENGINE=MyISAM;
 
 DROP TABLE IF EXISTS `security_education`;
 CREATE TABLE IF NOT EXISTS `security_education` (
@@ -373,11 +399,6 @@ CREATE TABLE IF NOT EXISTS `security_education` (
 DELETE FROM `security_education`;
 INSERT INTO `security_education` (`education_id`, `user_id`, `education_year`, `course_name`, `completed_count`, `incomplete_count`, `education_type`, `education_date`, `notes`, `period_id`, `exclude_from_scoring`, `exclude_reason`, `created_at`, `updated_at`) VALUES
 	(487, 1, 2025, '1차 오프라인 교육', 2, 0, '오프라인', NULL, 'CSV 업로드 - admin', 25, 1, '관리자 설정', '2025-06-26 04:38:11', '2025-06-26 04:48:51'),
-	(510, 3, 2025, '13535', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 24, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
-	(511, 4, 2025, '13535', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 24, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
-	(512, 1, 2025, '13535', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 24, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
-	(513, 2, 2025, '13535', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 24, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
-	(514, 5, 2025, '13535', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 24, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
 	(515, 3, 2025, '1차 오프라인 교육', 1, 0, '오프라인', NULL, '기간 완료로 인한 자동 통과 처리', 25, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
 	(516, 4, 2025, '1차 오프라인 교육', 1, 0, '오프라인', NULL, '기간 완료로 인한 자동 통과 처리', 25, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
 	(517, 2, 2025, '1차 오프라인 교육', 1, 0, '오프라인', NULL, '기간 완료로 인한 자동 통과 처리', 25, 0, NULL, '2025-06-26 04:39:11', '2025-06-26 04:39:11'),
@@ -389,7 +410,6 @@ INSERT INTO `security_education` (`education_id`, `user_id`, `education_year`, `
 	(548, 5, 2025, '3차 오프라인 교육', 1, 0, '오프라인', NULL, '기간 완료로 인한 자동 통과 처리', 27, 0, NULL, '2025-06-26 05:37:46', '2025-06-26 05:37:46'),
 	(549, 3, 2025, '2차 온라인 교육', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 28, 0, NULL, '2025-06-26 05:37:53', '2025-06-26 05:37:53'),
 	(550, 4, 2025, '2차 온라인 교육', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 28, 0, NULL, '2025-06-26 05:37:53', '2025-06-26 05:37:53'),
-	(551, 1, 2025, '2차 온라인 교육', 1, 2, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 28, 0, '', '2025-06-26 05:37:53', '2025-06-26 05:40:38'),
 	(552, 2, 2025, '2차 온라인 교육', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 28, 0, NULL, '2025-06-26 05:37:53', '2025-06-26 05:37:53'),
 	(553, 5, 2025, '2차 온라인 교육', 1, 0, '온라인', NULL, '기간 완료로 인한 자동 통과 처리', 28, 0, NULL, '2025-06-26 05:37:53', '2025-06-26 05:37:53');
 
@@ -418,9 +438,8 @@ CREATE TABLE IF NOT EXISTS `security_education_periods` (
 
 DELETE FROM `security_education_periods`;
 INSERT INTO `security_education_periods` (`period_id`, `education_year`, `period_name`, `education_type`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `auto_pass_setting`, `created_by`, `created_at`, `updated_at`) VALUES
-	(24, 2025, '13535', '온라인', '2025-06-05', '2025-06-13', 1, '2025-06-26 04:39:11', 'admin', '', 1, 'admin', '2025-06-26 04:24:55', '2025-06-26 04:39:11'),
+	(24, 2025, '13535', '온라인', '2025-06-05', '2025-06-13', 0, NULL, NULL, '', 1, 'admin', '2025-06-26 04:24:55', '2025-06-26 05:59:43'),
 	(25, 2025, '1차 오프라인 교육', '오프라인', '2025-02-05', '2025-03-02', 1, '2025-06-26 04:39:11', 'admin', '', 1, 'admin', '2025-06-26 04:37:53', '2025-06-26 04:39:11'),
-	(26, 2025, '2차 오프라인 교육', '오프라인', '2025-05-14', '2025-06-11', 1, '2025-06-26 04:44:36', 'admin', '', 0, 'admin', '2025-06-26 04:39:05', '2025-06-26 04:44:36'),
 	(27, 2025, '3차 오프라인 교육', '오프라인', '2025-11-13', '2025-11-15', 1, '2025-06-26 05:37:46', 'admin', '', 1, 'admin', '2025-06-26 04:39:39', '2025-06-26 05:37:46'),
 	(28, 2025, '2차 온라인 교육', '온라인', '2025-12-11', '2025-12-13', 1, '2025-06-26 05:37:53', 'admin', '', 1, 'admin', '2025-06-26 04:41:47', '2025-06-26 05:37:53');
 
@@ -446,7 +465,7 @@ CREATE TABLE IF NOT EXISTS `security_score_summary` (
 
 DELETE FROM `security_score_summary`;
 INSERT INTO `security_score_summary` (`summary_id`, `user_id`, `evaluation_year`, `audit_penalty`, `education_penalty`, `training_penalty`, `total_penalty`, `audit_failed_count`, `education_incomplete_count`, `training_failed_count`, `last_calculated`, `created_at`) VALUES
-	(195, 1, 2025, 1.00, 1.00, 0.00, 2.00, 1, 1, 0, '2025-06-26 05:40:43', '2025-06-24 01:49:05'),
+	(195, 1, 2025, 1.00, 0.50, 0.00, 1.50, 1, 1, 0, '2025-06-26 05:59:54', '2025-06-24 01:49:05'),
 	(196, 2, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-24 01:49:05', '2025-06-24 01:49:05'),
 	(197, 3, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-24 01:49:05', '2025-06-24 01:49:05'),
 	(198, 4, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-24 01:49:05', '2025-06-24 01:49:05'),
@@ -571,6 +590,67 @@ INSERT INTO `user_item_exceptions` (`exception_id`, `user_id`, `item_id`, `exclu
 	(20, 5, 6, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:03:49', '2025-06-15 14:24:12', 0, 'audit', '동일 패스워드 설정 제한', '접근통제'),
 	(21, 5, 8, '135', 'permanent', NULL, NULL, 'admin', '2025-06-15 14:24:55', '2025-06-15 14:24:55', 1, 'audit', '원격데스크톱 제한', '접근통제'),
 	(22, 1, 7, '테스트', 'permanent', NULL, NULL, 'eunjekim8', '2025-06-25 00:44:23', '2025-06-25 00:44:23', 1, 'audit', '공유폴더 확인', '접근통제');
+
+DROP VIEW IF EXISTS `user_phishing_summary`;
+CREATE TABLE `user_phishing_summary` (
+	`user_id` BIGINT(20) NOT NULL COMMENT 'JPA에서 Long 타입으로 매핑',
+	`username` VARCHAR(1) NOT NULL COMMENT '사용자 로그인 ID' COLLATE 'utf8mb4_unicode_ci',
+	`department` VARCHAR(1) NULL COMMENT '소속 부서' COLLATE 'utf8mb4_unicode_ci',
+	`email` VARCHAR(1) NULL COMMENT '이메일 주소' COLLATE 'utf8mb4_unicode_ci',
+	`training_year` INT(11) NULL COMMENT '훈련 연도',
+	`total_trainings` BIGINT(21) NOT NULL,
+	`success_count` BIGINT(21) NOT NULL,
+	`fail_count` BIGINT(21) NOT NULL,
+	`no_response_count` BIGINT(21) NOT NULL,
+	`success_rate` DECIMAL(26,2) NULL,
+	`penalty_score` DECIMAL(22,1) NOT NULL
+) ENGINE=MyISAM;
+
+DROP TABLE IF EXISTS `phishing_training_stats`;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `phishing_training_stats` AS SELECT 
+    pt.training_year,
+    pt.period_id,
+    ptp.period_name,
+    ptp.training_type,
+    COUNT(*) as total_targets,
+    COUNT(CASE WHEN pt.training_result = 'success' THEN 1 END) as success_count,
+    COUNT(CASE WHEN pt.training_result = 'fail' THEN 1 END) as fail_count,
+    COUNT(CASE WHEN pt.training_result = 'no_response' THEN 1 END) as no_response_count,
+    ROUND(
+        (COUNT(CASE WHEN pt.training_result = 'success' THEN 1 END) / COUNT(*)) * 100, 
+        2
+    ) as success_rate,
+    ROUND(
+        (COUNT(CASE WHEN pt.training_result = 'fail' THEN 1 END) / COUNT(*)) * 100, 
+        2
+    ) as fail_rate
+FROM phishing_training pt
+JOIN phishing_training_periods ptp ON pt.period_id = ptp.period_id
+WHERE pt.exclude_from_scoring = 0
+GROUP BY pt.training_year, pt.period_id, ptp.period_name, ptp.training_type 
+;
+
+DROP TABLE IF EXISTS `user_phishing_summary`;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `user_phishing_summary` AS SELECT 
+    u.uid as user_id,
+    u.user_id as username,
+    u.department,
+    u.mail as email,
+    pt.training_year,
+    COUNT(*) as total_trainings,
+    COUNT(CASE WHEN pt.training_result = 'success' THEN 1 END) as success_count,
+    COUNT(CASE WHEN pt.training_result = 'fail' THEN 1 END) as fail_count,
+    COUNT(CASE WHEN pt.training_result = 'no_response' THEN 1 END) as no_response_count,
+    ROUND(
+        (COUNT(CASE WHEN pt.training_result = 'success' THEN 1 END) / COUNT(*)) * 100, 
+        2
+    ) as success_rate,
+    -- KPI 감점 계산 (실패 횟수당 0.5점)
+    (COUNT(CASE WHEN pt.training_result = 'fail' THEN 1 END) * 0.5) as penalty_score
+FROM users u
+LEFT JOIN phishing_training pt ON u.uid = pt.user_id AND pt.exclude_from_scoring = 0
+GROUP BY u.uid, u.user_id, u.department, u.mail, pt.training_year 
+;
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
