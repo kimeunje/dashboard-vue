@@ -19,11 +19,8 @@ class EducationPeriodService:
         if isinstance(date_value, str):
             try:
                 # YYYY-MM-DD 형식인지 확인
-                if (
-                    len(date_value) == 10
-                    and date_value[4] == "-"
-                    and date_value[7] == "-"
-                ):
+                if (len(date_value) == 10 and date_value[4] == "-"
+                        and date_value[7] == "-"):
                     return date_value
                 # 다른 형식이면 파싱해서 변환
                 parsed_date = datetime.strptime(date_value, "%Y-%m-%d")
@@ -67,7 +64,7 @@ class EducationPeriodService:
             WHERE education_year = %s AND is_active = 1
             ORDER BY education_type, start_date
             """,
-            (year,),
+            (year, ),
             fetch_all=True,
         )
 
@@ -80,8 +77,7 @@ class EducationPeriodService:
             if period["completed_at"]:
                 try:
                     period["completed_at"] = period["completed_at"].strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
+                        "%Y-%m-%d %H:%M:%S")
                 except:
                     pass
 
@@ -109,9 +105,9 @@ class EducationPeriodService:
 
             # 1. 중복 검사
             if self.check_period_exists(
-                period_data["education_year"],
-                period_data["period_name"],
-                period_data["education_type"],
+                    period_data["education_year"],
+                    period_data["period_name"],
+                    period_data["education_type"],
             ):
                 print(f"[DB_DEBUG] 중복 기간 발견")
                 return {
@@ -192,7 +188,7 @@ class EducationPeriodService:
                     FROM security_education_periods 
                     WHERE period_id = %s AND is_active = 1
                     """,
-                    (period_id,),
+                    (period_id, ),
                 )
                 period_info = cursor.fetchone()
 
@@ -226,13 +222,11 @@ class EducationPeriodService:
                                 WHERE period_id = %s
                             )
                             """,
-                            (period_id,),
+                            (period_id, ),
                         )
 
                         users_to_auto_pass = cursor.fetchall()
-                        print(
-                            f"[DB_DEBUG] 자동 통과 대상 사용자: {len(users_to_auto_pass)}명"
-                        )
+                        print(f"[DB_DEBUG] 자동 통과 대상 사용자: {len(users_to_auto_pass)}명")
 
                         # 각 사용자별로 자동 통과 기록 생성
                         for user in users_to_auto_pass:
@@ -256,17 +250,13 @@ class EducationPeriodService:
                                         period_id,
                                         period_info["education_type"],
                                         period_info["education_year"],
-                                        period_info[
-                                            "period_name"
-                                        ],  # 기간명을 과정명으로 사용
+                                        period_info["period_name"],  # 기간명을 과정명으로 사용
                                     ),
                                 )
 
                                 if cursor.rowcount > 0:
                                     auto_passed_count += 1
-                                    print(
-                                        f"[DB_DEBUG] {user['username']} 자동 통과 성공"
-                                    )
+                                    print(f"[DB_DEBUG] {user['username']} 자동 통과 성공")
 
                             except Exception as user_error:
                                 print(
@@ -286,7 +276,7 @@ class EducationPeriodService:
                             ORDER BY se.created_at DESC
                             LIMIT 5
                             """,
-                            (period_id,),
+                            (period_id, ),
                         )
 
                         inserted_records = cursor.fetchall()
@@ -344,7 +334,7 @@ class EducationPeriodService:
                     FROM security_education_periods 
                     WHERE period_id = %s AND is_active = 1
                     """,
-                    (period_id,),
+                    (period_id, ),
                 )
                 period_info = cursor.fetchone()
 
@@ -363,7 +353,7 @@ class EducationPeriodService:
                     DELETE FROM security_education 
                     WHERE period_id = %s AND notes = '기간 완료로 인한 자동 통과 처리'
                     """,
-                    (period_id,),
+                    (period_id, ),
                 )
 
                 deleted_count = cursor.rowcount
@@ -376,14 +366,12 @@ class EducationPeriodService:
                     SET is_completed = 0, completed_at = NULL, completed_by = NULL, updated_at = NOW()
                     WHERE period_id = %s
                     """,
-                    (period_id,),
+                    (period_id, ),
                 )
 
                 message = f"{period_info['period_name']} 기간이 재개되었습니다."
                 if deleted_count > 0:
-                    message += (
-                        f" 자동 통과 처리된 {deleted_count}건의 기록이 삭제되었습니다."
-                    )
+                    message += (f" 자동 통과 처리된 {deleted_count}건의 기록이 삭제되었습니다.")
 
                 return {
                     "success": True,
@@ -398,9 +386,8 @@ class EducationPeriodService:
             traceback.print_exc()
             return {"success": False, "message": f"재개 처리 실패: {str(e)}"}
 
-    def check_period_exists(
-        self, year: int, period_name: str, education_type: str
-    ) -> bool:
+    def check_period_exists(self, year: int, period_name: str,
+                            education_type: str) -> bool:
         """기간 중복 체크"""
         result = execute_query(
             """
@@ -413,9 +400,8 @@ class EducationPeriodService:
         )
         return result["count"] > 0
 
-    def check_date_overlap(
-        self, education_type: str, start_date, end_date, exclude_period_id: int = None
-    ) -> dict:
+    def check_date_overlap(self, education_type: str, start_date, end_date,
+                           exclude_period_id: int = None) -> dict:
         """날짜 겹침 검사 - 더 상세한 로깅 추가"""
         try:
             from datetime import datetime
@@ -459,45 +445,32 @@ class EducationPeriodService:
 
                 # 날짜 겹침 검사 로직
                 is_overlapping = (
-                    (
-                        start_date <= existing_start <= end_date
-                    )  # 새 기간이 기존 기간 시작일을 포함
-                    or (
-                        start_date <= existing_end <= end_date
-                    )  # 새 기간이 기존 기간 종료일을 포함
-                    or (
-                        existing_start <= start_date <= existing_end
-                    )  # 기존 기간이 새 기간 시작일을 포함
-                    or (
-                        existing_start <= end_date <= existing_end
-                    )  # 기존 기간이 새 기간 종료일을 포함
+                    (start_date <= existing_start <= end_date)  # 새 기간이 기존 기간 시작일을 포함
+                    or (start_date <= existing_end <= end_date)  # 새 기간이 기존 기간 종료일을 포함
+                    or (existing_start <= start_date <= existing_end
+                        )  # 기존 기간이 새 기간 시작일을 포함
+                    or
+                    (existing_start <= end_date <= existing_end)  # 기존 기간이 새 기간 종료일을 포함
                 )
 
-                print(
-                    f"[DB_DEBUG] 겹침 검사 - {period['period_name']}: {is_overlapping}"
-                )
+                print(f"[DB_DEBUG] 겹침 검사 - {period['period_name']}: {is_overlapping}")
 
                 if is_overlapping:
-                    overlapping_periods.append(
-                        {
-                            "period_id": period["period_id"],
-                            "period_name": period["period_name"],
-                            "start_date": str(existing_start),
-                            "end_date": str(existing_end),
-                            "year": period["education_year"],
-                        }
-                    )
+                    overlapping_periods.append({
+                        "period_id": period["period_id"],
+                        "period_name": period["period_name"],
+                        "start_date": str(existing_start),
+                        "end_date": str(existing_end),
+                        "year": period["education_year"],
+                    })
 
             print(f"[DB_DEBUG] 겹치는 기간 수: {len(overlapping_periods)}")
 
             return {
                 "has_overlap": len(overlapping_periods) > 0,
                 "overlapping_periods": overlapping_periods,
-                "message": (
-                    f"{len(overlapping_periods)}개의 겹치는 기간이 발견되었습니다."
-                    if overlapping_periods
-                    else "겹치는 기간이 없습니다."
-                ),
+                "message": (f"{len(overlapping_periods)}개의 겹치는 기간이 발견되었습니다."
+                            if overlapping_periods else "겹치는 기간이 없습니다."),
             }
 
         except Exception as e:
@@ -521,7 +494,7 @@ class EducationPeriodService:
                     FROM security_education_periods
                     WHERE period_id = %s AND is_active = 1
                     """,
-                    (period_id,),
+                    (period_id, ),
                 )
                 period_info = cursor.fetchone()
 
@@ -536,7 +509,7 @@ class EducationPeriodService:
                 # 2. 관련 교육 기록이 있는지 확인
                 cursor.execute(
                     "SELECT COUNT(*) as count FROM security_education WHERE period_id = %s",
-                    (period_id,),
+                    (period_id, ),
                 )
                 education_count = cursor.fetchone()["count"]
 
@@ -556,7 +529,7 @@ class EducationPeriodService:
                     SET is_active = 0, updated_at = NOW()
                     WHERE period_id = %s
                     """,
-                    (period_id,),
+                    (period_id, ),
                 )
 
                 return {
@@ -584,7 +557,7 @@ class EducationPeriodService:
                     FROM security_education_periods
                     WHERE period_id = %s AND is_active = 1
                     """,
-                    (period_id,),
+                    (period_id, ),
                 )
                 period_info = cursor.fetchone()
 
@@ -595,9 +568,8 @@ class EducationPeriodService:
                     }
 
                 # 2. 관련 교육 기록 삭제
-                cursor.execute(
-                    "DELETE FROM security_education WHERE period_id = %s", (period_id,)
-                )
+                cursor.execute("DELETE FROM security_education WHERE period_id = %s",
+                               (period_id, ))
                 deleted_records = cursor.rowcount
 
                 # 3. 교육 기간 삭제 (소프트 삭제)
@@ -607,7 +579,7 @@ class EducationPeriodService:
                     SET is_active = 0, updated_at = NOW()
                     WHERE period_id = %s
                     """,
-                    (period_id,),
+                    (period_id, ),
                 )
 
                 message = f"{period_info['period_name']} 기간이 삭제되었습니다."
@@ -637,7 +609,7 @@ class EducationPeriodService:
                     FROM security_education_periods
                     WHERE period_id = %s AND is_active = 1
                     """,
-                    (period_id,),
+                    (period_id, ),
                 )
                 existing_period = cursor.fetchone()
 
@@ -737,3 +709,143 @@ class EducationPeriodService:
 
             traceback.print_exc()
             return {"success": False, "message": f"수정 실패: {str(e)}"}
+
+    def get_periods_with_statistics(self, year: int = None) -> dict:
+        """교육 기간 목록과 통계 정보를 함께 조회"""
+        try:
+            if year is None:
+                year = datetime.now().year
+
+            # 교육 기간별 통계를 포함한 쿼리
+            query = """
+            SELECT 
+                sep.period_id,
+                sep.education_year,
+                sep.period_name,
+                sep.education_type,
+                sep.start_date,
+                sep.end_date,
+                sep.is_completed,
+                sep.completed_at,
+                sep.completed_by,
+                sep.description,
+                sep.auto_pass_setting,
+                sep.created_by,
+                sep.created_at,
+                sep.updated_at,
+                sep.is_active,
+                -- 통계 정보
+                COUNT(DISTINCT se.user_id) as total_participants,
+                COALESCE(SUM(se.completed_count), 0) as total_success_count,
+                COALESCE(SUM(se.incomplete_count), 0) as total_failure_count,
+                COALESCE(
+                    CASE 
+                        WHEN SUM(se.completed_count) + SUM(se.incomplete_count) > 0 
+                        THEN ROUND(
+                            (SUM(se.completed_count) / (SUM(se.completed_count) + SUM(se.incomplete_count))) * 100, 
+                            2
+                        )
+                        ELSE 0 
+                    END, 
+                    0
+                ) as success_rate
+            FROM security_education_periods sep
+            LEFT JOIN security_education se ON sep.period_id = se.period_id
+            WHERE sep.education_year = %s AND sep.is_active = 1
+            GROUP BY sep.period_id
+            ORDER BY sep.education_type, sep.start_date DESC
+            """
+
+            periods = execute_query(query, (year, ), fetch_all=True)
+
+            # 교육 유형별로 그룹화
+            education_types = {}
+
+            for period in periods:
+                education_type = period['education_type']
+
+                if education_type not in education_types:
+                    education_types[education_type] = {
+                        'type_name': education_type,
+                        'periods': [],
+                        'total_participants': 0,
+                        'total_success': 0,
+                        'total_failure': 0
+                    }
+
+                # 기간별 상태 결정
+                status = self._determine_period_status(period)
+
+                period_info = {
+                    'period_id': period['period_id'],
+                    'period_name': period['period_name'],
+                    'education_type': period['education_type'],
+                    'start_date': period['start_date'].isoformat()
+                    if period['start_date'] else None,
+                    'end_date': period['end_date'].isoformat()
+                    if period['end_date'] else None,
+                    'is_completed': bool(period['is_completed']),
+                    'completed_at': period['completed_at'].isoformat()
+                    if period['completed_at'] else None,
+                    'completed_by': period['completed_by'],
+                    'description': period['description'],
+                    'status': status,
+                    # 통계 정보
+                    'statistics': {
+                        'total_participants': int(period['total_participants'] or 0),
+                        'total_success_count': int(period['total_success_count'] or 0),
+                        'total_failure_count': int(period['total_failure_count'] or 0),
+                        'success_rate': float(period['success_rate'] or 0),
+                        'total_attempts': int((period['total_success_count'] or 0) +
+                                              (period['total_failure_count'] or 0))
+                    }
+                }
+
+                education_types[education_type]['periods'].append(period_info)
+
+                # 교육 유형별 통계 누적
+                education_types[education_type]['total_participants'] += period_info[
+                    'statistics']['total_participants']
+                education_types[education_type]['total_success'] += period_info[
+                    'statistics']['total_success_count']
+                education_types[education_type]['total_failure'] += period_info[
+                    'statistics']['total_failure_count']
+
+            # 교육 유형별 성공률 계산
+            for type_data in education_types.values():
+                total_attempts = type_data['total_success'] + type_data['total_failure']
+                if total_attempts > 0:
+                    type_data['success_rate'] = round(
+                        (type_data['total_success'] / total_attempts) * 100, 2)
+                else:
+                    type_data['success_rate'] = 0.0
+
+            return {
+                'year': year,
+                'education_types': education_types,
+                'total_periods': len(periods)
+            }
+
+        except Exception as e:
+            self.logger.error(f"교육 기간 통계 조회 실패: {str(e)}")
+            raise
+
+    def _determine_period_status(self, period):
+        """교육 기간 상태 결정"""
+        from datetime import date
+
+        today = date.today()
+        start_date = period['start_date']
+        end_date = period['end_date']
+        is_completed = period['is_completed']
+
+        if is_completed:
+            return 'completed'
+        elif today < start_date:
+            return 'not_started'
+        elif start_date <= today <= end_date:
+            return 'in_progress'
+        elif today > end_date:
+            return 'expired'
+        else:
+            return 'unknown'
