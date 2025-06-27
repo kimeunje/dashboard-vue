@@ -924,8 +924,8 @@ const createMockData = () => {
 
 // ===== 라이프사이클 =====
 onMounted(() => {
-  createMockData()
   loadPeriodStatus()
+  loadTrainingData()
 })
 
 // ===== 메서드 =====
@@ -1107,7 +1107,7 @@ const closePeriodModal = () => {
 }
 
 /**
- * 기간 저장 (추가/수정)
+ * 기간 저장 (실제 API 호출)
  */
 const savePeriod = async () => {
   if (!isValidPeriodForm.value) {
@@ -1121,111 +1121,220 @@ const savePeriod = async () => {
   }
 
   try {
-    // MOCK 동작 - 실제로는 API 호출
-    if (editingPeriod.value) {
-      // 수정
-      const typeData = periodStatus.value.training_types[periodForm.value.training_type]
-      const periodIndex = typeData.periods.findIndex(
-        (p) => p.period_id === editingPeriod.value.period_id,
-      )
-      if (periodIndex !== -1) {
-        typeData.periods[periodIndex] = { ...typeData.periods[periodIndex], ...periodForm.value }
-      }
-      displayToast('훈련 기간이 수정되었습니다.', 'success')
-    } else {
-      // 추가
-      const newPeriod = {
-        period_id: Date.now(), // MOCK ID
-        ...periodForm.value,
-        is_completed: false,
-        status: 'pending',
-        stats: {
-          total_targets: 0,
-          success_count: 0,
-          fail_count: 0,
-          no_response_count: 0,
-          success_rate: 0,
-          fail_rate: 0,
-        },
+    const method = editingPeriod.value ? 'PUT' : 'POST'
+    const url = editingPeriod.value
+      ? `/api/phishing-training/periods/${editingPeriod.value.period_id}`
+      : '/api/phishing-training/periods'
+
+    const response = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(periodForm.value),
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      // 완료된 기간 수정 시 특별 처리
+      if (result.message && result.message.includes('완료된 훈련 기간은 수정할 수 없습니다')) {
+        const confirmReopen = confirm(
+          `이 기간은 완료 상태입니다.\n\n완료 상태를 해제하고 수정하시겠습니까?\n\n` +
+            `※ 완료 상태 해제 시 자동 통과 처리된 데이터가 변경될 수 있습니다.`,
+        )
+
+        if (confirmReopen) {
+          await reopenAndEdit()
+          return
+        } else {
+          displayToast('수정이 취소되었습니다.', 'info')
+          return
+        }
       }
 
-      if (!periodStatus.value.training_types[periodForm.value.training_type]) {
-        periodStatus.value.training_types[periodForm.value.training_type] = { periods: [] }
-      }
-
-      periodStatus.value.training_types[periodForm.value.training_type].periods.push(newPeriod)
-      displayToast('새 훈련 기간이 추가되었습니다.', 'success')
+      throw new Error(result.error || '저장 실패')
     }
 
+    displayToast(result.message || '저장되었습니다.', 'success')
     closePeriodModal()
+    await loadPeriodStatus()
   } catch (error) {
     console.error('기간 저장 실패:', error)
-    displayToast('저장에 실패했습니다.', 'error')
+    displayToast(error.message, 'error')
   }
 }
 
 /**
- * 기간 완료 처리
+ * 재개 후 수정 처리
+ */
+const reopenAndEdit = async () => {
+  try {
+    displayToast('기간을 재개하고 수정을 진행합니다.', 'success')
+
+    // 1. 기간 재개
+    const reopenResponse = await fetch(
+      `/api/phishing-training/periods/${editingPeriod.value.period_id}/reopen`,
+      {
+        method: 'POST',
+        credentials: 'include',
+      },
+    )
+
+    const reopenResult = await reopenResponse.json()
+
+    if (!reopenResponse.ok) {
+      throw new Error(reopenResult.error || '재개 실패')
+    }
+
+    // 2. 수정 재시도
+    const updateResponse = await fetch(
+      `/api/phishing-training/periods/${editingPeriod.value.period_id}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(periodForm.value),
+      },
+    )
+
+    const updateResult = await updateResponse.json()
+
+    if (!updateResponse.ok) {
+      throw new Error(updateResult.error || '수정 실패')
+    }
+
+    displayToast(updateResult.message || '기간이 수정되었습니다.', 'success')
+    closePeriodModal()
+    await loadPeriodStatus()
+    await loadTrainingData()
+  } catch (err) {
+    console.error('재개 후 수정 오류:', err)
+    displayToast(err.message, 'error')
+  }
+}
+
+/**
+ * 기간 완료 처리 (실제 API 호출)
  */
 const completePeriod = async (period) => {
   if (!confirm(`${period.period_name} 기간을 완료 처리하시겠습니까?`)) return
 
   try {
-    // MOCK 동작
-    period.is_completed = true
-    period.status = 'completed'
-    displayToast('기간이 완료 처리되었습니다.', 'success')
-  } catch (error) {
-    console.error('완료 처리 실패:', error)
-    displayToast('완료 처리에 실패했습니다.', 'error')
+    const response = await fetch(`/api/phishing-training/periods/${period.period_id}/complete`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || '완료 처리 실패')
+    }
+
+    displayToast(result.message, 'success')
+    await loadPeriodStatus()
+    await loadTrainingData()
+  } catch (err) {
+    console.error('완료 처리 오류:', err)
+    displayToast(err.message, 'error')
   }
 }
 
 /**
- * 기간 재개 처리
+ * 기간 재개 처리 (실제 API 호출)
  */
 const reopenPeriod = async (period) => {
   if (!confirm(`${period.period_name} 기간을 재개하시겠습니까?`)) return
 
   try {
-    // MOCK 동작
-    period.is_completed = false
-    period.status = 'active'
-    displayToast('기간이 재개되었습니다.', 'success')
-  } catch (error) {
-    console.error('재개 처리 실패:', error)
-    displayToast('재개 처리에 실패했습니다.', 'error')
+    const response = await fetch(`/api/phishing-training/periods/${period.period_id}/reopen`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || '재개 처리 실패')
+    }
+
+    displayToast(result.message, 'success')
+    await loadPeriodStatus()
+    await loadTrainingData()
+  } catch (err) {
+    console.error('재개 처리 오류:', err)
+    displayToast(err.message, 'error')
   }
 }
 
 /**
- * 기간 삭제
+ * 기간 삭제 (실제 API 호출)
  */
 const deletePeriod = async (period) => {
-  if (
-    !confirm(
-      `${period.period_name} 기간을 삭제하시겠습니까?\n\n※ 관련된 모든 훈련 데이터가 함께 삭제됩니다.`,
-    )
-  )
-    return
+  if (!confirm(`${period.period_name} 기간을 삭제하시겠습니까?`)) return
 
   try {
-    // MOCK 동작
-    const typeData = periodStatus.value.training_types[period.training_type]
-    const periodIndex = typeData.periods.findIndex((p) => p.period_id === period.period_id)
-    if (periodIndex !== -1) {
-      typeData.periods.splice(periodIndex, 1)
+    console.log('[DEBUG] 훈련 기간 삭제 요청:', period.period_id)
+
+    const response = await fetch(`/api/phishing-training/periods/${period.period_id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    })
+
+    const result = await response.json()
+    console.log('[DEBUG] 삭제 응답:', response.status, result)
+
+    // 성공한 경우
+    if (response.ok) {
+      displayToast(result.message, 'success')
+      await loadPeriodStatus()
+      return
     }
 
-    // 타입에 기간이 없으면 타입 자체를 제거
-    if (typeData.periods.length === 0) {
-      delete periodStatus.value.training_types[period.training_type]
+    // 400 오류이고 확인이 필요한 경우
+    if (response.status === 400 && result.requires_confirmation) {
+      console.log('[DEBUG] 확인 필요:', result.training_count, '건의 훈련 기록')
+
+      const forceDelete = confirm(
+        `${result.error}\n\n모든 관련 데이터를 포함하여 완전히 삭제하시겠습니까?\n\n※ 이 작업은 되돌릴 수 없습니다.`,
+      )
+
+      if (forceDelete) {
+        await forceDeletePeriod(period.period_id)
+      } else {
+        displayToast('삭제가 취소되었습니다.', 'info')
+      }
+      return
     }
 
-    displayToast('기간이 삭제되었습니다.', 'success')
-  } catch (error) {
-    console.error('기간 삭제 실패:', error)
-    displayToast('삭제에 실패했습니다.', 'error')
+    throw new Error(result.error || '삭제 실패')
+  } catch (err) {
+    console.error('기간 삭제 오류:', err)
+    displayToast(err.message, 'error')
+  }
+}
+
+/**
+ * 기간 강제 삭제 (실제 API 호출)
+ */
+const forceDeletePeriod = async (periodId) => {
+  try {
+    const response = await fetch(`/api/phishing-training/periods/${periodId}/force-delete`, {
+      method: 'DELETE',
+      credentials: 'include',
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || '강제 삭제 실패')
+    }
+
+    displayToast(result.message, 'success')
+    await loadPeriodStatus()
+  } catch (err) {
+    console.error('강제 삭제 오류:', err)
+    displayToast(err.message, 'error')
   }
 }
 
@@ -1328,7 +1437,7 @@ const parseExcelFile = async (file) => {
 }
 
 /**
- * 업로드 처리
+ * 업로드 처리 (실제 API 호출)
  */
 const processUpload = async () => {
   if (!uploadForm.value.period_id || !uploadForm.value.file) {
@@ -1339,20 +1448,32 @@ const processUpload = async () => {
   try {
     isUploading.value = true
 
-    // MOCK 업로드 진행
-    for (let i = 0; i <= 100; i += 10) {
-      uploadProgress.value = i
-      await new Promise((resolve) => setTimeout(resolve, 100))
+    const formData = new FormData()
+    formData.append('file', uploadForm.value.file)
+    formData.append('period_id', uploadForm.value.period_id)
+
+    const response = await fetch('/api/phishing-training/bulk-upload', {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || '업로드 실패')
     }
 
-    displayToast(`${uploadPreview.value.length}건의 훈련 결과가 등록되었습니다.`, 'success')
+    displayToast(result.message, 'success')
     closeUploadModal()
     await loadPeriodStatus()
+    await loadTrainingData()
   } catch (error) {
     console.error('업로드 실패:', error)
-    displayToast('업로드에 실패했습니다.', 'error')
+    displayToast(error.message, 'error')
   } finally {
     isUploading.value = false
+    uploadProgress.value = 0
   }
 }
 
@@ -1478,19 +1599,42 @@ const editRecord = (record) => {
   displayToast('기록 수정 기능은 다음 단계에서 구현됩니다.', 'info')
 }
 
+/**
+ * 제외/포함 토글 (실제 API 호출)
+ */
 const toggleExclude = async (record) => {
   const action = record.exclude_from_scoring ? '포함' : '제외'
   if (!confirm(`${record.username}의 훈련 기록을 점수 계산에서 ${action}하시겠습니까?`)) return
 
   try {
+    const response = await fetch(`/api/phishing-training/records/${record.training_id}/exclude`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        exclude: !record.exclude_from_scoring,
+        reason: !record.exclude_from_scoring ? '관리자가 제외 처리' : '',
+      }),
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || '처리 실패')
+    }
+
+    // 로컬 상태 업데이트
     record.exclude_from_scoring = !record.exclude_from_scoring
-    displayToast(`기록이 ${action} 처리되었습니다.`, 'success')
+    displayToast(result.message, 'success')
   } catch (error) {
     console.error('제외/포함 처리 실패:', error)
-    displayToast('처리에 실패했습니다.', 'error')
+    displayToast(error.message, 'error')
   }
 }
 
+/**
+ * 기록 삭제 (실제 API 호출)
+ */
 const deleteRecord = async (record) => {
   if (
     !confirm(
@@ -1500,15 +1644,28 @@ const deleteRecord = async (record) => {
     return
 
   try {
+    const response = await fetch(`/api/phishing-training/records/${record.training_id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || '삭제 실패')
+    }
+
+    // 로컬 상태에서 제거
     const index = trainingRecords.value.findIndex((r) => r.training_id === record.training_id)
     if (index !== -1) {
       trainingRecords.value.splice(index, 1)
-      applyFilters()
+      applyFilters() // 필터 재적용
     }
-    displayToast('기록이 삭제되었습니다.', 'success')
+
+    displayToast(result.message, 'success')
   } catch (error) {
     console.error('기록 삭제 실패:', error)
-    displayToast('삭제에 실패했습니다.', 'error')
+    displayToast(error.message, 'error')
   }
 }
 
