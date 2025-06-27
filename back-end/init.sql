@@ -350,7 +350,8 @@ DELETE FROM `phishing_training_periods`;
 INSERT INTO `phishing_training_periods` (`period_id`, `training_year`, `period_name`, `training_type`, `start_date`, `end_date`, `is_completed`, `completed_at`, `completed_by`, `description`, `auto_pass_setting`, `created_by`, `created_at`, `updated_at`) VALUES
 	(1, 2025, '1차 피싱 훈련', '이메일 피싱', '2025-06-01', '2025-06-30', 0, NULL, NULL, '2025년 1차 이메일 피싱 모의훈련', 1, 'admin', '2025-06-26 06:16:33', '2025-06-26 06:16:33'),
 	(2, 2025, '2차 피싱 훈련', '이메일 피싱', '2025-09-01', '2025-09-30', 0, NULL, NULL, '2025년 2차 이메일 피싱 모의훈련', 1, 'admin', '2025-06-26 06:16:33', '2025-06-26 06:16:33'),
-	(3, 2025, '1차 SMS 훈련', 'SMS 피싱', '2025-03-01', '2025-03-31', 0, NULL, NULL, '2025년 1차 SMS 피싱 모의훈련', 1, 'admin', '2025-06-26 06:16:33', '2025-06-26 06:16:33');
+	(3, 2025, '1차 SMS 훈련', 'SMS 피싱', '2025-03-01', '2025-03-31', 0, NULL, NULL, '2025년 1차 SMS 피싱 모의훈련', 1, 'admin', '2025-06-26 06:16:33', '2025-06-26 06:16:33'),
+	(7, 2025, '2차 SMS 훈련', 'SMS 피싱', '2025-03-01', '2025-03-31', 0, NULL, NULL, '2025년 2차 SMS 피싱 모의훈련', 1, 'admin', '2025-06-26 06:16:33', '2025-06-26 06:16:33');
 
 DROP VIEW IF EXISTS `phishing_training_stats`;
 CREATE TABLE `phishing_training_stats` (
@@ -465,7 +466,7 @@ CREATE TABLE IF NOT EXISTS `security_score_summary` (
 
 DELETE FROM `security_score_summary`;
 INSERT INTO `security_score_summary` (`summary_id`, `user_id`, `evaluation_year`, `audit_penalty`, `education_penalty`, `training_penalty`, `total_penalty`, `audit_failed_count`, `education_incomplete_count`, `training_failed_count`, `last_calculated`, `created_at`) VALUES
-	(195, 1, 2025, 1.00, 0.50, 0.00, 1.50, 1, 1, 0, '2025-06-26 05:59:54', '2025-06-24 01:49:05'),
+	(195, 1, 2025, 1.00, 0.50, 0.00, 1.50, 1, 1, 0, '2025-06-27 04:51:29', '2025-06-24 01:49:05'),
 	(196, 2, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-24 01:49:05', '2025-06-24 01:49:05'),
 	(197, 3, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-24 01:49:05', '2025-06-24 01:49:05'),
 	(198, 4, 2025, 0.00, 0.00, 0.00, 0.00, 0, 0, 0, '2025-06-24 01:49:05', '2025-06-24 01:49:05'),
