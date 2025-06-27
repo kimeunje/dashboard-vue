@@ -1,467 +1,382 @@
 # app/controllers/phishing_training_controller.py
-from flask import Blueprint, request, jsonify, send_file
 from datetime import datetime
-import io
-import csv
-import logging
-from app.utils.decorators import handle_exceptions, admin_required, token_required
-from app.utils.constants import HTTP_STATUS
+from flask import Blueprint, request, jsonify, make_response
 from app.services.phishing_training_service import PhishingTrainingService
+from app.services.phishing_training_period_service import PhishingTrainingPeriodService
+from app.utils.decorators import admin_required, handle_exceptions, validate_json, token_required
+from app.utils.constants import HTTP_STATUS
+import logging
 
 logger = logging.getLogger(__name__)
-phishing_bp = Blueprint('phishing', __name__, url_prefix='/api/phishing-training')
-phishing_service = PhishingTrainingService()
 
-# ==================== 관리자 API ====================
+training_bp = Blueprint("phishing_training", __name__)
+training_service = PhishingTrainingService()
+period_service = PhishingTrainingPeriodService()
+
+# ===== 사용자용 API =====
 
 
-@phishing_bp.route("/admin/periods", methods=["GET"])
-@admin_required
+@training_bp.route("/status", methods=["GET"])
+@token_required
 @handle_exceptions
-def get_training_periods():
-    """훈련 기간 목록 조회"""
-    year = request.args.get("year", datetime.now().year, type=int)
-
+def get_training_status():
+    """사용자 훈련 현황 조회"""
     try:
-        periods = phishing_service.get_training_periods(year)
-        return jsonify({"periods": periods})
+        user_id = request.current_user.get("uid")
+        year = request.args.get("year", datetime.now().year, type=int)
+
+        if not user_id:
+            return jsonify({"error": "사용자 정보를 확인할 수 없습니다."
+                            }), HTTP_STATUS["UNAUTHORIZED"]
+
+        result = training_service.get_user_training_status(user_id, year)
+        return jsonify(result)
+
     except Exception as e:
-        logger.error(f"훈련 기간 조회 오류: {str(e)}")
-        return (
-            jsonify({"error": f"기간 조회 실패: {str(e)}"}),
-            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
-        )
+        logger.error(f"사용자 훈련 현황 조회 오류: {str(e)}")
+        return jsonify({"error": "현황 조회에 실패했습니다."
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
 
-@phishing_bp.route("/admin/periods", methods=["POST"])
+# ===== 관리자용 API =====
+
+
+@training_bp.route("/periods/status", methods=["GET"])
 @admin_required
 @handle_exceptions
-def create_training_period():
-    """훈련 기간 생성"""
+def get_periods_status():
+    """훈련 기간 현황 조회"""
     try:
-        data = request.get_json()
+        year = request.args.get("year", datetime.now().year, type=int)
+        result = period_service.get_period_status(year)
+        return jsonify(result)
 
-        # 필수 필드 검증
-        required_fields = [
-            'training_year', 'period_name', 'training_type', 'start_date', 'end_date'
-        ]
-        missing_fields = [field for field in required_fields if not data.get(field)]
+    except Exception as e:
+        logger.error(f"훈련 기간 현황 조회 오류: {str(e)}")
+        return jsonify({"error": f"기간 현황 조회 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
-        if missing_fields:
-            return (
-                jsonify({"error": f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}"}),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
 
-        # 날짜 형식 검증
-        try:
-            datetime.strptime(data['start_date'], '%Y-%m-%d')
-            datetime.strptime(data['end_date'], '%Y-%m-%d')
-        except ValueError:
-            return (
-                jsonify({"error": "날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)"}),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
+@training_bp.route("/periods", methods=["GET"])
+@admin_required
+@handle_exceptions
+def get_periods():
+    """훈련 기간 목록 조회"""
+    try:
+        year = request.args.get("year", datetime.now().year, type=int)
+        result = period_service.get_period_status(year)
+        return jsonify(result)
 
-        # 사용자 정보에서 생성자 추출 (실제 구현에서는 세션에서 가져와야 함)
-        created_by = request.headers.get('X-User-ID', 'admin')  # 임시 처리
+    except Exception as e:
+        logger.error(f"훈련 기간 목록 조회 오류: {str(e)}")
+        return jsonify({"error": f"기간 조회 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
-        period_id = phishing_service.create_training_period(data, created_by)
 
-        return jsonify({
-            "message": "훈련 기간이 생성되었습니다.",
-            "period_id": period_id
-        }), HTTP_STATUS["CREATED"]
+@training_bp.route("/periods", methods=["POST"])
+@admin_required
+@handle_exceptions
+@validate_json(
+    ["training_year", "period_name", "training_type", "start_date", "end_date"])
+def create_period():
+    """새 훈련 기간 생성"""
+    try:
+        data = request.json
+        created_by = request.current_user.get("user_id", "admin")
+
+        result = period_service.create_period(data, created_by)
+
+        if result["success"]:
+            return jsonify(result), HTTP_STATUS["CREATED"]
+        else:
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
 
     except Exception as e:
         logger.error(f"훈련 기간 생성 오류: {str(e)}")
-        return (
-            jsonify({"error": f"기간 생성 실패: {str(e)}"}),
-            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
-        )
+        return jsonify({"error": f"기간 생성 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
 
-@phishing_bp.route("/admin/periods/<int:period_id>", methods=["PUT"])
+@training_bp.route("/periods/<int:period_id>", methods=["PUT"])
 @admin_required
 @handle_exceptions
-def update_training_period(period_id):
+@validate_json(
+    ["training_year", "period_name", "training_type", "start_date", "end_date"])
+def update_period(period_id):
     """훈련 기간 수정"""
     try:
-        data = request.get_json()
+        data = request.json
+        updated_by = request.current_user.get("user_id", "admin")
 
-        success = phishing_service.update_training_period(period_id, data)
+        result = period_service.update_period(period_id, data, updated_by)
 
-        if success:
-            return jsonify({"message": "훈련 기간이 수정되었습니다."})
+        if result["success"]:
+            return jsonify(result)
         else:
-            return (
-                jsonify({"error": "훈련 기간을 찾을 수 없습니다."}),
-                HTTP_STATUS["NOT_FOUND"],
-            )
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
 
     except Exception as e:
         logger.error(f"훈련 기간 수정 오류: {str(e)}")
-        return (
-            jsonify({"error": f"기간 수정 실패: {str(e)}"}),
-            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
-        )
+        return jsonify({"error": f"기간 수정 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
 
-@phishing_bp.route("/admin/periods/<int:period_id>", methods=["DELETE"])
+@training_bp.route("/periods/<int:period_id>/complete", methods=["POST"])
 @admin_required
 @handle_exceptions
-def delete_training_period(period_id):
+def complete_period(period_id):
+    """훈련 기간 완료 처리"""
+    try:
+        completed_by = request.current_user.get("user_id", "admin")
+        result = period_service.complete_period(period_id, completed_by)
+
+        if result["success"]:
+            return jsonify(result)
+        else:
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
+
+    except Exception as e:
+        logger.error(f"훈련 기간 완료 처리 오류: {str(e)}")
+        return jsonify({"error": f"완료 처리 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+
+
+@training_bp.route("/periods/<int:period_id>/reopen", methods=["POST"])
+@admin_required
+@handle_exceptions
+def reopen_period(period_id):
+    """훈련 기간 재개"""
+    try:
+        result = period_service.reopen_period(period_id)
+
+        if result["success"]:
+            return jsonify(result)
+        else:
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
+
+    except Exception as e:
+        logger.error(f"훈련 기간 재개 오류: {str(e)}")
+        return jsonify({"error": f"재개 처리 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+
+
+@training_bp.route("/periods/<int:period_id>", methods=["DELETE"])
+@admin_required
+@handle_exceptions
+def delete_period(period_id):
     """훈련 기간 삭제"""
     try:
-        success = phishing_service.delete_training_period(period_id)
+        result = period_service.delete_training_period(period_id)
 
-        if success:
-            return jsonify({"message": "훈련 기간이 삭제되었습니다."})
+        if result["success"]:
+            return jsonify({"message": result["message"]})
         else:
-            return (
-                jsonify({"error": "훈련 기간을 찾을 수 없거나 관련 기록이 있습니다."}),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
+            status_code = HTTP_STATUS["BAD_REQUEST"]
+            response_data = {"error": result["message"]}
 
-    except ValueError as e:
-        return (
-            jsonify({"error": str(e)}),
-            HTTP_STATUS["BAD_REQUEST"],
-        )
+            if result.get("requires_confirmation"):
+                response_data["requires_confirmation"] = True
+                response_data["training_count"] = result.get("training_count", 0)
+
+            return jsonify(response_data), status_code
+
     except Exception as e:
         logger.error(f"훈련 기간 삭제 오류: {str(e)}")
-        return (
-            jsonify({"error": f"기간 삭제 실패: {str(e)}"}),
-            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
-        )
+        return jsonify({"error": f"기간 삭제 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
 
-@phishing_bp.route("/admin/upload", methods=["POST"])
+@training_bp.route("/periods/<int:period_id>/force-delete", methods=["DELETE"])
 @admin_required
 @handle_exceptions
-def upload_training_data():
-    """엑셀 파일 업로드"""
+def force_delete_period(period_id):
+    """훈련 기간 강제 삭제 (훈련 기록 포함)"""
+    try:
+        result = period_service.force_delete_training_period(period_id)
+
+        if result["success"]:
+            return jsonify({"message": result["message"]})
+        else:
+            return jsonify({"error": result["message"]}), HTTP_STATUS["BAD_REQUEST"]
+
+    except Exception as e:
+        logger.error(f"훈련 기간 강제 삭제 오류: {str(e)}")
+        return jsonify({"error": f"강제 삭제 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+
+
+@training_bp.route("/records", methods=["GET"])
+@admin_required
+@handle_exceptions
+def get_training_records():
+    """훈련 기록 조회"""
+    try:
+        year = request.args.get("year", datetime.now().year, type=int)
+        period_id = request.args.get("period_id", type=int)
+        training_type = request.args.get("training_type")
+        result_filter = request.args.get("result")
+        search_query = request.args.get("search", "")
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 20, type=int)
+
+        result = training_service.get_training_records(year=year, period_id=period_id,
+                                                       training_type=training_type,
+                                                       result_filter=result_filter,
+                                                       search_query=search_query,
+                                                       page=page, per_page=per_page)
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"훈련 기록 조회 오류: {str(e)}")
+        return jsonify({"error": f"기록 조회 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+
+
+@training_bp.route("/records/<int:record_id>", methods=["PUT"])
+@admin_required
+@handle_exceptions
+def update_training_record(record_id):
+    """훈련 기록 수정"""
+    try:
+        data = request.json
+        result = training_service.update_training_record(record_id, data)
+
+        if result["success"]:
+            return jsonify(result)
+        else:
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
+
+    except Exception as e:
+        logger.error(f"훈련 기록 수정 오류: {str(e)}")
+        return jsonify({"error": f"기록 수정 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+
+
+@training_bp.route("/records/<int:record_id>/exclude", methods=["POST"])
+@admin_required
+@handle_exceptions
+def toggle_record_exclude(record_id):
+    """훈련 기록 제외/포함 토글"""
+    try:
+        data = request.json
+        exclude = data.get("exclude", True)
+        reason = data.get("reason", "")
+
+        result = training_service.toggle_record_exclude(record_id, exclude, reason)
+
+        if result["success"]:
+            return jsonify(result)
+        else:
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
+
+    except Exception as e:
+        logger.error(f"훈련 기록 제외/포함 처리 오류: {str(e)}")
+        return jsonify({"error": f"처리 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+
+
+@training_bp.route("/records/<int:record_id>", methods=["DELETE"])
+@admin_required
+@handle_exceptions
+def delete_training_record(record_id):
+    """훈련 기록 삭제"""
+    try:
+        result = training_service.delete_training_record(record_id)
+
+        if result["success"]:
+            return jsonify({"message": result["message"]})
+        else:
+            return jsonify({"error": result["message"]}), HTTP_STATUS["BAD_REQUEST"]
+
+    except Exception as e:
+        logger.error(f"훈련 기록 삭제 오류: {str(e)}")
+        return jsonify({"error": f"기록 삭제 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+
+
+@training_bp.route("/bulk-upload", methods=["POST"])
+@admin_required
+@handle_exceptions
+def bulk_upload():
+    """훈련 결과 일괄 업로드"""
     try:
         if 'file' not in request.files:
-            return (
-                jsonify({"error": "파일이 업로드되지 않았습니다."}),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
+            return jsonify({"error": "파일이 업로드되지 않았습니다."}), HTTP_STATUS["BAD_REQUEST"]
 
         file = request.files['file']
         period_id = request.form.get('period_id', type=int)
 
         if not period_id:
-            return (
-                jsonify({"error": "훈련 기간을 선택해주세요."}),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
+            return jsonify({"error": "훈련 기간을 선택해주세요."}), HTTP_STATUS["BAD_REQUEST"]
 
         if file.filename == '':
-            return (
-                jsonify({"error": "파일이 선택되지 않았습니다."}),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
+            return jsonify({"error": "파일이 선택되지 않았습니다."}), HTTP_STATUS["BAD_REQUEST"]
 
-        # 파일 확장자 검증
-        if not file.filename.lower().endswith(('.xlsx', '.xls')):
-            return (
-                jsonify({"error": "엑셀 파일만 업로드 가능합니다."}),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
+        result = training_service.process_excel_upload(file, period_id)
 
-        # 사용자 정보 추출
-        uploaded_by = request.headers.get('X-User-ID', 'admin')  # 임시 처리
-
-        # 파일 처리
-        result = phishing_service.upload_training_data(file, period_id, uploaded_by)
-
-        if result['success']:
-            return jsonify({
-                "message": "데이터 업로드가 완료되었습니다.",
-                "total_rows": result['total_rows'],
-                "success_count": result['success_count'],
-                "error_count": result['error_count'],
-                "errors": result['errors']
-            })
+        if result["success"]:
+            return jsonify(result)
         else:
-            return (
-                jsonify({"error": result['error']}),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
 
     except Exception as e:
-        logger.error(f"파일 업로드 오류: {str(e)}")
-        return (
-            jsonify({"error": f"업로드 실패: {str(e)}"}),
-            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
-        )
+        logger.error(f"일괄 업로드 오류: {str(e)}")
+        return jsonify({"error": f"업로드 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
 
-@phishing_bp.route("/admin/records", methods=["GET"])
-@admin_required
-@handle_exceptions
-def get_training_records():
-    """훈련 기록 조회"""
-    year = request.args.get("year", datetime.now().year, type=int)
-    period_id = request.args.get("period_id", type=int)
-
-    try:
-        records = phishing_service.get_training_records(year, period_id)
-        return jsonify({"records": records})
-    except Exception as e:
-        logger.error(f"훈련 기록 조회 오류: {str(e)}")
-        return (
-            jsonify({"error": f"기록 조회 실패: {str(e)}"}),
-            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
-        )
-
-
-@phishing_bp.route("/admin/records/<int:training_id>", methods=["PUT"])
-@admin_required
-@handle_exceptions
-def update_training_record(training_id):
-    """훈련 기록 수정"""
-    try:
-        data = request.get_json()
-
-        success = phishing_service.update_training_record(training_id, data)
-
-        if success:
-            return jsonify({"message": "훈련 기록이 수정되었습니다."})
-        else:
-            return (
-                jsonify({"error": "훈련 기록을 찾을 수 없습니다."}),
-                HTTP_STATUS["NOT_FOUND"],
-            )
-
-    except Exception as e:
-        logger.error(f"훈련 기록 수정 오류: {str(e)}")
-        return (
-            jsonify({"error": f"기록 수정 실패: {str(e)}"}),
-            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
-        )
-
-
-@phishing_bp.route("/admin/records/<int:training_id>", methods=["DELETE"])
-@admin_required
-@handle_exceptions
-def delete_training_record(training_id):
-    """훈련 기록 삭제"""
-    try:
-        success = phishing_service.delete_training_record(training_id)
-
-        if success:
-            return jsonify({"message": "훈련 기록이 삭제되었습니다."})
-        else:
-            return (
-                jsonify({"error": "훈련 기록을 찾을 수 없습니다."}),
-                HTTP_STATUS["NOT_FOUND"],
-            )
-
-    except Exception as e:
-        logger.error(f"훈련 기록 삭제 오류: {str(e)}")
-        return (
-            jsonify({"error": f"기록 삭제 실패: {str(e)}"}),
-            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
-        )
-
-
-@phishing_bp.route("/admin/export", methods=["GET"])
+@training_bp.route("/export", methods=["GET"])
 @admin_required
 @handle_exceptions
 def export_training_data():
-    """훈련 데이터 CSV 내보내기"""
-    year = request.args.get("year", datetime.now().year, type=int)
-    format_type = request.args.get("format", "csv")
-
+    """훈련 데이터 내보내기"""
     try:
-        if format_type != "csv":
-            return (
-                jsonify({"error": "현재 CSV 형식만 지원됩니다."}),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
+        year = request.args.get("year", datetime.now().year, type=int)
+        format_type = request.args.get("format", "csv")
 
-        records = phishing_service.get_training_records(year)
+        result = training_service.export_training_data(year, format_type)
 
-        if not records:
-            return (
-                jsonify({"error": f"{year}년 훈련 데이터가 없습니다."}),
-                HTTP_STATUS["NOT_FOUND"],
-            )
-
-        # CSV 생성
-        output = io.StringIO()
-        writer = csv.writer(output)
-
-        # 헤더 작성
-        headers = [
-            "사용자ID", "이름", "부서", "이메일", "훈련연도", "기간명", "훈련유형", "메일발송시각", "수행시각", "로그유형",
-            "메일유형", "대상이메일", "훈련결과", "응답시간(분)", "상태", "제외여부", "제외사유", "비고"
-        ]
-        writer.writerow(headers)
-
-        # 데이터 작성
-        for record in records:
-            row = [
-                record["username"],
-                record["username"],  # 실제로는 사용자 이름 필드가 필요
-                record["department"],
-                record["email"],
-                record["training_year"],
-                record["period_name"],
-                record["training_type"],
-                record["email_sent_time"],
-                record["action_time"],
-                record["log_type"],
-                record["mail_type"],
-                record["target_email"],
-                record["training_result"],
-                record["response_time_minutes"],
-                record["status_text"],
-                "예" if record["exclude_from_scoring"] else "아니오",
-                record["exclude_reason"] or "",
-                record["notes"] or ""
-            ]
-            writer.writerow(row)
-
-        # 파일 반환
-        output.seek(0)
-        csv_data = output.getvalue().encode('utf-8-sig')  # BOM 추가
-        output.close()
-
-        return send_file(io.BytesIO(csv_data), mimetype='text/csv', as_attachment=True,
-                         download_name=f'phishing_training_{year}.csv')
+        if result["success"]:
+            response = make_response(result["data"])
+            response.headers["Content-Type"] = result["content_type"]
+            response.headers["Content-Disposition"] = result["filename"]
+            return response
+        else:
+            return jsonify({"error": result["error"]}), HTTP_STATUS["BAD_REQUEST"]
 
     except Exception as e:
         logger.error(f"데이터 내보내기 오류: {str(e)}")
-        return (
-            jsonify({"error": f"내보내기 실패: {str(e)}"}),
-            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
-        )
+        return jsonify({"error": f"내보내기 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
 
-@phishing_bp.route("/admin/statistics", methods=["GET"])
+@training_bp.route("/statistics", methods=["GET"])
 @admin_required
 @handle_exceptions
 def get_training_statistics():
     """훈련 통계 조회"""
-    year = request.args.get("year", datetime.now().year, type=int)
-
     try:
-        stats = phishing_service.get_training_statistics(year)
-        return jsonify(stats)
-    except Exception as e:
-        logger.error(f"통계 조회 오류: {str(e)}")
-        return (
-            jsonify({"error": f"통계 조회 실패: {str(e)}"}),
-            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
-        )
+        year = request.args.get("year", datetime.now().year, type=int)
+        period_id = request.args.get("period_id", type=int)
 
-
-# ==================== 사용자 API ====================
-
-
-@phishing_bp.route("/user/status", methods=["GET"])
-@token_required
-@handle_exceptions
-def get_user_training_status():
-    """사용자 훈련 현황 조회"""
-    year = request.args.get("year", datetime.now().year, type=int)
-
-    try:
-        # 사용자 정보 추출 (실제 구현에서는 세션에서 가져와야 함)
-        user_id = request.headers.get('X-User-ID')  # 임시 처리
-
-        if not user_id:
-            return (
-                jsonify({"error": "사용자 인증이 필요합니다."}),
-                HTTP_STATUS["UNAUTHORIZED"],
-            )
-
-        # 사용자 훈련 기록 조회
-        records = phishing_service.get_training_records(year)
-        user_records = [r for r in records if r['username'] == user_id]
-
-        # 사용자별 통계 계산
-        total_trainings = len(user_records)
-        success_count = len(
-            [r for r in user_records if r['training_result'] == 'success'])
-        fail_count = len([r for r in user_records if r['training_result'] == 'fail'])
-        no_response_count = len(
-            [r for r in user_records if r['training_result'] == 'no_response'])
-
-        success_rate = (success_count / total_trainings *
-                        100) if total_trainings > 0 else 0
-
-        return jsonify({
-            "year": year,
-            "total_trainings": total_trainings,
-            "success_count": success_count,
-            "fail_count": fail_count,
-            "no_response_count": no_response_count,
-            "success_rate": round(success_rate, 2),
-            "records": user_records
-        })
+        result = training_service.get_training_statistics(year, period_id)
+        return jsonify(result)
 
     except Exception as e:
-        logger.error(f"사용자 훈련 현황 조회 오류: {str(e)}")
-        return (
-            jsonify({"error": f"현황 조회 실패: {str(e)}"}),
-            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
-        )
+        logger.error(f"훈련 통계 조회 오류: {str(e)}")
+        return jsonify({"error": f"통계 조회 실패: {str(e)}"
+                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
 
-@phishing_bp.route("/user/periods", methods=["GET"])
-@token_required
-@handle_exceptions
-def get_active_training_periods():
-    """진행중인 훈련 기간 조회 (사용자용)"""
-    year = request.args.get("year", datetime.now().year, type=int)
-
-    try:
-        periods = phishing_service.get_training_periods(year)
-
-        # 진행중이거나 예정된 기간만 필터링
-        active_periods = []
-        for period_type in periods:
-            active_type_periods = []
-            for period in period_type['periods']:
-                if period['status'] in ['진행중', '예정됨']:
-                    # 사용자에게는 민감한 정보 제외
-                    user_period = {
-                        'period_id': period['period_id'],
-                        'period_name': period['period_name'],
-                        'training_type': period['training_type'],
-                        'start_date': period['start_date'],
-                        'end_date': period['end_date'],
-                        'status': period['status'],
-                        'description': period['description']
-                    }
-                    active_type_periods.append(user_period)
-
-            if active_type_periods:
-                active_periods.append({
-                    'type_name': period_type['type_name'],
-                    'periods': active_type_periods
-                })
-
-        return jsonify({"periods": active_periods})
-
-    except Exception as e:
-        logger.error(f"진행중인 훈련 기간 조회 오류: {str(e)}")
-        return (
-            jsonify({"error": f"기간 조회 실패: {str(e)}"}),
-            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
-        )
+# ===== 에러 핸들러 =====
 
 
-# 에러 핸들러 등록
-@phishing_bp.errorhandler(404)
+@training_bp.errorhandler(404)
 def not_found(error):
-    return jsonify({"error": "요청한 리소스를 찾을 수 없습니다."}), 404
+    return jsonify({"error": "요청한 리소스를 찾을 수 없습니다."}), HTTP_STATUS["NOT_FOUND"]
 
 
-@phishing_bp.errorhandler(500)
-def internal_error(error):
-    return jsonify({"error": "서버 내부 오류가 발생했습니다."}), 500
+@training_bp.errorhandler(405)
+def method_not_allowed(error):
+    return jsonify({"error": "허용되지 않은 HTTP 메서드입니다."}), HTTP_STATUS["METHOD_NOT_ALLOWED"]
