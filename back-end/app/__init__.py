@@ -83,7 +83,8 @@ def register_controllers(app):
     from app.controllers.admin_user_management_controller import admin_user_management_bp
     from app.controllers.admin_user_detail_controller import admin_user_detail_bp
     from app.controllers.admin_batch_controller import admin_batch_bp
-
+    # 새로 추가된 사용자 CRUD 컨트롤러
+    from app.controllers.admin_user_controller import admin_user_bp
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(audit_bp, url_prefix="/api/security-audit")
     app.register_blueprint(education_bp, url_prefix="/api/security-education")
@@ -104,7 +105,8 @@ def register_controllers(app):
     app.register_blueprint(admin_user_detail_bp)
 
     app.register_blueprint(admin_batch_bp)
-
+    # 새로운 사용자 CRUD API 등록
+    app.register_blueprint(admin_user_bp)  # url_prefix는 이미 블루프린트에서 설정됨
 
 def register_error_handlers(app):
     """에러 핸들러 등록"""
