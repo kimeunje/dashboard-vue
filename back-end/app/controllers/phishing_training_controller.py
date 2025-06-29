@@ -25,24 +25,19 @@ period_service = PhishingTrainingPeriodService()
 @token_required
 @handle_exceptions
 def get_training_status():
-    """사용자 훈련 현황 조회"""
+    """사용자별 모의훈련 현황 조회"""
+    username = request.current_user["username"]
+    year = request.args.get("year", default=datetime.now().year, type=int)
+
     try:
-        user_id = request.current_user.get("uid")
-        year = request.args.get("year", datetime.now().year, type=int)
-
-        if not user_id:
-            return (
-                jsonify({"error": "사용자 정보를 확인할 수 없습니다."}),
-                HTTP_STATUS["UNAUTHORIZED"],
-            )
-
-        result = training_service.get_user_training_status(user_id, year)
-        return jsonify(result)
-
+        status = training_service.get_user_training_status(username, year)
+        return jsonify(status), HTTP_STATUS["OK"]
     except Exception as e:
-        logger.error(f"사용자 훈련 현황 조회 오류: {str(e)}")
+        logging.error(
+            f"모의훈련 현황 조회 실패 (username: {username}, year: {year}): {str(e)}"
+        )
         return (
-            jsonify({"error": "현황 조회에 실패했습니다."}),
+            jsonify({"error": "모의훈련 현황을 조회할 수 없습니다."}),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 

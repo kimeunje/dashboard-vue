@@ -250,7 +250,7 @@ const generateMockTrainingData = (year) => {
     overall_score: 0,
     pass_rate: 0,
     penalty_score: 0,
-    excluded_count: 0
+    excluded_count: 0,
   }
 
   // 상반기/하반기별 상태 데이터
@@ -264,7 +264,7 @@ const generateMockTrainingData = (year) => {
     mail_sent_date: `${year}-04-15`,
     training_themes: ['퇴직연금 안내', '보험 상품 안내', '건강검진 결과'],
     currentYear,
-    currentMonth
+    currentMonth,
   })
 
   // 하반기 훈련 데이터 (9-12월)
@@ -275,13 +275,13 @@ const generateMockTrainingData = (year) => {
     mail_sent_date: `${year}-10-20`,
     training_themes: ['세금계산서', '배송 알림', '카카오톡 메시지'],
     currentYear,
-    currentMonth
+    currentMonth,
   })
 
   period_status.push(firstHalfPeriod, secondHalfPeriod)
 
   // 통계 계산
-  period_status.forEach(period => {
+  period_status.forEach((period) => {
     if (period.result === 'pass') {
       summary.passed++
       summary.conducted++
@@ -316,7 +316,7 @@ const generateMockTrainingData = (year) => {
       username: authStore.user?.username || '홍길동',
       email: authStore.user?.email || 'hong@company.com',
       department: authStore.user?.department || '개발팀',
-      position: authStore.user?.position || '선임연구원'
+      position: authStore.user?.position || '선임연구원',
     },
     year_stats: {
       year: year,
@@ -324,8 +324,8 @@ const generateMockTrainingData = (year) => {
       completed_periods: summary.conducted,
       pending_periods: summary.pending,
       average_response_time: calculateAverageResponseTime(period_status),
-      improvement_trend: calculateImprovementTrend(year, summary.pass_rate)
-    }
+      improvement_trend: calculateImprovementTrend(year, summary.pass_rate),
+    },
   }
 }
 
@@ -333,7 +333,15 @@ const generateMockTrainingData = (year) => {
  * 기간별 상세 데이터 생성 함수
  */
 const createPeriodData = (year, period, config) => {
-  const { period_name, start_date, end_date, mail_sent_date, training_themes, currentYear, currentMonth } = config
+  const {
+    period_name,
+    start_date,
+    end_date,
+    mail_sent_date,
+    training_themes,
+    currentYear,
+    currentMonth,
+  } = config
 
   const baseData = {
     period_id: `${year}_${period}`,
@@ -361,8 +369,8 @@ const createPeriodData = (year, period, config) => {
       phishing_url: null,
       attachment_name: null,
       sender_email: null,
-      mail_subject: null
-    }
+      mail_subject: null,
+    },
   }
 
   // 연도별 결과 설정
@@ -390,7 +398,7 @@ const generateCompletedTraining = (baseData, period, training_themes, year) => {
       action_time: null,
       response_time_minutes: 0,
       notes: '의심스러운 메일로 판단하여 액션 없음',
-      score_impact: 0
+      score_impact: 0,
     },
     {
       result: 'pass',
@@ -398,7 +406,7 @@ const generateCompletedTraining = (baseData, period, training_themes, year) => {
       action_time: null,
       response_time_minutes: 0,
       notes: '피싱 메일로 인식하고 즉시 삭제',
-      score_impact: 0
+      score_impact: 0,
     },
     // 실패 시나리오들
     {
@@ -406,28 +414,29 @@ const generateCompletedTraining = (baseData, period, training_themes, year) => {
       log_type: '스크립트 첨부파일 열람',
       response_time_minutes: 15,
       notes: '첨부파일을 다운로드하여 실행함',
-      score_impact: -0.5
+      score_impact: -0.5,
     },
     {
       result: 'fail',
       log_type: '링크 클릭',
       response_time_minutes: 5,
       notes: '의심스러운 링크를 클릭함',
-      score_impact: -0.5
+      score_impact: -0.5,
     },
     {
       result: 'fail',
       log_type: '개인정보 입력',
       response_time_minutes: 8,
       notes: '피싱 사이트에 개인정보 입력',
-      score_impact: -0.5
-    }
+      score_impact: -0.5,
+    },
   ]
 
   // 상반기는 주로 통과, 하반기는 실패하는 경향으로 설정
-  const scenario = period === 'first_half'
-    ? trainingScenarios[Math.floor(Math.random() * 2)]  // 통과 시나리오
-    : trainingScenarios[2 + Math.floor(Math.random() * 3)]  // 실패 시나리오
+  const scenario =
+    period === 'first_half'
+      ? trainingScenarios[Math.floor(Math.random() * 2)] // 통과 시나리오
+      : trainingScenarios[2 + Math.floor(Math.random() * 3)] // 실패 시나리오
 
   const mailType = training_themes[Math.floor(Math.random() * training_themes.length)]
 
@@ -437,9 +446,10 @@ const generateCompletedTraining = (baseData, period, training_themes, year) => {
     log_type: scenario.log_type,
     mail_type: mailType,
     email_sent_time: `${year}-${period === 'first_half' ? '04-15' : '10-20'}T09:00:00.000Z`,
-    action_time: scenario.response_time_minutes > 0
-      ? `${year}-${period === 'first_half' ? '04-15' : '10-20'}T${9 + Math.floor(scenario.response_time_minutes / 60)}:${String(scenario.response_time_minutes % 60).padStart(2, '0')}:00.000Z`
-      : null,
+    action_time:
+      scenario.response_time_minutes > 0
+        ? `${year}-${period === 'first_half' ? '04-15' : '10-20'}T${9 + Math.floor(scenario.response_time_minutes / 60)}:${String(scenario.response_time_minutes % 60).padStart(2, '0')}:00.000Z`
+        : null,
     response_time_minutes: scenario.response_time_minutes,
     score_impact: scenario.score_impact,
     notes: scenario.notes,
@@ -449,8 +459,8 @@ const generateCompletedTraining = (baseData, period, training_themes, year) => {
       phishing_url: scenario.log_type.includes('링크') ? 'https://fake-banking-site.com' : null,
       attachment_name: scenario.log_type.includes('첨부파일') ? `${mailType}_안내.pdf` : null,
       sender_email: generateFakeSenderEmail(mailType),
-      mail_subject: generateMailSubject(mailType)
-    }
+      mail_subject: generateMailSubject(mailType),
+    },
   }
 }
 
@@ -472,15 +482,15 @@ const generateCurrentYearTraining = (baseData, period, training_themes, currentM
       log_type: '이메일 열람2',
       response_time_minutes: 0,
       notes: '피싱 메일로 인식하고 즉시 신고함',
-      score_impact: 0
+      score_impact: 0,
     },
     {
       result: 'fail',
       log_type: '링크 클릭',
       response_time_minutes: 2,
       notes: '의심스러운 링크를 클릭함',
-      score_impact: -0.5
-    }
+      score_impact: -0.5,
+    },
   ]
 
   const scenario = isFirstHalf ? currentYearScenarios[0] : currentYearScenarios[1]
@@ -492,20 +502,23 @@ const generateCurrentYearTraining = (baseData, period, training_themes, currentM
     log_type: scenario.log_type,
     mail_type: mailType,
     email_sent_time: `${year}-${isFirstHalf ? '04-15' : '10-20'}T09:00:00.000Z`,
-    action_time: scenario.response_time_minutes > 0
-      ? `${year}-${isFirstHalf ? '04-15' : '10-20'}T09:0${scenario.response_time_minutes}:00.000Z`
-      : null,
+    action_time:
+      scenario.response_time_minutes > 0
+        ? `${year}-${isFirstHalf ? '04-15' : '10-20'}T09:0${scenario.response_time_minutes}:00.000Z`
+        : null,
     response_time_minutes: scenario.response_time_minutes,
     score_impact: scenario.score_impact,
     notes: scenario.notes,
     training_details: {
       target_count: 1,
       completion_rate: 100,
-      phishing_url: scenario.log_type.includes('링크') ? 'https://fake-delivery-notification.com' : null,
+      phishing_url: scenario.log_type.includes('링크')
+        ? 'https://fake-delivery-notification.com'
+        : null,
       attachment_name: null,
       sender_email: generateFakeSenderEmail(mailType),
-      mail_subject: generateMailSubject(mailType)
-    }
+      mail_subject: generateMailSubject(mailType),
+    },
   }
 }
 
@@ -522,8 +535,8 @@ const generateFutureTraining = (baseData) => {
       phishing_url: null,
       attachment_name: null,
       sender_email: null,
-      mail_subject: null
-    }
+      mail_subject: null,
+    },
   }
 }
 
@@ -535,9 +548,9 @@ const generateFakeSenderEmail = (mailType) => {
     '퇴직연금 안내': 'pension@korea-retire.com',
     '보험 상품 안내': 'insurance@best-insure.co.kr',
     '건강검진 결과': 'health@medical-center.or.kr',
-    '세금계산서': 'tax@hometax-service.go.kr',
+    세금계산서: 'tax@hometax-service.go.kr',
     '배송 알림': 'delivery@express-ship.com',
-    '카카오톡 메시지': 'notify@kakao-talk.com'
+    '카카오톡 메시지': 'notify@kakao-talk.com',
   }
   return emailMap[mailType] || 'noreply@suspicious-site.com'
 }
@@ -550,9 +563,9 @@ const generateMailSubject = (mailType) => {
     '퇴직연금 안내': '[긴급] 퇴직연금 운용 변경 안내',
     '보험 상품 안내': '[필수확인] 새로운 보험상품 가입 혜택',
     '건강검진 결과': '[중요] 건강검진 결과 확인 요청',
-    '세금계산서': '[국세청] 세금계산서 발급 완료 안내',
+    세금계산서: '[국세청] 세금계산서 발급 완료 안내',
     '배송 알림': '[택배] 배송 지연 안내 - 확인 필요',
-    '카카오톡 메시지': '[카카오톡] 새로운 메시지가 도착했습니다'
+    '카카오톡 메시지': '[카카오톡] 새로운 메시지가 도착했습니다',
   }
   return subjectMap[mailType] || '[중요] 긴급 확인 요청'
 }
@@ -560,7 +573,7 @@ const generateMailSubject = (mailType) => {
 // ===== 헬퍼 함수들 =====
 
 const calculateAverageResponseTime = (periods) => {
-  const completedPeriods = periods.filter(p => p.result === 'fail' && p.response_time_minutes)
+  const completedPeriods = periods.filter((p) => p.result === 'fail' && p.response_time_minutes)
   if (completedPeriods.length === 0) return 0
 
   const totalTime = completedPeriods.reduce((sum, p) => sum + p.response_time_minutes, 0)
@@ -584,15 +597,24 @@ const fetchTrainingStatus = async () => {
   error.value = null
 
   try {
-    // 로딩 시뮬레이션
-    await new Promise(resolve => setTimeout(resolve, 800))
+    const response = await fetch(`/api/phishing-training/status?year=${selectedYear.value}`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
 
-    // MOCK 데이터 생성
-    trainingData.value = generateMockTrainingData(selectedYear.value)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
 
+    const data = await response.json()
+    console.log(data)
+    trainingData.value = data
   } catch (err) {
     console.error('모의훈련 현황 조회 실패:', err)
-    error.value = err.message
+    error.value = err.message || '모의훈련 현황을 불러올 수 없습니다.'
   } finally {
     loading.value = false
   }
@@ -652,7 +674,7 @@ const formatDateTime = (dateTimeString) => {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   } catch {
     return dateTimeString
@@ -686,7 +708,7 @@ const getRiskLevelText = (riskLevel) => {
   const riskMap = {
     high: '높음',
     medium: '보통',
-    low: '낮음'
+    low: '낮음',
   }
   return riskMap[riskLevel] || '알 수 없음'
 }
@@ -694,7 +716,7 @@ const getRiskLevelText = (riskLevel) => {
 // 훈련 완료율 계산
 const getCompletionRate = (periods) => {
   const total = periods.length
-  const completed = periods.filter(p => p.result !== 'pending').length
+  const completed = periods.filter((p) => p.result !== 'pending').length
   return total > 0 ? Math.round((completed / total) * 100) : 0
 }
 
