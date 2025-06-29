@@ -387,16 +387,17 @@
               </div>
 
               <div class="form-group">
-                <label for="newUserUid">사번 *</label>
+                <label for="newUserIp">IP 주소 *</label>
                 <input
-                  id="newUserUid"
-                  v-model="newUser.uid"
+                  id="newUserIp"
+                  v-model="newUser.ip"
                   type="text"
                   required
-                  placeholder="사번 (예: EMP001)"
-                  :class="{ error: newUserErrors.uid }"
+                  placeholder="192.168.1.100 또는 192.168.1.100, 10.0.0.50"
+                  :class="{ error: newUserErrors.ip }"
                 />
-                <span v-if="newUserErrors.uid" class="error-message">{{ newUserErrors.uid }}</span>
+                <span v-if="newUserErrors.ip" class="error-message">{{ newUserErrors.ip }}</span>
+                <small class="field-hint">여러 IP는 쉼표(,)로 구분하여 입력하세요</small>
               </div>
             </div>
 
@@ -503,8 +504,8 @@ const showAddUserModal = ref(false)
 const addUserLoading = ref(false)
 const newUser = ref({
   name: '',
-  uid: '',
   email: '',
+  ip: '',
   department: '',
   role: 'user',
   is_active: true,
@@ -680,8 +681,8 @@ const adminAPI = {
 function resetNewUser() {
   newUser.value = {
     name: '',
-    uid: '',
     email: '',
+    ip: '',
     department: '',
     role: 'user',
     is_active: true,
@@ -703,10 +704,19 @@ function validateNewUser() {
     errors.name = '이름은 필수입니다.'
   }
 
-  if (!newUser.value.uid.trim()) {
-    errors.uid = '사번은 필수입니다.'
-  } else if (!/^[A-Za-z0-9]+$/.test(newUser.value.uid)) {
-    errors.uid = '사번은 영문자와 숫자만 사용할 수 있습니다.'
+  if (!newUser.value.ip.trim()) {
+    errors.ip = 'IP 주소는 필수입니다.'
+  } else {
+    // IP 주소 형식 검증
+    const ipAddresses = newUser.value.ip.split(',').map(ip => ip.trim())
+    const ipPattern = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
+
+    for (const ip of ipAddresses) {
+      if (!ipPattern.test(ip)) {
+        errors.ip = `올바르지 않은 IP 주소 형식입니다: ${ip}`
+        break
+      }
+    }
   }
 
   if (!newUser.value.email.trim()) {
@@ -731,11 +741,11 @@ async function submitAddUser() {
   addUserLoading.value = true
 
   try {
-    // 사용자 데이터 준비 (실제 DB 스키마에 맞춤)
+    // 사용자 데이터 준비 (IP 주소 포함)
     const userData = {
       name: newUser.value.name.trim(),
-      uid: newUser.value.uid.trim(),
       email: newUser.value.email.trim(),
+      ip: newUser.value.ip.trim(),
       department: newUser.value.department.trim(),
       role: newUser.value.role,
       is_active: newUser.value.is_active,
@@ -1330,7 +1340,13 @@ const statistics = computed(() => {
   }
 }
 
-/* 반응형 디자인 */
+/* 폼 관련 추가 스타일 */
+.field-hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  display: block;
+}
 @media (max-width: 768px) {
   .modal-content {
     width: 95%;
