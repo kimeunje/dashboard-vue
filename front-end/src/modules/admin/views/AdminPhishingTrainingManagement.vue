@@ -807,120 +807,120 @@ const isValidPeriodForm = computed(() => {
 const canEdit = computed(() => true) // 관리자는 항상 편집 가능
 
 // ===== MOCK 데이터 생성 =====
-const createMockData = () => {
-  periodStatus.value = {
-    training_types: {
-      '이메일 피싱': {
-        periods: [
-          {
-            period_id: 1,
-            training_year: 2025,
-            period_name: '1차 피싱 훈련',
-            training_type: '이메일 피싱',
-            start_date: '2025-06-01',
-            end_date: '2025-06-30',
-            is_completed: false,
-            description: '2025년 1차 이메일 피싱 모의훈련',
-            auto_pass_setting: true,
-            status: 'active',
-            stats: {
-              total_targets: 150,
-              success_count: 120,
-              fail_count: 25,
-              no_response_count: 5,
-              success_rate: 80.0,
-              fail_rate: 16.7,
-            },
-          },
-          {
-            period_id: 2,
-            training_year: 2025,
-            period_name: '2차 피싱 훈련',
-            training_type: '이메일 피싱',
-            start_date: '2025-09-01',
-            end_date: '2025-09-30',
-            is_completed: true,
-            description: '2025년 2차 이메일 피싱 모의훈련',
-            auto_pass_setting: true,
-            status: 'completed',
-            stats: {
-              total_targets: 145,
-              success_count: 110,
-              fail_count: 30,
-              no_response_count: 5,
-              success_rate: 75.9,
-              fail_rate: 20.7,
-            },
-          },
-        ],
-      },
-      'SMS 피싱': {
-        periods: [
-          {
-            period_id: 3,
-            training_year: 2025,
-            period_name: '1차 SMS 훈련',
-            training_type: 'SMS 피싱',
-            start_date: '2025-03-01',
-            end_date: '2025-03-31',
-            is_completed: false,
-            description: '2025년 1차 SMS 피싱 모의훈련',
-            auto_pass_setting: true,
-            status: 'pending',
-            stats: {
-              total_targets: 0,
-              success_count: 0,
-              fail_count: 0,
-              no_response_count: 0,
-              success_rate: 0,
-              fail_rate: 0,
-            },
-          },
-        ],
-      },
-    },
-  }
-  trainingRecords.value = [
-    {
-      training_id: 1,
-      user_id: 1,
-      username: '홍길동',
-      department: 'IT팀',
-      period_id: 1,
-      period_name: '1차 피싱 훈련',
-      training_type: '이메일 피싱',
-      target_email: 'hong@test.com',
-      mail_type: '퇴직연금 운용',
-      log_type: '이메일 열람',
-      email_sent_time: '2025-06-02 09:30:00',
-      action_time: '2025-06-02 14:20:00',
-      training_result: 'success',
-      response_time_minutes: 290,
-      exclude_from_scoring: false,
-      notes: null,
-    },
-    {
-      training_id: 1,
-      user_id: 1,
-      username: '홍길동',
-      department: 'IT팀',
-      period_id: 1,
-      period_name: '1차 피싱 훈련',
-      training_type: '이메일 피싱',
-      target_email: 'hong@test.com',
-      mail_type: '퇴직연금 운용',
-      log_type: '이메일 열람',
-      email_sent_time: '2025-06-02 09:30:00',
-      action_time: '2025-06-02 14:20:00',
-      training_result: 'success',
-      response_time_minutes: 290,
-      exclude_from_scoring: false,
-      notes: null,
-    },
-    // ... 더 많은 기록들 (총 8개)
-  ]
-  filteredRecords.value = [...trainingRecords.value]
-}
+// const createMockData = () => {
+//   periodStatus.value = {
+//     training_types: {
+//       '이메일 피싱': {
+//         periods: [
+//           {
+//             period_id: 1,
+//             training_year: 2025,
+//             period_name: '1차 피싱 훈련',
+//             training_type: '이메일 피싱',
+//             start_date: '2025-06-01',
+//             end_date: '2025-06-30',
+//             is_completed: false,
+//             description: '2025년 1차 이메일 피싱 모의훈련',
+//             auto_pass_setting: true,
+//             status: 'active',
+//             stats: {
+//               total_targets: 150,
+//               success_count: 120,
+//               fail_count: 25,
+//               no_response_count: 5,
+//               success_rate: 80.0,
+//               fail_rate: 16.7,
+//             },
+//           },
+//           {
+//             period_id: 2,
+//             training_year: 2025,
+//             period_name: '2차 피싱 훈련',
+//             training_type: '이메일 피싱',
+//             start_date: '2025-09-01',
+//             end_date: '2025-09-30',
+//             is_completed: true,
+//             description: '2025년 2차 이메일 피싱 모의훈련',
+//             auto_pass_setting: true,
+//             status: 'completed',
+//             stats: {
+//               total_targets: 145,
+//               success_count: 110,
+//               fail_count: 30,
+//               no_response_count: 5,
+//               success_rate: 75.9,
+//               fail_rate: 20.7,
+//             },
+//           },
+//         ],
+//       },
+//       'SMS 피싱': {
+//         periods: [
+//           {
+//             period_id: 3,
+//             training_year: 2025,
+//             period_name: '1차 SMS 훈련',
+//             training_type: 'SMS 피싱',
+//             start_date: '2025-03-01',
+//             end_date: '2025-03-31',
+//             is_completed: false,
+//             description: '2025년 1차 SMS 피싱 모의훈련',
+//             auto_pass_setting: true,
+//             status: 'pending',
+//             stats: {
+//               total_targets: 0,
+//               success_count: 0,
+//               fail_count: 0,
+//               no_response_count: 0,
+//               success_rate: 0,
+//               fail_rate: 0,
+//             },
+//           },
+//         ],
+//       },
+//     },
+//   }
+//   trainingRecords.value = [
+//     {
+//       training_id: 1,
+//       user_id: 1,
+//       username: '홍길동',
+//       department: 'IT팀',
+//       period_id: 1,
+//       period_name: '1차 피싱 훈련',
+//       training_type: '이메일 피싱',
+//       target_email: 'hong@test.com',
+//       mail_type: '퇴직연금 운용',
+//       log_type: '이메일 열람',
+//       email_sent_time: '2025-06-02 09:30:00',
+//       action_time: '2025-06-02 14:20:00',
+//       training_result: 'success',
+//       response_time_minutes: 290,
+//       exclude_from_scoring: false,
+//       notes: null,
+//     },
+//     {
+//       training_id: 1,
+//       user_id: 1,
+//       username: '홍길동',
+//       department: 'IT팀',
+//       period_id: 1,
+//       period_name: '1차 피싱 훈련',
+//       training_type: '이메일 피싱',
+//       target_email: 'hong@test.com',
+//       mail_type: '퇴직연금 운용',
+//       log_type: '이메일 열람',
+//       email_sent_time: '2025-06-02 09:30:00',
+//       action_time: '2025-06-02 14:20:00',
+//       training_result: 'success',
+//       response_time_minutes: 290,
+//       exclude_from_scoring: false,
+//       notes: null,
+//     },
+//     // ... 더 많은 기록들 (총 8개)
+//   ]
+//   filteredRecords.value = [...trainingRecords.value]
+// }
 
 // ===== 라이프사이클 =====
 onMounted(() => {
@@ -1403,39 +1403,347 @@ const handleFileDrop = (event) => {
 /**
  * 엑셀 파일 파싱
  */
+// const parseExcelFile = async (file) => {
+//   try {
+//     // MOCK 데이터 생성
+//     uploadPreview.value = [
+//       {
+//         target_email: 'penguin@test.com',
+//         mail_type: '퇴직연금 운용',
+//         log_type: '스크립트 첨부파일 열람',
+//         email_sent_time: '2025-06-02T23:59:17.999Z',
+//         action_time: '2025-06-03T01:32:30.000Z',
+//         training_result: 'fail',
+//       },
+//       {
+//         target_email: 'eunjekim8@test.com',
+//         mail_type: '세금계산서',
+//         log_type: '스크립트 첨부파일 열람',
+//         email_sent_time: '2025-06-02T23:59:17.999Z',
+//         action_time: '2025-06-03T01:32:30.000Z',
+//         training_result: 'fail',
+//       },
+//       {
+//         target_email: 'admin@test.com',
+//         mail_type: '카카오톡',
+//         log_type: '이메일 열람2',
+//         email_sent_time: '2025-06-02T23:59:17.999Z',
+//         action_time: '2025-06-03T01:32:30.000Z',
+//         training_result: 'success',
+//       },
+//     ]
+//   } catch (error) {
+//     console.error('파일 파싱 실패:', error)
+//     displayToast('파일을 읽는데 실패했습니다.', 'error')
+//   }
+// }
+
+/**
+ * 엑셀 파일 파싱 - 실제 구현
+ */
 const parseExcelFile = async (file) => {
   try {
-    // MOCK 데이터 생성
-    uploadPreview.value = [
-      {
-        target_email: 'penguin@test.com',
-        mail_type: '퇴직연금 운용',
-        log_type: '스크립트 첨부파일 열람',
-        email_sent_time: '2025-06-02T23:59:17.999Z',
-        action_time: '2025-06-03T01:32:30.000Z',
-        training_result: 'fail',
+    // 파일 유효성 검증
+    if (!file) {
+      throw new Error('파일이 선택되지 않았습니다.')
+    }
+
+    const fileName = file.name.toLowerCase()
+    if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+      throw new Error('엑셀 파일(.xlsx, .xls)만 업로드 가능합니다.')
+    }
+
+    // 파일 크기 제한 (10MB)
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      throw new Error('파일 크기는 10MB 이하여야 합니다.')
+    }
+
+    // SheetJS 사용 (Vue 프로젝트에 이미 설치되어 있음)
+    const XLSX = await import('xlsx')
+
+    // 파일을 ArrayBuffer로 읽기
+    const arrayBuffer = await file.arrayBuffer()
+
+    // 워크북 읽기
+    const workbook = XLSX.read(arrayBuffer, {
+      type: 'array',
+      cellDates: true,
+      dateNF: 'yyyy-mm-dd hh:mm:ss',
+    })
+
+    // 첫 번째 시트 선택
+    const sheetName = workbook.SheetNames[0]
+    if (!sheetName) {
+      throw new Error('엑셀 파일에 시트가 없습니다.')
+    }
+
+    const worksheet = workbook.Sheets[sheetName]
+
+    // JSON 형태로 변환
+    const rawData = XLSX.utils.sheet_to_json(worksheet, {
+      raw: false,
+      dateNF: 'yyyy-mm-dd"T"hh:mm:ss.000"Z"',
+      defval: '', // 빈 셀은 빈 문자열로 처리
+    })
+
+    if (rawData.length === 0) {
+      throw new Error('엑셀 파일에 데이터가 없습니다.')
+    }
+
+    // 컬럼 매핑 정의
+    const columnMapping = {
+      email_sent_time: ['메일발송시각', '발송시각', '메일발송일시', '발송일시'],
+      action_time: ['수행시각', '액션시각', '클릭시각', '응답시각'],
+      log_type: ['로그유형', '액션유형', '행동유형', '로그타입'],
+      mail_type: ['메일유형', '메일타입', '훈련유형', '메일종류'],
+      target_email: ['이메일', '대상이메일', '사용자이메일', '수신자'],
+    }
+
+    // 실제 컬럼명 찾기
+    const actualColumns = Object.keys(rawData[0])
+    const mappedColumns = findColumnMapping(actualColumns, columnMapping)
+
+    // 필수 컬럼 체크
+    const requiredFields = ['target_email', 'log_type']
+    const missingFields = requiredFields.filter((field) => !mappedColumns[field])
+
+    if (missingFields.length > 0) {
+      throw new Error(`필수 컬럼이 누락되었습니다: ${missingFields.join(', ')}`)
+    }
+
+    // 데이터 처리 및 검증
+    const processedData = []
+    const validationErrors = []
+
+    for (let i = 0; i < rawData.length; i++) {
+      const row = rawData[i]
+      const rowNum = i + 2 // 엑셀 행 번호 (헤더 + 1)
+
+      try {
+        // 빈 행 스킵
+        if (isEmptyRow(row, mappedColumns)) {
+          continue
+        }
+
+        // 각 필드 추출 및 검증
+        const processedRow = {
+          target_email: extractAndValidateEmail(row[mappedColumns.target_email], rowNum),
+          mail_type: extractString(row[mappedColumns.mail_type]) || '기타',
+          log_type: extractString(row[mappedColumns.log_type]),
+          email_sent_time: extractDateTime(row[mappedColumns.email_sent_time]),
+          action_time: extractDateTime(row[mappedColumns.action_time]),
+          training_result: determineTrainingResult(extractString(row[mappedColumns.log_type])),
+          row_number: rowNum,
+        }
+
+        // 추가 검증
+        if (!processedRow.log_type) {
+          validationErrors.push(`${rowNum}행: 로그유형이 비어있습니다.`)
+          continue
+        }
+
+        processedData.push(processedRow)
+      } catch (error) {
+        validationErrors.push(`${rowNum}행: ${error.message}`)
+      }
+    }
+
+    // 처리 결과 검증
+    if (processedData.length === 0) {
+      throw new Error('처리 가능한 유효한 데이터가 없습니다.')
+    }
+
+    // 중복 데이터 체크
+    const duplicates = findDuplicateRecords(processedData)
+    if (duplicates.length > 0) {
+      validationErrors.push(`중복된 기록이 있습니다: ${duplicates.join(', ')}행`)
+    }
+
+    // 미리보기 데이터 설정
+    uploadPreview.value = processedData
+
+    // 검증 경고가 있으면 표시
+    if (validationErrors.length > 0) {
+      displayToast(`파일 파싱 완료, 경고 ${validationErrors.length}개`, 'warning')
+      console.warn('데이터 검증 경고:', validationErrors)
+    } else {
+      displayToast(`${processedData.length}건의 데이터를 성공적으로 로드했습니다.`, 'success')
+    }
+
+    return {
+      success: true,
+      data: processedData,
+      warnings: validationErrors,
+      summary: {
+        total_rows: rawData.length,
+        processed_rows: processedData.length,
+        warning_count: validationErrors.length,
       },
-      {
-        target_email: 'eunjekim8@test.com',
-        mail_type: '세금계산서',
-        log_type: '스크립트 첨부파일 열람',
-        email_sent_time: '2025-06-02T23:59:17.999Z',
-        action_time: '2025-06-03T01:32:30.000Z',
-        training_result: 'fail',
-      },
-      {
-        target_email: 'admin@test.com',
-        mail_type: '카카오톡',
-        log_type: '이메일 열람2',
-        email_sent_time: '2025-06-02T23:59:17.999Z',
-        action_time: '2025-06-03T01:32:30.000Z',
-        training_result: 'success',
-      },
-    ]
+    }
   } catch (error) {
     console.error('파일 파싱 실패:', error)
-    displayToast('파일을 읽는데 실패했습니다.', 'error')
+    uploadPreview.value = []
+    displayToast(`파일 파싱 실패: ${error.message}`, 'error')
+
+    return {
+      success: false,
+      error: error.message,
+    }
   }
+}
+
+// ===== 헬퍼 함수들 (Vue 컴포넌트 내부에 추가) =====
+
+/**
+ * 컬럼 매핑 찾기
+ */
+const findColumnMapping = (actualColumns, columnMapping) => {
+  const result = {}
+
+  for (const [key, candidates] of Object.entries(columnMapping)) {
+    result[key] = null
+
+    // 정확한 매칭 우선
+    for (const candidate of candidates) {
+      const found = actualColumns.find((col) => col === candidate)
+      if (found) {
+        result[key] = found
+        break
+      }
+    }
+
+    // 부분 매칭 시도
+    if (!result[key]) {
+      for (const candidate of candidates) {
+        const found = actualColumns.find(
+          (col) => col.includes(candidate) || candidate.includes(col),
+        )
+        if (found) {
+          result[key] = found
+          break
+        }
+      }
+    }
+  }
+
+  return result
+}
+
+/**
+ * 빈 행 체크
+ */
+const isEmptyRow = (row, mappedColumns) => {
+  const importantFields = ['target_email', 'log_type']
+  return importantFields.every((field) => {
+    const columnName = mappedColumns[field]
+    return !columnName || !row[columnName] || String(row[columnName]).trim() === ''
+  })
+}
+
+/**
+ * 이메일 추출 및 검증
+ */
+const extractAndValidateEmail = (value, rowNum) => {
+  const email = extractString(value)
+  if (!email) {
+    throw new Error('이메일이 비어있습니다.')
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    throw new Error(`유효하지 않은 이메일 형식: ${email}`)
+  }
+
+  return email.toLowerCase()
+}
+
+/**
+ * 문자열 추출
+ */
+const extractString = (value) => {
+  if (value === null || value === undefined) return ''
+  return String(value).trim()
+}
+
+/**
+ * 날짜시간 추출
+ */
+const extractDateTime = (value) => {
+  if (!value) return null
+
+  try {
+    // 이미 Date 객체인 경우
+    if (value instanceof Date) {
+      return value.toISOString()
+    }
+
+    // 문자열인 경우 파싱 시도
+    const dateValue = new Date(value)
+    if (isNaN(dateValue.getTime())) {
+      return null
+    }
+
+    return dateValue.toISOString()
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 훈련 결과 판정
+ */
+const determineTrainingResult = (logType) => {
+  if (!logType) return 'unknown'
+
+  const logTypeLower = logType.toLowerCase()
+
+  // 실패 케이스 (피싱에 걸린 경우)
+  const failPatterns = [
+    '첨부파일 열람',
+    '첨부파일 실행',
+    '링크 클릭',
+    '스크립트 실행',
+    '매크로 실행',
+    '다운로드',
+    'attachment',
+    'click',
+    'download',
+    'execute',
+  ]
+
+  if (failPatterns.some((pattern) => logTypeLower.includes(pattern))) {
+    return 'fail'
+  }
+
+  // 성공 케이스 (단순 열람만)
+  const successPatterns = ['이메일 열람', '메일 읽기', '열람만', 'view', 'read']
+
+  if (successPatterns.some((pattern) => logTypeLower.includes(pattern))) {
+    return 'success'
+  }
+
+  // 기본적으로는 실패로 간주 (보수적 접근)
+  return 'fail'
+}
+
+/**
+ * 중복 기록 찾기
+ */
+const findDuplicateRecords = (data) => {
+  const seen = new Set()
+  const duplicates = []
+
+  data.forEach((record, index) => {
+    const key = `${record.target_email}_${record.email_sent_time}_${record.log_type}`
+    if (seen.has(key)) {
+      duplicates.push(record.row_number)
+    } else {
+      seen.add(key)
+    }
+  })
+
+  return duplicates
 }
 
 /**
