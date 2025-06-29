@@ -3,7 +3,12 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, make_response
 from app.services.phishing_training_service import PhishingTrainingService
 from app.services.phishing_training_period_service import PhishingTrainingPeriodService
-from app.utils.decorators import admin_required, handle_exceptions, validate_json, token_required
+from app.utils.decorators import (
+    admin_required,
+    handle_exceptions,
+    validate_json,
+    token_required,
+)
 from app.utils.constants import HTTP_STATUS
 import logging
 
@@ -26,16 +31,20 @@ def get_training_status():
         year = request.args.get("year", datetime.now().year, type=int)
 
         if not user_id:
-            return jsonify({"error": "사용자 정보를 확인할 수 없습니다."
-                            }), HTTP_STATUS["UNAUTHORIZED"]
+            return (
+                jsonify({"error": "사용자 정보를 확인할 수 없습니다."}),
+                HTTP_STATUS["UNAUTHORIZED"],
+            )
 
         result = training_service.get_user_training_status(user_id, year)
         return jsonify(result)
 
     except Exception as e:
         logger.error(f"사용자 훈련 현황 조회 오류: {str(e)}")
-        return jsonify({"error": "현황 조회에 실패했습니다."
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": "현황 조회에 실패했습니다."}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 # ===== 관리자용 API =====
@@ -53,8 +62,10 @@ def get_periods_status():
 
     except Exception as e:
         logger.error(f"훈련 기간 현황 조회 오류: {str(e)}")
-        return jsonify({"error": f"기간 현황 조회 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"기간 현황 조회 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @training_bp.route("/periods", methods=["GET"])
@@ -69,15 +80,18 @@ def get_periods():
 
     except Exception as e:
         logger.error(f"훈련 기간 목록 조회 오류: {str(e)}")
-        return jsonify({"error": f"기간 조회 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"기간 조회 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @training_bp.route("/periods", methods=["POST"])
 @admin_required
 @handle_exceptions
 @validate_json(
-    ["training_year", "period_name", "training_type", "start_date", "end_date"])
+    ["training_year", "period_name", "training_type", "start_date", "end_date"]
+)
 def create_period():
     """새 훈련 기간 생성"""
     try:
@@ -93,15 +107,18 @@ def create_period():
 
     except Exception as e:
         logger.error(f"훈련 기간 생성 오류: {str(e)}")
-        return jsonify({"error": f"기간 생성 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"기간 생성 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @training_bp.route("/periods/<int:period_id>", methods=["PUT"])
 @admin_required
 @handle_exceptions
 @validate_json(
-    ["training_year", "period_name", "training_type", "start_date", "end_date"])
+    ["training_year", "period_name", "training_type", "start_date", "end_date"]
+)
 def update_period(period_id):
     """훈련 기간 수정"""
     try:
@@ -117,8 +134,10 @@ def update_period(period_id):
 
     except Exception as e:
         logger.error(f"훈련 기간 수정 오류: {str(e)}")
-        return jsonify({"error": f"기간 수정 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"기간 수정 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @training_bp.route("/periods/<int:period_id>/complete", methods=["POST"])
@@ -137,8 +156,10 @@ def complete_period(period_id):
 
     except Exception as e:
         logger.error(f"훈련 기간 완료 처리 오류: {str(e)}")
-        return jsonify({"error": f"완료 처리 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"완료 처리 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @training_bp.route("/periods/<int:period_id>/reopen", methods=["POST"])
@@ -156,8 +177,10 @@ def reopen_period(period_id):
 
     except Exception as e:
         logger.error(f"훈련 기간 재개 오류: {str(e)}")
-        return jsonify({"error": f"재개 처리 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"재개 처리 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @training_bp.route("/periods/<int:period_id>", methods=["DELETE"])
@@ -172,7 +195,7 @@ def delete_period(period_id):
             return jsonify({"message": result["message"]})
         else:
             status_code = HTTP_STATUS["BAD_REQUEST"]
-            response_data = {"error": result["message"]}
+            response_data = {"error": result["error"]}
 
             if result.get("requires_confirmation"):
                 response_data["requires_confirmation"] = True
@@ -182,8 +205,10 @@ def delete_period(period_id):
 
     except Exception as e:
         logger.error(f"훈련 기간 삭제 오류: {str(e)}")
-        return jsonify({"error": f"기간 삭제 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"기간 삭제 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @training_bp.route("/periods/<int:period_id>/force-delete", methods=["DELETE"])
@@ -197,12 +222,14 @@ def force_delete_period(period_id):
         if result["success"]:
             return jsonify({"message": result["message"]})
         else:
-            return jsonify({"error": result["message"]}), HTTP_STATUS["BAD_REQUEST"]
+            return jsonify({"error": result["error"]}), HTTP_STATUS["BAD_REQUEST"]
 
     except Exception as e:
         logger.error(f"훈련 기간 강제 삭제 오류: {str(e)}")
-        return jsonify({"error": f"강제 삭제 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"강제 삭제 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @training_bp.route("/records", methods=["GET"])
@@ -219,18 +246,24 @@ def get_training_records():
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 20, type=int)
 
-        result = training_service.get_training_records(year=year, period_id=period_id,
-                                                       training_type=training_type,
-                                                       result_filter=result_filter,
-                                                       search_query=search_query,
-                                                       page=page, per_page=per_page)
+        result = training_service.get_training_records(
+            year=year,
+            period_id=period_id,
+            training_type=training_type,
+            result_filter=result_filter,
+            search_query=search_query,
+            page=page,
+            per_page=per_page,
+        )
 
         return jsonify(result)
 
     except Exception as e:
         logger.error(f"훈련 기록 조회 오류: {str(e)}")
-        return jsonify({"error": f"기록 조회 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"기록 조회 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @training_bp.route("/records/<int:record_id>", methods=["PUT"])
@@ -249,8 +282,10 @@ def update_training_record(record_id):
 
     except Exception as e:
         logger.error(f"훈련 기록 수정 오류: {str(e)}")
-        return jsonify({"error": f"기록 수정 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"기록 수정 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @training_bp.route("/records/<int:record_id>/exclude", methods=["POST"])
@@ -272,8 +307,10 @@ def toggle_record_exclude(record_id):
 
     except Exception as e:
         logger.error(f"훈련 기록 제외/포함 처리 오류: {str(e)}")
-        return jsonify({"error": f"처리 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"처리 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @training_bp.route("/records/<int:record_id>", methods=["DELETE"])
@@ -291,8 +328,10 @@ def delete_training_record(record_id):
 
     except Exception as e:
         logger.error(f"훈련 기록 삭제 오류: {str(e)}")
-        return jsonify({"error": f"기록 삭제 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"기록 삭제 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @training_bp.route("/bulk-upload", methods=["POST"])
@@ -301,17 +340,26 @@ def delete_training_record(record_id):
 def bulk_upload():
     """훈련 결과 일괄 업로드"""
     try:
-        if 'file' not in request.files:
-            return jsonify({"error": "파일이 업로드되지 않았습니다."}), HTTP_STATUS["BAD_REQUEST"]
+        if "file" not in request.files:
+            return (
+                jsonify({"error": "파일이 업로드되지 않았습니다."}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
 
-        file = request.files['file']
-        period_id = request.form.get('period_id', type=int)
+        file = request.files["file"]
+        period_id = request.form.get("period_id", type=int)
 
         if not period_id:
-            return jsonify({"error": "훈련 기간을 선택해주세요."}), HTTP_STATUS["BAD_REQUEST"]
+            return (
+                jsonify({"error": "훈련 기간을 선택해주세요."}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
 
-        if file.filename == '':
-            return jsonify({"error": "파일이 선택되지 않았습니다."}), HTTP_STATUS["BAD_REQUEST"]
+        if file.filename == "":
+            return (
+                jsonify({"error": "파일이 선택되지 않았습니다."}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
 
         result = training_service.process_excel_upload(file, period_id)
 
@@ -322,8 +370,10 @@ def bulk_upload():
 
     except Exception as e:
         logger.error(f"일괄 업로드 오류: {str(e)}")
-        return jsonify({"error": f"업로드 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"업로드 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @training_bp.route("/export", methods=["GET"])
@@ -347,8 +397,10 @@ def export_training_data():
 
     except Exception as e:
         logger.error(f"데이터 내보내기 오류: {str(e)}")
-        return jsonify({"error": f"내보내기 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"내보내기 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 @training_bp.route("/statistics", methods=["GET"])
@@ -365,8 +417,10 @@ def get_training_statistics():
 
     except Exception as e:
         logger.error(f"훈련 통계 조회 오류: {str(e)}")
-        return jsonify({"error": f"통계 조회 실패: {str(e)}"
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return (
+            jsonify({"error": f"통계 조회 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
 
 
 # ===== 에러 핸들러 =====
@@ -374,9 +428,15 @@ def get_training_statistics():
 
 @training_bp.errorhandler(404)
 def not_found(error):
-    return jsonify({"error": "요청한 리소스를 찾을 수 없습니다."}), HTTP_STATUS["NOT_FOUND"]
+    return (
+        jsonify({"error": "요청한 리소스를 찾을 수 없습니다."}),
+        HTTP_STATUS["NOT_FOUND"],
+    )
 
 
 @training_bp.errorhandler(405)
 def method_not_allowed(error):
-    return jsonify({"error": "허용되지 않은 HTTP 메서드입니다."}), HTTP_STATUS["METHOD_NOT_ALLOWED"]
+    return (
+        jsonify({"error": "허용되지 않은 HTTP 메서드입니다."}),
+        HTTP_STATUS["METHOD_NOT_ALLOWED"],
+    )

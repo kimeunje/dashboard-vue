@@ -1288,6 +1288,7 @@ const deletePeriod = async (period) => {
     if (response.ok) {
       displayToast(result.message, 'success')
       await loadPeriodStatus()
+      await loadTrainingData()
       return
     }
 
@@ -1332,6 +1333,7 @@ const forceDeletePeriod = async (periodId) => {
 
     displayToast(result.message, 'success')
     await loadPeriodStatus()
+    await loadTrainingData()
   } catch (err) {
     console.error('강제 삭제 오류:', err)
     displayToast(err.message, 'error')
