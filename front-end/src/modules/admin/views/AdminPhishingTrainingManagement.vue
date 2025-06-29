@@ -692,6 +692,116 @@
       </div>
     </div>
 
+    <!-- 훈련 기록 수정 모달 -->
+    <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
+      <div class="modal-content large" @click.stop>
+        <div class="modal-header">
+          <h3>훈련 기록 수정</h3>
+          <button @click="closeEditModal" class="close-button">
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+              <path
+                d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <form @submit.prevent="saveRecord" class="edit-form">
+            <!-- 기본 정보 (읽기 전용) -->
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">사용자명</label>
+                <input v-model="editingRecord.username" type="text" class="form-input" readonly />
+              </div>
+              <div class="form-group">
+                <label class="form-label">부서</label>
+                <input v-model="editingRecord.department" type="text" class="form-input" readonly />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">이메일</label>
+                <input
+                  v-model="editingRecord.target_email"
+                  type="email"
+                  class="form-input"
+                  readonly
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">메일 유형</label>
+                <input v-model="editingRecord.mail_type" type="text" class="form-input" readonly />
+              </div>
+            </div>
+
+            <!-- 수정 가능한 필드들 -->
+            <div class="form-group">
+              <label class="form-label">훈련 결과 *</label>
+              <select v-model="editingRecord.training_result" class="form-input" required>
+                <option value="">선택하세요</option>
+                <option value="success">성공</option>
+                <option value="fail">실패</option>
+                <option value="no_response">무응답</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">메모</label>
+              <textarea
+                v-model="editingRecord.notes"
+                class="form-input"
+                rows="3"
+                placeholder="기록에 대한 추가 메모를 입력하세요"
+              ></textarea>
+            </div>
+
+            <!-- 제외 설정 -->
+            <div class="form-group">
+              <div class="checkbox-wrapper">
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    v-model="editingRecord.exclude_from_scoring"
+                    class="checkbox-input"
+                  />
+                  <span class="checkbox-custom">
+                    <span class="checkbox-checkmark">
+                      <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                          d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"
+                        />
+                      </svg>
+                    </span>
+                    <span class="checkbox-text">점수 계산에서 제외</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div v-if="editingRecord.exclude_from_scoring" class="form-group">
+              <label class="form-label">제외 사유</label>
+              <input
+                v-model="editingRecord.exclude_reason"
+                type="text"
+                class="form-input"
+                placeholder="제외 사유를 입력하세요"
+              />
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-footer">
+          <button @click="closeEditModal" class="secondary-button" :disabled="saving">취소</button>
+          <button @click="saveRecord" class="primary-button" :disabled="saving">
+            <span v-if="saving">저장 중...</span>
+            <span v-else>저장</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 토스트 메시지 -->
     <div v-if="toast.show" class="toast" :class="toast.type">
       <div class="toast-content">
@@ -770,6 +880,11 @@ const trainingRecords = ref([])
 const filteredRecords = ref([])
 const currentPage = ref(1)
 const recordsPerPage = ref(20)
+
+// ==== 1. 반응형 데이터에 추가 ====
+const showEditModal = ref(false) // 수정 모달 표시 여부
+const editingRecord = ref({}) // 수정 중인 기록
+const saving = ref(false) // 저장 중 상태
 
 // ===== Computed =====
 const availableYears = computed(() => {
@@ -1903,10 +2018,106 @@ const formatResponseTime = (minutes) => {
   return `${mins}분`
 }
 
-// 기록 관리 메서드들
+/**
+ * 훈련 기록 수정 모달 열기
+ */
 const editRecord = (record) => {
-  console.log('기록 수정:', record)
-  displayToast('기록 수정 기능은 다음 단계에서 구현됩니다.', 'info')
+  editingRecord.value = {
+    training_id: record.training_id,
+    user_id: record.user_id,
+    username: record.username,
+    department: record.department,
+    target_email: record.target_email,
+    mail_type: record.mail_type,
+    log_type: record.log_type,
+    training_result: record.training_result,
+    notes: record.notes || '',
+    exclude_from_scoring: record.exclude_from_scoring,
+    exclude_reason: record.exclude_reason || '',
+    // 읽기 전용으로 표시할 추가 정보
+    email_sent_time: record.email_sent_time,
+    action_time: record.action_time,
+    response_time_minutes: record.response_time_minutes,
+  }
+  showEditModal.value = true
+}
+
+/**
+ * 훈련 기록 저장 (실제 API 호출)
+ */
+const saveRecord = async () => {
+  if (saving.value) return
+
+  // 필수 필드 검증
+  if (!editingRecord.value.training_result) {
+    displayToast('훈련 결과를 선택해주세요.', 'error')
+    return
+  }
+
+  // 제외 사유 검증
+  if (editingRecord.value.exclude_from_scoring && !editingRecord.value.exclude_reason) {
+    displayToast('제외 사유를 입력해주세요.', 'error')
+    return
+  }
+
+  saving.value = true
+
+  try {
+    const response = await fetch(
+      `/api/phishing-training/records/${editingRecord.value.training_id}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          training_result: editingRecord.value.training_result,
+          notes: editingRecord.value.notes,
+          exclude_from_scoring: editingRecord.value.exclude_from_scoring,
+          exclude_reason: editingRecord.value.exclude_from_scoring
+            ? editingRecord.value.exclude_reason
+            : null,
+        }),
+      },
+    )
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || '수정 실패')
+    }
+
+    // 로컬 상태 업데이트
+    const index = trainingRecords.value.findIndex(
+      (r) => r.training_id === editingRecord.value.training_id,
+    )
+    if (index !== -1) {
+      trainingRecords.value[index] = {
+        ...trainingRecords.value[index],
+        training_result: editingRecord.value.training_result,
+        notes: editingRecord.value.notes,
+        exclude_from_scoring: editingRecord.value.exclude_from_scoring,
+        exclude_reason: editingRecord.value.exclude_reason,
+      }
+      applyFilters() // 필터 재적용
+    }
+
+    displayToast(result.message || '훈련 기록이 수정되었습니다.', 'success')
+    closeEditModal()
+  } catch (error) {
+    console.error('기록 수정 실패:', error)
+    displayToast(error.message, 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+/**
+ * 수정 모달 닫기
+ */
+const closeEditModal = () => {
+  showEditModal.value = false
+  editingRecord.value = {}
+  saving.value = false
 }
 
 /**
