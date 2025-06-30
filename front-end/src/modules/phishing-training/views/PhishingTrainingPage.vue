@@ -43,7 +43,7 @@
                   </svg>
                 </div>
                 <h3>악성메일 모의훈련</h3>
-                <span class="card-frequency">{{ selectedYear }}년 연 2회 실시</span>
+                <span class="card-frequency">{{ selectedYear }}년 실시</span>
               </div>
               <div class="card-stats">
                 <div class="stat-row">
@@ -51,11 +51,11 @@
                   <span class="stat-value">{{ trainingData.summary.conducted }}</span>
                 </div>
                 <div class="stat-row">
-                  <span class="stat-label">통과</span>
+                  <span class="stat-label">양호</span>
                   <span class="stat-value success">{{ trainingData.summary.passed }}</span>
                 </div>
                 <div class="stat-row">
-                  <span class="stat-label">실패</span>
+                  <span class="stat-label">미흡</span>
                   <span class="stat-value danger">{{ trainingData.summary.failed }}</span>
                 </div>
                 <div class="stat-row">
@@ -65,7 +65,7 @@
                   }}</span>
                 </div>
                 <div class="stat-row">
-                  <span class="stat-label">감점</span>
+                  <span class="stat-label">점수결과</span>
                   <span class="stat-value danger">-{{ trainingData.summary.penalty_score }}</span>
                 </div>
               </div>
@@ -108,10 +108,6 @@
               </div>
 
               <div class="period-details">
-                <div class="detail-row" v-if="period.email_sent_time || period.result !== 'pass'">
-                  <span class="label">메일 발송시각:</span>
-                  <span class="value">{{ period.email_sent_time || '미발송' }}</span>
-                </div>
                 <div class="detail-row" v-if="period.action_time">
                   <span class="label">수행시간:</span>
                   <span class="value">{{ period.action_time }}</span>
@@ -132,10 +128,7 @@
                   <span class="label">IP주소:</span>
                   <span class="value">{{ period.ip_address }}</span>
                 </div>
-                <div class="detail-row" v-if="period.response_time_minutes">
-                  <span class="label">응답시간:</span>
-                  <span class="value">{{ period.response_time_minutes }}분</span>
-                </div>
+
                 <div class="detail-row">
                   <span class="label">비고:</span>
                   <span class="value notes">{{ period.notes || '-' }}</span>
@@ -185,8 +178,8 @@
               <div class="info-icon">🎯</div>
               <h3>평가 기준</h3>
               <ul>
-                <li>피싱메일에 액션 없음: 통과</li>
-                <li>첨부파일 열람/링크 클릭: 실패</li>
+                <li>피싱메일에 액션 없음: 양호</li>
+                <li>첨부파일 열람/링크 클릭: 미흡</li>
                 <li>실패시 0.5점 감점</li>
               </ul>
             </div>
@@ -644,9 +637,8 @@ const getStatusBadgeClass = (result) => {
 
 const getResultText = (result) => {
   const texts = {
-    pass: '통과',
-    fail: '실패',
-    pending: '미실시',
+    pass: '양호',
+    fail: '미흡',
   }
   return texts[result] || '알 수 없음'
 }
