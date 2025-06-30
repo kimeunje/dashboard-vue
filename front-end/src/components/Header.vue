@@ -14,7 +14,7 @@
     <div class="user-controls">
       <div class="user-menu" v-if="user">
         <div class="user-info">
-          <div class="user-name">{{ user.username }}</div>
+          <div class="user-name">{{ user.name }}</div>
           <div class="user-role">{{ getUserRoleText(user.role) }}</div>
         </div>
         <div class="user-actions">
