@@ -37,7 +37,7 @@ class PhishingTrainingService:
             # username으로 사용자 정보 조회 (user_id 컬럼이 실제 로그인 ID)
             user = execute_query(
                 "SELECT uid, user_id as username, department FROM users WHERE user_id = %s",
-                (username,),
+                (username, ),
                 fetch_one=True,
             )
 
@@ -80,9 +80,8 @@ class PhishingTrainingService:
             training_summary = self._calculate_training_summary(training_records)
 
             # 기간별 상태 계산
-            period_status = self._calculate_period_status(
-                training_records, year, user_uid
-            )
+            period_status = self._calculate_period_status(training_records, year,
+                                                          user_uid)
 
             return {
                 "user_info": user,
@@ -114,29 +113,23 @@ class PhishingTrainingService:
             return summary
 
         # 실제 결과값에 따른 계산 (success, fail, no_response)
-        summary["conducted"] = len(
-            [r for r in training_records if r["training_result"] in ["success", "fail"]]
-        )
+        summary["conducted"] = len([
+            r for r in training_records if r["training_result"] in ["success", "fail"]
+        ])
         summary["passed"] = len(
-            [r for r in training_records if r["training_result"] == "success"]
-        )
+            [r for r in training_records if r["training_result"] == "success"])
         summary["failed"] = len(
-            [r for r in training_records if r["training_result"] == "fail"]
-        )
+            [r for r in training_records if r["training_result"] == "fail"])
         summary["pending"] = len(
-            [r for r in training_records if r["training_result"] == "no_response"]
-        )
+            [r for r in training_records if r["training_result"] == "no_response"])
         summary["excluded_count"] = len(
-            [r for r in training_records if r["exclude_from_scoring"]]
-        )
+            [r for r in training_records if r["exclude_from_scoring"]])
 
         # 감점 계산 (실패한 훈련은 0.5점 감점)
         penalty_score = 0
         for record in training_records:
-            if (
-                record["training_result"] == "fail"
-                and not record["exclude_from_scoring"]
-            ):
+            if (record["training_result"] == "fail"
+                    and not record["exclude_from_scoring"]):
                 penalty_score += 0.5  # 기본 감점 0.5점
 
         summary["penalty_score"] = penalty_score
@@ -148,9 +141,8 @@ class PhishingTrainingService:
 
         return summary
 
-    def _calculate_period_status(
-        self, training_records: List[Dict], year: int, user_uid: int
-    ) -> List[Dict]:
+    def _calculate_period_status(self, training_records: List[Dict], year: int,
+                                 user_uid: int) -> List[Dict]:
         """기간별 상태 계산 - 실제 DB에서 기간 정보 조회"""
 
         # 해당 연도의 모든 훈련 기간 조회
@@ -167,7 +159,7 @@ class PhishingTrainingService:
             WHERE training_year = %s
             ORDER BY start_date
             """,
-            (year,),
+            (year, ),
             fetch_all=True,
         )
 
@@ -187,46 +179,25 @@ class PhishingTrainingService:
                     "period": f"period_{period['period_id']}",
                     "period_name": period["period_name"],
                     "training_year": year,
-                    "start_date": (
-                        period["start_date"].strftime("%Y-%m-%d")
-                        if period["start_date"]
-                        else None
-                    ),
-                    "end_date": (
-                        period["end_date"].strftime("%Y-%m-%d")
-                        if period["end_date"]
-                        else None
-                    ),
-                    "result": (
-                        "pass"
-                        if user_record["training_result"] == "success"
-                        else (
-                            "fail"
-                            if user_record["training_result"] == "fail"
-                            else "pending"
-                        )
-                    ),
-                    "email_sent_time": (
-                        user_record["email_sent_time"].isoformat() + "Z"
-                        if user_record["email_sent_time"]
-                        else None
-                    ),
-                    "action_time": (
-                        user_record["action_time"].isoformat() + "Z"
-                        if user_record["action_time"]
-                        else None
-                    ),
+                    "start_date": (period["start_date"].strftime("%Y-%m-%d")
+                                   if period["start_date"] else None),
+                    "end_date": (period["end_date"].strftime("%Y-%m-%d")
+                                 if period["end_date"] else None),
+                    "result": ("pass" if user_record["training_result"] == "success"
+                               else ("fail" if user_record["training_result"] == "fail"
+                                     else "pending")),
+                    "email_sent_time": (user_record["email_sent_time"].isoformat() + "Z"
+                                        if user_record["email_sent_time"] else None),
+                    "action_time": (user_record["action_time"].isoformat() +
+                                    "Z" if user_record["action_time"] else None),
                     "log_type": user_record["log_type"],
                     "mail_type": user_record["mail_type"],
                     "user_email": user_record["target_email"],
                     "ip_address": None,  # IP 정보는 스키마에 없음
                     "response_time_minutes": user_record["response_time_minutes"],
-                    "score_impact": (
-                        -0.5
-                        if user_record["training_result"] == "fail"
-                        and not user_record["exclude_from_scoring"]
-                        else 0
-                    ),
+                    "score_impact": (-0.5 if user_record["training_result"] == "fail"
+                                     and not user_record["exclude_from_scoring"] else
+                                     0),
                     "notes": user_record["notes"],
                     "exclude_from_scoring": user_record["exclude_from_scoring"],
                     "exclude_reason": user_record["exclude_reason"],
@@ -250,9 +221,8 @@ class PhishingTrainingService:
                     "period": f"period_{period['period_id']}",
                     "period_name": period["period_name"],
                     "training_year": year,
-                    "start_date": (
-                        period_start.strftime("%Y-%m-%d") if period_start else None
-                    ),
+                    "start_date": (period_start.strftime("%Y-%m-%d")
+                                   if period_start else None),
                     "end_date": period_end.strftime("%Y-%m-%d") if period_end else None,
                     "result": result,
                     "email_sent_time": None,
@@ -263,9 +233,7 @@ class PhishingTrainingService:
                     "ip_address": None,
                     "response_time_minutes": None,
                     "score_impact": 0,
-                    "notes": (
-                        "훈련이 실시되지 않았습니다." if result == "pending" else None
-                    ),
+                    "notes": ("훈련이 실시되지 않았습니다." if result == "pending" else None),
                     "exclude_from_scoring": False,
                     "exclude_reason": None,
                 }
@@ -333,14 +301,12 @@ class PhishingTrainingService:
                 base_query += " AND (u.username LIKE %s OR u.department LIKE %s OR pt.target_email LIKE %s OR pt.mail_type LIKE %s)"
                 search_pattern = f"%{search_query}%"
                 conditions.extend(
-                    [search_pattern, search_pattern, search_pattern, search_pattern]
-                )
+                    [search_pattern, search_pattern, search_pattern, search_pattern])
 
             # 전체 레코드 수 조회
             count_query = f"SELECT COUNT(*) as total FROM ({base_query}) as count_query"
-            total_count = execute_query(count_query, conditions, fetch_one=True)[
-                "total"
-            ]
+            total_count = execute_query(count_query, conditions,
+                                        fetch_one=True)["total"]
 
             # 페이지네이션 적용
             offset = (page - 1) * per_page
@@ -376,30 +342,23 @@ class PhishingTrainingService:
             "target_email": record["target_email"],
             "mail_type": record["mail_type"],
             "log_type": record["log_type"],
-            "email_sent_time": (
-                record["email_sent_time"].isoformat()
-                if record["email_sent_time"]
-                else None
-            ),
-            "action_time": (
-                record["action_time"].isoformat() if record["action_time"] else None
-            ),
+            "email_sent_time": (record["email_sent_time"].isoformat()
+                                if record["email_sent_time"] else None),
+            "action_time": (record["action_time"].isoformat()
+                            if record["action_time"] else None),
             "training_result": record["training_result"],
             "response_time_minutes": record["response_time_minutes"],
             "exclude_from_scoring": bool(record["exclude_from_scoring"]),
             "exclude_reason": record["exclude_reason"],
             "notes": record["notes"],
-            "created_at": (
-                record["created_at"].isoformat() if record["created_at"] else None
-            ),
-            "updated_at": (
-                record["updated_at"].isoformat() if record["updated_at"] else None
-            ),
+            "created_at": (record["created_at"].isoformat()
+                           if record["created_at"] else None),
+            "updated_at": (record["updated_at"].isoformat()
+                           if record["updated_at"] else None),
         }
 
-    def update_training_record(
-        self, record_id: int, data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def update_training_record(self, record_id: int, data: Dict[str,
+                                                                Any]) -> Dict[str, Any]:
         """훈련 기록 수정"""
         try:
             # 기록 존재 확인
@@ -450,9 +409,8 @@ class PhishingTrainingService:
                 "error": f"기록 수정 중 오류가 발생했습니다: {str(e)}",
             }
 
-    def toggle_record_exclude(
-        self, record_id: int, exclude: bool, reason: str = ""
-    ) -> Dict[str, Any]:
+    def toggle_record_exclude(self, record_id: int, exclude: bool,
+                              reason: str = "") -> Dict[str, Any]:
         """훈련 기록 제외/포함 토글"""
         try:
             record = self._get_record_by_id(record_id)
@@ -485,7 +443,7 @@ class PhishingTrainingService:
                 return {"success": False, "error": "훈련 기록을 찾을 수 없습니다."}
 
             query = "DELETE FROM phishing_training WHERE training_id = %s"
-            execute_query(query, (record_id,))
+            execute_query(query, (record_id, ))
 
             return {"success": True, "message": "훈련 기록이 삭제되었습니다."}
 
@@ -496,7 +454,7 @@ class PhishingTrainingService:
     def _get_record_by_id(self, record_id: int) -> Optional[Dict]:
         """ID로 훈련 기록 조회"""
         query = "SELECT * FROM phishing_training WHERE training_id = %s"
-        return execute_query(query, (record_id,), fetch_one=True)
+        return execute_query(query, (record_id, ), fetch_one=True)
 
     def process_excel_upload(self, file: FileStorage, period_id: int) -> Dict[str, Any]:
         """엑셀 파일 업로드 처리"""
@@ -506,7 +464,7 @@ class PhishingTrainingService:
             SELECT period_id, training_year, period_name, training_type, is_completed
             FROM phishing_training_periods WHERE period_id = %s
             """
-            period = execute_query(period_query, (period_id,), fetch_one=True)
+            period = execute_query(period_query, (period_id, ), fetch_one=True)
 
             if not period:
                 return {
@@ -549,13 +507,11 @@ class PhishingTrainingService:
                     # 이메일로 사용자 찾기
                     target_email = str(row["이메일"]).strip()
                     user_query = "SELECT uid FROM users WHERE mail = %s"
-                    user = execute_query(user_query, (target_email,), fetch_one=True)
+                    user = execute_query(user_query, (target_email, ), fetch_one=True)
 
                     if not user:
                         error_count += 1
-                        errors.append(
-                            f"행 {index+2}: 사용자를 찾을 수 없습니다 ({target_email})"
-                        )
+                        errors.append(f"행 {index+2}: 사용자를 찾을 수 없습니다 ({target_email})")
                         continue
 
                     # 중복 체크
@@ -571,9 +527,7 @@ class PhishingTrainingService:
 
                     if duplicate["count"] > 0:
                         error_count += 1
-                        errors.append(
-                            f"행 {index+2}: 중복된 기록입니다 ({target_email})"
-                        )
+                        errors.append(f"행 {index+2}: 중복된 기록입니다 ({target_email})")
                         continue
 
                     # 훈련 결과 판정
@@ -594,16 +548,10 @@ class PhishingTrainingService:
                         user["uid"],
                         period_id,
                         period["training_year"],
-                        (
-                            pd.to_datetime(row["메일발송시각"])
-                            if pd.notna(row["메일발송시각"])
-                            else None
-                        ),
-                        (
-                            pd.to_datetime(row["수행시각"])
-                            if pd.notna(row["수행시각"])
-                            else None
-                        ),
+                        (pd.to_datetime(row["메일발송시각"])
+                         if pd.notna(row["메일발송시각"]) else None),
+                        (pd.to_datetime(row["수행시각"])
+                         if pd.notna(row["수행시각"]) else None),
                         str(row["로그유형"]),
                         str(row["메일유형"]),
                         target_email,
@@ -638,28 +586,31 @@ class PhishingTrainingService:
             }
 
     def _determine_training_result(self, row: pd.Series) -> str:
-        """훈련 결과 판정 로직"""
-        log_type = str(row["로그유형"]).lower()
+        """훈련 결과 판정 로직 - 간소화된 버전"""
 
-        # 위험한 행동 패턴 (실패)
-        dangerous_patterns = [
-            "스크립트 첨부파일 열람",
-            "첨부파일 다운로드",
-            "링크 클릭",
-            "개인정보 입력",
-            "비밀번호 입력",
-            "계정정보 입력",
-        ]
+        # 로그 유형 확인
+        log_type = row.get("로그유형", "")
 
-        if any(pattern.lower() in log_type for pattern in dangerous_patterns):
-            return "fail"
+        # None이나 NaN 처리
+        if pd.isna(log_type):
+            log_type = ""
+        else:
+            log_type = str(log_type).strip()
 
-        # 무응답 처리
-        if pd.isna(row["수행시각"]) or str(row["수행시각"]).strip() == "":
+        # 수행시각 확인 (무응답 처리용)
+        action_time = row.get("수행시각", "")
+        if pd.isna(action_time):
+            action_time = ""
+        else:
+            action_time = str(action_time).strip()
+
+        # 판정 로직
+        if not log_type or log_type == "":
+            # 로그 유형이 없으면 무응답
             return "no_response"
-
-        # 안전한 행동 패턴 (성공)
-        return "success"
+        else:
+            # 로그 유형이 있으면 무조건 실패 (피싱에 걸림)
+            return "fail"
 
     def _calculate_response_time(self, row: pd.Series) -> Optional[int]:
         """응답 시간 계산 (분 단위)"""
@@ -679,9 +630,8 @@ class PhishingTrainingService:
         except Exception:
             return None
 
-    def export_training_data(
-        self, year: int, format_type: str = "csv"
-    ) -> Dict[str, Any]:
+    def export_training_data(self, year: int,
+                             format_type: str = "csv") -> Dict[str, Any]:
         """훈련 데이터 내보내기"""
         try:
             query = """
@@ -715,7 +665,7 @@ class PhishingTrainingService:
             ORDER BY u.department, u.username, pt.email_sent_time
             """
 
-            records = execute_query(query, (year,), fetch_all=True)
+            records = execute_query(query, (year, ), fetch_all=True)
 
             if not records:
                 return {"success": False, "error": "내보낼 데이터가 없습니다."}
@@ -733,9 +683,7 @@ class PhishingTrainingService:
 
                 return {
                     "success": True,
-                    "data": csv_content.encode(
-                        "utf-8-sig"
-                    ),  # BOM 추가로 한글 깨짐 방지
+                    "data": csv_content.encode("utf-8-sig"),  # BOM 추가로 한글 깨짐 방지
                     "content_type": "text/csv; charset=utf-8-sig",
                     "filename": f'attachment; filename="피싱훈련데이터_{year}.csv"',
                 }
@@ -750,9 +698,8 @@ class PhishingTrainingService:
                 "error": f"내보내기 중 오류가 발생했습니다: {str(e)}",
             }
 
-    def get_training_statistics(
-        self, year: int, period_id: Optional[int] = None
-    ) -> Dict[str, Any]:
+    def get_training_statistics(self, year: int,
+                                period_id: Optional[int] = None) -> Dict[str, Any]:
         """훈련 통계 조회"""
         try:
             base_query = """
@@ -827,8 +774,7 @@ class PhishingTrainingService:
                 period_stats[period_key]["success_count"] += stat["success_count"]
                 period_stats[period_key]["fail_count"] += stat["fail_count"]
                 period_stats[period_key]["no_response_count"] += stat[
-                    "no_response_count"
-                ]
+                    "no_response_count"]
                 period_stats[period_key]["excluded_count"] += stat["excluded_count"]
 
                 # 부서별 통계
@@ -850,25 +796,20 @@ class PhishingTrainingService:
                 department_stats[dept]["excluded_count"] += stat["excluded_count"]
 
             # 성공률 계산
-            total_scored = (
-                result["overall"]["total_participants"]
-                - result["overall"]["total_excluded"]
-            )
+            total_scored = (result["overall"]["total_participants"] -
+                            result["overall"]["total_excluded"])
             if total_scored > 0:
                 result["overall"]["overall_success_rate"] = round(
-                    (result["overall"]["total_success"] / total_scored) * 100, 2
-                )
+                    (result["overall"]["total_success"] / total_scored) * 100, 2)
 
             # 기간별 성공률 계산
             for period_key in period_stats:
                 period_data = period_stats[period_key]
-                scored = (
-                    period_data["total_participants"] - period_data["excluded_count"]
-                )
+                scored = (period_data["total_participants"] -
+                          period_data["excluded_count"])
                 if scored > 0:
                     period_data["success_rate"] = round(
-                        (period_data["success_count"] / scored) * 100, 2
-                    )
+                        (period_data["success_count"] / scored) * 100, 2)
 
             # 부서별 성공률 계산
             for dept in department_stats:
@@ -876,8 +817,7 @@ class PhishingTrainingService:
                 scored = dept_data["total_participants"] - dept_data["excluded_count"]
                 if scored > 0:
                     dept_data["success_rate"] = round(
-                        (dept_data["success_count"] / scored) * 100, 2
-                    )
+                        (dept_data["success_count"] / scored) * 100, 2)
 
             result["by_period"] = period_stats
             result["by_department"] = department_stats
