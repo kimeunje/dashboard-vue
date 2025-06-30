@@ -914,27 +914,6 @@ const downloadCleanupScript = () => {
 }
 
 /* 섹션 스타일 */
-.section {
-  margin-bottom: 32px;
-}
-
-.section-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--dark-blue);
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.section-title::before {
-  content: '';
-  width: 4px;
-  height: 1.5rem;
-  background-color: var(--primary-color);
-  border-radius: 2px;
-}
 
 .section p {
   line-height: 1.6;

@@ -58,62 +58,136 @@
           <h2 class="section-title">개요</h2>
           <p>
             화면보호기는 컴퓨터를 사용하지 않는 동안 화면을 보호하고 무단 접근을 방지하는 중요한
-            보안 기능입니다. 화면보호기가 10분 이내에 활성화되고 암호로 보호되도록 설정해야 합니다.
+            보안 기능입니다. 정보보안 감사에서는 화면보호기가 10분 이내에 활성화되고 암호로
+            보호되도록 설정해야 합니다.
           </p>
         </div>
 
         <!-- 화면보호기 요구사항 -->
         <div class="section">
-          <h2 class="section-title">화면보호기 요구사항</h2>
-          <p>다음 화면보호기 요구사항이 반드시 충족되어야 합니다:</p>
-          <ul>
-            <li><strong>대기 시간:</strong> 10분 이내로 화면보호기가 자동 실행되도록 설정</li>
-            <li>
-              <strong>암호 보호:</strong> 화면보호기 해제 시 로그인 암호 입력이 필요하도록 설정
-            </li>
-            <li>
-              <strong>화면보호기 선택:</strong> 시스템 리소스를 적게 사용하는 단순한 화면보호기 사용
-            </li>
-          </ul>
+          <h2 class="section-title">화면보호기 보안 요구사항</h2>
+          <div class="requirements-grid">
+            <div class="requirement-card">
+              <div class="requirement-icon time">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                  <path
+                    d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"
+                  />
+                  <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z" />
+                </svg>
+              </div>
+              <h3>대기 시간 설정</h3>
+              <p><strong>10분 이내</strong>로 화면보호기가 자동 실행되도록 설정해야 합니다.</p>
+            </div>
+
+            <div class="requirement-card">
+              <div class="requirement-icon lock">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                  <path
+                    d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"
+                  />
+                </svg>
+              </div>
+              <h3>암호 보호 활성화</h3>
+              <p>
+                화면보호기 해제 시 <strong>로그인 암호 입력</strong>이 필요하도록 설정해야 합니다.
+              </p>
+            </div>
+
+            <div class="requirement-card">
+              <div class="requirement-icon screen">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                  <path
+                    d="M13.5 3a.5.5 0 0 1 .5.5V11H2V3.5a.5.5 0 0 1 .5-.5h11zm-11-1A1.5 1.5 0 0 0 1 3.5V12h14V3.5A1.5 1.5 0 0 0 13.5 2h-11zM0 12.5h16a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 12.5z"
+                  />
+                </svg>
+              </div>
+              <h3>화면보호기 선택</h3>
+              <p>
+                <strong>단순한 화면보호기</strong>를 사용하여 시스템 리소스를 효율적으로 관리해야
+                합니다.
+              </p>
+            </div>
+          </div>
         </div>
 
         <!-- Windows 설정 방법 -->
-        <!-- <div class="section">
-          <h2 class="section-title">Windows 화면보호기 설정 방법</h2>
+        <div class="section">
+          <h2 class="section-title">Windows 설정 방법</h2>
 
-          <h3>방법 1: 설정 앱 사용 (Windows 10/11)</h3>
-          <ol>
-            <li><kbd>Windows</kbd> + <kbd>I</kbd> 키를 눌러 설정을 엽니다.</li>
-            <li>"개인 설정" → "잠금 화면"을 클릭합니다.</li>
-            <li>하단의 "화면 보호기 설정"을 클릭합니다.</li>
-            <li>화면보호기를 선택하고 대기 시간을 <strong>10분 이하</strong>로 설정합니다.</li>
-            <li><strong>"다시 시작할 때 로그온 화면 표시"</strong> 체크박스를 선택합니다.</li>
-            <li>"확인"을 클릭하여 설정을 저장합니다.</li>
-          </ol>
+          <div class="setting-method">
+            <h3><span class="method-number">방법 1</span> 설정 앱 사용 (Windows 10/11)</h3>
+            <ol class="setting-steps">
+              <li><kbd>Windows</kbd> + <kbd>I</kbd> 키를 눌러 설정을 엽니다.</li>
+              <li><strong>"개인 설정"</strong> → <strong>"잠금 화면"</strong>을 클릭합니다.</li>
+              <li>하단의 <strong>"화면 보호기 설정"</strong>을 클릭합니다.</li>
+              <li>화면보호기를 선택하고 대기 시간을 <strong>10분 이하</strong>로 설정합니다.</li>
+              <li><strong>"다시 시작할 때 로그온 화면 표시"</strong> 체크박스를 선택합니다.</li>
+              <li><strong>"확인"</strong>을 클릭하여 설정을 저장합니다.</li>
+            </ol>
+          </div>
 
-          <h3>방법 2: 제어판 사용</h3>
-          <ol>
-            <li>
-              <kbd>Windows</kbd> + <kbd>R</kbd> 키를 누르고 <code>control</code>을 입력 후 엔터를
-              누릅니다.
-            </li>
-            <li>"모양 및 개인 설정" → "디스플레이" → "화면 보호기 변경"을 클릭합니다.</li>
-            <li>드롭다운 메뉴에서 적절한 화면보호기를 선택합니다.</li>
-            <li>
-              대기 시간을 10분 이하로 설정하고 "다시 시작할 때 로그온 화면 표시"를 체크합니다.
-            </li>
-            <li>"확인"을 클릭하여 설정을 저장합니다.</li>
-          </ol>
-        </div> -->
+          <div class="setting-method">
+            <h3><span class="method-number">방법 2</span> 제어판 사용</h3>
+            <ol class="setting-steps">
+              <li>
+                <kbd>Windows</kbd> + <kbd>R</kbd> 키를 누르고 <code>control</code>을 입력 후 엔터를
+                누릅니다.
+              </li>
+              <li>
+                <strong>"모양 및 개인 설정"</strong> → <strong>"디스플레이"</strong> →
+                <strong>"화면 보호기 변경"</strong>을 클릭합니다.
+              </li>
+              <li>드롭다운 메뉴에서 적절한 화면보호기를 선택합니다.</li>
+              <li>
+                대기 시간을 <strong>10분 이하</strong>로 설정하고
+                <strong>"다시 시작할 때 로그온 화면 표시"</strong>를 체크합니다.
+              </li>
+              <li><strong>"확인"</strong>을 클릭하여 설정을 저장합니다.</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- PowerShell 확인 -->
+        <div class="section">
+          <h2 class="section-title">PowerShell을 이용한 확인</h2>
+          <div class="code-block">
+            <h3>화면보호기 설정 확인 명령어</h3>
+            <div class="code-container">
+              <pre><code># 화면보호기 활성화 상태 확인
+Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ScreenSaveActive"
+
+# 화면보호기 대기 시간 확인 (초 단위)
+Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ScreenSaveTimeOut"
+
+# 암호 보호 설정 확인
+Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ScreenSaverIsSecure"</code></pre>
+              <button @click="copyToClipboard" class="copy-button">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path
+                    d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"
+                  />
+                  <path
+                    d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"
+                  />
+                </svg>
+                복사
+              </button>
+            </div>
+            <div class="result-interpretation">
+              <h4>설정값 해석:</h4>
+              <ul>
+                <li><strong>ScreenSaveActive</strong>: 1 = 활성화, 0 = 비활성화</li>
+                <li><strong>ScreenSaveTimeOut</strong>: 초 단위 (600 = 10분)</li>
+                <li><strong>ScreenSaverIsSecure</strong>: 1 = 암호 보호, 0 = 보호 없음</li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
         <!-- 자동화 스크립트 -->
         <div class="section">
-          <h2 class="section-title">자동화 스크립트 다운로드</h2>
-          <p>
-            PowerShell 스크립트를 사용하여 화면보호기를 자동으로 설정하거나 현재 설정을 확인할 수
-            있습니다:
-          </p>
-
+          <h2 class="section-title">자동화 스크립트</h2>
           <div class="script-download-section">
             <div class="script-card">
               <div class="script-icon setup">
@@ -190,66 +264,53 @@
           </div>
         </div>
 
-        <!-- 명령줄 확인 -->
-        <!-- <div class="section">
-          <h2 class="section-title">수동 설정 확인</h2>
-          <p>PowerShell을 사용하여 현재 화면보호기 설정을 수동으로 확인할 수 있습니다:</p>
+        <!-- 보안 모범 사례 및 주의사항 -->
+        <div class="section">
+          <h2 class="section-title">보안 모범 사례 및 주의사항</h2>
+          <div class="info-grid">
+            <div class="info-card best-practice">
+              <div class="info-icon">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                  <path
+                    d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"
+                  />
+                </svg>
+              </div>
+              <div class="info-content">
+                <h3>모범 사례</h3>
+                <ul>
+                  <li>자리를 비울 때는 <kbd>Windows</kbd> + <kbd>L</kbd> 키로 즉시 화면 잠금</li>
+                  <li>화면보호기 시간은 5-10분 사이로 설정하여 보안과 편의성의 균형 유지</li>
+                  <li>정기적으로 화면보호기 설정이 유지되고 있는지 확인</li>
+                  <li>복잡한 화면보호기보다는 단순한 것을 선택하여 시스템 성능 보호</li>
+                </ul>
+              </div>
+            </div>
 
-          <div class="code-block">
-            <pre><code># 화면보호기 활성화 상태 확인
-Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ScreenSaveActive"
-
-# 화면보호기 대기 시간 확인 (초 단위)
-Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ScreenSaveTimeOut"
-
-# 암호 보호 설정 확인
-Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ScreenSaverIsSecure"</code></pre>
+            <div class="info-card troubleshooting">
+              <div class="info-icon">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                  <path
+                    d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"
+                  />
+                </svg>
+              </div>
+              <div class="info-content">
+                <h3>문제 해결</h3>
+                <ul>
+                  <li>
+                    전원 관리 설정에서 "절전 모드" 시간이 화면보호기 시간보다 짧지 않은지 확인
+                  </li>
+                  <li>
+                    멀티미디어 프로그램이나 게임이 실행 중이면 화면보호기가 작동하지 않을 수 있음
+                  </li>
+                  <li>그룹 정책에서 화면보호기 설정이 제한되어 있는지 IT 부서에 문의</li>
+                  <li>사용자 계정에 암호가 설정되어 있는지 확인</li>
+                </ul>
+              </div>
+            </div>
           </div>
-
-          <p><strong>설정값 해석:</strong></p>
-          <ul>
-            <li><strong>ScreenSaveActive</strong>: 1 = 활성화, 0 = 비활성화</li>
-            <li><strong>ScreenSaveTimeOut</strong>: 초 단위 (600 = 10분)</li>
-            <li><strong>ScreenSaverIsSecure</strong>: 1 = 암호 보호, 0 = 보호 없음</li>
-          </ul>
-        </div> -->
-
-        <!-- 문제 해결 -->
-        <!-- <div class="section">
-          <h2 class="section-title">문제 해결 방법</h2>
-
-          <h3>화면보호기가 실행되지 않는 경우</h3>
-          <ul>
-            <li>전원 관리 설정에서 "절전 모드" 시간이 화면보호기 시간보다 짧지 않은지 확인</li>
-            <li>멀티미디어 프로그램이나 게임이 실행 중이면 화면보호기가 작동하지 않을 수 있음</li>
-            <li>마우스나 키보드의 미세한 움직임이 있는지 확인</li>
-          </ul>
-
-          <h3>암호 보호가 작동하지 않는 경우</h3>
-          <ul>
-            <li>그룹 정책에서 화면보호기 설정이 제한되어 있는지 IT 부서에 문의</li>
-            <li>Windows 업데이트 후 설정이 초기화되었을 가능성 확인</li>
-            <li>사용자 계정에 암호가 설정되어 있는지 확인</li>
-          </ul>
-        </div> -->
-
-        <!-- 보안 모범 사례 -->
-        <!-- <div class="section">
-          <h2 class="section-title">보안 모범 사례</h2>
-          <ul>
-            <li>자리를 비울 때는 <kbd>Windows</kbd> + <kbd>L</kbd> 키로 즉시 화면 잠금</li>
-            <li>화면보호기 시간은 5-10분 사이로 설정하여 보안과 편의성의 균형 유지</li>
-            <li>정기적으로 화면보호기 설정이 유지되고 있는지 확인</li>
-            <li>복잡한 화면보호기보다는 단순한 것을 선택하여 시스템 성능 보호</li>
-          </ul>
-        </div> -->
-
-        <!-- 관리자 연락처 -->
-        <!-- <div class="section">
-          <h2 class="section-title">관리자 연락처</h2>
-          <p>화면보호기 설정에 문제가 있는 경우 아래 담당자에게 문의하세요:</p>
-          <p>보안관리팀: 내선 5678 또는 security@example.com</p>
-        </div> -->
+        </div>
 
         <!-- 페이지 네비게이션 -->
         <PageNavigation :current-path="route.path" />
@@ -257,6 +318,7 @@ Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ScreenSaverIsSecure"
     </main>
   </div>
 </template>
+
 <script setup>
 import { ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
@@ -403,7 +465,9 @@ const downloadCheckScript = () => {
   downloadScript(checkScript, 'ScreenSaver_Check.ps1')
 }
 </script>
+
 <style scoped>
+/* 기본 레이아웃 */
 .security-audit-layout {
   display: flex;
   background-color: var(--bright-bg);
@@ -417,6 +481,385 @@ const downloadCheckScript = () => {
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   margin: 20px;
+}
+
+/* 페이지 제목 */
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--dark-blue);
+  margin-bottom: 30px;
+  /* border-bottom: 3px solid var(--primary-color); */
+  padding-bottom: 10px;
+}
+
+/* 섹션 스타일 */
+
+/* 요구사항 그리드 */
+.requirements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.requirement-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.requirement-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.requirement-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: white;
+}
+
+.requirement-icon.time {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.requirement-icon.lock {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.requirement-icon.screen {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.requirement-card h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--dark-blue);
+  margin: 0 0 8px 0;
+}
+
+.requirement-card p {
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* 설정 방법 */
+.setting-method {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid #e5e7eb;
+}
+
+.setting-method h3 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--dark-blue);
+}
+
+.method-number {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.setting-steps {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.setting-steps li {
+  margin-bottom: 12px;
+  line-height: 1.6;
+  color: #374151;
+}
+
+/* 코드 블록 */
+.code-block {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+}
+
+.code-block h3 {
+  margin: 0 0 16px 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--dark-blue);
+}
+
+.code-container {
+  position: relative;
+}
+
+.code-container pre {
+  background-color: #1f2937;
+  color: #e5e7eb;
+  padding: 20px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.copy-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background-color: rgba(59, 130, 246, 0.9);
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+}
+
+.copy-button:hover {
+  background-color: rgba(59, 130, 246, 1);
+}
+
+.result-interpretation {
+  margin-top: 16px;
+  padding: 16px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+}
+
+.result-interpretation h4 {
+  margin: 0 0 12px 0;
+  color: var(--dark-blue);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.result-interpretation ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.result-interpretation li {
+  margin-bottom: 8px;
+  color: #374151;
+}
+
+/* 스크립트 다운로드 섹션 */
+.script-download-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.script-card {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.script-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+.script-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.script-icon.setup {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.script-icon.check {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.script-content h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--dark-blue);
+}
+
+.script-content p {
+  margin: 0 0 16px 0;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.download-button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.download-button.primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.download-button.primary:hover {
+  background-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.download-button.secondary {
+  background-color: #6b7280;
+  color: white;
+}
+
+.download-button.secondary:hover {
+  background-color: #4b5563;
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+/* 사용법 정보 */
+.usage-info {
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.usage-info h4 {
+  margin: 0 0 12px 0;
+  color: var(--dark-blue);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.usage-info ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.usage-info li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.usage-info code {
+  background-color: #1f2937;
+  color: #e5e7eb;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+/* 키보드 키 스타일 */
+kbd {
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.875rem;
+  font-family: monospace;
+  color: #374151;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 정보 그리드 */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.info-card {
+  border-radius: 12px;
+  padding: 24px;
+  border-left: 4px solid;
+}
+
+.info-card.best-practice {
+  background-color: #ecfdf5;
+  border-left-color: #22c55e;
+}
+
+.info-card.troubleshooting {
+  background-color: #fef3c7;
+  border-left-color: #f59e0b;
+}
+
+.info-icon {
+  margin-bottom: 12px;
+}
+
+.info-card.best-practice .info-icon {
+  color: #22c55e;
+}
+
+.info-card.troubleshooting .info-icon {
+  color: #f59e0b;
+}
+
+.info-content h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--dark-blue);
+}
+
+.info-content ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.info-content li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+  color: #374151;
 }
 
 /* 인증 관련 스타일 */
@@ -467,306 +910,56 @@ const downloadCheckScript = () => {
 }
 
 .login-button:hover {
-  background-color: var(--dark-blue);
-  transform: translateY(-2px);
-}
-
-/* 섹션 스타일 */
-.section {
-  margin-bottom: 32px;
-}
-
-.section p {
-  line-height: 1.6;
-  color: #374151;
-  margin-bottom: 16px;
-}
-
-.section ul {
-  margin-left: 20px;
-  margin-bottom: 16px;
-}
-
-.section li {
-  margin-bottom: 8px;
-  line-height: 1.5;
-  color: #374151;
-}
-
-.section ol {
-  margin-left: 20px;
-  margin-bottom: 16px;
-}
-
-.section ol li {
-  margin-bottom: 8px;
-  line-height: 1.5;
-  color: #374151;
-}
-
-.section h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--dark-blue);
-  margin: 24px 0 12px 0;
-}
-
-/* 키보드 키 스타일 */
-kbd {
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 0.875rem;
-  font-family: monospace;
-  color: #374151;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-/* 스크립트 다운로드 섹션 */
-.script-download-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-  margin: 20px 0;
-}
-
-.script-card {
-  background-color: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 24px;
-  transition: all 0.3s ease;
-}
-
-.script-card:hover {
-  border-color: var(--primary-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-.script-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  margin-bottom: 16px;
-}
-
-.script-icon.setup {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-}
-
-.script-icon.check {
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.script-content h3 {
-  margin: 0 0 8px 0;
-  color: var(--dark-blue);
-  font-size: 1.125rem;
-  font-weight: 600;
-}
-
-.script-content p {
-  margin: 0 0 16px 0;
-  color: #6b7280;
-  font-size: 0.9rem;
-  line-height: 1.5;
-}
-
-.download-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-}
-
-.download-button.primary {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.download-button.primary:hover {
-  background-color: var(--dark-blue);
+  background-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(64, 86, 183, 0.3);
-}
-
-.download-button.secondary {
-  background-color: #10b981;
-  color: white;
-}
-
-.download-button.secondary:hover {
-  background-color: #059669;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
-}
-
-.usage-info {
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 20px;
-  margin-top: 24px;
-}
-
-.usage-info h4 {
-  margin: 0 0 12px 0;
-  color: var(--dark-blue);
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.usage-info ol {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.usage-info li {
-  margin-bottom: 8px;
-  line-height: 1.5;
-  color: #374151;
-}
-
-.usage-info code {
-  background-color: #1f2937;
-  color: #e5e7eb;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-/* 코드 블록 스타일 */
-.code-block {
-  background-color: #1f2937;
-  border-radius: 8px;
-  padding: 20px;
-  margin: 16px 0;
-  overflow-x: auto;
-}
-
-.code-block pre {
-  margin: 0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-.code-block code {
-  color: #e5e7eb;
-  background: none;
-  padding: 0;
-  border-radius: 0;
-}
-
-/* 인라인 코드 스타일 */
-code {
-  background-color: #f3f4f6;
-  color: #dc2626;
-  padding: 2px 4px;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-family: monospace;
-}
-
-/* 강조 텍스트 */
-strong {
-  color: var(--primary-color);
-  font-weight: 600;
-}
-
-/* 모바일 메뉴 토글 버튼 */
-.mobile-menu-toggle {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  z-index: 1001;
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 12px;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s ease;
-}
-
-.mobile-menu-toggle:hover {
-  background-color: var(--dark-blue);
-  transform: scale(1.05);
 }
 
 /* 반응형 디자인 */
-@media (max-width: 1024px) {
-  .security-audit-layout {
-    flex-direction: column;
-  }
-
-  .main-content {
-    margin: 20px;
-  }
-}
-
 @media (max-width: 768px) {
-  .mobile-menu-toggle {
-    display: block;
-  }
-
   .main-content {
-    padding: 20px;
     margin: 10px;
+    padding: 20px;
   }
 
-  .section h3 {
-    font-size: 1rem;
+  .page-title {
+    font-size: 1.5rem;
   }
 
-  .code-block {
-    padding: 16px;
-    font-size: 0.8rem;
+  .section-title {
+    font-size: 1.25rem;
   }
 
-  kbd {
-    font-size: 0.8rem;
-    padding: 1px 4px;
+  .requirements-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .script-download-section {
+    grid-template-columns: 1fr;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .requirement-icon {
+    width: 50px;
+    height: 50px;
   }
 }
 
 @media (max-width: 480px) {
-  .main-content {
+  .requirement-card,
+  .script-card,
+  .setting-method,
+  .code-block {
     padding: 16px;
   }
 
-  .section {
-    margin-bottom: 24px;
-  }
-
-  .section ul,
-  .section ol {
-    margin-left: 16px;
-  }
-
-  .code-block {
-    padding: 12px;
-    margin: 12px 0;
-  }
-}
-
-@media (min-width: 769px) {
-  .mobile-menu-toggle {
-    display: none;
+  .requirement-icon,
+  .script-icon {
+    width: 45px;
+    height: 45px;
   }
 }
 </style>
