@@ -376,33 +376,19 @@
           </div>
 
           <!-- 페이지네이션 -->
-          <div class="pagination" v-if="totalPages > 1">
-            <button @click="currentPage = 1" :disabled="currentPage === 1" class="page-btn">
-              첫 페이지
-            </button>
-            <button
-              @click="currentPage = currentPage - 1"
-              :disabled="currentPage === 1"
-              class="page-btn"
-            >
+          <div class="pagination">
+            <button @click="currentPage--" :disabled="currentPage <= 1" class="pagination-button">
               이전
             </button>
-
-            <span class="page-info"> {{ currentPage }} / {{ totalPages }} 페이지 </span>
-
+            <span class="pagination-info"
+              >{{ currentPage }} / {{ totalPages }} 페이지 (총 {{ filteredRecords.length }}건)</span
+            >
             <button
-              @click="currentPage = currentPage + 1"
-              :disabled="currentPage === totalPages"
-              class="page-btn"
+              @click="currentPage++"
+              :disabled="currentPage >= totalPages"
+              class="pagination-button"
             >
               다음
-            </button>
-            <button
-              @click="currentPage = totalPages"
-              :disabled="currentPage === totalPages"
-              class="page-btn"
-            >
-              마지막 페이지
             </button>
           </div>
         </div>
@@ -892,13 +878,15 @@ const availableYears = computed(() => {
   return Array.from({ length: 5 }, (_, i) => currentYear - i)
 })
 
-// 기존 canEdit computed 뒤에 추가
-// 페이지네이션 관련
-const totalPages = computed(() => Math.ceil(filteredRecords.value.length / recordsPerPage.value))
+// 페이지네이션 계산
 const paginatedRecords = computed(() => {
   const start = (currentPage.value - 1) * recordsPerPage.value
   const end = start + recordsPerPage.value
   return filteredRecords.value.slice(start, end)
+})
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredRecords.value.length / recordsPerPage.value)
 })
 
 const availablePeriods = computed(() => {
@@ -1083,29 +1071,22 @@ const loadPeriodStatus = async () => {
     loading.value = false
   }
 }
-
 /**
- * 훈련 데이터 로드 (실제 API 호출)
+ * 훈련 데이터 로드 (모든 데이터를 가져와서 클라이언트에서 페이지네이션)
  */
 const loadTrainingData = async () => {
   try {
     loading.value = true
 
+    // 모든 데이터를 가져오기 위해 per_page를 크게 설정
     const params = new URLSearchParams({
       year: selectedYear.value,
-      page: currentPage.value,
-      per_page: recordsPerPage.value,
+      per_page: 10000, // 충분히 큰 값으로 설정하여 모든 데이터 가져오기
+      page: 1,
     })
 
-    if (selectedTrainingType.value) {
-      params.append('training_type', selectedTrainingType.value)
-    }
-    if (selectedResult.value) {
-      params.append('result', selectedResult.value)
-    }
-    if (searchQuery.value.trim()) {
-      params.append('search', searchQuery.value.trim())
-    }
+    // 서버 사이드 필터는 기본적인 것만 적용 (년도는 데이터량 때문에 서버에서 처리)
+    // 나머지는 클라이언트에서 처리
 
     const response = await fetch(`/api/phishing-training/records?${params}`, {
       credentials: 'include',
@@ -1116,13 +1097,19 @@ const loadTrainingData = async () => {
     }
 
     const result = await response.json()
-    trainingRecords.value = result.records || []
-    filteredRecords.value = [...trainingRecords.value]
 
-    console.log('훈련 데이터 로드됨:', result)
+    // 모든 데이터를 trainingRecords에 저장
+    trainingRecords.value = result.records || []
+
+    // 초기 필터 적용
+    applyFilters()
+
+    console.log(`훈련 데이터 로드됨: 총 ${trainingRecords.value.length}건`)
   } catch (error) {
     console.error('훈련 데이터 로드 실패:', error)
     displayToast('훈련 데이터를 불러오는데 실패했습니다.', 'error')
+    trainingRecords.value = []
+    filteredRecords.value = []
   } finally {
     loading.value = false
   }
