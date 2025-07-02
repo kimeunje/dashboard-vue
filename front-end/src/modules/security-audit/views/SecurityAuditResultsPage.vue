@@ -52,7 +52,7 @@
       <!-- 인증된 사용자용 콘텐츠 -->
       <div v-else>
         <div class="page-header">
-          <h1 class="page-title">보안 감사 결과 및 감점 현황</h1>
+          <h1 class="page-title">보안 감사 결과 현황</h1>
         </div>
 
         <!-- 로딩 상태 -->
@@ -64,7 +64,7 @@
         <!-- 에러 상태 -->
         <div v-else-if="error" class="error-container">
           <div class="error-icon">⚠️</div>
-          <h3>데이터 로드 실패</h3>
+          <h3>데이터 로드 미흡</h3>
           <p>{{ error }}</p>
           <button @click="fetchData" class="retry-button">다시 시도</button>
         </div>
@@ -112,7 +112,7 @@
           <!-- 요약 통계 카드 (제외 항목 정보 추가) -->
           <div class="section">
             <h2 class="section-title">
-              {{ getTabTitle() }} 감점 요약
+              {{ getTabTitle() }} 요약
               <span v-if="activeTab !== 'all'" class="tab-indicator">{{ getTabSubtitle() }}</span>
             </h2>
             <div class="stats-grid">
@@ -131,32 +131,24 @@
               />
 
               <StatsCard
-                title="통과"
+                title="양호"
                 :value="currentStats.completedChecks"
-                :subtitle="`통과 항목 (${getPassRate()}%)`"
+                :subtitle="`양호 항목 (${getPassRate()}%)`"
                 value-color="green"
               />
 
               <StatsCard
-                title="실패"
+                title="미흡"
                 :value="currentStats.criticalIssues"
-                :subtitle="`실패 항목 (${getFailRate()}%)`"
+                :subtitle="`미흡 항목 (${getFailRate()}%)`"
                 value-color="red"
-              />
-
-              <!-- 감점 표시 -->
-              <StatsCard
-                title="총 감점"
-                :value="formatPenalty(currentStats.totalPenalty)"
-                :subtitle="getPenaltyDescription(currentStats.totalPenalty)"
-                value-color="orange"
               />
             </div>
           </div>
 
           <!-- 일별 감점 시각화 -->
           <div class="section" v-if="currentDailyStats.length > 0">
-            <h2 class="section-title">{{ getTabTitle() }} 일별 감점 현황</h2>
+            <h2 class="section-title">{{ getTabTitle() }} 일별 현황</h2>
             <div class="daily-stats-container">
               <!-- 차트 영역 -->
               <div class="chart-container">
@@ -187,15 +179,11 @@
                 <div class="chart-legend">
                   <div class="legend-item">
                     <div class="legend-color passed"></div>
-                    <span>통과</span>
+                    <span>양호</span>
                   </div>
                   <div class="legend-item">
                     <div class="legend-color failed"></div>
-                    <span>실패</span>
-                  </div>
-                  <div class="legend-item">
-                    <div class="legend-color penalty"></div>
-                    <span>감점</span>
+                    <span>미흡</span>
                   </div>
                 </div>
               </div>
@@ -206,10 +194,9 @@
                   <thead>
                     <tr>
                       <th>날짜</th>
-                      <th>통과</th>
-                      <th>실패</th>
-                      <th>통과율</th>
-                      <th>감점</th>
+                      <th>양호</th>
+                      <th>미흡</th>
+                      <th>양호율</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -218,7 +205,6 @@
                       <td class="passed-count">{{ day.passed }}</td>
                       <td class="failed-count">{{ day.failed }}</td>
                       <td>{{ day.passRate }}%</td>
-                      <td class="penalty-count">-{{ day.penalty }}점</td>
                     </tr>
                   </tbody>
                 </table>
@@ -228,7 +214,7 @@
 
           <!-- 데이터 없음 상태 (일별 통계) -->
           <div v-else class="section">
-            <h2 class="section-title">{{ getTabTitle() }} 일별 감점 현황</h2>
+            <h2 class="section-title">{{ getTabTitle() }} 일별 현황</h2>
             <div class="no-data">
               <p>{{ getTabTitle() }} 검사 결과 데이터가 없습니다.</p>
             </div>
@@ -236,7 +222,7 @@
 
           <!-- 항목별 상세 결과 테이블 (제외 설정 정보 추가) -->
           <div class="section">
-            <h2 class="section-title">{{ getTabTitle() }} 항목별 검사 결과 및 감점</h2>
+            <h2 class="section-title">{{ getTabTitle() }} 항목별 검사 결과</h2>
             <div v-if="currentItemStats.length > 0" class="items-container">
               <!-- 테이블 헤더 -->
               <div class="items-header">
@@ -244,11 +230,9 @@
                 <div class="header-cell">항목명</div>
                 <div class="header-cell">카테고리</div>
                 <div class="header-cell">점검 유형</div>
-                <div class="header-cell">통과</div>
-                <div class="header-cell">실패</div>
-                <div class="header-cell">통과율</div>
-                <div class="header-cell">감점</div>
-                <div class="header-cell">제외</div>
+                <div class="header-cell">양호</div>
+                <div class="header-cell">미흡</div>
+                <div class="header-cell">양호율</div>
                 <!-- 제외 상태 -->
                 <div class="header-cell">상세</div>
               </div>
@@ -281,30 +265,7 @@
                       <span class="progress-text">{{ item.passRate }}%</span>
                     </div>
                   </div>
-                  <!-- 감점 표시 -->
-                  <div class="item-cell penalty-cell">
-                    <span class="penalty-value" :class="getPenaltyClass(item.penalty)">
-                      {{ formatPenalty(item.penalty) }}
-                    </span>
-                    <div class="penalty-info">
-                      ({{ item.penaltyWeight }}점 × {{ item.failed }}개)
-                    </div>
-                  </div>
-                  <!-- 제외 상태 표시 -->
-                  <div class="item-cell excluded-cell">
-                    <span v-if="item.isExcluded" class="excluded-badge" :title="item.excludeReason">
-                      <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path
-                          d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"
-                        />
-                        <path
-                          d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"
-                        />
-                      </svg>
-                      제외
-                    </span>
-                    <span v-else class="included-badge">포함</span>
-                  </div>
+
                   <div class="item-cell">
                     <button
                       @click="toggleItemDetail(item.id)"
@@ -334,12 +295,7 @@
                         <span class="meta-item">
                           <strong>카테고리:</strong> {{ item.category }}
                         </span>
-                        <span class="meta-item">
-                          <strong>감점 가중치:</strong> {{ item.penaltyWeight }}점/실패
-                        </span>
-                        <span class="meta-item">
-                          <strong>현재 감점:</strong> {{ formatPenalty(item.penalty) }}
-                        </span>
+
                         <!-- 제외 설정 정보 -->
                         <span v-if="item.isExcluded" class="meta-item exclusion-info">
                           <strong>제외 설정:</strong> {{ item.excludeReason }}
@@ -352,16 +308,18 @@
                   </div>
 
                   <!-- 항목 상세 로그 (제외 정보 추가) -->
+
+                  <!-- 항목 상세 로그 테이블 부분 -->
                   <div v-if="getItemLogs(item.id).length > 0" class="logs-table-container-inline">
                     <table class="logs-table">
                       <thead>
                         <tr>
                           <th>검사 일시</th>
                           <th>결과</th>
-                          <th>실제 값</th>
-                          <th>감점</th>
+                          <!-- 수시 점검이 아닌 경우에만 실제 값 컬럼 표시 -->
+                          <th v-if="activeTab !== 'manual'">실제 값</th>
+
                           <th>제외</th>
-                          <!-- 제외 상태 -->
                           <th>메모</th>
                         </tr>
                       </thead>
@@ -380,50 +338,14 @@
                               {{ log.passed === 1 ? '통과' : '실패' }}
                             </span>
                           </td>
-                          <td class="actual-value">
-                            <div v-if="log.actual_value && typeof log.actual_value === 'object'">
-                              <div v-for="(value, key) in log.actual_value" :key="key">
-                                {{ formatActualValueKey(key) }}: {{ formatActualValueValue(value) }}
-                              </div>
-                            </div>
-                            <span v-else>{{ log.actual_value || '-' }}</span>
-                          </td>
-                          <!-- 감점 표시 (제외 설정 반영) -->
-                          <td class="penalty-applied">
-                            <span
-                              v-if="log.is_excluded"
-                              class="excluded-penalty"
-                              title="제외 설정으로 인해 감점 없음"
-                            >
-                              0점 (제외)
-                            </span>
-                            <span v-else-if="log.passed === 0" class="penalty-value">
-                              -{{ log.penalty_applied || log.penalty_weight || 0.5 }}점
-                            </span>
-                            <span v-else class="no-penalty">0점</span>
-                          </td>
-                          <!-- 제외 상태 -->
-                          <td class="exclusion-status">
-                            <span
-                              v-if="log.is_excluded"
-                              class="excluded-indicator"
-                              :title="log.exclude_reason || '제외 설정 적용'"
-                            >
-                              <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                <path
-                                  d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"
-                                />
-                                <path
-                                  d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"
-                                />
-                              </svg>
-                              제외
-                            </span>
-                            <span v-else class="included-indicator">포함</span>
+                          <!-- 수시 점검이 아닌 경우에만 실제 값 표시 -->
+                          <td v-if="activeTab !== 'manual'" class="actual-value">
+                            {{ formatActualValue(log.actual_value) }}
                           </td>
                           <td>
-                            <pre class="log-notes">{{ log.notes || '-' }}</pre>
+                            <span v-if="log.is_excluded" class="exclusion-badge">제외</span>
                           </td>
+                          <td class="notes">{{ log.notes }}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -494,7 +416,7 @@ const dailyStats = ref({
   all: [],
 })
 
-// 항목별 통과/실패 통계 - 탭별 (제외 설정 정보 포함)
+// 항목별 양호/미흡 통계 - 탭별 (제외 설정 정보 포함)
 const itemStats = ref({
   daily: [],
   manual: [],
@@ -512,8 +434,8 @@ const currentStats = computed(() => {
     stats.value[activeTab.value] || {
       totalChecks: 0,
       activeChecks: 0, // 실제 점검 대상 항목 수
-      completedChecks: 0, // 통과 항목
-      criticalIssues: 0, // 실패 항목 (감점 대상)
+      completedChecks: 0, // 양호 항목
+      criticalIssues: 0, // 미흡 항목 (감점 대상)
       lastCheckedAt: '',
       totalPenalty: 0, // 총 감점
       excludedItems: 0, // 제외된 항목 수
@@ -526,7 +448,12 @@ const currentDailyStats = computed(() => {
 })
 
 const currentItemStats = computed(() => {
-  return itemStats.value[activeTab.value] || []
+  const items = itemStats.value[activeTab.value] || []
+
+  // item.id 순서대로 오름차순 정렬
+  return items.sort((a, b) => {
+    return a.id - b.id // 1, 2, 3, 4... 순서로 정렬
+  })
 })
 
 // 통계 계산 함수들 (제외 항목 반영)
@@ -689,7 +616,7 @@ const calculateAllStats = () => {
     const logs = auditLogs.value[tabType]
     const totalChecks = logs.length
 
-    // 제외 설정을 반영한 통과/실패 계산
+    // 제외 설정을 반영한 양호/미흡 계산
     const passedChecks = logs.filter((log) => log.passed === 1 && !log.is_excluded).length
     const failedChecks = logs.filter((log) => log.passed === 0 && !log.is_excluded).length
     const excludedChecks = logs.filter((log) => log.is_excluded).length
@@ -740,7 +667,7 @@ const prepareAllDailyStats = () => {
       if (log.passed === 1 && !log.is_excluded) {
         groupedByDate[dateOnly].passed += 1
       } else if (log.passed === 0 && !log.is_excluded) {
-        // 제외된 항목은 실패로 카운트하지 않음
+        // 제외된 항목은 미흡로 카운트하지 않음
         groupedByDate[dateOnly].failed += 1
         // 감점 누적 (제외된 항목은 감점에서 제외)
         groupedByDate[dateOnly].penalty += log.penalty_applied || log.penalty_weight || 0.5
@@ -885,19 +812,34 @@ const formatActualValueKey = (key) => {
   return keyMap[key] || key
 }
 
-const formatActualValueValue = (value) => {
-  if (typeof value === 'boolean') {
-    return value ? '예' : '아니오'
+// formatActualValue 함수 수정
+const formatActualValue = (actualValue) => {
+  // 수시 점검인 경우 실제 값을 표시하지 않음
+  if (activeTab.value === 'manual') {
+    return '-'
   }
-  if (typeof value === 'number') {
-    return value.toString()
+
+  // 기존 로직
+  if (!actualValue) return '-'
+
+  if (typeof actualValue === 'object') {
+    try {
+      const obj = typeof actualValue === 'string' ? JSON.parse(actualValue) : actualValue
+
+      // 객체에서 주요 정보만 추출
+      if (obj.status) return obj.status
+      if (obj.result) return obj.result
+      if (obj.value !== undefined) return obj.value
+      if (obj.count !== undefined) return obj.count
+      if (obj.version) return obj.version
+
+      return '확인됨'
+    } catch {
+      return actualValue.toString()
+    }
   }
-  if (Array.isArray(value)) {
-    return value.join(', ')
-  }
-  if (value === 'intact') return '정상'
-  if (value === 'damaged') return '훼손됨'
-  return value
+
+  return actualValue.toString()
 }
 
 // 감점 포맷팅 함수

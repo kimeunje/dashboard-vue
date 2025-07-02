@@ -87,18 +87,14 @@
                   <span class="stat-value">{{ dashboardStats.daily.totalChecks }}</span>
                 </div>
                 <div class="stat-row">
-                  <span class="stat-label">통과 항목</span>
+                  <span class="stat-label">양호</span>
                   <span class="stat-value success">{{ dashboardStats.daily.completedChecks }}</span>
                 </div>
                 <div class="stat-row">
-                  <span class="stat-label">실패 항목</span>
+                  <span class="stat-label">미흡</span>
                   <span class="stat-value danger">{{ dashboardStats.daily.criticalIssues }}</span>
                 </div>
-                <!-- 수정: 미실시/감점 통합, 감점 추가 -->
-                <div class="stat-row">
-                  <span class="stat-label">감점</span>
-                  <span class="stat-value danger">-{{ getDailyPenalty() }}점</span>
-                </div>
+
                 <div class="stat-row">
                   <span class="stat-label">최근 점검</span>
                   <span class="stat-value">{{
@@ -109,8 +105,8 @@
               <!-- 수정: 진행률 바를 감점 표시로 변경 -->
               <div class="card-progress">
                 <div class="penalty-display">
-                  <span class="penalty-label">정기점검 감점:</span>
-                  <span class="penalty-value">-{{ getDailyPenalty() }}점</span>
+                  <span class="penalty-label">미흡 건수:</span>
+                  <span class="penalty-value">{{ dashboardStats.daily.criticalIssues }}점</span>
                 </div>
               </div>
             </div>
@@ -134,20 +130,16 @@
                   <span class="stat-value">{{ dashboardStats.manual.totalChecks }}</span>
                 </div>
                 <div class="stat-row">
-                  <span class="stat-label">통과 항목</span>
+                  <span class="stat-label">양호</span>
                   <span class="stat-value success">{{
                     dashboardStats.manual.completedChecks
                   }}</span>
                 </div>
                 <div class="stat-row">
-                  <span class="stat-label">실패 항목</span>
+                  <span class="stat-label">미흡</span>
                   <span class="stat-value danger">{{ dashboardStats.manual.criticalIssues }}</span>
                 </div>
-                <!-- 수정: 감점 추가 -->
-                <div class="stat-row">
-                  <span class="stat-label">감점</span>
-                  <span class="stat-value danger">-{{ getManualPenalty() }}점</span>
-                </div>
+
                 <div class="stat-row">
                   <span class="stat-label">최근 점검</span>
                   <span class="stat-value">{{
@@ -158,8 +150,8 @@
               <!-- 수정: 진행률 바를 감점 표시로 변경 -->
               <div class="card-progress">
                 <div class="penalty-display">
-                  <span class="penalty-label">수시점검 감점:</span>
-                  <span class="penalty-value">-{{ getManualPenalty() }}점</span>
+                  <span class="penalty-label">미흡 건수:</span>
+                  <span class="penalty-value">{{ dashboardStats.manual.criticalIssues }}건</span>
                 </div>
               </div>
             </div>
@@ -279,14 +271,14 @@ const isAuthenticated = computed(() => !!authStore.user)
 const getDailyPenalty = () => {
   if (!dashboardStats.value?.daily) return 0
   const stats = dashboardStats.value.daily
-  // 실패 항목 수 × 0.5점
+  // 미흡 수 × 0.5점
   return ((stats.criticalIssues || 0) * 0.5).toFixed(1)
 }
 
 const getManualPenalty = () => {
   if (!dashboardStats.value?.manual) return 0
   const stats = dashboardStats.value.manual
-  // 실패 항목 수 × 0.5점
+  // 미흡 수 × 0.5점
   return ((stats.criticalIssues || 0) * 0.5).toFixed(1)
 }
 
