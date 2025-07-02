@@ -1,6 +1,5 @@
 # app/utils/constants.py
 
-
 # 점수 계산 상수
 SCORE_WEIGHTS = {
     "EDUCATION_PENALTY": 0.5,  # 정보보호 교육 미이수 시 감점
@@ -74,8 +73,14 @@ TEST_USERS = {}
 # IP 대역 화이트리스트 (추가 보안 레이어)
 ALLOWED_IP_RANGES = [
     "192.168.1.0/24",  # 사무실 네트워크
+    "10.106.20.0/24",  # 개발 네트워크
+    "10.106.22.0/24",  # 개발 네트워크
     "10.106.25.0/24",  # 개발 네트워크
+    "10.106.27.0/24",  # 개발 네트워크
+    "10.106.10.0/24",  # 개발 네트워크
+    "10.106.12.0/24",  # 개발 네트워크
     "10.106.15.0/24",  # 개발 네트워크
+    "10.106.17.0/24",  # 개발 네트워크
     "172.16.0.0/24",  # 관리 네트워크
     "172.0.0.0/8",
     "127.0.0.0/8",  # 로컬호스트 (테스트용)
@@ -86,12 +91,15 @@ IP_AUTH_CONFIG = {
     "enable_strict_mode": True,  # 엄격 모드 (정확한 IP 매칭)
     "enable_range_check": True,  # 대역 체크 활성화
     "enable_time_restriction": False,  # 시간 제한 (개발 중에는 비활성화)
-    "business_hours": {"start": 8, "end": 19, "weekdays_only": True},  # 08:00  # 19:00
+    "business_hours": {
+        "start": 8,
+        "end": 19,
+        "weekdays_only": True
+    },  # 08:00  # 19:00
 }
 
 # 기존 설정들 유지
 DEFAULT_VERIFICATION_CODE = "123456"
-
 
 MESSAGES = {
     "LOGIN_SUCCESS": "로그인에 성공했습니다.",
