@@ -64,10 +64,6 @@
                     trainingData.summary.not_started || 0
                   }}</span>
                 </div>
-                <div class="stat-row">
-                  <span class="stat-label">점수결과</span>
-                  <span class="stat-value danger">-{{ trainingData.summary.penalty_score }}</span>
-                </div>
               </div>
               <div class="card-progress">
                 <div class="progress-bar">
@@ -169,7 +165,6 @@
               <ul>
                 <li>상반기/하반기 각 1회 실시</li>
                 <li>무작위 시점에 발송</li>
-                <li>실제 업무메일과 유사한 형태</li>
                 <li>클릭/열람 여부 및 시간 추적</li>
               </ul>
             </div>
@@ -178,9 +173,7 @@
               <div class="info-icon">🎯</div>
               <h3>평가 기준</h3>
               <ul>
-                <li>피싱메일에 액션 없음: 양호</li>
                 <li>첨부파일 열람/링크 클릭: 미흡</li>
-                <li>실패시 0.5점 감점</li>
               </ul>
             </div>
 
