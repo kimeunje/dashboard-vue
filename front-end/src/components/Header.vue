@@ -77,7 +77,7 @@ const getRouteTitle = () => {
     '/security-score': '종합 보안 점수',
     '/security-education': '정보보호 교육',
     '/phishing-training': '악성메일 모의훈련',
-    '/contact': '문의하기',
+    '/contact': '문의사항',
     '/admin': '관리자',
     '/admin/dashboard': '관리자 대시보드',
     '/admin/users': '사용자 관리',

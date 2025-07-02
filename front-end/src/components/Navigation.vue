@@ -54,7 +54,7 @@ const menuItems = computed(() => {
     {
       name: 'Contact',
       path: '/contact',
-      title: '문의하기',
+      title: '문의사항',
     },
   ]
 
