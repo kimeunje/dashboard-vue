@@ -28,19 +28,20 @@ def create_user():
     # JSON 요청 검증
     if not request.is_json:
         return (
-            jsonify(
-                {
-                    "success": False,
-                    "message": "Content-Type은 application/json이어야 합니다.",
-                }
-            ),
+            jsonify({
+                "success": False,
+                "message": "Content-Type은 application/json이어야 합니다.",
+            }),
             HTTP_STATUS["BAD_REQUEST"],
         )
 
     data = request.json
     if not data:
         return (
-            jsonify({"success": False, "message": "요청 본문이 필요합니다."}),
+            jsonify({
+                "success": False,
+                "message": "요청 본문이 필요합니다."
+            }),
             HTTP_STATUS["BAD_REQUEST"],
         )
 
@@ -55,12 +56,10 @@ def create_user():
 
         if missing_fields:
             return (
-                jsonify(
-                    {
-                        "success": False,
-                        "message": f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}",
-                    }
-                ),
+                jsonify({
+                    "success": False,
+                    "message": f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}",
+                }),
                 HTTP_STATUS["BAD_REQUEST"],
             )
 
@@ -68,7 +67,10 @@ def create_user():
         validation_result = _validate_user_data(data)
         if not validation_result["valid"]:
             return (
-                jsonify({"success": False, "message": validation_result["message"]}),
+                jsonify({
+                    "success": False,
+                    "message": validation_result["message"]
+                }),
                 HTTP_STATUS["BAD_REQUEST"],
             )
 
@@ -76,12 +78,16 @@ def create_user():
         duplicate_check = _check_duplicates(data["email"])
         if not duplicate_check["valid"]:
             return (
-                jsonify({"success": False, "message": duplicate_check["message"]}),
+                jsonify({
+                    "success": False,
+                    "message": duplicate_check["message"]
+                }),
                 HTTP_STATUS["CONFLICT"],
             )
 
         # 사번 자동 생성
-        generated_uid = _generate_user_id(data["name"], data["department"])
+        generated_uid = _generate_user_id(data["name"], data["department"],
+                                          data["email"])
 
         # 사용자 생성 (생성된 사번 포함)
         user_id = _create_user_record(data, generated_uid)
@@ -92,26 +98,22 @@ def create_user():
         logging.info(f"사용자 생성 완료: {data['name']} (ID: {user_id})")
 
         return (
-            jsonify(
-                {
-                    "success": True,
-                    "message": f"사용자 '{data['name']}'가 성공적으로 생성되었습니다.",
-                    "user": created_user,
-                }
-            ),
+            jsonify({
+                "success": True,
+                "message": f"사용자 '{data['name']}'가 성공적으로 생성되었습니다.",
+                "user": created_user,
+            }),
             HTTP_STATUS["CREATED"],
         )
 
     except Exception as e:
         logging.error(f"사용자 생성 실패: {str(e)}")
         return (
-            jsonify(
-                {
-                    "success": False,
-                    "message": "사용자 생성 중 오류가 발생했습니다.",
-                    "details": str(e),
-                }
-            ),
+            jsonify({
+                "success": False,
+                "message": "사용자 생성 중 오류가 발생했습니다.",
+                "details": str(e),
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -127,7 +129,10 @@ def get_user(user_id):
 
         if not user:
             return (
-                jsonify({"success": False, "message": "사용자를 찾을 수 없습니다."}),
+                jsonify({
+                    "success": False,
+                    "message": "사용자를 찾을 수 없습니다."
+                }),
                 HTTP_STATUS["NOT_FOUND"],
             )
 
@@ -136,13 +141,11 @@ def get_user(user_id):
     except Exception as e:
         logging.error(f"사용자 조회 실패: {str(e)}")
         return (
-            jsonify(
-                {
-                    "success": False,
-                    "message": "사용자 조회 중 오류가 발생했습니다.",
-                    "details": str(e),
-                }
-            ),
+            jsonify({
+                "success": False,
+                "message": "사용자 조회 중 오류가 발생했습니다.",
+                "details": str(e),
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -156,19 +159,20 @@ def update_user(user_id):
     # JSON 요청 검증
     if not request.is_json:
         return (
-            jsonify(
-                {
-                    "success": False,
-                    "message": "Content-Type은 application/json이어야 합니다.",
-                }
-            ),
+            jsonify({
+                "success": False,
+                "message": "Content-Type은 application/json이어야 합니다.",
+            }),
             HTTP_STATUS["BAD_REQUEST"],
         )
 
     data = request.json
     if not data:
         return (
-            jsonify({"success": False, "message": "요청 본문이 필요합니다."}),
+            jsonify({
+                "success": False,
+                "message": "요청 본문이 필요합니다."
+            }),
             HTTP_STATUS["BAD_REQUEST"],
         )
 
@@ -177,7 +181,10 @@ def update_user(user_id):
         existing_user = _get_user_by_id(user_id)
         if not existing_user:
             return (
-                jsonify({"success": False, "message": "사용자를 찾을 수 없습니다."}),
+                jsonify({
+                    "success": False,
+                    "message": "사용자를 찾을 수 없습니다."
+                }),
                 HTTP_STATUS["NOT_FOUND"],
             )
 
@@ -186,20 +193,23 @@ def update_user(user_id):
             validation_result = _validate_user_data(data, is_update=True)
             if not validation_result["valid"]:
                 return (
-                    jsonify(
-                        {"success": False, "message": validation_result["message"]}
-                    ),
+                    jsonify({
+                        "success": False,
+                        "message": validation_result["message"]
+                    }),
                     HTTP_STATUS["BAD_REQUEST"],
                 )
 
         # 중복 검사 (수정하려는 필드가 있을 경우)
         if "email" in data:
             duplicate_check = _check_duplicates(
-                data.get("email", existing_user["email"]), exclude_user_id=user_id
-            )
+                data.get("email", existing_user["email"]), exclude_user_id=user_id)
             if not duplicate_check["valid"]:
                 return (
-                    jsonify({"success": False, "message": duplicate_check["message"]}),
+                    jsonify({
+                        "success": False,
+                        "message": duplicate_check["message"]
+                    }),
                     HTTP_STATUS["CONFLICT"],
                 )
 
@@ -211,24 +221,20 @@ def update_user(user_id):
 
         logging.info(f"사용자 수정 완료: {updated_user['name']} (ID: {user_id})")
 
-        return jsonify(
-            {
-                "success": True,
-                "message": f"사용자 '{updated_user['name']}'의 정보가 성공적으로 수정되었습니다.",
-                "user": updated_user,
-            }
-        )
+        return jsonify({
+            "success": True,
+            "message": f"사용자 '{updated_user['name']}'의 정보가 성공적으로 수정되었습니다.",
+            "user": updated_user,
+        })
 
     except Exception as e:
         logging.error(f"사용자 수정 실패: {str(e)}")
         return (
-            jsonify(
-                {
-                    "success": False,
-                    "message": "사용자 수정 중 오류가 발생했습니다.",
-                    "details": str(e),
-                }
-            ),
+            jsonify({
+                "success": False,
+                "message": "사용자 수정 중 오류가 발생했습니다.",
+                "details": str(e),
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -244,7 +250,10 @@ def delete_user(user_id):
         existing_user = _get_user_by_id(user_id)
         if not existing_user:
             return (
-                jsonify({"success": False, "message": "사용자를 찾을 수 없습니다."}),
+                jsonify({
+                    "success": False,
+                    "message": "사용자를 찾을 수 없습니다."
+                }),
                 HTTP_STATUS["NOT_FOUND"],
             )
 
@@ -252,12 +261,10 @@ def delete_user(user_id):
         current_user = request.current_user
         if existing_user["user_id"] == current_user["username"]:
             return (
-                jsonify(
-                    {
-                        "success": False,
-                        "message": "자기 자신의 계정은 삭제할 수 없습니다.",
-                    }
-                ),
+                jsonify({
+                    "success": False,
+                    "message": "자기 자신의 계정은 삭제할 수 없습니다.",
+                }),
                 HTTP_STATUS["FORBIDDEN"],
             )
 
@@ -266,23 +273,19 @@ def delete_user(user_id):
 
         logging.info(f"사용자 삭제 완료: {existing_user['name']} (ID: {user_id})")
 
-        return jsonify(
-            {
-                "success": True,
-                "message": f"사용자 '{existing_user['name']}'가 성공적으로 삭제되었습니다.",
-            }
-        )
+        return jsonify({
+            "success": True,
+            "message": f"사용자 '{existing_user['name']}'가 성공적으로 삭제되었습니다.",
+        })
 
     except Exception as e:
         logging.error(f"사용자 삭제 실패: {str(e)}")
         return (
-            jsonify(
-                {
-                    "success": False,
-                    "message": "사용자 삭제 중 오류가 발생했습니다.",
-                    "details": str(e),
-                }
-            ),
+            jsonify({
+                "success": False,
+                "message": "사용자 삭제 중 오류가 발생했습니다.",
+                "details": str(e),
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -366,29 +369,57 @@ def _check_duplicates(email, exclude_user_id=None):
         return {"valid": False, "message": "중복 검사 중 오류가 발생했습니다."}
 
 
-def _generate_user_id(name, department):
-    """사번 자동 생성 함수"""
+def _generate_user_id(name, department, email):
+    """사번 자동 생성 함수 - 이메일 기반으로 변경"""
     try:
-        # 부서명 앞 2글자 + 이름 앞 2글자 + 순번
-        dept_prefix = (
-            department[:2] if len(department) >= 2 else department.ljust(2, "0")
-        )
-        name_prefix = name[:2] if len(name) >= 2 else name.ljust(2, "0")
+        # 이메일 @ 앞 부분을 기본 user_id로 사용
+        if email and '@' in email:
+            base_user_id = email.split('@')[0]
 
-        # 같은 패턴의 기존 사번 개수 조회
-        pattern = f"{dept_prefix}{name_prefix}%"
-        existing_count = execute_query(
-            "SELECT COUNT(*) as count FROM users WHERE user_id LIKE %s",
-            (pattern,),
-            fetch_one=True,
-        )
+            # 특수문자 제거 및 소문자 변환 (선택사항)
+            base_user_id = base_user_id.lower().replace('.', '_')
 
-        next_number = (existing_count["count"] if existing_count else 0) + 1
-        generated_uid = f"{dept_prefix}{name_prefix}{next_number:03d}"
+            # 중복 검사
+            existing_user = execute_query(
+                "SELECT user_id FROM users WHERE user_id = %s",
+                (base_user_id, ),
+                fetch_one=True,
+            )
 
-        logging.info(
-            f"사번 자동 생성: {generated_uid} (부서: {department}, 이름: {name})"
-        )
+            if not existing_user:
+                # 중복이 없으면 그대로 사용
+                generated_uid = base_user_id
+            else:
+                # 중복이 있으면 숫자를 붙여서 유니크하게 만들기
+                counter = 1
+                while True:
+                    test_uid = f"{base_user_id}_{counter}"
+                    existing = execute_query(
+                        "SELECT user_id FROM users WHERE user_id = %s",
+                        (test_uid, ),
+                        fetch_one=True,
+                    )
+                    if not existing:
+                        generated_uid = test_uid
+                        break
+                    counter += 1
+        else:
+            # 이메일이 없는 경우 기존 방식 사용 (폴백)
+            dept_prefix = (department[:2] if len(department) >= 2 else department.ljust(
+                2, "0"))
+            name_prefix = name[:2] if len(name) >= 2 else name.ljust(2, "0")
+
+            pattern = f"{dept_prefix}{name_prefix}%"
+            existing_count = execute_query(
+                "SELECT COUNT(*) as count FROM users WHERE user_id LIKE %s",
+                (pattern, ),
+                fetch_one=True,
+            )
+
+            next_number = (existing_count["count"] if existing_count else 0) + 1
+            generated_uid = f"{dept_prefix}{name_prefix}{next_number:03d}"
+
+        logging.info(f"사번 자동 생성: {generated_uid} (이메일: {email})")
         return generated_uid
 
     except Exception as e:
@@ -453,7 +484,7 @@ def _get_user_by_id(user_id, include_inactive=False):
             WHERE uid = %s
         """
 
-        user = execute_query(query, (user_id,), fetch_one=True)
+        user = execute_query(query, (user_id, ), fetch_one=True)
 
         if user:
             # datetime 객체를 문자열로 변환
@@ -524,7 +555,7 @@ def _delete_user(user_id):
             WHERE uid = %s
         """
 
-        execute_query(delete_query, (user_id,))
+        execute_query(delete_query, (user_id, ))
 
     except Exception as e:
         logging.error(f"사용자 삭제 오류: {str(e)}")
