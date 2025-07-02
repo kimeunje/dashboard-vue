@@ -272,13 +272,13 @@ const routes = [
     },
   },
 
-  // 문의하기 페이지
+  // 문의사항 페이지
   {
     path: '/contact',
     name: 'Contact',
     component: ContactPage,
     meta: {
-      title: '문의하기 - 정보보안 감사 시스템',
+      title: '문의사항 - 정보보안 감사 시스템',
       requiresAuth: true,
     },
   },
