@@ -86,11 +86,6 @@
                     >{{ educationData.summary.avg_completion_rate }}%</span
                   >
                 </div>
-
-                <div class="stat-row">
-                  <span class="stat-label">감점</span>
-                  <span class="stat-value danger">-{{ educationData.summary.penalty_score }}</span>
-                </div>
               </div>
               <div class="card-progress">
                 <div class="progress-bar">
@@ -217,7 +212,6 @@
               <ul>
                 <li>온라인 수강 형태(상시)</li>
                 <li>필수 수료 과정</li>
-                <li>미수료시 0.5점 감점</li>
               </ul>
             </div>
 
@@ -227,7 +221,6 @@
               <ul>
                 <li>집합 교육 형태</li>
                 <li>필수 참석 과정</li>
-                <li>미참석시 0.5점 감점</li>
               </ul>
             </div>
 
@@ -235,10 +228,8 @@
               <div class="info-icon">🎯</div>
               <h3>평가 기준</h3>
               <ul>
-                <li>온라인: 미수료율 기준 평가(0% 초과 감점)</li>
+                <li>온라인: 수료율 기준 평가(100% 미만 미흡)</li>
                 <li>오프라인: 참석 여부 평가</li>
-                <li>미이수시 감점 적용</li>
-                <li>제외 대상자는 감점 면제</li>
               </ul>
             </div>
           </div>
