@@ -32,33 +32,34 @@
         <div class="score-circle">
           <div class="circle-chart penalty-display">
             <div class="circle-score">
-              <span class="score-number">-{{ scoreData.total_penalty }}</span>
-              <span class="score-unit">점</span>
+              <span class="score-number">{{ getTotalCount() }}</span>
+              <span class="score-unit">건</span>
             </div>
-            <div class="circle-grade">총 감점</div>
+            <div class="circle-grade">총 건수</div>
           </div>
         </div>
         <div class="score-summary">
-          <h2>{{ selectedYear }}년 보안 점수 현황</h2>
-          <!-- <p class="score-description">
-            {{ getPenaltyDescription(scoreData.total_penalty) }}
-          </p> -->
+          <h2>{{ selectedYear }}년 보안 미흡 건수 현황</h2>
           <div class="score-details">
             <div class="detail-item">
-              <span class="detail-label">상시감사 감점:</span>
-              <span class="detail-value penalty">-{{ scoreData.audit_penalty }}점</span>
+              <span class="detail-label">상시감사</span>
+              <span class="detail-value penalty">{{ getAuditTotalCount() }}건</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">수시감사 감점:</span>
-              <span class="detail-value penalty">-{{ scoreData.manual_check_penalty || 0 }}점</span>
+              <span class="detail-label">교육 미이수</span>
+              <span class="detail-value penalty"
+                >{{
+                  scoreData.education_stats?.periods_with_incomplete ||
+                  scoreData.education_stats?.incomplete_count ||
+                  0
+                }}건</span
+              >
             </div>
             <div class="detail-item">
-              <span class="detail-label">교육 미이수 감점:</span>
-              <span class="detail-value penalty">-{{ scoreData.education_penalty }}점</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">모의훈련 감점:</span>
-              <span class="detail-value penalty">-{{ scoreData.training_penalty }}점</span>
+              <span class="detail-label">모의훈련</span>
+              <span class="detail-value penalty"
+                >{{ scoreData.training_stats?.failed_count || 0 }}건</span
+              >
             </div>
           </div>
         </div>
@@ -281,6 +282,31 @@ const callRecommendationsAPI = async (year) => {
   }
 
   return await response.json()
+}
+
+// 총 건수 계산 메서드 추가 - 올바른 경로로 수정
+const getTotalCount = () => {
+  if (!scoreData.value) return 0
+  const auditCount = getAuditTotalCount()
+  const educationCount =
+    scoreData.value.education_stats?.periods_with_incomplete ||
+    scoreData.value.education_stats?.incomplete_count ||
+    0
+  const trainingCount = scoreData.value.training_stats?.failed_count || 0
+  return auditCount + educationCount + trainingCount
+}
+
+// 상시감사 총 건수 계산 메서드 (정기점검 + 수시점검) - 제외 처리 반영
+const getAuditTotalCount = () => {
+  if (!scoreData.value) return 0
+
+  // 정기점검: failed_count 사용 (제외 처리는 백엔드에서 처리)
+  const dailyAuditCount = scoreData.value.audit_stats?.failed_count || 0
+
+  // 수시점검: failed_count 사용 (이미 exclude_from_scoring = 0만 계산됨)
+  const manualCheckCount = scoreData.value.manual_check_stats?.failed_count || 0
+
+  return dailyAuditCount + manualCheckCount
 }
 
 // 메서드
