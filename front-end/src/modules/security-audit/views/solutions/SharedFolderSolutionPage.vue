@@ -66,8 +66,8 @@
         <!-- 보안 위험 요소 -->
         <div class="section">
           <h2 class="section-title">공유폴더 보안 위험 요소</h2>
-          <div class="risk-grid">
-            <div class="risk-card high">
+          <div class="requirement-gird">
+            <div class="requirement-card high">
               <div class="risk-icon">
                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                   <path
@@ -78,7 +78,7 @@
               <h3>무제한 접근 권한</h3>
               <p>Everyone 그룹에 전체 제어 권한이 부여된 공유폴더는 누구나 접근 가능합니다.</p>
             </div>
-            <div class="risk-card medium">
+            <div class="requirement-card medium">
               <div class="risk-icon">
                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                   <path
@@ -89,7 +89,7 @@
               <h3>중요 데이터 노출</h3>
               <p>개인정보, 기밀문서 등 민감한 데이터가 포함된 폴더가 공유되는 경우입니다.</p>
             </div>
-            <div class="risk-card low">
+            <div class="requirement-card low">
               <div class="risk-icon">
                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                   <path
@@ -109,186 +109,51 @@
 
           <h3>1. 컴퓨터 관리를 통한 확인</h3>
           <ol>
-            <li><kbd>Windows</kbd> + <kbd>X</kbd> 키를 눌러 관리자 메뉴 열기</li>
-            <li><strong>컴퓨터 관리</strong> 선택</li>
-            <li>
-              좌측 트리에서 <strong>[시스템 도구]</strong> → <strong>[공유 폴더]</strong> →
-              <strong>[공유]</strong> 선택
-            </li>
-            <li>현재 공유되고 있는 모든 폴더 목록 확인</li>
-            <li>각 공유폴더를 우클릭하여 <strong>[속성]</strong> 선택 후 권한 확인</li>
-          </ol>
-
-          <h3>2. 네트워크 공유 센터 확인</h3>
-          <ol>
-            <li>
-              <strong>제어판</strong> → <strong>네트워크 및 인터넷</strong> →
-              <strong>네트워크 및 공유 센터</strong> 열기
-            </li>
-            <li>좌측 메뉴에서 <strong>[고급 공유 설정 변경]</strong> 클릭</li>
-            <li>현재 네트워크 프로필의 공유 설정 상태 확인</li>
-            <li>불필요한 공유 기능 비활성화</li>
-          </ol>
-
-          <h3>3. 명령어를 통한 확인</h3>
-          <ol>
             <li><kbd>Windows</kbd> + <kbd>R</kbd> 키를 눌러 실행 창 열기</li>
-            <li><code>cmd</code> 입력 후 <kbd>Enter</kbd></li>
-            <li><code>net share</code> 명령어로 공유폴더 목록 확인</li>
-            <li><code>net share [공유이름] /delete</code> 명령어로 불필요한 공유 제거</li>
+            <li><code>fsmgmt.msc</code> 입력 후 <kbd>Enter</kbd></li>
+            <li>좌측 트리에서 <strong>[공유 폴더]</strong> → <strong>[공유]</strong> 선택</li>
+            <li>현재 공유되고 있는 모든 폴더 목록 확인</li>
+            <li>각 공유폴더를 우클릭하여 <strong>[공유 중지]</strong> (IPC$ 제외)</li>
           </ol>
         </div>
 
-        <!-- 기본 공유폴더 설명 -->
-        <div class="section">
-          <h2 class="section-title">Windows 기본 공유폴더</h2>
-          <div class="default-shares-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>공유 이름</th>
-                  <th>실제 경로</th>
-                  <th>용도</th>
-                  <th>권장 조치</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr class="safe">
-                  <td><code>ADMIN$</code></td>
-                  <td>C:\Windows</td>
-                  <td>시스템 관리용</td>
-                  <td><span class="action-keep">유지</span></td>
-                </tr>
-                <tr class="safe">
-                  <td><code>C$</code></td>
-                  <td>C:\</td>
-                  <td>시스템 드라이브 관리용</td>
-                  <td><span class="action-keep">유지</span></td>
-                </tr>
-                <tr class="safe">
-                  <td><code>IPC$</code></td>
-                  <td>-</td>
-                  <td>프로세스 간 통신</td>
-                  <td><span class="action-keep">유지</span></td>
-                </tr>
-                <tr class="warning">
-                  <td><code>Users</code></td>
-                  <td>C:\Users</td>
-                  <td>사용자 폴더</td>
-                  <td><span class="action-check">권한 확인</span></td>
-                </tr>
-                <tr class="danger">
-                  <td>사용자 생성 공유</td>
-                  <td>다양함</td>
-                  <td>개인/업무용</td>
-                  <td><span class="action-review">검토 필요</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div class="policy-table">
+          <table>
+            <thead>
+              <tr>
+                <th>폴더 이름</th>
+                <th>권장 설정값</th>
+                <th>설명</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>IPC$</td>
+                <td><span class="setting-value">공유</span></td>
+                <td>시스템 계정</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-
-        <!-- PowerShell 확인 -->
-        <div class="section">
-          <h2 class="section-title">PowerShell을 이용한 확인</h2>
-          <div class="code-block">
-            <h3>공유폴더 확인 명령어</h3>
-            <div class="code-container">
-              <pre><code># 모든 공유폴더 목록 확인
-Get-SmbShare | Select-Object Name, Path, Description
-
-# 세부 공유 정보 확인
-Get-SmbShare | Format-Table Name, Path, ShareType, CurrentUsers -AutoSize
-
-# 공유폴더 권한 확인
-Get-SmbShareAccess -Name "*" | Format-Table ShareName, AccountName, AccessControlType, AccessRight
-
-# 특정 공유폴더의 상세 정보
-Get-SmbShare -Name "공유이름" | Get-SmbShareAccess</code></pre>
-              <button @click="copyToClipboard" class="copy-button">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"
-                  />
-                  <path
-                    d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"
-                  />
-                </svg>
-                복사
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 보안 설정 가이드 -->
-        <div class="section">
-          <h2 class="section-title">안전한 공유폴더 설정 가이드</h2>
-
-          <h3>1. 최소 권한 원칙 적용</h3>
-          <ul>
-            <li>필요한 사용자에게만 최소한의 권한 부여</li>
-            <li>"Everyone" 그룹 사용 지양</li>
-            <li>읽기 전용 권한을 우선적으로 고려</li>
-            <li>관리자 권한은 신중하게 부여</li>
-          </ul>
-
-          <h3>2. 정기적인 권한 검토</h3>
-          <ul>
-            <li>분기별 공유폴더 및 권한 점검</li>
-            <li>퇴사자 계정의 공유폴더 접근 권한 즉시 제거</li>
-            <li>프로젝트 완료 후 임시 공유폴더 정리</li>
-            <li>사용하지 않는 공유폴더 비활성화</li>
-          </ul>
-
-          <h3>3. 공유폴더 명명 규칙</h3>
-          <ul>
-            <li>명확하고 이해하기 쉬운 이름 사용</li>
-            <li>용도를 알 수 있는 설명 추가</li>
-            <li>임시 공유폴더에는 날짜 포함</li>
-            <li>중요도에 따른 분류 체계 구축</li>
-          </ul>
-        </div>
-
         <!-- 스크립트 다운로드 섹션 -->
         <div class="section">
           <h2 class="section-title">자동화 스크립트</h2>
           <div class="script-download-section">
             <div class="script-card">
-              <div class="script-icon check">
+              <div class="script-icon setup">
                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                   <path
-                    d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"
+                    d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"
+                  />
+                  <path
+                    d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"
                   />
                 </svg>
               </div>
               <div class="script-content">
-                <h3>공유폴더 점검 스크립트</h3>
-                <p>현재 시스템의 모든 공유폴더와 권한을 상세히 분석하여 보안 위험을 식별합니다.</p>
-                <button @click="downloadCheckScript" class="download-button secondary">
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path
-                      d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
-                    />
-                    <path
-                      d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"
-                    />
-                  </svg>
-                  다운로드
-                </button>
-              </div>
-            </div>
-            <div class="script-card">
-              <div class="script-icon cleanup">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"
-                  />
-                </svg>
-              </div>
-              <div class="script-content">
-                <h3>불필요한 공유 정리 스크립트</h3>
-                <p>사용하지 않는 공유폴더를 식별하고 안전하게 제거하는 스크립트입니다.</p>
-                <button @click="downloadCleanupScript" class="download-button warning">
+                <h3>공유폴더 설정 스크립트</h3>
+                <p>권장 공유폴더외 자동으로 공유를 해제하는 배치 스크립트입니다.</p>
+                <button @click="downloadConfigScript" class="download-button primary">
                   <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                     <path
                       d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
@@ -302,65 +167,7 @@ Get-SmbShare -Name "공유이름" | Get-SmbShareAccess</code></pre>
               </div>
             </div>
           </div>
-
-          <div class="usage-info">
-            <h4>스크립트 사용 방법</h4>
-            <ol>
-              <li><kbd>Windows</kbd> + <kbd>X</kbd> 키를 눌러 관리자 메뉴 열기</li>
-              <li><strong>Windows PowerShell(관리자)</strong> 선택</li>
-              <li>다운로드한 스크립트 파일의 경로로 이동</li>
-              <li>
-                <code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code>
-                실행
-              </li>
-              <li>스크립트 실행 전 중요 데이터 백업 권장</li>
-            </ol>
-          </div>
         </div>
-
-        <!-- 추가 보안 팁 -->
-        <div class="section">
-          <h2 class="section-title">추가 보안 팁</h2>
-          <div class="info-grid">
-            <div class="info-card warning">
-              <div class="info-icon">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"
-                  />
-                </svg>
-              </div>
-              <div class="info-content">
-                <h3>주의사항</h3>
-                <ul>
-                  <li>기본 시스템 공유(ADMIN$, C$, IPC$)는 함부로 제거하지 마세요</li>
-                  <li>공유 제거 전 현재 사용자가 있는지 확인하세요</li>
-                  <li>중요한 업무용 공유는 백업 후 변경하세요</li>
-                  <li>공유폴더 변경 후 네트워크 연결 테스트를 수행하세요</li>
-                </ul>
-              </div>
-            </div>
-            <div class="info-card tip">
-              <div class="info-icon">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"
-                  />
-                </svg>
-              </div>
-              <div class="info-content">
-                <h3>권장사항</h3>
-                <ul>
-                  <li>정기적으로 공유폴더 사용 현황을 모니터링하세요</li>
-                  <li>파일 서버 로그를 통해 접근 기록을 확인하세요</li>
-                  <li>DLP(Data Loss Prevention) 솔루션 도입을 검토하세요</li>
-                  <li>직원들에게 공유폴더 보안 교육을 실시하세요</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- 페이지 네비게이션 -->
         <PageNavigation :current-path="route.path" />
       </div>
@@ -373,444 +180,170 @@ Get-SmbShare -Name "공유이름" | Get-SmbShareAccess</code></pre>
 import { ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import JSZip from 'jszip'
 import Sidebar from '@/components/Sidebar.vue'
 import PageNavigation from '@/components/PageNavigation.vue'
-
 const route = useRoute()
 const authStore = useAuthStore()
 const sidebarRef = ref(null)
 
-// 공유폴더 점검 스크립트
-const sharedFolderCheckScript = `# 공유폴더 점검 스크립트
-# 현재 시스템의 공유폴더와 권한을 상세히 분석합니다.
-
-Write-Host "=== 공유폴더 보안 점검 스크립트 ===" -ForegroundColor Cyan
-Write-Host "시스템의 모든 공유폴더를 분석하여 보안 위험을 식별합니다." -ForegroundColor Yellow
-Write-Host ""
-
-# 관리자 권한 확인
-if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Host "이 스크립트는 관리자 권한이 필요합니다." -ForegroundColor Red
-    Write-Host "PowerShell을 관리자 권한으로 실행해주세요." -ForegroundColor Red
-    Read-Host "아무 키나 누르면 종료됩니다"
-    exit 1
-}
-
-try {
-    Write-Host "1. 전체 공유폴더 목록 확인" -ForegroundColor Yellow
-    $shares = Get-SmbShare
-
-    Write-Host "발견된 공유폴더: $($shares.Count)개" -ForegroundColor White
-    Write-Host ""
-
-    # 기본 시스템 공유
-    $systemShares = @("ADMIN$", "C$", "D$", "E$", "F$", "IPC$")
-    $userShares = $shares | Where-Object { $_.Name -notin $systemShares }
-    $suspiciousShares = @()
-
-    Write-Host "2. 공유폴더 상세 분석" -ForegroundColor Yellow
-    Write-Host "=" * 60 -ForegroundColor Gray
-
-    foreach ($share in $shares) {
-        $isSystemShare = $share.Name -in $systemShares
-        $shareType = if ($isSystemShare) { "시스템" } else { "사용자" }
-
-        Write-Host "공유명: $($share.Name) [$shareType]" -ForegroundColor $(if($isSystemShare) {'Green'} else {'Yellow'})
-        Write-Host "경로: $($share.Path)" -ForegroundColor White
-        Write-Host "설명: $($share.Description)" -ForegroundColor Gray
-        Write-Host "공유 타입: $($share.ShareType)" -ForegroundColor White
-
-        # 현재 연결된 사용자 확인
-        try {
-            $sessions = Get-SmbConnection -ShareName $share.Name -ErrorAction SilentlyContinue
-            if ($sessions) {
-                Write-Host "현재 연결: $($sessions.Count)명" -ForegroundColor Cyan
-            } else {
-                Write-Host "현재 연결: 없음" -ForegroundColor Gray
-            }
-        } catch {
-            Write-Host "현재 연결: 확인 불가" -ForegroundColor Gray
-        }
-
-        # 권한 확인
-        try {
-            $permissions = Get-SmbShareAccess -Name $share.Name
-            Write-Host "접근 권한:" -ForegroundColor White
-
-            $hasEveryoneAccess = $false
-            $hasFullControl = $false
-
-            foreach ($perm in $permissions) {
-                $accessType = switch ($perm.AccessControlType) {
-                    "Allow" { "허용" }
-                    "Deny" { "거부" }
-                    default { $perm.AccessControlType }
-                }
-
-                $accessRight = switch ($perm.AccessRight) {
-                    "Full" { "전체 제어" }
-                    "Change" { "변경" }
-                    "Read" { "읽기" }
-                    default { $perm.AccessRight }
-                }
-
-                $color = "White"
-                if ($perm.AccountName -eq "Everyone" -and $perm.AccessControlType -eq "Allow") {
-                    $hasEveryoneAccess = $true
-                    $color = "Red"
-                }
-                if ($perm.AccessRight -eq "Full") {
-                    $hasFullControl = $true
-                    if ($perm.AccountName -eq "Everyone") {
-                        $color = "Red"
-                    } else {
-                        $color = "Yellow"
-                    }
-                }
-
-                Write-Host "  - $($perm.AccountName): $accessType/$accessRight" -ForegroundColor $color
-            }
-
-            # 보안 위험 평가
-            $riskLevel = "낮음"
-            $riskReasons = @()
-
-            if ($hasEveryoneAccess) {
-                $riskLevel = "높음"
-                $riskReasons += "Everyone 그룹 접근 허용"
-            }
-
-            if ($hasFullControl -and -not $isSystemShare) {
-                if ($riskLevel -eq "낮음") { $riskLevel = "중간" }
-                $riskReasons += "전체 제어 권한 존재"
-            }
-
-            if ($share.Path -and (Test-Path $share.Path)) {
-                $folderItems = Get-ChildItem $share.Path -ErrorAction SilentlyContinue
-                if ($folderItems -and $folderItems.Count -gt 100) {
-                    if ($riskLevel -eq "낮음") { $riskLevel = "중간" }
-                    $riskReasons += "많은 파일 포함 ($($folderItems.Count)개)"
-                }
-            }
-
-            $riskColor = switch ($riskLevel) {
-                "높음" { "Red" }
-                "중간" { "Yellow" }
-                default { "Green" }
-            }
-
-            Write-Host "보안 위험도: $riskLevel" -ForegroundColor $riskColor
-            if ($riskReasons.Count -gt 0) {
-                Write-Host "위험 요소: $($riskReasons -join ', ')" -ForegroundColor $riskColor
-            }
-
-            if ($riskLevel -ne "낮음" -and -not $isSystemShare) {
-                $suspiciousShares += [PSCustomObject]@{
-                    Name = $share.Name
-                    Path = $share.Path
-                    RiskLevel = $riskLevel
-                    Reasons = $riskReasons -join ', '
-                }
-            }
-
-        } catch {
-            Write-Host "권한 확인 실패: $($_.Exception.Message)" -ForegroundColor Red
-        }
-
-        Write-Host "-" * 60 -ForegroundColor Gray
-    }
-
-    Write-Host ""
-    Write-Host "3. 보안 위험 요약" -ForegroundColor Yellow
-
-    if ($suspiciousShares.Count -eq 0) {
-        Write-Host "✓ 특별한 보안 위험이 발견되지 않았습니다." -ForegroundColor Green
-    } else {
-        Write-Host "⚠ 주의가 필요한 공유폴더: $($suspiciousShares.Count)개" -ForegroundColor Red
-        Write-Host ""
-
-        foreach ($suspicious in $suspiciousShares) {
-            Write-Host "공유명: $($suspicious.Name)" -ForegroundColor Red
-            Write-Host "경로: $($suspicious.Path)" -ForegroundColor White
-            Write-Host "위험도: $($suspicious.RiskLevel)" -ForegroundColor Red
-            Write-Host "이유: $($suspicious.Reasons)" -ForegroundColor Yellow
-            Write-Host ""
-        }
-    }
-
-    Write-Host "4. 네트워크 공유 설정 확인" -ForegroundColor Yellow
-    try {
-        $networkSharing = Get-SmbServerConfiguration | Select-Object EnableSMB1Protocol, EnableSMB2Protocol, RequireSecuritySignature
-        Write-Host "SMB1 프로토콜: $($networkSharing.EnableSMB1Protocol ? '활성화' : '비활성화')" -ForegroundColor $(if($networkSharing.EnableSMB1Protocol) {'Red'} else {'Green'})
-        Write-Host "SMB2 프로토콜: $($networkSharing.EnableSMB2Protocol ? '활성화' : '비활성화')" -ForegroundColor $(if($networkSharing.EnableSMB2Protocol) {'Green'} else {'Red'})
-        Write-Host "보안 서명 필요: $($networkSharing.RequireSecuritySignature ? '활성화' : '비활성화')" -ForegroundColor $(if($networkSharing.RequireSecuritySignature) {'Green'} else {'Yellow'})
-    } catch {
-        Write-Host "네트워크 공유 설정 확인 실패" -ForegroundColor Red
-    }
-
-    Write-Host ""
-    Write-Host "=== 권장사항 ===" -ForegroundColor Cyan
-    Write-Host "✓ Everyone 그룹 접근 권한을 구체적인 사용자/그룹으로 변경" -ForegroundColor Green
-    Write-Host "✓ 불필요한 공유폴더 제거" -ForegroundColor Green
-    Write-Host "✓ 최소 권한 원칙 적용 (읽기 전용 우선)" -ForegroundColor Green
-    Write-Host "✓ 정기적인 공유폴더 및 권한 점검" -ForegroundColor Green
-    Write-Host "✓ SMB1 프로토콜 비활성화 (보안상 취약)" -ForegroundColor Green
-
-} catch {
-    Write-Host "공유폴더 점검 중 오류가 발생했습니다: $($_.Exception.Message)" -ForegroundColor Red
-}
-
-Read-Host "아무 키나 누르면 종료됩니다"`
-
-// 공유폴더 정리 스크립트
-const sharedFolderCleanupScript = `# 공유폴더 정리 스크립트
-# 사용하지 않는 공유폴더를 식별하고 안전하게 제거합니다.
-
-Write-Host "=== 공유폴더 정리 스크립트 ===" -ForegroundColor Cyan
-Write-Host "주의: 이 스크립트는 공유폴더를 제거할 수 있습니다." -ForegroundColor Red
-Write-Host "중요한 데이터의 백업을 먼저 수행하세요." -ForegroundColor Red
-Write-Host ""
-
-# 관리자 권한 확인
-if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Host "이 스크립트는 관리자 권한이 필요합니다." -ForegroundColor Red
-    Write-Host "PowerShell을 관리자 권한으로 실행해주세요." -ForegroundColor Red
-    Read-Host "아무 키나 누르면 종료됩니다"
-    exit 1
-}
-
-$confirmation = Read-Host "정말로 공유폴더 정리를 진행하시겠습니까? (Y/N)"
-if ($confirmation -ne "Y" -and $confirmation -ne "y") {
-    Write-Host "작업이 취소되었습니다." -ForegroundColor Yellow
-    Read-Host "아무 키나 누르면 종료됩니다"
-    exit 0
-}
-
-try {
-    Write-Host ""
-    Write-Host "1. 현재 공유폴더 분석" -ForegroundColor Yellow
-
-    $shares = Get-SmbShare
-    $systemShares = @("ADMIN$", "C$", "D$", "E$", "F$", "IPC$", "print$")
-    $userShares = $shares | Where-Object { $_.Name -notin $systemShares }
-
-    Write-Host "사용자 생성 공유폴더: $($userShares.Count)개" -ForegroundColor White
-
-    if ($userShares.Count -eq 0) {
-        Write-Host "정리할 사용자 공유폴더가 없습니다." -ForegroundColor Green
-        Read-Host "아무 키나 누르면 종료됩니다"
-        exit 0
-    }
-
-    $toRemove = @()
-    $toKeep = @()
-
-    Write-Host ""
-    Write-Host "2. 각 공유폴더 상태 확인" -ForegroundColor Yellow
-    Write-Host "=" * 60 -ForegroundColor Gray
-
-    foreach ($share in $userShares) {
-        Write-Host "공유명: $($share.Name)" -ForegroundColor Cyan
-        Write-Host "경로: $($share.Path)" -ForegroundColor White
-        Write-Host "설명: $($share.Description)" -ForegroundColor Gray
-
-        # 현재 연결 확인
-        $hasConnections = $false
-        try {
-            $sessions = Get-SmbConnection -ShareName $share.Name -ErrorAction SilentlyContinue
-            if ($sessions -and $sessions.Count -gt 0) {
-                $hasConnections = $true
-                Write-Host "현재 연결: $($sessions.Count)명 (활성 사용 중)" -ForegroundColor Red
-            } else {
-                Write-Host "현재 연결: 없음" -ForegroundColor Green
-            }
-        } catch {
-            Write-Host "현재 연결: 확인 불가" -ForegroundColor Gray
-        }
-
-        # 폴더 존재 및 사용 현황 확인
-        $folderExists = Test-Path $share.Path -ErrorAction SilentlyContinue
-        $isEmpty = $false
-        $isOld = $false
-
-        if ($folderExists) {
-            Write-Host "폴더 상태: 존재함" -ForegroundColor Green
-            try {
-                $items = Get-ChildItem $share.Path -ErrorAction SilentlyContinue
-                if (-not $items -or $items.Count -eq 0) {
-                    $isEmpty = $true
-                    Write-Host "폴더 내용: 비어있음" -ForegroundColor Yellow
-                } else {
-                    Write-Host "폴더 내용: $($items.Count)개 파일/폴더" -ForegroundColor White
-
-                    # 최근 수정일 확인
-                    $latestModified = $items | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-                    if ($latestModified) {
-                        $daysSinceModified = (Get-Date) - $latestModified.LastWriteTime
-                        Write-Host "최근 수정: $($daysSinceModified.Days)일 전" -ForegroundColor $(if($daysSinceModified.Days -gt 90) {'Yellow'} else {'White'})
-                        if ($daysSinceModified.Days -gt 90) {
-                            $isOld = $true
-                        }
-                    }
-                }
-            } catch {
-                Write-Host "폴더 내용 확인 실패" -ForegroundColor Red
-            }
-        } else {
-            Write-Host "폴더 상태: 존재하지 않음 (경로 오류)" -ForegroundColor Red
-        }
-
-        # 권한 위험도 확인
-        $hasRisk = $false
-        try {
-            $permissions = Get-SmbShareAccess -Name $share.Name
-            $everyoneAccess = $permissions | Where-Object { $_.AccountName -eq "Everyone" -and $_.AccessControlType -eq "Allow" }
-            if ($everyoneAccess) {
-                $hasRisk = $true
-                Write-Host "보안 위험: Everyone 그룹 접근 허용" -ForegroundColor Red
-            }
-        } catch {
-            Write-Host "권한 확인 실패" -ForegroundColor Red
-        }
-
-        # 제거 권장 여부 결정
-        $shouldRemove = $false
-        $removeReasons = @()
-
-        if (-not $folderExists) {
-            $shouldRemove = $true
-            $removeReasons += "폴더가 존재하지 않음"
-        } elseif ($isEmpty -and -not $hasConnections) {
-            $shouldRemove = $true
-            $removeReasons += "빈 폴더이며 사용되지 않음"
-        } elseif ($isOld -and -not $hasConnections) {
-            $shouldRemove = $true
-            $removeReasons += "오래된 파일(90일 이상)이며 사용되지 않음"
-        }
-
-        if ($hasConnections) {
-            $removeReasons = @("현재 사용 중이므로 제거 불가")
-            $shouldRemove = $false
-        }
-
-        if ($shouldRemove) {
-            Write-Host "권장: 제거" -ForegroundColor Red
-            Write-Host "이유: $($removeReasons -join ', ')" -ForegroundColor Yellow
-            $toRemove += [PSCustomObject]@{
-                Name = $share.Name
-                Path = $share.Path
-                Reasons = $removeReasons -join ', '
-                HasConnections = $hasConnections
-            }
-        } else {
-            Write-Host "권장: 유지" -ForegroundColor Green
-            if ($removeReasons.Count -gt 0) {
-                Write-Host "이유: $($removeReasons -join ', ')" -ForegroundColor White
-            }
-            $toKeep += $share
-        }
-
-        Write-Host "-" * 60 -ForegroundColor Gray
-    }
-
-    Write-Host ""
-    Write-Host "3. 정리 권장 요약" -ForegroundColor Yellow
-
-    if ($toRemove.Count -eq 0) {
-        Write-Host "제거를 권장하는 공유폴더가 없습니다." -ForegroundColor Green
-    } else {
-        Write-Host "제거 권장: $($toRemove.Count)개" -ForegroundColor Red
-        Write-Host "유지 권장: $($toKeep.Count)개" -ForegroundColor Green
-        Write-Host ""
-
-        Write-Host "제거 권장 공유폴더:" -ForegroundColor Red
-        foreach ($item in $toRemove) {
-            Write-Host "- $($item.Name): $($item.Reasons)" -ForegroundColor Yellow
-        }
-
-        Write-Host ""
-        $proceedRemoval = Read-Host "위의 공유폴더들을 제거하시겠습니까? (Y/N)"
-
-        if ($proceedRemoval -eq "Y" -or $proceedRemoval -eq "y") {
-            Write-Host ""
-            Write-Host "4. 공유폴더 제거 실행" -ForegroundColor Yellow
-
-            foreach ($item in $toRemove) {
-                if ($item.HasConnections) {
-                    Write-Host "건너뜀: $($item.Name) (연결된 사용자 있음)" -ForegroundColor Yellow
-                    continue
-                }
-
-                try {
-                    Remove-SmbShare -Name $item.Name -Force
-                    Write-Host "✓ 제거 완료: $($item.Name)" -ForegroundColor Green
-                } catch {
-                    Write-Host "✗ 제거 실패: $($item.Name) - $($_.Exception.Message)" -ForegroundColor Red
-                }
-            }
-        } else {
-            Write-Host "공유폴더 제거가 취소되었습니다." -ForegroundColor Yellow
-        }
-    }
-
-    Write-Host ""
-    Write-Host "=== 정리 완료 ===" -ForegroundColor Cyan
-    Write-Host "정기적인 공유폴더 점검을 권장합니다." -ForegroundColor Green
-
-} catch {
-    Write-Host "공유폴더 정리 중 오류가 발생했습니다: $($_.Exception.Message)" -ForegroundColor Red
-}
-
-Read-Host "아무 키나 누르면 종료됩니다"`
-
-// 메서드
-const copyToClipboard = async () => {
-  const codeText = `# 모든 공유폴더 목록 확인
-Get-SmbShare | Select-Object Name, Path, Description
-
-# 세부 공유 정보 확인
-Get-SmbShare | Format-Table Name, Path, ShareType, CurrentUsers -AutoSize
-
-# 공유폴더 권한 확인
-Get-SmbShareAccess -Name "*" | Format-Table ShareName, AccountName, AccessControlType, AccessRight
-
-# 특정 공유폴더의 상세 정보
-Get-SmbShare -Name "공유이름" | Get-SmbShareAccess`
-
+// ZIP 파일 다운로드 함수 (JSZip 사용)
+const downloadZipWithJSZip = async (files, zipFilename) => {
   try {
-    await navigator.clipboard.writeText(codeText)
-    console.log('코드가 클립보드에 복사되었습니다.')
-  } catch (err) {
-    console.error('클립보드 복사 실패:', err)
-  }
-}
+    const zip = new JSZip()
 
-// 스크립트 다운로드 함수
-const downloadScript = (scriptContent, filename) => {
-  try {
-    const blob = new Blob([scriptContent], { type: 'text/plain;charset=utf-8' })
-    const url = window.URL.createObjectURL(blob)
+    files.forEach((file) => {
+      zip.file(file.name, file.content)
+    })
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    const url = window.URL.createObjectURL(zipBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = filename
+    link.download = zipFilename
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    console.error('파일 다운로드 실패:', err)
+    console.error('ZIP 파일 다운로드 실패:', err)
   }
 }
 
-// 공유폴더 점검 스크립트 다운로드
-const downloadCheckScript = () => {
-  downloadScript(sharedFolderCheckScript, 'SharedFolder_Check.ps1')
+// 사용법
+const downloadConfigScript = async () => {
+  const files = [
+    {
+      name: '조치 스크립트.bat',
+      content: SetupScript,
+    },
+  ]
+  await downloadZipWithJSZip(files, '조치 스크립트.zip')
 }
 
-// 공유폴더 정리 스크립트 다운로드
-const downloadCleanupScript = () => {
-  downloadScript(sharedFolderCleanupScript, 'SharedFolder_Cleanup.ps1')
+// Windows CRLF 줄바꿈으로 변환하는 함수
+const convertToWindowsLineEndings = (content) => {
+  return content.replace(/\r?\n/g, '\r\n')
 }
+
+// 1. 조치 스크립트.bat 내용을 포함한 변수 추가
+const SetupScript = convertToWindowsLineEndings(`@echo off
+
+::  --> 관리자 권한 실행 코드
+:-------------------------------------
+>nul 2>&1 "%SYSTEMROOT%\\system32\\cacls.exe" "%SYSTEMROOT%\\system32\\config\\system"
+
+if '%errorlevel%' NEQ '0' (
+ goto UACPrompt
+) else ( goto gotAdmin )
+
+:UACPrompt
+ echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\\getadmin.vbs"
+ echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\\getadmin.vbs"
+
+"%temp%\\getadmin.vbs"
+ exit /B
+
+:gotAdmin
+ if exist "%temp%\\getadmin.vbs" ( del "%temp%\\getadmin.vbs" )
+ pushd "%CD%"
+ CD /D "%~dp0"
+:--------------------------------------
+
+
+::  --> UTF-8 인코딩 설정
+:-------------------------------------
+chcp 65001 > nul
+
+::  --> 배치 파일 기본 설정
+:-------------------------------------
+TITLE %~n0
+SETLOCAL enabledelayedexpansion
+
+::  --> 특정 IP 설정 (여기에 원격데스크톱을 유지할 IP 주소들을 입력하세요)
+:-------------------------------------
+set ALLOWED_IPS=10.106.15.100 10.106.15.101 10.106.15.102 10.106.15.103 10.106.15.104 10.106.15.105 10.106.15.114 10.106.15.115 10.106.15.117 10.106.15.125
+set SKIP_RDP_DISABLE=0
+
+::  --> 현재 컴퓨터의 IP 주소 확인
+:-------------------------------------
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
+    set IP=%%a
+    set IP=!IP: =!
+    for %%b in (%ALLOWED_IPS%) do (
+        if "!IP!"=="%%b" (
+            set SKIP_RDP_DISABLE=1
+        )
+    )
+)
+:-------------------------------------
+
+::  --> 검사 후 조치
+:-------------------------------------
+CLS
+ECHO.
+ECHO * 주의사항 - 조치 중에는 키보드, 마우스를 움직이지 말아주세요.
+
+ECHO.
+echo ※ 윈도우 시스템 설정값 변경 ※
+echo.
+
+echo 1.1 화면보호기 설정, 잠금 설정, 10분 설정 완료
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v SCRNSAVE.EXE /t REG_SZ /d C:\\Windows\\System32\\scrnsave.scr /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaveActive /t REG_SZ /d 1 /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaverIsSecure /t REG_SZ /d 1 /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaveTimeOut /t REG_SZ /d 600 /f | find /v "success"
+echo.
+
+echo 2.1 암호 복잡도 설정 완료
+secedit /export /cfg "%temp%\\secpol.cfg" > nul
+powershell -Command "(Get-Content '%temp%\\secpol.cfg') -replace 'PasswordComplexity = 0', 'PasswordComplexity = 1' | Set-Content '%temp%\\secpol.cfg'"
+secedit /configure /db %windir%\\security\\local.sdb /cfg "%temp%\secpol.cfg" /areas SECURITYPOLICY > nul
+del "%temp%\\secpol.cfg" > nul
+echo.
+
+echo 2.3 최소 암호 길이 8자리로 변경 완료
+net accounts /minpwlen:8 | find /v "success"
+
+echo 2.4 암호 복잡도 요구사항 활성화 완료
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v NoLMHash /t REG_DWORD /d 0x00000001 /f | find /v "success"
+
+echo 2.5 최대 암호 사용 기간 90일로 변경 완료
+net accounts /maxpwage:90 | find /v "success"
+
+echo 2.7 최근 암호 기억 5개로 변경 완료
+net accounts /uniquepw:5 | find /v "success"
+
+echo 3.1 불필요한 공유폴더 삭제 완료 ^(IPC$ 제외한 모든 공유폴더 제거^)
+:: 모든 공유폴더 목록을 가져와서 IPC$를 제외하고 삭제
+for /f "skip=1 tokens=1" %%s in ('net share ^| findstr /v "^$" ^| findstr /v "명령을 잘못" ^| findstr /v "The command completed"') do (
+    if /i not "%%s"=="IPC$" (
+        net share "%%s" /delete /y > nul 2>&1
+    )
+)
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v restrictanonymous /t REG_DWORD /d 0x00000001 /f | find /v "success"
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" /v AutoShareServer /t REG_DWORD /d 0x00000000 /f | find /v "success"
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" /v AutoShareWks /t REG_DWORD /d 0x00000000 /f | find /v "success"
+echo.
+
+:: IP 조건에 따라 원격데스크톱 설정 처리
+if %SKIP_RDP_DISABLE%==1 (
+    echo 3.3 원격데스크톱 설정 유지 ^(허용된 IP 주소^)
+) else (
+    echo 3.3 원격데스크톱 해제 완료
+    Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0x00000001 /f | find /v "success"
+    Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 0x00000001 /f | find /v "success"
+)
+echo.
+
+TIMEOUT /t 2 > NUL
+echo.
+echo ※ 모든 보안 조치가 완료되었습니다. ※
+echo.
+echo ※ 시스템 재시작을 권장합니다. ※
+:-------------------------------------
+
+pause`)
 </script>
 /* Style 부분 */
 <style scoped>
@@ -951,14 +484,14 @@ const downloadCleanupScript = () => {
 }
 
 /* 위험 요소 그리드 */
-.risk-grid {
+.requirement-gird {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
   margin: 20px 0;
 }
 
-.risk-card {
+.requirement-card {
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -968,24 +501,9 @@ const downloadCleanupScript = () => {
   border-left: 4px solid;
 }
 
-.risk-card:hover {
+.requirement-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-}
-
-.risk-card.high {
-  border-left-color: #ef4444;
-  background: linear-gradient(135deg, #fef2f2, #ffffff);
-}
-
-.risk-card.medium {
-  border-left-color: #f59e0b;
-  background: linear-gradient(135deg, #fefbf2, #ffffff);
-}
-
-.risk-card.low {
-  border-left-color: #3b82f6;
-  background: linear-gradient(135deg, #eff6ff, #ffffff);
 }
 
 .risk-icon {
@@ -999,26 +517,26 @@ const downloadCleanupScript = () => {
   color: white;
 }
 
-.risk-card.high .risk-icon {
+.requirement-card.high .risk-icon {
   background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
-.risk-card.medium .risk-icon {
+.requirement-card.medium .risk-icon {
   background: linear-gradient(135deg, #f59e0b, #d97706);
 }
 
-.risk-card.low .risk-icon {
+.requirement-card.low .risk-icon {
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
 }
 
-.risk-card h3 {
+.requirement-card h3 {
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--dark-blue);
   margin: 0 0 8px 0;
 }
 
-.risk-card p {
+.requirement-card p {
   color: #6b7280;
   font-size: 0.9rem;
   line-height: 1.5;
@@ -1369,7 +887,7 @@ kbd {
     font-size: 1.25rem;
   }
 
-  .risk-grid {
+  .requirement-gird {
     grid-template-columns: 1fr;
   }
 
@@ -1409,5 +927,218 @@ kbd {
     font-size: 0.75rem;
     padding: 2px 6px;
   }
+}
+
+.requirement-card h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--dark-blue);
+  margin: 0 0 8px 0;
+}
+
+.requirement-card p {
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.requirement-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.requirement-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+.requirements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+
+/* 정책 테이블 */
+.policy-table {
+  margin: 20px 0;
+  overflow-x: auto;
+}
+
+.policy-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.policy-table th {
+  background: var(--primary-color);
+  color: white;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.policy-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.policy-table tr:last-child td {
+  border-bottom: none;
+}
+
+.policy-table tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.setting-value {
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* 섹션 스타일 */
+
+.section ol {
+  margin-left: 20px;
+  margin-bottom: 16px;
+}
+
+.section ol li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.section h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--dark-blue);
+  margin: 24px 0 12px 0;
+}
+
+@media (max-width: 480px) {
+  .policy-table th,
+  .policy-table td {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .policy-table {
+    font-size: 0.875rem;
+  }
+  .script-download-section {
+    grid-template-columns: 1fr;
+  }
+  .policy-table th,
+  .policy-table td {
+    padding: 8px 12px;
+  }
+}
+
+/* 스크립트 다운로드 섹션 */
+.script-download-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.script-card {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+}
+
+.script-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.script-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-bottom: 16px;
+}
+
+.script-icon.setup {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.script-icon.check {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.script-content h3 {
+  margin: 0 0 8px 0;
+  color: var(--dark-blue);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.script-content p {
+  margin: 0 0 16px 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.download-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.download-button.primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.download-button.primary:hover {
+  background-color: var(--dark-blue);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(64, 86, 183, 0.3);
+}
+
+.download-button.secondary {
+  background-color: #10b981;
+  color: white;
+}
+
+.download-button.secondary:hover {
+  background-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
 }
 </style>

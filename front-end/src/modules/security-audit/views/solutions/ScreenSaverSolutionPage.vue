@@ -111,81 +111,49 @@
           </div>
         </div>
 
-        <!-- Windows 설정 방법 -->
+        <!-- 수동 설정 방법 -->
         <div class="section">
-          <h2 class="section-title">Windows 설정 방법</h2>
+          <h2 class="section-title">수동 설정 방법</h2>
 
-          <div class="setting-method">
-            <h3><span class="method-number">방법 1</span> 설정 앱 사용 (Windows 10/11)</h3>
-            <ol class="setting-steps">
-              <li><kbd>Windows</kbd> + <kbd>I</kbd> 키를 눌러 설정을 엽니다.</li>
-              <li><strong>"개인 설정"</strong> → <strong>"잠금 화면"</strong>을 클릭합니다.</li>
-              <li>하단의 <strong>"화면 보호기 설정"</strong>을 클릭합니다.</li>
-              <li>화면보호기를 선택하고 대기 시간을 <strong>10분 이하</strong>로 설정합니다.</li>
-              <li><strong>"다시 시작할 때 로그온 화면 표시"</strong> 체크박스를 선택합니다.</li>
-              <li><strong>"확인"</strong>을 클릭하여 설정을 저장합니다.</li>
-            </ol>
-          </div>
+          <ol>
+            <li><kbd>Windows</kbd> + <kbd>R</kbd> 키를 눌러 실행 창 열기</li>
+            <li><code>control desk.cpl,,1</code> 입력 후 <kbd>Enter</kbd> (관리자 권한 필요)</li>
+            <li>화면 보호기 설정 창에서 각 정책을 다음과 같이 설정:</li>
+          </ol>
 
-          <div class="setting-method">
-            <h3><span class="method-number">방법 2</span> 제어판 사용</h3>
-            <ol class="setting-steps">
-              <li>
-                <kbd>Windows</kbd> + <kbd>R</kbd> 키를 누르고 <code>control</code>을 입력 후 엔터를
-                누릅니다.
-              </li>
-              <li>
-                <strong>"모양 및 개인 설정"</strong> → <strong>"디스플레이"</strong> →
-                <strong>"화면 보호기 변경"</strong>을 클릭합니다.
-              </li>
-              <li>드롭다운 메뉴에서 적절한 화면보호기를 선택합니다.</li>
-              <li>
-                대기 시간을 <strong>10분 이하</strong>로 설정하고
-                <strong>"다시 시작할 때 로그온 화면 표시"</strong>를 체크합니다.
-              </li>
-              <li><strong>"확인"</strong>을 클릭하여 설정을 저장합니다.</li>
-            </ol>
+          <div class="policy-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>정책 이름</th>
+                  <th>권장 설정값</th>
+                  <th>설명</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>화면 보호기</td>
+                  <td>
+                    <span class="setting-value">빈 화면</span> 또는
+                    <span class="setting-value">Nicednb_scr</span>
+                  </td>
+                  <td>화면을 가릴 수 있는 배경 이미지 설정</td>
+                </tr>
+                <tr>
+                  <td>대기</td>
+                  <td><span class="setting-value">10분</span></td>
+                  <td>화면 보호기 10분 이내로 작동</td>
+                </tr>
+                <tr>
+                  <td>다시 시작할 때 로그온 화면 표시</td>
+                  <td><span class="setting-value">체크</span></td>
+                  <td>화면 보호기 해제 시 로그인 필수</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-
-        <!-- PowerShell 확인 -->
-        <div class="section">
-          <h2 class="section-title">PowerShell을 이용한 확인</h2>
-          <div class="code-block">
-            <h3>화면보호기 설정 확인 명령어</h3>
-            <div class="code-container">
-              <pre><code># 화면보호기 활성화 상태 확인
-Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ScreenSaveActive"
-
-# 화면보호기 대기 시간 확인 (초 단위)
-Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ScreenSaveTimeOut"
-
-# 암호 보호 설정 확인
-Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ScreenSaverIsSecure"</code></pre>
-              <button @click="copyToClipboard" class="copy-button">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"
-                  />
-                  <path
-                    d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"
-                  />
-                </svg>
-                복사
-              </button>
-            </div>
-            <div class="result-interpretation">
-              <h4>설정값 해석:</h4>
-              <ul>
-                <li><strong>ScreenSaveActive</strong>: 1 = 활성화, 0 = 비활성화</li>
-                <li><strong>ScreenSaveTimeOut</strong>: 초 단위 (600 = 10분)</li>
-                <li><strong>ScreenSaverIsSecure</strong>: 1 = 암호 보호, 0 = 보호 없음</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <!-- 자동화 스크립트 -->
+        <!-- 스크립트 다운로드 섹션 -->
         <div class="section">
           <h2 class="section-title">자동화 스크립트</h2>
           <div class="script-download-section">
@@ -196,122 +164,28 @@ Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ScreenSaverIsSecure"
                     d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"
                   />
                   <path
-                    d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"
+                    d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"
                   />
                 </svg>
               </div>
               <div class="script-content">
-                <h3>화면보호기 자동 설정</h3>
-                <p>화면보호기를 10분 이내로 설정하고 암호 보호를 자동으로 활성화합니다.</p>
+                <h3>화면 보호기 설정 스크립트</h3>
+                <p>화면 보호기 설정을 자동으로 적용하는 배치 스크립트입니다.</p>
                 <button @click="downloadConfigScript" class="download-button primary">
                   <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                     <path
-                      d="M.5 9.9a.5.5 0 0 1 .5.5v1.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1.5a.5.5 0 0 1 1 0v1.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-1.5a.5.5 0 0 1 .5-.5z"
+                      d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
                     />
                     <path
                       d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"
                     />
                   </svg>
-                  다운로드 (ScreenSaver_Setup.ps1)
-                </button>
-              </div>
-            </div>
-
-            <div class="script-card">
-              <div class="script-icon check">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M2.5 3A1.5 1.5 0 0 0 1 4.5v.793c.026.009.051.02.076.032L7.674 8.51c.206.1.446.1.652 0l6.598-3.185A.755.755 0 0 1 15 5.293V4.5A1.5 1.5 0 0 0 13.5 3h-11Z"
-                  />
-                  <path
-                    d="M15 6.954 8.978 9.86a2.25 2.25 0 0 1-1.956 0L1 6.954V11.5A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5V6.954Z"
-                  />
-                </svg>
-              </div>
-              <div class="script-content">
-                <h3>설정 상태 확인</h3>
-                <p>현재 화면보호기 설정이 보안 요구사항을 충족하는지 확인합니다.</p>
-                <button @click="downloadCheckScript" class="download-button secondary">
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path
-                      d="M.5 9.9a.5.5 0 0 1 .5.5v1.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1.5a.5.5 0 0 1 1 0v1.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-1.5a.5.5 0 0 1 .5-.5z"
-                    />
-                    <path
-                      d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"
-                    />
-                  </svg>
-                  다운로드 (ScreenSaver_Check.ps1)
+                  다운로드
                 </button>
               </div>
             </div>
           </div>
-
-          <div class="usage-info">
-            <h4>사용 방법:</h4>
-            <ol>
-              <li>스크립트 파일을 다운로드합니다.</li>
-              <li>PowerShell을 <strong>관리자 권한</strong>으로 실행합니다.</li>
-              <li>다운로드한 스크립트 파일이 있는 폴더로 이동합니다.</li>
-              <li>
-                <code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code>
-                명령으로 실행 정책을 설정합니다.
-              </li>
-              <li>
-                <code>.\ScreenSaver_Setup.ps1</code> 또는
-                <code>.\ScreenSaver_Check.ps1</code> 명령으로 스크립트를 실행합니다.
-              </li>
-            </ol>
-          </div>
         </div>
-
-        <!-- 보안 모범 사례 및 주의사항 -->
-        <div class="section">
-          <h2 class="section-title">보안 모범 사례 및 주의사항</h2>
-          <div class="info-grid">
-            <div class="info-card best-practice">
-              <div class="info-icon">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"
-                  />
-                </svg>
-              </div>
-              <div class="info-content">
-                <h3>모범 사례</h3>
-                <ul>
-                  <li>자리를 비울 때는 <kbd>Windows</kbd> + <kbd>L</kbd> 키로 즉시 화면 잠금</li>
-                  <li>화면보호기 시간은 5-10분 사이로 설정하여 보안과 편의성의 균형 유지</li>
-                  <li>정기적으로 화면보호기 설정이 유지되고 있는지 확인</li>
-                  <li>복잡한 화면보호기보다는 단순한 것을 선택하여 시스템 성능 보호</li>
-                </ul>
-              </div>
-            </div>
-
-            <div class="info-card troubleshooting">
-              <div class="info-icon">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"
-                  />
-                </svg>
-              </div>
-              <div class="info-content">
-                <h3>문제 해결</h3>
-                <ul>
-                  <li>
-                    전원 관리 설정에서 "절전 모드" 시간이 화면보호기 시간보다 짧지 않은지 확인
-                  </li>
-                  <li>
-                    멀티미디어 프로그램이나 게임이 실행 중이면 화면보호기가 작동하지 않을 수 있음
-                  </li>
-                  <li>그룹 정책에서 화면보호기 설정이 제한되어 있는지 IT 부서에 문의</li>
-                  <li>사용자 계정에 암호가 설정되어 있는지 확인</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- 페이지 네비게이션 -->
         <PageNavigation :current-path="route.path" />
       </div>
@@ -323,147 +197,171 @@ Get-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "ScreenSaverIsSecure"
 import { ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import JSZip from 'jszip'
 import Sidebar from '@/components/Sidebar.vue'
 import PageNavigation from '@/components/PageNavigation.vue'
 
-// Vue Router
 const route = useRoute()
-
-// Pinia Store
 const authStore = useAuthStore()
-
-// Sidebar ref
 const sidebarRef = ref(null)
 
-// PowerShell 스크립트 내용
-const screenSaverScript = `# 화면보호기 자동 설정 스크립트
-# 작성일: ${new Date().toLocaleDateString('ko-KR')}
-# 설명: 화면보호기를 10분 이내로 설정하고 암호 보호를 활성화합니다.
-
-Write-Host "화면보호기 설정을 시작합니다..." -ForegroundColor Green
-
-try {
-    # 레지스트리 경로 설정
-    $registryPath = "HKCU:\\Control Panel\\Desktop"
-
-    # 화면보호기 활성화 (1 = 활성화)
-    Set-ItemProperty -Path $registryPath -Name "ScreenSaveActive" -Value "1"
-    Write-Host "✓ 화면보호기가 활성화되었습니다." -ForegroundColor Green
-
-    # 화면보호기 대기 시간을 600초(10분)로 설정
-    Set-ItemProperty -Path $registryPath -Name "ScreenSaveTimeOut" -Value "600"
-    Write-Host "✓ 화면보호기 대기 시간이 10분으로 설정되었습니다." -ForegroundColor Green
-
-    # 암호 보호 활성화 (1 = 활성화)
-    Set-ItemProperty -Path $registryPath -Name "ScreenSaverIsSecure" -Value "1"
-    Write-Host "✓ 화면보호기 암호 보호가 활성화되었습니다." -ForegroundColor Green
-
-    # 기본 화면보호기를 'scrnsave.scr' (빈 화면)으로 설정
-    Set-ItemProperty -Path $registryPath -Name "SCRNSAVE.EXE" -Value "scrnsave.scr"
-    Write-Host "✓ 기본 화면보호기가 설정되었습니다." -ForegroundColor Green
-
-    Write-Host ""
-    Write-Host "화면보호기 설정이 완료되었습니다!" -ForegroundColor Yellow
-    Write-Host "변경사항이 즉시 적용됩니다." -ForegroundColor Yellow
-
-    # 현재 설정 확인
-    Write-Host ""
-    Write-Host "현재 설정 확인:" -ForegroundColor Cyan
-
-    $isActive = Get-ItemProperty -Path $registryPath -Name "ScreenSaveActive" | Select-Object -ExpandProperty ScreenSaveActive
-    $timeout = Get-ItemProperty -Path $registryPath -Name "ScreenSaveTimeOut" | Select-Object -ExpandProperty ScreenSaveTimeOut
-    $isSecure = Get-ItemProperty -Path $registryPath -Name "ScreenSaverIsSecure" | Select-Object -ExpandProperty ScreenSaverIsSecure
-
-    Write-Host "- 화면보호기 활성화: $($isActive -eq 1 ? '예' : '아니오')" -ForegroundColor White
-    Write-Host "- 대기 시간: $([math]::Round($timeout / 60, 1))분" -ForegroundColor White
-    Write-Host "- 암호 보호: $($isSecure -eq 1 ? '예' : '아니오')" -ForegroundColor White
-
-}
-catch {
-    Write-Host "오류가 발생했습니다: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "관리자 권한으로 PowerShell을 실행해보세요." -ForegroundColor Yellow
-}
-
-Write-Host ""
-Write-Host "스크립트 실행이 완료되었습니다. 아무 키나 누르면 종료됩니다." -ForegroundColor Gray
-Read-Host`
-
-// 설정 확인용 스크립트
-const checkScript = `# 화면보호기 설정 확인 스크립트
-Write-Host "현재 화면보호기 설정을 확인합니다..." -ForegroundColor Green
-Write-Host ""
-
-$registryPath = "HKCU:\\Control Panel\\Desktop"
-
-try {
-    $isActive = Get-ItemProperty -Path $registryPath -Name "ScreenSaveActive" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty ScreenSaveActive
-    $timeout = Get-ItemProperty -Path $registryPath -Name "ScreenSaveTimeOut" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty ScreenSaveTimeOut
-    $isSecure = Get-ItemProperty -Path $registryPath -Name "ScreenSaverIsSecure" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty ScreenSaverIsSecure
-
-    Write-Host "화면보호기 설정 현황:" -ForegroundColor Cyan
-    Write-Host "- 활성화 상태: $($isActive -eq 1 ? '활성화됨' : '비활성화됨')" -ForegroundColor $(if($isActive -eq 1) {'Green'} else {'Red'})
-    Write-Host "- 대기 시간: $([math]::Round($timeout / 60, 1))분 ($timeout초)" -ForegroundColor $(if($timeout -le 600) {'Green'} else {'Yellow'})
-    Write-Host "- 암호 보호: $($isSecure -eq 1 ? '활성화됨' : '비활성화됨')" -ForegroundColor $(if($isSecure -eq 1) {'Green'} else {'Red'})
-
-    Write-Host ""
-    if($isActive -eq 1 -and $timeout -le 600 -and $isSecure -eq 1) {
-        Write-Host "✓ 모든 보안 요구사항을 충족합니다!" -ForegroundColor Green
-    } else {
-        Write-Host "⚠ 일부 보안 요구사항을 충족하지 않습니다." -ForegroundColor Yellow
-        Write-Host "화면보호기 자동 설정 스크립트를 실행하세요." -ForegroundColor Yellow
-    }
-}
-catch {
-    Write-Host "설정을 읽는 중 오류가 발생했습니다: $($_.Exception.Message)" -ForegroundColor Red
-}
-
-Read-Host "아무 키나 누르면 종료됩니다"`
-
-// 메서드
-const copyToClipboard = async () => {
-  const codeText = `# 화면보호기 활성화 상태 확인
-Get-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "ScreenSaveActive"
-
-# 화면보호기 대기 시간 확인 (초 단위)
-Get-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "ScreenSaveTimeOut"
-
-# 암호 보호 설정 확인
-Get-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "ScreenSaverIsSecure"`
-
+// ZIP 파일 다운로드 함수 (JSZip 사용)
+const downloadZipWithJSZip = async (files, zipFilename) => {
   try {
-    await navigator.clipboard.writeText(codeText)
-    console.log('코드가 클립보드에 복사되었습니다.')
-  } catch (err) {
-    console.error('클립보드 복사 실패:', err)
-  }
-}
+    const zip = new JSZip()
 
-// 스크립트 다운로드 함수
-const downloadScript = (scriptContent, filename) => {
-  try {
-    const blob = new Blob([scriptContent], { type: 'text/plain;charset=utf-8' })
-    const url = window.URL.createObjectURL(blob)
+    files.forEach((file) => {
+      zip.file(file.name, file.content)
+    })
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    const url = window.URL.createObjectURL(zipBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = filename
+    link.download = zipFilename
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    console.error('파일 다운로드 실패:', err)
+    console.error('ZIP 파일 다운로드 실패:', err)
   }
 }
 
-// 화면보호기 설정 스크립트 다운로드
-const downloadConfigScript = () => {
-  downloadScript(screenSaverScript, 'ScreenSaver_Setup.ps1')
+// 사용법
+const downloadConfigScript = async () => {
+  const files = [
+    {
+      name: '조치 스크립트.bat',
+      content: SetupScript,
+    },
+  ]
+  await downloadZipWithJSZip(files, '조치 스크립트.zip')
 }
 
-// 설정 확인 스크립트 다운로드
-const downloadCheckScript = () => {
-  downloadScript(checkScript, 'ScreenSaver_Check.ps1')
+// Windows CRLF 줄바꿈으로 변환하는 함수
+const convertToWindowsLineEndings = (content) => {
+  return content.replace(/\r?\n/g, '\r\n')
 }
+
+// 1. 조치 스크립트.bat 내용을 포함한 변수 추가
+const SetupScript = convertToWindowsLineEndings(`@echo off
+
+::  --> 관리자 권한 실행 코드
+:-------------------------------------
+>nul 2>&1 "%SYSTEMROOT%\\system32\\cacls.exe" "%SYSTEMROOT%\\system32\\config\\system"
+
+if '%errorlevel%' NEQ '0' (
+ goto UACPrompt
+) else ( goto gotAdmin )
+
+:UACPrompt
+ echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\\getadmin.vbs"
+ echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\\getadmin.vbs"
+
+"%temp%\\getadmin.vbs"
+ exit /B
+
+:gotAdmin
+ if exist "%temp%\\getadmin.vbs" ( del "%temp%\\getadmin.vbs" )
+ pushd "%CD%"
+ CD /D "%~dp0"
+:--------------------------------------
+
+
+::  --> UTF-8 인코딩 설정
+:-------------------------------------
+chcp 65001 > nul
+
+::  --> 배치 파일 기본 설정
+:-------------------------------------
+TITLE %~n0
+SETLOCAL enabledelayedexpansion
+
+::  --> 특정 IP 설정 (여기에 원격데스크톱을 유지할 IP 주소들을 입력하세요)
+:-------------------------------------
+set ALLOWED_IPS=10.106.15.100 10.106.15.101 10.106.15.102 10.106.15.103 10.106.15.104 10.106.15.105 10.106.15.114 10.106.15.115 10.106.15.117 10.106.15.125
+set SKIP_RDP_DISABLE=0
+
+::  --> 현재 컴퓨터의 IP 주소 확인
+:-------------------------------------
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
+    set IP=%%a
+    set IP=!IP: =!
+    for %%b in (%ALLOWED_IPS%) do (
+        if "!IP!"=="%%b" (
+            set SKIP_RDP_DISABLE=1
+        )
+    )
+)
+:-------------------------------------
+
+::  --> 검사 후 조치
+:-------------------------------------
+CLS
+ECHO.
+ECHO * 주의사항 - 조치 중에는 키보드, 마우스를 움직이지 말아주세요.
+
+ECHO.
+echo ※ 윈도우 시스템 설정값 변경 ※
+echo.
+
+echo 1.1 화면보호기 설정, 잠금 설정, 10분 설정 완료
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v SCRNSAVE.EXE /t REG_SZ /d C:\\Windows\\System32\\scrnsave.scr /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaveActive /t REG_SZ /d 1 /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaverIsSecure /t REG_SZ /d 1 /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaveTimeOut /t REG_SZ /d 600 /f | find /v "success"
+echo.
+
+echo 2.1 암호 복잡도 설정 완료
+secedit /export /cfg "%temp%\\secpol.cfg" > nul
+powershell -Command "(Get-Content '%temp%\\secpol.cfg') -replace 'PasswordComplexity = 0', 'PasswordComplexity = 1' | Set-Content '%temp%\\secpol.cfg'"
+secedit /configure /db %windir%\\security\\local.sdb /cfg "%temp%\secpol.cfg" /areas SECURITYPOLICY > nul
+del "%temp%\\secpol.cfg" > nul
+echo.
+
+echo 2.3 최소 암호 길이 8자리로 변경 완료
+net accounts /minpwlen:8 | find /v "success"
+
+echo 2.4 암호 복잡도 요구사항 활성화 완료
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v NoLMHash /t REG_DWORD /d 0x00000001 /f | find /v "success"
+
+echo 2.5 최대 암호 사용 기간 90일로 변경 완료
+net accounts /maxpwage:90 | find /v "success"
+
+echo 2.7 최근 암호 기억 5개로 변경 완료
+net accounts /uniquepw:5 | find /v "success"
+
+echo 3.1 불필요한 공유폴더 삭제 완료 ^(IPC$ 제외한 모든 공유폴더 제거^)
+:: 모든 공유폴더 목록을 가져와서 IPC$를 제외하고 삭제
+for /f "skip=1 tokens=1" %%s in ('net share ^| findstr /v "^$" ^| findstr /v "명령을 잘못" ^| findstr /v "The command completed"') do (
+    if /i not "%%s"=="IPC$" (
+        net share "%%s" /delete /y > nul 2>&1
+    )
+)
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v restrictanonymous /t REG_DWORD /d 0x00000001 /f | find /v "success"
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" /v AutoShareServer /t REG_DWORD /d 0x00000000 /f | find /v "success"
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" /v AutoShareWks /t REG_DWORD /d 0x00000000 /f | find /v "success"
+echo.
+
+:: IP 조건에 따라 원격데스크톱 설정 처리
+if %SKIP_RDP_DISABLE%==1 (
+    echo 3.3 원격데스크톱 설정 유지 ^(허용된 IP 주소^)
+) else (
+    echo 3.3 원격데스크톱 해제 완료
+    Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0x00000001 /f | find /v "success"
+    Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 0x00000001 /f | find /v "success"
+)
+echo.
+
+TIMEOUT /t 2 > NUL
+echo.
+echo ※ 모든 보안 조치가 완료되었습니다. ※
+echo.
+echo ※ 시스템 재시작을 권장합니다. ※
+:-------------------------------------
+
+pause`)
 </script>
 
 <style scoped>
@@ -492,8 +390,6 @@ const downloadCheckScript = () => {
   /* border-bottom: 3px solid var(--primary-color); */
   padding-bottom: 10px;
 }
-
-/* 섹션 스타일 */
 
 /* 요구사항 그리드 */
 .requirements-grid {
@@ -667,99 +563,6 @@ const downloadCheckScript = () => {
 .result-interpretation li {
   margin-bottom: 8px;
   color: #374151;
-}
-
-/* 스크립트 다운로드 섹션 */
-.script-download-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-  margin: 20px 0;
-}
-
-.script-card {
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.script-card:hover {
-  border-color: var(--primary-color);
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
-  transform: translateY(-2px);
-}
-
-.script-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.script-icon.setup {
-  background-color: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-}
-
-.script-icon.check {
-  background-color: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
-}
-
-.script-content h3 {
-  margin: 0 0 12px 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--dark-blue);
-}
-
-.script-content p {
-  margin: 0 0 16px 0;
-  color: #6b7280;
-  line-height: 1.5;
-}
-
-.download-button {
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  font-size: 0.875rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  text-decoration: none;
-}
-
-.download-button.primary {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.download-button.primary:hover {
-  background-color: #2563eb;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.download-button.secondary {
-  background-color: #6b7280;
-  color: white;
-}
-
-.download-button.secondary:hover {
-  background-color: #4b5563;
-  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
 }
 
 /* 사용법 정보 */
@@ -946,6 +749,15 @@ kbd {
     width: 50px;
     height: 50px;
   }
+
+  .policy-table {
+    font-size: 0.875rem;
+  }
+
+  .policy-table th,
+  .policy-table td {
+    padding: 8px 12px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -955,11 +767,193 @@ kbd {
   .code-block {
     padding: 16px;
   }
-
+  .policy-table th,
+  .policy-table td {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
   .requirement-icon,
   .script-icon {
     width: 45px;
     height: 45px;
   }
+}
+
+/* 정책 테이블 */
+.policy-table {
+  margin: 20px 0;
+  overflow-x: auto;
+}
+
+.policy-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.policy-table th {
+  background: var(--primary-color);
+  color: white;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.policy-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.policy-table tr:last-child td {
+  border-bottom: none;
+}
+
+.policy-table tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.setting-value {
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* 섹션 스타일 */
+
+.section ol {
+  margin-left: 20px;
+  margin-bottom: 16px;
+}
+
+.section ol li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.section h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--dark-blue);
+  margin: 24px 0 12px 0;
+}
+
+@media (max-width: 480px) {
+  .policy-table th,
+  .policy-table td {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .policy-table {
+    font-size: 0.875rem;
+  }
+  .script-download-section {
+    grid-template-columns: 1fr;
+  }
+  .policy-table th,
+  .policy-table td {
+    padding: 8px 12px;
+  }
+}
+
+/* 스크립트 다운로드 섹션 */
+.script-download-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.script-card {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+}
+
+.script-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.script-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-bottom: 16px;
+}
+
+.script-icon.setup {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.script-icon.check {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.script-content h3 {
+  margin: 0 0 8px 0;
+  color: var(--dark-blue);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.script-content p {
+  margin: 0 0 16px 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.download-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.download-button.primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.download-button.primary:hover {
+  background-color: var(--dark-blue);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(64, 86, 183, 0.3);
+}
+
+.download-button.secondary {
+  background-color: #10b981;
+  color: white;
+}
+
+.download-button.secondary:hover {
+  background-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
 }
 </style>

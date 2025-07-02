@@ -66,8 +66,8 @@
         <!-- 보안 위험 요소 -->
         <div class="section">
           <h2 class="section-title">원격 데스크톱 보안 위험</h2>
-          <div class="risk-grid">
-            <div class="risk-card critical">
+          <div class="requirements-grid">
+            <div class="requirement-card critical">
               <div class="risk-icon">
                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                   <path
@@ -78,7 +78,7 @@
               <h3>무단 접근</h3>
               <p>약한 패스워드나 설정 오류로 인해 악의적인 사용자가 시스템에 침입할 수 있습니다.</p>
             </div>
-            <div class="risk-card high">
+            <div class="requirement-card high">
               <div class="risk-icon">
                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                   <path
@@ -89,7 +89,7 @@
               <h3>브루트포스 공격</h3>
               <p>자동화된 도구를 사용하여 패스워드를 무차별 대입으로 시도하는 공격에 취약합니다.</p>
             </div>
-            <div class="risk-card medium">
+            <div class="requirement-card medium">
               <div class="risk-icon">
                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                   <path
@@ -102,234 +102,20 @@
             </div>
           </div>
         </div>
-
-        <!-- 보안 설정 단계 -->
+        <!-- 수동 확인 방법 -->
         <div class="section">
-          <h2 class="section-title">보안 설정 단계</h2>
-          <div class="security-levels">
-            <div class="level-card recommended">
-              <div class="level-header">
-                <div class="level-icon">
-                  <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                    <path
-                      d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"
-                    />
-                  </svg>
-                </div>
-                <h3>권장: 완전 비활성화</h3>
-                <span class="level-badge safe">가장 안전</span>
-              </div>
-              <p>원격 데스크톱을 완전히 비활성화하여 외부 접근을 차단합니다.</p>
-              <ul>
-                <li>시스템 보안 최대화</li>
-                <li>네트워크 공격 차단</li>
-                <li>자원 절약</li>
-              </ul>
-            </div>
-            <div class="level-card conditional">
-              <div class="level-header">
-                <div class="level-icon">
-                  <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                    <path
-                      d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"
-                    />
-                  </svg>
-                </div>
-                <h3>조건부: 제한적 허용</h3>
-                <span class="level-badge warning">주의 필요</span>
-              </div>
-              <p>업무상 필요한 경우에만 엄격한 조건 하에 허용합니다.</p>
-              <ul>
-                <li>특정 IP 주소만 허용</li>
-                <li>강력한 인증 요구</li>
-                <li>접속 로그 모니터링</li>
-                <li>VPN 연결 필수</li>
-              </ul>
-            </div>
-          </div>
-        </div>
+          <h2 class="section-title">수동 확인 방법</h2>
 
-        <!-- 수동 비활성화 방법 -->
-        <div class="section">
-          <h2 class="section-title">수동 비활성화 방법</h2>
-
-          <h3>방법 1: 시스템 속성을 통한 비활성화</h3>
-          <ol>
-            <li>
-              <kbd>Windows</kbd> + <kbd>Pause</kbd> 키를 누르거나 <strong>내 컴퓨터</strong> 우클릭
-              → <strong>속성</strong>
-            </li>
-            <li>좌측 메뉴에서 <strong>고급 시스템 설정</strong> 클릭</li>
-            <li><strong>원격</strong> 탭 선택</li>
-            <li><strong>"이 컴퓨터에 대한 원격 데스크톱을 사용하지 않음"</strong> 선택</li>
-            <li><strong>확인</strong> 버튼 클릭하여 적용</li>
-          </ol>
-
-          <h3>방법 2: 레지스트리를 통한 비활성화</h3>
+          <h3>1. 컴퓨터 관리를 통한 확인</h3>
           <ol>
             <li><kbd>Windows</kbd> + <kbd>R</kbd> 키를 눌러 실행 창 열기</li>
-            <li><code>regedit</code> 입력 후 <kbd>Enter</kbd></li>
+            <li><code>control sysdm.cpl,,5</code> 입력 후 <kbd>Enter</kbd></li>
             <li>
-              다음 경로로 이동:
-              <code>HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server</code>
+              <strong>[시스템 속성]</strong> → <strong>[원격]</strong> →
+              <strong>[원격 데스크톱]</strong> 선택
             </li>
-            <li><code>fDenyTSConnections</code> 값을 <strong>1</strong>로 설정</li>
-            <li>시스템 재부팅</li>
+            <li><strong>이 컴퓨터에 대한 원격 연결 허용 안 함</strong> 체크</li>
           </ol>
-
-          <h3>방법 3: 서비스 비활성화</h3>
-          <ol>
-            <li><kbd>Windows</kbd> + <kbd>R</kbd> 키를 눌러 실행 창 열기</li>
-            <li><code>services.msc</code> 입력 후 <kbd>Enter</kbd></li>
-            <li><strong>Remote Desktop Services</strong> 서비스 찾기</li>
-            <li>서비스를 우클릭하여 <strong>속성</strong> 선택</li>
-            <li>시작 유형을 <strong>사용 안 함</strong>으로 변경</li>
-            <li>서비스가 실행 중이면 <strong>중지</strong> 버튼 클릭</li>
-          </ol>
-        </div>
-
-        <!-- 방화벽 설정 -->
-        <div class="section">
-          <h2 class="section-title">방화벽 규칙 설정</h2>
-
-          <h3>Windows 방화벽에서 RDP 차단</h3>
-          <ol>
-            <li><kbd>Windows</kbd> + <kbd>R</kbd> 키를 눌러 실행 창 열기</li>
-            <li>
-              <code>wf.msc</code> 입력 후 <kbd>Enter</kbd> (고급 보안이 포함된 Windows Defender
-              방화벽)
-            </li>
-            <li>좌측에서 <strong>인바운드 규칙</strong> 선택</li>
-            <li>
-              <strong>원격 데스크톱</strong> 관련 규칙들을 찾아서 모두
-              <strong>사용 안 함</strong>으로 설정
-            </li>
-            <li>또는 규칙을 삭제하여 완전히 차단</li>
-          </ol>
-
-          <div class="firewall-rules-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>규칙 이름</th>
-                  <th>포트</th>
-                  <th>프로토콜</th>
-                  <th>권장 조치</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>원격 데스크톱 - 사용자 모드(TCP-In)</td>
-                  <td>3389</td>
-                  <td>TCP</td>
-                  <td><span class="action-disable">비활성화</span></td>
-                </tr>
-                <tr>
-                  <td>원격 데스크톱 - 사용자 모드(UDP-In)</td>
-                  <td>3389</td>
-                  <td>UDP</td>
-                  <td><span class="action-disable">비활성화</span></td>
-                </tr>
-                <tr>
-                  <td>원격 데스크톱 - 섀도우(TCP-In)</td>
-                  <td>다양함</td>
-                  <td>TCP</td>
-                  <td><span class="action-disable">비활성화</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- PowerShell 확인 -->
-        <div class="section">
-          <h2 class="section-title">PowerShell을 이용한 확인</h2>
-          <div class="code-block">
-            <h3>원격 데스크톱 상태 확인 명령어</h3>
-            <div class="code-container">
-              <pre><code># 원격 데스크톱 설정 상태 확인
-Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections"
-
-# 원격 데스크톱 서비스 상태 확인
-Get-Service -Name "TermService" | Select-Object Name, Status, StartType
-
-# 방화벽 규칙 확인
-Get-NetFirewallRule -DisplayGroup "원격 데스크톱" | Select-Object DisplayName, Enabled, Direction
-
-# 현재 RDP 연결 확인
-qwinsta
-
-# 네트워크 포트 3389 사용 확인
-netstat -an | findstr :3389</code></pre>
-              <button @click="copyToClipboard" class="copy-button">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"
-                  />
-                  <path
-                    d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"
-                  />
-                </svg>
-                복사
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 안전한 원격 접속 대안 -->
-        <div class="section">
-          <h2 class="section-title">안전한 원격 접속 대안</h2>
-
-          <div class="alternatives-grid">
-            <div class="alternative-card">
-              <div class="alternative-icon vpn">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"
-                  />
-                </svg>
-              </div>
-              <h3>VPN 연결</h3>
-              <p>가상 사설망을 통한 안전한 원격 접속</p>
-              <ul>
-                <li>암호화된 통신</li>
-                <li>접근 통제</li>
-                <li>중앙 관리</li>
-              </ul>
-            </div>
-            <div class="alternative-card">
-              <div class="alternative-icon ssh">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M13.5 3a.5.5 0 0 1 .5.5V11H2V3.5a.5.5 0 0 1 .5-.5h11zm-11-1A1.5 1.5 0 0 0 1 3.5V12h14V3.5A1.5 1.5 0 0 0 13.5 2h-11zM5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zM4.5 7a.5.5 0 0 0 0 1h7a.5.5 0 0 0 0-1h-7z"
-                  />
-                </svg>
-              </div>
-              <h3>SSH 터널링</h3>
-              <p>SSH를 통한 보안 터널 구성</p>
-              <ul>
-                <li>강력한 암호화</li>
-                <li>키 기반 인증</li>
-                <li>포트 포워딩</li>
-              </ul>
-            </div>
-            <div class="alternative-card">
-              <div class="alternative-icon cloud">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z"
-                  />
-                </svg>
-              </div>
-              <h3>클라우드 솔루션</h3>
-              <p>클라우드 기반 원격 데스크톱 서비스</p>
-              <ul>
-                <li>전문 보안 관리</li>
-                <li>확장성</li>
-                <li>중앙 모니터링</li>
-              </ul>
-            </div>
-          </div>
         </div>
 
         <!-- 스크립트 다운로드 섹션 -->
@@ -337,46 +123,20 @@ netstat -an | findstr :3389</code></pre>
           <h2 class="section-title">자동화 스크립트</h2>
           <div class="script-download-section">
             <div class="script-card">
-              <div class="script-icon disable">
+              <div class="script-icon setup">
                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                   <path
-                    d="M6.146 8.146a.5.5 0 0 1 .708 0L8 9.293l1.146-1.147a.5.5 0 1 1 .708.708L8.707 10l1.147 1.146a.5.5 0 0 1-.708.708L8 10.707l-1.146 1.147a.5.5 0 0 1-.708-.708L7.293 10 6.146 8.854a.5.5 0 0 1 0-.708z"
+                    d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"
                   />
                   <path
-                    d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1A2.5 2.5 0 0 1 9.5 5h-3A2.5 2.5 0 0 1 4 2.5v-1zM6 2.5v1a1.5 1.5 0 0 0 1.5 1.5h3A1.5 1.5 0 0 0 12 3.5v-1a0.5 0.5 0 0 0-0.5-0.5h-5A0.5 0.5 0 0 0 6 2.5z"
+                    d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"
                   />
                 </svg>
               </div>
               <div class="script-content">
-                <h3>원격 데스크톱 비활성화 스크립트</h3>
-                <p>
-                  원격 데스크톱을 안전하게 비활성화하고 관련 서비스 및 방화벽 규칙을 설정합니다.
-                </p>
-                <button @click="downloadDisableScript" class="download-button danger">
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path
-                      d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
-                    />
-                    <path
-                      d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"
-                    />
-                  </svg>
-                  다운로드
-                </button>
-              </div>
-            </div>
-            <div class="script-card">
-              <div class="script-icon check">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"
-                  />
-                </svg>
-              </div>
-              <div class="script-content">
-                <h3>원격 데스크톱 상태 확인 스크립트</h3>
-                <p>현재 원격 데스크톱 설정 상태와 보안 취약점을 상세히 분석합니다.</p>
-                <button @click="downloadCheckScript" class="download-button secondary">
+                <h3>원격 데스크톱 설정 스크립트</h3>
+                <p>권장 원격 데스크톱 설정을 자동으로 적용하는 배치 스크립트입니다.</p>
+                <button @click="downloadConfigScript" class="download-button primary">
                   <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                     <path
                       d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
@@ -390,123 +150,7 @@ netstat -an | findstr :3389</code></pre>
               </div>
             </div>
           </div>
-
-          <div class="usage-info">
-            <h4>스크립트 사용 방법</h4>
-            <ol>
-              <li><kbd>Windows</kbd> + <kbd>X</kbd> 키를 눌러 관리자 메뉴 열기</li>
-              <li><strong>Windows PowerShell(관리자)</strong> 선택</li>
-              <li>다운로드한 스크립트 파일의 경로로 이동</li>
-              <li>
-                <code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code>
-                실행
-              </li>
-              <li>비활성화 스크립트 실행 전 현재 연결된 사용자가 있는지 확인</li>
-            </ol>
-          </div>
         </div>
-
-        <!-- 모니터링 및 로그 -->
-        <div class="section">
-          <h2 class="section-title">모니터링 및 로그 관리</h2>
-
-          <h3>RDP 접속 로그 확인</h3>
-          <p>원격 데스크톱 접속 시도 및 성공/실패 기록을 확인할 수 있습니다:</p>
-          <ul>
-            <li>
-              <strong>이벤트 뷰어</strong> → <strong>Windows 로그</strong> → <strong>보안</strong>
-            </li>
-            <li>이벤트 ID 4624: 성공적인 로그온</li>
-            <li>이벤트 ID 4625: 실패한 로그온 시도</li>
-            <li>이벤트 ID 4634: 계정 로그오프</li>
-            <li>이벤트 ID 4647: 사용자가 시작한 로그오프</li>
-          </ul>
-
-          <h3>정기적인 보안 점검</h3>
-          <ul>
-            <li>월별 RDP 설정 상태 확인</li>
-            <li>접속 로그 분석 및 이상 징후 탐지</li>
-            <li>네트워크 방화벽 규칙 검토</li>
-            <li>사용자 계정 및 권한 점검</li>
-          </ul>
-        </div>
-
-        <!-- 추가 보안 팁 -->
-        <div class="section">
-          <h2 class="section-title">추가 보안 팁</h2>
-          <div class="info-grid">
-            <div class="info-card critical">
-              <div class="info-icon">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"
-                  />
-                </svg>
-              </div>
-              <div class="info-content">
-                <h3>중요 주의사항</h3>
-                <ul>
-                  <li>RDP 비활성화 전 현재 원격 작업 중인 사용자가 있는지 확인</li>
-                  <li>서버 환경에서는 신중하게 결정 (원격 관리 필요성 고려)</li>
-                  <li>설정 변경 후 로컬 접근이 가능한지 확인</li>
-                  <li>방화벽 변경 시 다른 서비스에 영향 없는지 검토</li>
-                </ul>
-              </div>
-            </div>
-            <div class="info-card tip">
-              <div class="info-icon">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"
-                  />
-                </svg>
-              </div>
-              <div class="info-content">
-                <h3>권장사항</h3>
-                <ul>
-                  <li>정말 필요한 경우가 아니면 RDP를 비활성화하세요</li>
-                  <li>대안적인 원격 접속 방법을 검토하세요</li>
-                  <li>네트워크 레벨에서 접근 제한을 적용하세요</li>
-                  <li>정기적으로 시스템 보안 상태를 점검하세요</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 복구 방법 -->
-        <div class="section">
-          <h2 class="section-title">설정 복구 방법</h2>
-          <div class="recovery-info">
-            <h3>RDP를 다시 활성화해야 하는 경우</h3>
-            <p>비상 상황이나 업무상 필요에 의해 원격 데스크톱을 다시 활성화해야 하는 경우:</p>
-
-            <h4>레지스트리를 통한 복구</h4>
-            <div class="recovery-code">
-              <pre><code># PowerShell을 관리자 권한으로 실행
-Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
-
-# 방화벽 규칙 활성화
-Enable-NetFirewallRule -DisplayGroup "원격 데스크톱"
-
-# 서비스 시작
-Set-Service -Name "TermService" -StartupType Automatic
-Start-Service -Name "TermService"</code></pre>
-            </div>
-
-            <div class="warning-box">
-              <h4>⚠️ 보안 경고</h4>
-              <p>RDP를 다시 활성화하는 경우 반드시 다음 보안 조치를 함께 적용하세요:</p>
-              <ul>
-                <li>강력한 패스워드 정책 적용</li>
-                <li>특정 IP 주소만 허용하는 방화벽 규칙 설정</li>
-                <li>2단계 인증 활성화 (가능한 경우)</li>
-                <li>접속 로그 모니터링 강화</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
         <!-- 페이지 네비게이션 -->
         <PageNavigation :current-path="route.path" />
       </div>
@@ -519,476 +163,170 @@ Start-Service -Name "TermService"</code></pre>
 import { ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import JSZip from 'jszip'
 import Sidebar from '@/components/Sidebar.vue'
 import PageNavigation from '@/components/PageNavigation.vue'
-
 const route = useRoute()
 const authStore = useAuthStore()
 const sidebarRef = ref(null)
 
-// 원격 데스크톱 비활성화 스크립트
-const remoteDesktopDisableScript = `# 원격 데스크톱 비활성화 스크립트
-# 시스템의 원격 데스크톱을 안전하게 비활성화합니다.
-
-Write-Host "=== 원격 데스크톱 비활성화 스크립트 ===" -ForegroundColor Cyan
-Write-Host "시스템 보안을 위해 원격 데스크톱을 비활성화합니다." -ForegroundColor Yellow
-Write-Host ""
-
-# 관리자 권한 확인
-if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Host "이 스크립트는 관리자 권한이 필요합니다." -ForegroundColor Red
-    Write-Host "PowerShell을 관리자 권한으로 실행해주세요." -ForegroundColor Red
-    Read-Host "아무 키나 누르면 종료됩니다"
-    exit 1
-}
-
-try {
-    Write-Host "1. 현재 원격 데스크톱 상태 확인" -ForegroundColor Yellow
-
-    # 현재 RDP 설정 확인
-    $rdpSetting = Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" -Name "fDenyTSConnections" -ErrorAction SilentlyContinue
-    $currentStatus = if ($rdpSetting.fDenyTSConnections -eq 0) { "활성화" } else { "비활성화" }
-    Write-Host "현재 원격 데스크톱 상태: $currentStatus" -ForegroundColor $(if($currentStatus -eq "활성화") {'Red'} else {'Green'})
-
-    # 현재 연결된 사용자 확인
-    Write-Host ""
-    Write-Host "현재 원격 연결 확인 중..." -ForegroundColor Yellow
-    try {
-        $sessions = qwinsta | Where-Object { $_ -match "rdp" -and $_ -match "Active" }
-        if ($sessions) {
-            Write-Host "⚠️ 경고: 현재 활성화된 RDP 세션이 있습니다!" -ForegroundColor Red
-            $sessions | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
-            Write-Host ""
-            $confirmation = Read-Host "활성화된 세션이 있어도 계속 진행하시겠습니까? (Y/N)"
-            if ($confirmation -ne "Y" -and $confirmation -ne "y") {
-                Write-Host "작업이 취소되었습니다." -ForegroundColor Yellow
-                Read-Host "아무 키나 누르면 종료됩니다"
-                exit 0
-            }
-        } else {
-            Write-Host "✓ 현재 활성화된 RDP 세션이 없습니다." -ForegroundColor Green
-        }
-    } catch {
-        Write-Host "RDP 세션 확인 중 오류 발생: $($_.Exception.Message)" -ForegroundColor Yellow
-    }
-
-    Write-Host ""
-    Write-Host "2. 원격 데스크톱 비활성화 진행" -ForegroundColor Yellow
-
-    # 레지스트리 설정 변경
-    Write-Host "레지스트리 설정 변경 중..." -ForegroundColor White
-    Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" -Name "fDenyTSConnections" -Value 1
-    Write-Host "✓ 레지스트리 설정 완료" -ForegroundColor Green
-
-    # Terminal Services 서비스 중지 및 비활성화
-    Write-Host "Terminal Services 서비스 설정 중..." -ForegroundColor White
-    try {
-        $service = Get-Service -Name "TermService" -ErrorAction SilentlyContinue
-        if ($service) {
-            if ($service.Status -eq "Running") {
-                Stop-Service -Name "TermService" -Force
-                Write-Host "✓ Terminal Services 서비스 중지 완료" -ForegroundColor Green
-            }
-            Set-Service -Name "TermService" -StartupType Disabled
-            Write-Host "✓ Terminal Services 서비스 비활성화 완료" -ForegroundColor Green
-        } else {
-            Write-Host "Terminal Services 서비스를 찾을 수 없습니다." -ForegroundColor Yellow
-        }
-    } catch {
-        Write-Host "서비스 설정 중 오류: $($_.Exception.Message)" -ForegroundColor Yellow
-    }
-
-    Write-Host ""
-    Write-Host "3. 방화벽 규칙 비활성화" -ForegroundColor Yellow
-
-    # 방화벽 규칙 비활성화
-    try {
-        $firewallRules = Get-NetFirewallRule -DisplayGroup "원격 데스크톱" -ErrorAction SilentlyContinue
-        if ($firewallRules) {
-            foreach ($rule in $firewallRules) {
-                if ($rule.Enabled -eq "True") {
-                    Disable-NetFirewallRule -DisplayName $rule.DisplayName
-                    Write-Host "✓ 방화벽 규칙 비활성화: $($rule.DisplayName)" -ForegroundColor Green
-                }
-            }
-        } else {
-            Write-Host "원격 데스크톱 방화벽 규칙을 찾을 수 없습니다." -ForegroundColor Yellow
-        }
-
-        # 영어 시스템용 규칙도 확인
-        $englishRules = Get-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue
-        if ($englishRules) {
-            foreach ($rule in $englishRules) {
-                if ($rule.Enabled -eq "True") {
-                    Disable-NetFirewallRule -DisplayName $rule.DisplayName
-                    Write-Host "✓ 방화벽 규칙 비활성화: $($rule.DisplayName)" -ForegroundColor Green
-                }
-            }
-        }
-    } catch {
-        Write-Host "방화벽 설정 중 오류: $($_.Exception.Message)" -ForegroundColor Yellow
-        Write-Host "수동으로 방화벽 설정을 확인해주세요." -ForegroundColor Yellow
-    }
-
-    Write-Host ""
-    Write-Host "4. 추가 보안 설정" -ForegroundColor Yellow
-
-    # NLA (Network Level Authentication) 강화 (재활성화 시를 대비)
-    try {
-        Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" -Name "UserAuthentication" -Value 1
-        Write-Host "✓ 네트워크 수준 인증 강화 설정 완료" -ForegroundColor Green
-    } catch {
-        Write-Host "NLA 설정 중 오류: $($_.Exception.Message)" -ForegroundColor Yellow
-    }
-
-    # 기본 포트 변경 설정 (재활성화 시를 대비)
-    try {
-        $currentPort = Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\Wds\\rdpwd\\Tds\\tcp" -Name "PortNumber" -ErrorAction SilentlyContinue
-        if ($currentPort -and $currentPort.PortNumber -eq 3389) {
-            Write-Host "권장: 재활성화 시 기본 포트(3389) 변경을 고려하세요." -ForegroundColor Yellow
-        }
-    } catch {
-        Write-Host "포트 설정 확인 중 오류: $($_.Exception.Message)" -ForegroundColor Yellow
-    }
-
-    Write-Host ""
-    Write-Host "5. 설정 완료 확인" -ForegroundColor Yellow
-
-    # 최종 상태 확인
-    $finalStatus = Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" -Name "fDenyTSConnections"
-    $statusText = if ($finalStatus.fDenyTSConnections -eq 1) { "비활성화됨" } else { "활성화됨" }
-    Write-Host "원격 데스크톱 상태: $statusText" -ForegroundColor $(if($statusText -eq "비활성화됨") {'Green'} else {'Red'})
-
-    $serviceStatus = Get-Service -Name "TermService" -ErrorAction SilentlyContinue
-    if ($serviceStatus) {
-        Write-Host "Terminal Services 서비스: $($serviceStatus.Status) / $($serviceStatus.StartType)" -ForegroundColor $(if($serviceStatus.Status -eq "Stopped") {'Green'} else {'Yellow'})
-    }
-
-    # 포트 3389 사용 확인
-    $portCheck = netstat -an | Select-String ":3389"
-    if (-not $portCheck) {
-        Write-Host "✓ 포트 3389가 사용되지 않습니다." -ForegroundColor Green
-    } else {
-        Write-Host "⚠️ 포트 3389가 여전히 사용 중입니다." -ForegroundColor Yellow
-    }
-
-    Write-Host ""
-    Write-Host "=== 비활성화 완료 ===" -ForegroundColor Cyan
-    Write-Host "원격 데스크톱이 성공적으로 비활성화되었습니다." -ForegroundColor Green
-    Write-Host ""
-    Write-Host "중요 안내사항:" -ForegroundColor Yellow
-    Write-Host "- 시스템 재부팅을 권장합니다" -ForegroundColor White
-    Write-Host "- 설정이 완전히 적용되려면 재부팅이 필요할 수 있습니다" -ForegroundColor White
-    Write-Host "- 원격 접속이 필요한 경우 VPN 등 대안 방법을 사용하세요" -ForegroundColor White
-
-    $reboot = Read-Host "지금 시스템을 재부팅하시겠습니까? (Y/N)"
-    if ($reboot -eq "Y" -or $reboot -eq "y") {
-        Write-Host "5초 후 시스템이 재부팅됩니다..." -ForegroundColor Yellow
-        Start-Sleep -Seconds 5
-        Restart-Computer -Force
-    }
-
-} catch {
-    Write-Host "원격 데스크톱 비활성화 중 오류가 발생했습니다: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "수동으로 설정을 확인해주세요." -ForegroundColor Yellow
-}
-
-Read-Host "아무 키나 누르면 종료됩니다"`
-
-// 원격 데스크톱 상태 확인 스크립트
-const remoteDesktopCheckScript = `# 원격 데스크톱 상태 확인 스크립트
-# 현재 시스템의 원격 데스크톱 설정과 보안 상태를 확인합니다.
-
-Write-Host "=== 원격 데스크톱 보안 점검 스크립트 ===" -ForegroundColor Cyan
-Write-Host "시스템의 RDP 설정과 보안 위험을 분석합니다." -ForegroundColor Yellow
-Write-Host ""
-
-try {
-    Write-Host "1. 기본 RDP 설정 확인" -ForegroundColor Yellow
-    Write-Host "=" * 50 -ForegroundColor Gray
-
-    # RDP 활성화 상태 확인
-    $rdpSetting = Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" -Name "fDenyTSConnections" -ErrorAction SilentlyContinue
-    if ($rdpSetting) {
-        $isEnabled = $rdpSetting.fDenyTSConnections -eq 0
-        Write-Host "원격 데스크톱 상태: $($isEnabled ? '활성화됨' : '비활성화됨')" -ForegroundColor $(if($isEnabled) {'Red'} else {'Green'})
-
-        if ($isEnabled) {
-            Write-Host "⚠️ 보안 위험: 원격 데스크톱이 활성화되어 있습니다!" -ForegroundColor Red
-        } else {
-            Write-Host "✓ 보안 양호: 원격 데스크톱이 비활성화되어 있습니다." -ForegroundColor Green
-        }
-    } else {
-        Write-Host "RDP 설정을 확인할 수 없습니다." -ForegroundColor Yellow
-    }
-
-    # RDP 포트 확인
-    try {
-        $rdpPort = Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\Wds\\rdpwd\\Tds\\tcp" -Name "PortNumber" -ErrorAction SilentlyContinue
-        if ($rdpPort) {
-            $port = $rdpPort.PortNumber
-            Write-Host "RDP 포트: $port" -ForegroundColor $(if($port -eq 3389) {'Yellow'} else {'Green'})
-            if ($port -eq 3389) {
-                Write-Host "권장: 기본 포트(3389) 사용으로 인한 보안 위험" -ForegroundColor Yellow
-            }
-        }
-    } catch {
-        Write-Host "RDP 포트 확인 실패" -ForegroundColor Red
-    }
-
-    # NLA (Network Level Authentication) 확인
-    try {
-        $nla = Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" -Name "UserAuthentication" -ErrorAction SilentlyContinue
-        if ($nla) {
-            $nlaEnabled = $nla.UserAuthentication -eq 1
-            Write-Host "네트워크 수준 인증(NLA): $($nlaEnabled ? '활성화됨' : '비활성화됨')" -ForegroundColor $(if($nlaEnabled) {'Green'} else {'Red'})
-            if (-not $nlaEnabled) {
-                Write-Host "⚠️ 보안 위험: NLA가 비활성화되어 있습니다!" -ForegroundColor Red
-            }
-        }
-    } catch {
-        Write-Host "NLA 설정 확인 실패" -ForegroundColor Red
-    }
-
-    Write-Host ""
-    Write-Host "2. 서비스 상태 확인" -ForegroundColor Yellow
-    Write-Host "=" * 50 -ForegroundColor Gray
-
-    # Terminal Services 상태 확인
-    $termService = Get-Service -Name "TermService" -ErrorAction SilentlyContinue
-    if ($termService) {
-        Write-Host "Terminal Services 서비스:" -ForegroundColor White
-        Write-Host "  상태: $($termService.Status)" -ForegroundColor $(if($termService.Status -eq "Running") {'Red'} else {'Green'})
-        Write-Host "  시작 유형: $($termService.StartType)" -ForegroundColor $(if($termService.StartType -eq "Automatic") {'Red'} else {'Green'})
-
-        if ($termService.Status -eq "Running") {
-            Write-Host "⚠️ 보안 위험: Terminal Services가 실행 중입니다!" -ForegroundColor Red
-        }
-    } else {
-        Write-Host "Terminal Services 서비스를 찾을 수 없습니다." -ForegroundColor Yellow
-    }
-
-    # Remote Desktop Configuration 서비스 확인
-    $rdcService = Get-Service -Name "SessionEnv" -ErrorAction SilentlyContinue
-    if ($rdcService) {
-        Write-Host "Remote Desktop Configuration 서비스:" -ForegroundColor White
-        Write-Host "  상태: $($rdcService.Status)" -ForegroundColor $(if($rdcService.Status -eq "Running") {'Yellow'} else {'Green'})
-        Write-Host "  시작 유형: $($rdcService.StartType)" -ForegroundColor White
-    }
-
-    Write-Host ""
-    Write-Host "3. 방화벽 규칙 확인" -ForegroundColor Yellow
-    Write-Host "=" * 50 -ForegroundColor Gray
-
-    # 방화벽 규칙 확인
-    $rdpRules = Get-NetFirewallRule -DisplayGroup "원격 데스크톱" -ErrorAction SilentlyContinue
-    if (-not $rdpRules) {
-        $rdpRules = Get-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue
-    }
-
-    if ($rdpRules) {
-        Write-Host "원격 데스크톱 방화벽 규칙:" -ForegroundColor White
-        foreach ($rule in $rdpRules) {
-            $color = if ($rule.Enabled -eq "True") { "Red" } else { "Green" }
-            Write-Host "  - $($rule.DisplayName): $($rule.Enabled)" -ForegroundColor $color
-            if ($rule.Enabled -eq "True") {
-                Write-Host "    ⚠️ 위험: 이 규칙이 활성화되어 있습니다!" -ForegroundColor Red
-            }
-        }
-    } else {
-        Write-Host "원격 데스크톱 방화벽 규칙을 찾을 수 없습니다." -ForegroundColor Green
-    }
-
-    Write-Host ""
-    Write-Host "4. 현재 연결 상태 확인" -ForegroundColor Yellow
-    Write-Host "=" * 50 -ForegroundColor Gray
-
-    # 현재 RDP 세션 확인
-    try {
-        $sessions = qwinsta
-        $rdpSessions = $sessions | Where-Object { $_ -match "rdp" }
-
-        if ($rdpSessions) {
-            Write-Host "현재 RDP 세션:" -ForegroundColor White
-            foreach ($session in $rdpSessions) {
-                $isActive = $session -match "Active"
-                Write-Host "  $session" -ForegroundColor $(if($isActive) {'Red'} else {'Gray'})
-                if ($isActive) {
-                    Write-Host "    ⚠️ 활성 세션이 발견되었습니다!" -ForegroundColor Red
-                }
-            }
-        } else {
-            Write-Host "✓ 현재 활성화된 RDP 세션이 없습니다." -ForegroundColor Green
-        }
-    } catch {
-        Write-Host "세션 정보 확인 실패: $($_.Exception.Message)" -ForegroundColor Yellow
-    }
-
-    # 포트 3389 사용 확인
-    $portUsage = netstat -an | Select-String ":3389"
-    if ($portUsage) {
-        Write-Host "포트 3389 사용 상태:" -ForegroundColor Red
-        $portUsage | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
-        Write-Host "⚠️ 포트 3389가 사용 중입니다!" -ForegroundColor Red
-    } else {
-        Write-Host "✓ 포트 3389가 사용되지 않습니다." -ForegroundColor Green
-    }
-
-    Write-Host ""
-    Write-Host "5. 보안 이벤트 로그 확인" -ForegroundColor Yellow
-    Write-Host "=" * 50 -ForegroundColor Gray
-
-    # 최근 RDP 로그인 시도 확인
-    try {
-        $startTime = (Get-Date).AddDays(-7)
-        $rdpEvents = Get-WinEvent -FilterHashtable @{LogName='Security'; ID=4624,4625; StartTime=$startTime} -MaxEvents 10 -ErrorAction SilentlyContinue |
-                     Where-Object { $_.Message -match "터미널 서비스|Terminal Services|Remote Desktop" }
-
-        if ($rdpEvents) {
-            Write-Host "최근 7일간 RDP 관련 이벤트 ($($rdpEvents.Count)개):" -ForegroundColor White
-            $rdpEvents | ForEach-Object {
-                $eventType = if ($_.Id -eq 4624) { "성공적인 로그인" } else { "실패한 로그인" }
-                $color = if ($_.Id -eq 4624) { "Yellow" } else { "Red" }
-                Write-Host "  [$($_.TimeCreated)] $eventType" -ForegroundColor $color
-            }
-            Write-Host "⚠️ RDP 접속 시도가 감지되었습니다!" -ForegroundColor Red
-        } else {
-            Write-Host "✓ 최근 RDP 관련 이벤트가 없습니다." -ForegroundColor Green
-        }
-    } catch {
-        Write-Host "이벤트 로그 확인 실패: $($_.Exception.Message)" -ForegroundColor Yellow
-    }
-
-    Write-Host ""
-    Write-Host "6. 보안 위험 평가" -ForegroundColor Yellow
-    Write-Host "=" * 50 -ForegroundColor Gray
-
-    $riskScore = 0
-    $risks = @()
-
-    # 위험 점수 계산
-    if ($rdpSetting -and $rdpSetting.fDenyTSConnections -eq 0) {
-        $riskScore += 40
-        $risks += "원격 데스크톱이 활성화되어 있음"
-    }
-
-    if ($termService -and $termService.Status -eq "Running") {
-        $riskScore += 30
-        $risks += "Terminal Services가 실행 중"
-    }
-
-    if ($rdpRules -and ($rdpRules | Where-Object { $_.Enabled -eq "True" })) {
-        $riskScore += 20
-        $risks += "방화벽에서 RDP 규칙이 활성화되어 있음"
-    }
-
-    if ($rdpPort -and $rdpPort.PortNumber -eq 3389) {
-        $riskScore += 10
-        $risks += "기본 포트(3389) 사용"
-    }
-
-    if ($portUsage) {
-        $riskScore += 15
-        $risks += "포트 3389가 사용 중"
-    }
-
-    if ($rdpEvents) {
-        $riskScore += 10
-        $risks += "최근 RDP 접속 시도 감지"
-    }
-
-    # 위험 등급 결정
-    $riskLevel = if ($riskScore -ge 70) { "높음" }
-                 elseif ($riskScore -ge 40) { "중간" }
-                 elseif ($riskScore -ge 10) { "낮음" }
-                 else { "없음" }
-
-    $riskColor = switch ($riskLevel) {
-        "높음" { "Red" }
-        "중간" { "Yellow" }
-        "낮음" { "Cyan" }
-        default { "Green" }
-    }
-
-    Write-Host "전체 보안 위험도: $riskLevel (점수: $riskScore/100)" -ForegroundColor $riskColor
-
-    if ($risks.Count -gt 0) {
-        Write-Host ""
-        Write-Host "발견된 위험 요소:" -ForegroundColor Red
-        $risks | ForEach-Object { Write-Host "  - $_" -ForegroundColor Yellow }
-    }
-
-    Write-Host ""
-    Write-Host "=== 권장사항 ===" -ForegroundColor Cyan
-
-    if ($riskScore -gt 0) {
-        Write-Host "✓ 원격 데스크톱을 완전히 비활성화하세요" -ForegroundColor Green
-        Write-Host "✓ Terminal Services 서비스를 중지하고 비활성화하세요" -ForegroundColor Green
-        Write-Host "✓ 방화벽에서 RDP 관련 규칙을 비활성화하세요" -ForegroundColor Green
-        Write-Host "✓ 대안적인 원격 접속 방법(VPN, SSH 터널링)을 고려하세요" -ForegroundColor Green
-        Write-Host "✓ 정기적으로 보안 이벤트 로그를 모니터링하세요" -ForegroundColor Green
-    } else {
-        Write-Host "✓ 현재 시스템의 RDP 보안 상태가 양호합니다" -ForegroundColor Green
-        Write-Host "✓ 정기적인 보안 점검을 계속 수행하세요" -ForegroundColor Green
-    }
-
-} catch {
-    Write-Host "RDP 보안 점검 중 오류가 발생했습니다: $($_.Exception.Message)" -ForegroundColor Red
-}
-
-Read-Host "아무 키나 누르면 종료됩니다"`
-
-// 메서드
-const copyToClipboard = async () => {
-  const codeText = `# 원격 데스크톱 설정 상태 확인
-Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" -Name "fDenyTSConnections"
-
-# 원격 데스크톱 서비스 상태 확인
-Get-Service -Name "TermService" | Select-Object Name, Status, StartType
-
-# 방화벽 규칙 확인
-Get-NetFirewallRule -DisplayGroup "원격 데스크톱" | Select-Object DisplayName, Enabled, Direction
-
-# 현재 RDP 연결 확인
-qwinsta
-
-# 네트워크 포트 3389 사용 확인
-netstat -an | findstr :3389`
-
+// ZIP 파일 다운로드 함수 (JSZip 사용)
+const downloadZipWithJSZip = async (files, zipFilename) => {
   try {
-    await navigator.clipboard.writeText(codeText)
-    console.log('코드가 클립보드에 복사되었습니다.')
-  } catch (err) {
-    console.error('클립보드 복사 실패:', err)
-  }
-}
+    const zip = new JSZip()
 
-// 스크립트 다운로드 함수
-const downloadScript = (scriptContent, filename) => {
-  try {
-    const blob = new Blob([scriptContent], { type: 'text/plain;charset=utf-8' })
-    const url = window.URL.createObjectURL(blob)
+    files.forEach((file) => {
+      zip.file(file.name, file.content)
+    })
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    const url = window.URL.createObjectURL(zipBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = filename
+    link.download = zipFilename
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    console.error('파일 다운로드 실패:', err)
+    console.error('ZIP 파일 다운로드 실패:', err)
   }
 }
 
-// 원격 데스크톱 비활성화 스크립트 다운로드
-const downloadDisableScript = () => {
-  downloadScript(remoteDesktopDisableScript, 'RemoteDesktop_Disable.ps1')
+// 사용법
+const downloadConfigScript = async () => {
+  const files = [
+    {
+      name: '조치 스크립트.bat',
+      content: SetupScript,
+    },
+  ]
+  await downloadZipWithJSZip(files, '조치 스크립트.zip')
 }
 
-// 원격 데스크톱 상태 확인 스크립트 다운로드
-const downloadCheckScript = () => {
-  downloadScript(remoteDesktopCheckScript, 'RemoteDesktop_Check.ps1')
+// Windows CRLF 줄바꿈으로 변환하는 함수
+const convertToWindowsLineEndings = (content) => {
+  return content.replace(/\r?\n/g, '\r\n')
 }
+
+// 1. 조치 스크립트.bat 내용을 포함한 변수 추가
+const SetupScript = convertToWindowsLineEndings(`@echo off
+
+::  --> 관리자 권한 실행 코드
+:-------------------------------------
+>nul 2>&1 "%SYSTEMROOT%\\system32\\cacls.exe" "%SYSTEMROOT%\\system32\\config\\system"
+
+if '%errorlevel%' NEQ '0' (
+ goto UACPrompt
+) else ( goto gotAdmin )
+
+:UACPrompt
+ echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\\getadmin.vbs"
+ echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\\getadmin.vbs"
+
+"%temp%\\getadmin.vbs"
+ exit /B
+
+:gotAdmin
+ if exist "%temp%\\getadmin.vbs" ( del "%temp%\\getadmin.vbs" )
+ pushd "%CD%"
+ CD /D "%~dp0"
+:--------------------------------------
+
+
+::  --> UTF-8 인코딩 설정
+:-------------------------------------
+chcp 65001 > nul
+
+::  --> 배치 파일 기본 설정
+:-------------------------------------
+TITLE %~n0
+SETLOCAL enabledelayedexpansion
+
+::  --> 특정 IP 설정 (여기에 원격데스크톱을 유지할 IP 주소들을 입력하세요)
+:-------------------------------------
+set ALLOWED_IPS=10.106.15.100 10.106.15.101 10.106.15.102 10.106.15.103 10.106.15.104 10.106.15.105 10.106.15.114 10.106.15.115 10.106.15.117 10.106.15.125
+set SKIP_RDP_DISABLE=0
+
+::  --> 현재 컴퓨터의 IP 주소 확인
+:-------------------------------------
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
+    set IP=%%a
+    set IP=!IP: =!
+    for %%b in (%ALLOWED_IPS%) do (
+        if "!IP!"=="%%b" (
+            set SKIP_RDP_DISABLE=1
+        )
+    )
+)
+:-------------------------------------
+
+::  --> 검사 후 조치
+:-------------------------------------
+CLS
+ECHO.
+ECHO * 주의사항 - 조치 중에는 키보드, 마우스를 움직이지 말아주세요.
+
+ECHO.
+echo ※ 윈도우 시스템 설정값 변경 ※
+echo.
+
+echo 1.1 화면보호기 설정, 잠금 설정, 10분 설정 완료
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v SCRNSAVE.EXE /t REG_SZ /d C:\\Windows\\System32\\scrnsave.scr /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaveActive /t REG_SZ /d 1 /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaverIsSecure /t REG_SZ /d 1 /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaveTimeOut /t REG_SZ /d 600 /f | find /v "success"
+echo.
+
+echo 2.1 암호 복잡도 설정 완료
+secedit /export /cfg "%temp%\\secpol.cfg" > nul
+powershell -Command "(Get-Content '%temp%\\secpol.cfg') -replace 'PasswordComplexity = 0', 'PasswordComplexity = 1' | Set-Content '%temp%\\secpol.cfg'"
+secedit /configure /db %windir%\\security\\local.sdb /cfg "%temp%\secpol.cfg" /areas SECURITYPOLICY > nul
+del "%temp%\\secpol.cfg" > nul
+echo.
+
+echo 2.3 최소 암호 길이 8자리로 변경 완료
+net accounts /minpwlen:8 | find /v "success"
+
+echo 2.4 암호 복잡도 요구사항 활성화 완료
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v NoLMHash /t REG_DWORD /d 0x00000001 /f | find /v "success"
+
+echo 2.5 최대 암호 사용 기간 90일로 변경 완료
+net accounts /maxpwage:90 | find /v "success"
+
+echo 2.7 최근 암호 기억 5개로 변경 완료
+net accounts /uniquepw:5 | find /v "success"
+
+echo 3.1 불필요한 공유폴더 삭제 완료 ^(IPC$ 제외한 모든 공유폴더 제거^)
+:: 모든 공유폴더 목록을 가져와서 IPC$를 제외하고 삭제
+for /f "skip=1 tokens=1" %%s in ('net share ^| findstr /v "^$" ^| findstr /v "명령을 잘못" ^| findstr /v "The command completed"') do (
+    if /i not "%%s"=="IPC$" (
+        net share "%%s" /delete /y > nul 2>&1
+    )
+)
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v restrictanonymous /t REG_DWORD /d 0x00000001 /f | find /v "success"
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" /v AutoShareServer /t REG_DWORD /d 0x00000000 /f | find /v "success"
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" /v AutoShareWks /t REG_DWORD /d 0x00000000 /f | find /v "success"
+echo.
+
+:: IP 조건에 따라 원격데스크톱 설정 처리
+if %SKIP_RDP_DISABLE%==1 (
+    echo 3.3 원격데스크톱 설정 유지 ^(허용된 IP 주소^)
+) else (
+    echo 3.3 원격데스크톱 해제 완료
+    Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0x00000001 /f | find /v "success"
+    Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 0x00000001 /f | find /v "success"
+)
+echo.
+
+TIMEOUT /t 2 > NUL
+echo.
+echo ※ 모든 보안 조치가 완료되었습니다. ※
+echo.
+echo ※ 시스템 재시작을 권장합니다. ※
+:-------------------------------------
+
+pause`)
 </script>
 
 /* Style 부분 */
@@ -1144,7 +482,7 @@ const downloadCheckScript = () => {
   margin: 20px 0;
 }
 
-.risk-card {
+.requirement-card {
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -1154,24 +492,9 @@ const downloadCheckScript = () => {
   border-left: 4px solid;
 }
 
-.risk-card:hover {
+.requirement-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-}
-
-.risk-card.critical {
-  border-left-color: #dc2626;
-  background: linear-gradient(135deg, #fef2f2, #ffffff);
-}
-
-.risk-card.high {
-  border-left-color: #ef4444;
-  background: linear-gradient(135deg, #fef2f2, #ffffff);
-}
-
-.risk-card.medium {
-  border-left-color: #f59e0b;
-  background: linear-gradient(135deg, #fefbf2, #ffffff);
 }
 
 .risk-icon {
@@ -1185,26 +508,26 @@ const downloadCheckScript = () => {
   color: white;
 }
 
-.risk-card.critical .risk-icon {
+.requirement-card.critical .risk-icon {
   background: linear-gradient(135deg, #dc2626, #b91c1c);
 }
 
-.risk-card.high .risk-icon {
+.requirement-card.high .risk-icon {
   background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
-.risk-card.medium .risk-icon {
+.requirement-card.medium .risk-icon {
   background: linear-gradient(135deg, #f59e0b, #d97706);
 }
 
-.risk-card h3 {
+.requirement-card h3 {
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--dark-blue);
   margin: 0 0 8px 0;
 }
 
-.risk-card p {
+.requirement-card p {
   color: #6b7280;
   font-size: 0.9rem;
   line-height: 1.5;
@@ -1794,5 +1117,219 @@ kbd {
     font-size: 0.75rem;
     padding: 2px 6px;
   }
+}
+
+.requirement-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.requirement-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.requirements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.requirement-card h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--dark-blue);
+  margin: 0 0 8px 0;
+}
+
+.requirement-card p {
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* 정책 테이블 */
+.policy-table {
+  margin: 20px 0;
+  overflow-x: auto;
+}
+
+.policy-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.policy-table th {
+  background: var(--primary-color);
+  color: white;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.policy-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.policy-table tr:last-child td {
+  border-bottom: none;
+}
+
+.policy-table tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.setting-value {
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* 섹션 스타일 */
+
+.section ol {
+  margin-left: 20px;
+  margin-bottom: 16px;
+}
+
+.section ol li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.section h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--dark-blue);
+  margin: 24px 0 12px 0;
+}
+
+@media (max-width: 480px) {
+  .policy-table th,
+  .policy-table td {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .policy-table {
+    font-size: 0.875rem;
+  }
+  .script-download-section {
+    grid-template-columns: 1fr;
+  }
+  .policy-table th,
+  .policy-table td {
+    padding: 8px 12px;
+  }
+}
+
+/* 스크립트 다운로드 섹션 */
+.script-download-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.script-card {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+}
+
+.script-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.script-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-bottom: 16px;
+}
+
+.script-icon.setup {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.script-icon.check {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.script-content h3 {
+  margin: 0 0 8px 0;
+  color: var(--dark-blue);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.script-content p {
+  margin: 0 0 16px 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.download-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.download-button.primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.download-button.primary:hover {
+  background-color: var(--dark-blue);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(64, 86, 183, 0.3);
+}
+
+.download-button.secondary {
+  background-color: #10b981;
+  color: white;
+}
+
+.download-button.secondary:hover {
+  background-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
 }
 </style>

@@ -58,8 +58,7 @@
           <h2 class="section-title">개요</h2>
           <p>
             컴퓨터의 보안을 위해서는 안티바이러스 소프트웨어가 설치되어 있고, 실시간 보호 기능이
-            활성화되어 있으며, 최신 바이러스 정의 파일로 업데이트되어 있어야 합니다. 특히
-            알약(AhnLab V3) 백신 사용을 권장합니다.
+            활성화되어 있으며, 최신 바이러스 정의 파일로 업데이트되어 있어야 합니다.
           </p>
         </div>
 
@@ -108,159 +107,6 @@
           </div>
         </div>
 
-        <!-- 수동 설정 방법 -->
-        <div class="section">
-          <h2 class="section-title">수동 설정 방법</h2>
-
-          <h3>1. 알약 백신 설치 방법</h3>
-          <ol>
-            <li>AhnLab 공식 웹사이트 (www.ahnlab.com)에 접속</li>
-            <li>[제품] → [개인용 제품] → [알약] 메뉴 선택</li>
-            <li>[다운로드] 버튼을 클릭하여 설치 파일 다운로드</li>
-            <li>다운로드한 설치 파일을 관리자 권한으로 실행</li>
-            <li>설치 마법사의 안내에 따라 설치 진행</li>
-            <li>설치 완료 후 제품 등록 및 라이선스 활성화</li>
-          </ol>
-
-          <h3>2. 실시간 보호 활성화</h3>
-          <ol>
-            <li>알약 백신 프로그램 실행</li>
-            <li>메인 화면에서 [설정] 메뉴 클릭</li>
-            <li>[실시간 감시] 탭 선택</li>
-            <li>[실시간 감시 사용] 옵션을 체크하여 활성화</li>
-            <li>세부 감시 옵션들(파일 감시, 웹 보호, 메일 보호 등) 활성화</li>
-            <li>[적용] 버튼을 클릭하여 설정 저장</li>
-          </ol>
-
-          <h3>3. 백신 업데이트 방법</h3>
-          <ol>
-            <li>알약 백신 메인 화면에서 [업데이트] 버튼 클릭</li>
-            <li>[엔진 업데이트] 및 [패턴 업데이트] 실행</li>
-            <li>업데이트 완료까지 대기</li>
-            <li>[자동 업데이트] 설정을 활성화하여 항상 최신 상태 유지</li>
-            <li>필요시 시스템 재부팅</li>
-          </ol>
-        </div>
-
-        <!-- PowerShell 확인 -->
-        <div class="section">
-          <h2 class="section-title">PowerShell을 이용한 확인</h2>
-          <div class="code-block">
-            <h3>백신 상태 확인 명령어</h3>
-            <div class="code-container">
-              <pre><code># 설치된 백신 소프트웨어 확인
-Get-WmiObject -Namespace "root\SecurityCenter2" -Class AntiVirusProduct | Select-Object displayName, productState
-
-# 알약 백신 설치 확인
-Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object {$_.DisplayName -like "*AhnLab*" -or $_.DisplayName -like "*알약*"} | Select-Object DisplayName, DisplayVersion
-
-# Windows Defender 상태 확인 (보조 확인용)
-Get-MpComputerStatus | Select-Object AntivirusEnabled, RealTimeProtectionEnabled, AntivirusSignatureLastUpdated</code></pre>
-              <button @click="copyToClipboard" class="copy-button">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"
-                  />
-                  <path
-                    d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"
-                  />
-                </svg>
-                복사
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 스크립트 다운로드 섹션 -->
-        <div class="section">
-          <h2 class="section-title">자동화 스크립트</h2>
-          <div class="script-download-section">
-            <div class="script-card">
-              <div class="script-icon check">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"
-                  />
-                </svg>
-              </div>
-              <div class="script-content">
-                <h3>백신 상태 확인 스크립트</h3>
-                <p>
-                  설치된 백신의 상태, 실시간 보호 활성화 여부, 업데이트 상태를 자동으로 확인합니다.
-                </p>
-                <button @click="downloadCheckScript" class="download-button secondary">
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path
-                      d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
-                    />
-                    <path
-                      d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"
-                    />
-                  </svg>
-                  다운로드
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="usage-info">
-            <h4>스크립트 사용 방법</h4>
-            <ol>
-              <li><kbd>Windows</kbd> + <kbd>X</kbd> 키를 눌러 관리자 메뉴 열기</li>
-              <li><strong>Windows PowerShell(관리자)</strong> 선택</li>
-              <li>다운로드한 스크립트 파일의 경로로 이동</li>
-              <li>
-                <code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code>
-                실행
-              </li>
-              <li><code>.\Antivirus_Check.ps1</code> 명령어로 스크립트 실행</li>
-            </ol>
-          </div>
-        </div>
-
-        <!-- 추가 보안 팁 -->
-        <div class="section">
-          <h2 class="section-title">추가 보안 팁</h2>
-          <div class="info-grid">
-            <div class="info-card warning">
-              <div class="info-icon">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"
-                  />
-                </svg>
-              </div>
-              <div class="info-content">
-                <h3>주의사항</h3>
-                <ul>
-                  <li>여러 백신 프로그램을 동시에 설치하면 충돌이 발생할 수 있습니다</li>
-                  <li>백신 업데이트는 정기적으로 실행해야 합니다</li>
-                  <li>실시간 보호 기능을 임의로 비활성화하지 마세요</li>
-                  <li>의심스러운 파일은 백신 검사 후 실행하세요</li>
-                </ul>
-              </div>
-            </div>
-            <div class="info-card tip">
-              <div class="info-icon">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"
-                  />
-                </svg>
-              </div>
-              <div class="info-content">
-                <h3>권장사항</h3>
-                <ul>
-                  <li>알약 백신의 정기 검사 일정을 설정하세요</li>
-                  <li>백신 로그를 정기적으로 확인하세요</li>
-                  <li>의심스러운 이메일 첨부파일은 열지 마세요</li>
-                  <li>정품 소프트웨어만 설치하고 사용하세요</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- 페이지 네비게이션 -->
         <PageNavigation :current-path="route.path" />
       </div>
@@ -272,6 +118,7 @@ Get-MpComputerStatus | Select-Object AntivirusEnabled, RealTimeProtectionEnabled
 import { ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import JSZip from 'jszip'
 import Sidebar from '@/components/Sidebar.vue'
 import PageNavigation from '@/components/PageNavigation.vue'
 
@@ -279,119 +126,165 @@ const route = useRoute()
 const authStore = useAuthStore()
 const sidebarRef = ref(null)
 
-// 백신 확인 스크립트
-const antivirusCheckScript = `# 백신 상태 확인 스크립트
-# AhnLab V3(알약) 백신 상태를 확인합니다.
-
-Write-Host "=== 백신 상태 확인 스크립트 ===" -ForegroundColor Cyan
-Write-Host ""
-
-try {
-    Write-Host "1. 설치된 백신 소프트웨어 확인" -ForegroundColor Yellow
-    $antivirusProducts = Get-WmiObject -Namespace "root\\SecurityCenter2" -Class AntiVirusProduct -ErrorAction SilentlyContinue
-
-    if ($antivirusProducts) {
-        foreach ($av in $antivirusProducts) {
-            $displayName = $av.displayName
-            $productState = $av.productState
-
-            # productState 해석 (간단한 버전)
-            $isEnabled = ($productState -band 0x1000) -ne 0
-            $isUpToDate = ($productState -band 0x10) -eq 0
-
-            Write-Host "- 백신명: $displayName" -ForegroundColor White
-            Write-Host "- 상태: $($isEnabled ? '활성화됨' : '비활성화됨')" -ForegroundColor $($isEnabled ? 'Green' : 'Red')
-            Write-Host "- 업데이트: $($isUpToDate ? '최신' : '구버전')" -ForegroundColor $($isUpToDate ? 'Green' : 'Yellow')
-
-            # 알약 백신 확인
-            if ($displayName -like "*AhnLab*" -or $displayName -like "*알약*" -or $displayName -like "*V3*") {
-                Write-Host "✓ 알약(AhnLab) 백신이 설치되어 있습니다!" -ForegroundColor Green
-            }
-            Write-Host ""
-        }
-    } else {
-        Write-Host "⚠ 백신 정보를 찾을 수 없습니다." -ForegroundColor Yellow
-    }
-
-    Write-Host "2. 설치된 프로그램에서 알약 확인" -ForegroundColor Yellow
-    $ahnlabPrograms = Get-ItemProperty HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* |
-                     Where-Object {$_.DisplayName -like "*AhnLab*" -or $_.DisplayName -like "*알약*" -or $_.DisplayName -like "*V3*"}
-
-    if ($ahnlabPrograms) {
-        foreach ($program in $ahnlabPrograms) {
-            Write-Host "- 프로그램: $($program.DisplayName)" -ForegroundColor Green
-            Write-Host "- 버전: $($program.DisplayVersion)" -ForegroundColor White
-            Write-Host "- 설치일: $($program.InstallDate)" -ForegroundColor White
-            Write-Host ""
-        }
-    } else {
-        Write-Host "⚠ 알약 백신이 설치되어 있지 않습니다." -ForegroundColor Red
-    }
-
-    Write-Host "3. Windows Defender 상태 (참고용)" -ForegroundColor Yellow
-    $defenderStatus = Get-MpComputerStatus -ErrorAction SilentlyContinue
-    if ($defenderStatus) {
-        Write-Host "- Windows Defender 활성화: $($defenderStatus.AntivirusEnabled)" -ForegroundColor White
-        Write-Host "- 실시간 보호: $($defenderStatus.RealTimeProtectionEnabled)" -ForegroundColor White
-        Write-Host "- 시그니처 업데이트: $($defenderStatus.AntivirusSignatureLastUpdated)" -ForegroundColor White
-    }
-
-    Write-Host ""
-    Write-Host "=== 권장사항 ===" -ForegroundColor Cyan
-    Write-Host "✓ 알약(AhnLab) 백신이 설치되어 있어야 합니다" -ForegroundColor Green
-    Write-Host "✓ 실시간 보호 기능이 활성화되어 있어야 합니다" -ForegroundColor Green
-    Write-Host "✓ 백신 정의 파일이 최신 상태여야 합니다" -ForegroundColor Green
-    Write-Host "✓ 정기적인 시스템 검사를 실행하세요" -ForegroundColor Green
-
-} catch {
-    Write-Host "백신 상태 확인 중 오류가 발생했습니다: $($_.Exception.Message)" -ForegroundColor Red
-}
-
-Read-Host "아무 키나 누르면 종료됩니다"`
-
-// 메서드
-const copyToClipboard = async () => {
-  const codeText = `# 설치된 백신 소프트웨어 확인
-Get-WmiObject -Namespace "root\\SecurityCenter2" -Class AntiVirusProduct | Select-Object displayName, productState
-
-# 알약 백신 설치 확인
-Get-ItemProperty HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | Where-Object {$_.DisplayName -like "*AhnLab*" -or $_.DisplayName -like "*알약*"} | Select-Object DisplayName, DisplayVersion
-
-# Windows Defender 상태 확인 (보조 확인용)
-Get-MpComputerStatus | Select-Object AntivirusEnabled, RealTimeProtectionEnabled, AntivirusSignatureLastUpdated`
-
+// ZIP 파일 다운로드 함수 (JSZip 사용)
+const downloadZipWithJSZip = async (files, zipFilename) => {
   try {
-    await navigator.clipboard.writeText(codeText)
-    console.log('코드가 클립보드에 복사되었습니다.')
-  } catch (err) {
-    console.error('클립보드 복사 실패:', err)
-  }
-}
+    const zip = new JSZip()
 
-// 스크립트 다운로드 함수
-const downloadScript = (scriptContent, filename) => {
-  try {
-    const blob = new Blob([scriptContent], { type: 'text/plain;charset=utf-8' })
-    const url = window.URL.createObjectURL(blob)
+    files.forEach((file) => {
+      zip.file(file.name, file.content)
+    })
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    const url = window.URL.createObjectURL(zipBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = filename
+    link.download = zipFilename
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    console.error('파일 다운로드 실패:', err)
+    console.error('ZIP 파일 다운로드 실패:', err)
   }
 }
 
-// 백신 확인 스크립트 다운로드
-const downloadCheckScript = () => {
-  downloadScript(antivirusCheckScript, 'Antivirus_Check.ps1')
+// 사용법
+const downloadConfigScript = async () => {
+  const files = [
+    {
+      name: '조치 스크립트.bat',
+      content: SetupScript,
+    },
+  ]
+  await downloadZipWithJSZip(files, '조치 스크립트.zip')
 }
+
+// Windows CRLF 줄바꿈으로 변환하는 함수
+const convertToWindowsLineEndings = (content) => {
+  return content.replace(/\r?\n/g, '\r\n')
+}
+
+// 1. 조치 스크립트.bat 내용을 포함한 변수 추가
+const SetupScript = convertToWindowsLineEndings(`@echo off
+
+::  --> 관리자 권한 실행 코드
+:-------------------------------------
+>nul 2>&1 "%SYSTEMROOT%\\system32\\cacls.exe" "%SYSTEMROOT%\\system32\\config\\system"
+
+if '%errorlevel%' NEQ '0' (
+ goto UACPrompt
+) else ( goto gotAdmin )
+
+:UACPrompt
+ echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\\getadmin.vbs"
+ echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\\getadmin.vbs"
+
+"%temp%\\getadmin.vbs"
+ exit /B
+
+:gotAdmin
+ if exist "%temp%\\getadmin.vbs" ( del "%temp%\\getadmin.vbs" )
+ pushd "%CD%"
+ CD /D "%~dp0"
+:--------------------------------------
+
+
+::  --> UTF-8 인코딩 설정
+:-------------------------------------
+chcp 65001 > nul
+
+::  --> 배치 파일 기본 설정
+:-------------------------------------
+TITLE %~n0
+SETLOCAL enabledelayedexpansion
+
+::  --> 특정 IP 설정 (여기에 원격데스크톱을 유지할 IP 주소들을 입력하세요)
+:-------------------------------------
+set ALLOWED_IPS=10.106.15.100 10.106.15.101 10.106.15.102 10.106.15.103 10.106.15.104 10.106.15.105 10.106.15.114 10.106.15.115 10.106.15.117 10.106.15.125
+set SKIP_RDP_DISABLE=0
+
+::  --> 현재 컴퓨터의 IP 주소 확인
+:-------------------------------------
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
+    set IP=%%a
+    set IP=!IP: =!
+    for %%b in (%ALLOWED_IPS%) do (
+        if "!IP!"=="%%b" (
+            set SKIP_RDP_DISABLE=1
+        )
+    )
+)
+:-------------------------------------
+
+::  --> 검사 후 조치
+:-------------------------------------
+CLS
+ECHO.
+ECHO * 주의사항 - 조치 중에는 키보드, 마우스를 움직이지 말아주세요.
+
+ECHO.
+echo ※ 윈도우 시스템 설정값 변경 ※
+echo.
+
+echo 1.1 화면보호기 설정, 잠금 설정, 10분 설정 완료
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v SCRNSAVE.EXE /t REG_SZ /d C:\\Windows\\System32\\scrnsave.scr /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaveActive /t REG_SZ /d 1 /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaverIsSecure /t REG_SZ /d 1 /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaveTimeOut /t REG_SZ /d 600 /f | find /v "success"
+echo.
+
+echo 2.1 암호 복잡도 설정 완료
+secedit /export /cfg "%temp%\\secpol.cfg" > nul
+powershell -Command "(Get-Content '%temp%\\secpol.cfg') -replace 'PasswordComplexity = 0', 'PasswordComplexity = 1' | Set-Content '%temp%\\secpol.cfg'"
+secedit /configure /db %windir%\\security\\local.sdb /cfg "%temp%\secpol.cfg" /areas SECURITYPOLICY > nul
+del "%temp%\\secpol.cfg" > nul
+echo.
+
+echo 2.3 최소 암호 길이 8자리로 변경 완료
+net accounts /minpwlen:8 | find /v "success"
+
+echo 2.4 암호 복잡도 요구사항 활성화 완료
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v NoLMHash /t REG_DWORD /d 0x00000001 /f | find /v "success"
+
+echo 2.5 최대 암호 사용 기간 90일로 변경 완료
+net accounts /maxpwage:90 | find /v "success"
+
+echo 2.7 최근 암호 기억 5개로 변경 완료
+net accounts /uniquepw:5 | find /v "success"
+
+echo 3.1 불필요한 공유폴더 삭제 완료 ^(IPC$ 제외한 모든 공유폴더 제거^)
+:: 모든 공유폴더 목록을 가져와서 IPC$를 제외하고 삭제
+for /f "skip=1 tokens=1" %%s in ('net share ^| findstr /v "^$" ^| findstr /v "명령을 잘못" ^| findstr /v "The command completed"') do (
+    if /i not "%%s"=="IPC$" (
+        net share "%%s" /delete /y > nul 2>&1
+    )
+)
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v restrictanonymous /t REG_DWORD /d 0x00000001 /f | find /v "success"
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" /v AutoShareServer /t REG_DWORD /d 0x00000000 /f | find /v "success"
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" /v AutoShareWks /t REG_DWORD /d 0x00000000 /f | find /v "success"
+echo.
+
+:: IP 조건에 따라 원격데스크톱 설정 처리
+if %SKIP_RDP_DISABLE%==1 (
+    echo 3.3 원격데스크톱 설정 유지 ^(허용된 IP 주소^)
+) else (
+    echo 3.3 원격데스크톱 해제 완료
+    Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0x00000001 /f | find /v "success"
+    Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 0x00000001 /f | find /v "success"
+)
+echo.
+
+TIMEOUT /t 2 > NUL
+echo.
+echo ※ 모든 보안 조치가 완료되었습니다. ※
+echo.
+echo ※ 시스템 재시작을 권장합니다. ※
+:-------------------------------------
+
+pause`)
 </script>
 
-/* Style 부분 */
 <style scoped>
 .security-audit-layout {
   display: flex;

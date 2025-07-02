@@ -123,7 +123,6 @@
         <div class="section">
           <h2 class="section-title">수동 설정 방법</h2>
 
-          <h3>1. 로컬 보안 정책을 통한 설정</h3>
           <ol>
             <li><kbd>Windows</kbd> + <kbd>R</kbd> 키를 눌러 실행 창 열기</li>
             <li><code>secpol.msc</code> 입력 후 <kbd>Enter</kbd> (관리자 권한 필요)</li>
@@ -161,56 +160,8 @@
                   <td><span class="setting-value">5개</span></td>
                   <td>이전 5개 패스워드 재사용 금지</td>
                 </tr>
-                <tr>
-                  <td>최소 암호 사용 기간</td>
-                  <td><span class="setting-value">1일</span></td>
-                  <td>변경 후 최소 1일 사용해야 함</td>
-                </tr>
               </tbody>
             </table>
-          </div>
-
-          <h3>2. 그룹 정책 편집기를 통한 설정</h3>
-          <ol>
-            <li><kbd>Windows</kbd> + <kbd>R</kbd> 키를 눌러 실행 창 열기</li>
-            <li><code>gpedit.msc</code> 입력 후 <kbd>Enter</kbd></li>
-            <li>
-              <strong>[컴퓨터 구성]</strong> → <strong>[Windows 설정]</strong> →
-              <strong>[보안 설정]</strong> → <strong>[계정 정책]</strong> →
-              <strong>[암호 정책]</strong> 이동
-            </li>
-            <li>위의 정책 표와 동일하게 설정</li>
-            <li><code>gpupdate /force</code> 명령어로 정책 적용</li>
-          </ol>
-        </div>
-
-        <!-- PowerShell 확인 -->
-        <div class="section">
-          <h2 class="section-title">PowerShell을 이용한 확인</h2>
-          <div class="code-block">
-            <h3>패스워드 정책 확인 명령어</h3>
-            <div class="code-container">
-              <pre><code># 현재 패스워드 정책 확인
-net accounts
-
-# 세부 패스워드 정책 확인 (PowerShell)
-Get-LocalUser | Select-Object Name, Enabled, PasswordRequired, PasswordLastSet, PasswordExpires
-
-# 로컬 보안 정책 확인
-secedit /export /cfg c:\temp\secpol.cfg
-Get-Content c:\temp\secpol.cfg | Select-String "Password"</code></pre>
-              <button @click="copyToClipboard" class="copy-button">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"
-                  />
-                  <path
-                    d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"
-                  />
-                </svg>
-                복사
-              </button>
-            </div>
           </div>
         </div>
 
@@ -231,7 +182,7 @@ Get-Content c:\temp\secpol.cfg | Select-String "Password"</code></pre>
               </div>
               <div class="script-content">
                 <h3>패스워드 정책 설정 스크립트</h3>
-                <p>권장 패스워드 정책을 자동으로 적용하는 PowerShell 스크립트입니다.</p>
+                <p>권장 패스워드 정책을 자동으로 적용하는 배치 스크립트입니다.</p>
                 <button @click="downloadConfigScript" class="download-button primary">
                   <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                     <path
@@ -243,90 +194,6 @@ Get-Content c:\temp\secpol.cfg | Select-String "Password"</code></pre>
                   </svg>
                   다운로드
                 </button>
-              </div>
-            </div>
-            <div class="script-card">
-              <div class="script-icon check">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"
-                  />
-                </svg>
-              </div>
-              <div class="script-content">
-                <h3>패스워드 정책 확인 스크립트</h3>
-                <p>현재 시스템의 패스워드 정책 설정 상태를 확인하는 스크립트입니다.</p>
-                <button @click="downloadCheckScript" class="download-button secondary">
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path
-                      d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
-                    />
-                    <path
-                      d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"
-                    />
-                  </svg>
-                  다운로드
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="usage-info">
-            <h4>스크립트 사용 방법</h4>
-            <ol>
-              <li><kbd>Windows</kbd> + <kbd>X</kbd> 키를 눌러 관리자 메뉴 열기</li>
-              <li><strong>Windows PowerShell(관리자)</strong> 선택</li>
-              <li>다운로드한 스크립트 파일의 경로로 이동</li>
-              <li>
-                <code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code>
-                실행
-              </li>
-              <li>
-                <code>.\Password_Policy_Setup.ps1</code> 또는
-                <code>.\Password_Policy_Check.ps1</code> 명령어로 스크립트 실행
-              </li>
-            </ol>
-          </div>
-        </div>
-
-        <!-- 추가 보안 팁 -->
-        <div class="section">
-          <h2 class="section-title">추가 보안 팁</h2>
-          <div class="info-grid">
-            <div class="info-card warning">
-              <div class="info-icon">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"
-                  />
-                </svg>
-              </div>
-              <div class="info-content">
-                <h3>주의사항</h3>
-                <ul>
-                  <li>패스워드는 개인정보나 쉽게 추측할 수 있는 단어를 사용하지 마세요</li>
-                  <li>동일한 패스워드를 여러 계정에서 재사용하지 마세요</li>
-                  <li>패스워드를 메모지나 파일에 평문으로 저장하지 마세요</li>
-                  <li>정책 변경 후에는 시스템 재부팅이 필요할 수 있습니다</li>
-                </ul>
-              </div>
-            </div>
-            <div class="info-card tip">
-              <div class="info-icon">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path
-                    d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"
-                  />
-                </svg>
-              </div>
-              <div class="info-content">
-                <h3>권장사항</h3>
-                <ul>
-                  <li>패스워드 관리 도구 사용을 권장합니다</li>
-                  <li>가능한 경우 2단계 인증(2FA)을 활성화하세요</li>
-                  <li>정기적으로 패스워드 정책 준수 여부를 점검하세요</li>
-                  <li>사용자 교육을 통해 강력한 패스워드 작성법을 안내하세요</li>
-                </ul>
               </div>
             </div>
           </div>
@@ -344,6 +211,7 @@ Get-Content c:\temp\secpol.cfg | Select-String "Password"</code></pre>
 import { ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import JSZip from 'jszip'
 import Sidebar from '@/components/Sidebar.vue'
 import PageNavigation from '@/components/PageNavigation.vue'
 
@@ -351,240 +219,165 @@ const route = useRoute()
 const authStore = useAuthStore()
 const sidebarRef = ref(null)
 
-// 패스워드 정책 설정 스크립트
-const passwordPolicySetupScript = `# 패스워드 정책 자동 설정 스크립트
-# Windows 로컬 보안 정책을 통해 강력한 패스워드 정책을 적용합니다.
-
-Write-Host "=== 패스워드 정책 설정 스크립트 ===" -ForegroundColor Cyan
-Write-Host "강력한 패스워드 정책을 적용합니다." -ForegroundColor Yellow
-Write-Host ""
-
-# 관리자 권한 확인
-if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Host "이 스크립트는 관리자 권한이 필요합니다." -ForegroundColor Red
-    Write-Host "PowerShell을 관리자 권한으로 실행해주세요." -ForegroundColor Red
-    Read-Host "아무 키나 누르면 종료됩니다"
-    exit 1
-}
-
-try {
-    Write-Host "1. 현재 패스워드 정책 확인" -ForegroundColor Yellow
-    $currentPolicy = net accounts
-    Write-Host "현재 설정:" -ForegroundColor White
-    $currentPolicy | Where-Object { $_ -match "최소|최대|암호|복잡성|기록" }
-    Write-Host ""
-
-    Write-Host "2. 패스워드 정책 적용 중..." -ForegroundColor Yellow
-
-    # 임시 보안 정책 파일 생성
-    $tempFile = "$env:TEMP\\secpol.cfg"
-
-    # 현재 보안 정책 내보내기
-    secedit /export /cfg $tempFile /quiet
-
-    if (Test-Path $tempFile) {
-        # 정책 파일 읽기
-        $content = Get-Content $tempFile
-
-        # 패스워드 정책 수정
-        $content = $content -replace "MinimumPasswordLength = .*", "MinimumPasswordLength = 8"
-        $content = $content -replace "MaximumPasswordAge = .*", "MaximumPasswordAge = 90"
-        $content = $content -replace "MinimumPasswordAge = .*", "MinimumPasswordAge = 1"
-        $content = $content -replace "PasswordHistorySize = .*", "PasswordHistorySize = 5"
-        $content = $content -replace "PasswordComplexity = .*", "PasswordComplexity = 1"
-
-        # 수정된 내용을 파일에 저장
-        $content | Set-Content $tempFile -Encoding Unicode
-
-        # 보안 정책 적용
-        secedit /configure /cfg $tempFile /db secedit.sdb /quiet
-
-        # 임시 파일 삭제
-        Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
-        Remove-Item "secedit.sdb" -Force -ErrorAction SilentlyContinue
-
-        Write-Host "✓ 패스워드 정책이 성공적으로 적용되었습니다!" -ForegroundColor Green
-        Write-Host ""
-
-        Write-Host "적용된 정책:" -ForegroundColor Cyan
-        Write-Host "- 최소 패스워드 길이: 8자" -ForegroundColor Green
-        Write-Host "- 최대 패스워드 사용 기간: 90일" -ForegroundColor Green
-        Write-Host "- 최소 패스워드 사용 기간: 1일" -ForegroundColor Green
-        Write-Host "- 패스워드 기록 저장: 5개" -ForegroundColor Green
-        Write-Host "- 패스워드 복잡성: 사용" -ForegroundColor Green
-
-    } else {
-        Write-Host "보안 정책 파일을 생성할 수 없습니다." -ForegroundColor Red
-    }
-
-    Write-Host ""
-    Write-Host "3. 정책 적용 확인" -ForegroundColor Yellow
-    $updatedPolicy = net accounts
-    Write-Host "업데이트된 설정:" -ForegroundColor White
-    $updatedPolicy | Where-Object { $_ -match "최소|최대|암호|복잡성|기록" }
-
-    Write-Host ""
-    Write-Host "=== 중요 안내 ===" -ForegroundColor Cyan
-    Write-Host "정책 변경사항이 완전히 적용되려면 다음을 수행하세요:" -ForegroundColor Yellow
-    Write-Host "1. gpupdate /force 명령어 실행" -ForegroundColor White
-    Write-Host "2. 시스템 재부팅 (권장)" -ForegroundColor White
-    Write-Host "3. 모든 사용자는 다음 로그인 시 새로운 패스워드 정책에 따라 패스워드 변경 필요" -ForegroundColor White
-
-} catch {
-    Write-Host "패스워드 정책 설정 중 오류가 발생했습니다: $($_.Exception.Message)" -ForegroundColor Red
-}
-
-Read-Host "아무 키나 누르면 종료됩니다"`
-
-// 패스워드 정책 확인 스크립트
-const passwordPolicyCheckScript = `# 패스워드 정책 확인 스크립트
-# 현재 시스템의 패스워드 정책 설정 상태를 상세히 확인합니다.
-
-Write-Host "=== 패스워드 정책 확인 스크립트 ===" -ForegroundColor Cyan
-Write-Host ""
-
-try {
-    Write-Host "1. 기본 계정 정책 확인" -ForegroundColor Yellow
-    $accountPolicy = net accounts
-    Write-Host "현재 계정 정책:" -ForegroundColor White
-    $accountPolicy
-    Write-Host ""
-
-    Write-Host "2. 세부 패스워드 정책 분석" -ForegroundColor Yellow
-
-    # 각 설정값 추출 및 분석
-    $minLength = ($accountPolicy | Select-String "최소 암호 길이:").ToString().Split(":")[1].Trim()
-    $maxAge = ($accountPolicy | Select-String "최대 암호 사용 기간").ToString()
-    $minAge = ($accountPolicy | Select-String "최소 암호 사용 기간").ToString()
-    $history = ($accountPolicy | Select-String "암호 기록 길이").ToString()
-
-    Write-Host "분석 결과:" -ForegroundColor Cyan
-
-    # 최소 길이 검사
-    if ($minLength -ge 8) {
-        Write-Host "✓ 최소 패스워드 길이: $minLength 자 (권장: 8자 이상)" -ForegroundColor Green
-    } else {
-        Write-Host "✗ 최소 패스워드 길이: $minLength 자 (권장: 8자 이상)" -ForegroundColor Red
-    }
-
-    Write-Host "- $maxAge" -ForegroundColor White
-    Write-Host "- $minAge" -ForegroundColor White
-    Write-Host "- $history" -ForegroundColor White
-    Write-Host ""
-
-    Write-Host "3. 로컬 사용자 계정 정보" -ForegroundColor Yellow
-    try {
-        $localUsers = Get-LocalUser | Where-Object { $_.Enabled -eq $true }
-        foreach ($user in $localUsers) {
-            Write-Host "사용자: $($user.Name)" -ForegroundColor White
-            Write-Host "  - 활성화: $($user.Enabled)" -ForegroundColor $(if($user.Enabled) {'Green'} else {'Red'})
-            Write-Host "  - 패스워드 필요: $($user.PasswordRequired)" -ForegroundColor $(if($user.PasswordRequired) {'Green'} else {'Red'})
-            Write-Host "  - 마지막 패스워드 변경: $($user.PasswordLastSet)" -ForegroundColor White
-
-            if ($user.PasswordLastSet) {
-                $daysSinceChange = (Get-Date) - $user.PasswordLastSet
-                Write-Host "  - 패스워드 사용일: $($daysSinceChange.Days)일" -ForegroundColor $(if($daysSinceChange.Days -le 90) {'Green'} else {'Yellow'})
-            }
-            Write-Host ""
-        }
-    } catch {
-        Write-Host "로컬 사용자 정보를 가져올 수 없습니다: $($_.Exception.Message)" -ForegroundColor Yellow
-    }
-
-    Write-Host "4. 보안 정책 세부 확인" -ForegroundColor Yellow
-    $tempFile = "$env:TEMP\\secpol_check.cfg"
-    secedit /export /cfg $tempFile /quiet
-
-    if (Test-Path $tempFile) {
-        $secContent = Get-Content $tempFile
-        $passwordSettings = $secContent | Select-String "Password|MinimumPassword|MaximumPassword"
-
-        Write-Host "보안 정책 상세:" -ForegroundColor White
-        foreach ($setting in $passwordSettings) {
-            if ($setting -match "MinimumPasswordLength = (.*)") {
-                $minLen = $matches[1]
-                Write-Host "- 최소 패스워드 길이: $minLen" -ForegroundColor $(if([int]$minLen -ge 8) {'Green'} else {'Red'})
-            }
-            if ($setting -match "MaximumPasswordAge = (.*)") {
-                $maxAge = $matches[1]
-                Write-Host "- 최대 패스워드 사용 기간: $maxAge 일" -ForegroundColor $(if([int]$maxAge -le 90 -and [int]$maxAge -gt 0) {'Green'} else {'Yellow'})
-            }
-            if ($setting -match "PasswordHistorySize = (.*)") {
-                $histSize = $matches[1]
-                Write-Host "- 패스워드 기록 저장: $histSize 개" -ForegroundColor $(if([int]$histSize -ge 5) {'Green'} else {'Yellow'})
-            }
-            if ($setting -match "PasswordComplexity = (.*)") {
-                $complexity = $matches[1]
-                Write-Host "- 패스워드 복잡성: $(if($complexity -eq '1') {'사용'} else {'사용 안 함'})" -ForegroundColor $(if($complexity -eq '1') {'Green'} else {'Red'})
-            }
-        }
-
-        Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
-    }
-
-    Write-Host ""
-    Write-Host "=== 권장사항 ===" -ForegroundColor Cyan
-    Write-Host "✓ 최소 패스워드 길이: 8자 이상" -ForegroundColor Green
-    Write-Host "✓ 최대 패스워드 사용 기간: 90일 이하" -ForegroundColor Green
-    Write-Host "✓ 패스워드 복잡성: 사용" -ForegroundColor Green
-    Write-Host "✓ 패스워드 기록 저장: 5개 이상" -ForegroundColor Green
-    Write-Host "✓ 정기적인 패스워드 변경 교육" -ForegroundColor Green
-
-} catch {
-    Write-Host "패스워드 정책 확인 중 오류가 발생했습니다: $($_.Exception.Message)" -ForegroundColor Red
-}
-
-Read-Host "아무 키나 누르면 종료됩니다"`
-
-// 메서드
-const copyToClipboard = async () => {
-  const codeText = `# 현재 패스워드 정책 확인
-net accounts
-
-# 세부 패스워드 정책 확인 (PowerShell)
-Get-LocalUser | Select-Object Name, Enabled, PasswordRequired, PasswordLastSet, PasswordExpires
-
-# 로컬 보안 정책 확인
-secedit /export /cfg c:\\temp\\secpol.cfg
-Get-Content c:\\temp\\secpol.cfg | Select-String "Password"`
-
+// ZIP 파일 다운로드 함수 (JSZip 사용)
+const downloadZipWithJSZip = async (files, zipFilename) => {
   try {
-    await navigator.clipboard.writeText(codeText)
-    console.log('코드가 클립보드에 복사되었습니다.')
-  } catch (err) {
-    console.error('클립보드 복사 실패:', err)
-  }
-}
+    const zip = new JSZip()
 
-// 스크립트 다운로드 함수
-const downloadScript = (scriptContent, filename) => {
-  try {
-    const blob = new Blob([scriptContent], { type: 'text/plain;charset=utf-8' })
-    const url = window.URL.createObjectURL(blob)
+    files.forEach((file) => {
+      zip.file(file.name, file.content)
+    })
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    const url = window.URL.createObjectURL(zipBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = filename
+    link.download = zipFilename
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    console.error('파일 다운로드 실패:', err)
+    console.error('ZIP 파일 다운로드 실패:', err)
   }
 }
 
-// 패스워드 정책 설정 스크립트 다운로드
-const downloadConfigScript = () => {
-  downloadScript(passwordPolicySetupScript, 'Password_Policy_Setup.ps1')
+// 사용법
+const downloadConfigScript = async () => {
+  const files = [
+    {
+      name: '조치 스크립트.bat',
+      content: SetupScript,
+    },
+  ]
+  await downloadZipWithJSZip(files, '조치 스크립트.zip')
 }
 
-// 패스워드 정책 확인 스크립트 다운로드
-const downloadCheckScript = () => {
-  downloadScript(passwordPolicyCheckScript, 'Password_Policy_Check.ps1')
+// Windows CRLF 줄바꿈으로 변환하는 함수
+const convertToWindowsLineEndings = (content) => {
+  return content.replace(/\r?\n/g, '\r\n')
 }
+
+// 1. 조치 스크립트.bat 내용을 포함한 변수 추가
+const SetupScript = convertToWindowsLineEndings(`@echo off
+
+::  --> 관리자 권한 실행 코드
+:-------------------------------------
+>nul 2>&1 "%SYSTEMROOT%\\system32\\cacls.exe" "%SYSTEMROOT%\\system32\\config\\system"
+
+if '%errorlevel%' NEQ '0' (
+ goto UACPrompt
+) else ( goto gotAdmin )
+
+:UACPrompt
+ echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\\getadmin.vbs"
+ echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\\getadmin.vbs"
+
+"%temp%\\getadmin.vbs"
+ exit /B
+
+:gotAdmin
+ if exist "%temp%\\getadmin.vbs" ( del "%temp%\\getadmin.vbs" )
+ pushd "%CD%"
+ CD /D "%~dp0"
+:--------------------------------------
+
+
+::  --> UTF-8 인코딩 설정
+:-------------------------------------
+chcp 65001 > nul
+
+::  --> 배치 파일 기본 설정
+:-------------------------------------
+TITLE %~n0
+SETLOCAL enabledelayedexpansion
+
+::  --> 특정 IP 설정 (여기에 원격데스크톱을 유지할 IP 주소들을 입력하세요)
+:-------------------------------------
+set ALLOWED_IPS=10.106.15.100 10.106.15.101 10.106.15.102 10.106.15.103 10.106.15.104 10.106.15.105 10.106.15.114 10.106.15.115 10.106.15.117 10.106.15.125
+set SKIP_RDP_DISABLE=0
+
+::  --> 현재 컴퓨터의 IP 주소 확인
+:-------------------------------------
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
+    set IP=%%a
+    set IP=!IP: =!
+    for %%b in (%ALLOWED_IPS%) do (
+        if "!IP!"=="%%b" (
+            set SKIP_RDP_DISABLE=1
+        )
+    )
+)
+:-------------------------------------
+
+::  --> 검사 후 조치
+:-------------------------------------
+CLS
+ECHO.
+ECHO * 주의사항 - 조치 중에는 키보드, 마우스를 움직이지 말아주세요.
+
+ECHO.
+echo ※ 윈도우 시스템 설정값 변경 ※
+echo.
+
+echo 1.1 화면보호기 설정, 잠금 설정, 10분 설정 완료
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v SCRNSAVE.EXE /t REG_SZ /d C:\\Windows\\System32\\scrnsave.scr /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaveActive /t REG_SZ /d 1 /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaverIsSecure /t REG_SZ /d 1 /f | find /v "success"
+Reg add "HKEY_CURRENT_USER\\Control Panel\\Desktop" /v ScreenSaveTimeOut /t REG_SZ /d 600 /f | find /v "success"
+echo.
+
+echo 2.1 암호 복잡도 설정 완료
+secedit /export /cfg "%temp%\\secpol.cfg" > nul
+powershell -Command "(Get-Content '%temp%\\secpol.cfg') -replace 'PasswordComplexity = 0', 'PasswordComplexity = 1' | Set-Content '%temp%\\secpol.cfg'"
+secedit /configure /db %windir%\\security\\local.sdb /cfg "%temp%\secpol.cfg" /areas SECURITYPOLICY > nul
+del "%temp%\\secpol.cfg" > nul
+echo.
+
+echo 2.3 최소 암호 길이 8자리로 변경 완료
+net accounts /minpwlen:8 | find /v "success"
+
+echo 2.4 암호 복잡도 요구사항 활성화 완료
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v NoLMHash /t REG_DWORD /d 0x00000001 /f | find /v "success"
+
+echo 2.5 최대 암호 사용 기간 90일로 변경 완료
+net accounts /maxpwage:90 | find /v "success"
+
+echo 2.7 최근 암호 기억 5개로 변경 완료
+net accounts /uniquepw:5 | find /v "success"
+
+echo 3.1 불필요한 공유폴더 삭제 완료 ^(IPC$ 제외한 모든 공유폴더 제거^)
+:: 모든 공유폴더 목록을 가져와서 IPC$를 제외하고 삭제
+for /f "skip=1 tokens=1" %%s in ('net share ^| findstr /v "^$" ^| findstr /v "명령을 잘못" ^| findstr /v "The command completed"') do (
+    if /i not "%%s"=="IPC$" (
+        net share "%%s" /delete /y > nul 2>&1
+    )
+)
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v restrictanonymous /t REG_DWORD /d 0x00000001 /f | find /v "success"
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" /v AutoShareServer /t REG_DWORD /d 0x00000000 /f | find /v "success"
+Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" /v AutoShareWks /t REG_DWORD /d 0x00000000 /f | find /v "success"
+echo.
+
+:: IP 조건에 따라 원격데스크톱 설정 처리
+if %SKIP_RDP_DISABLE%==1 (
+    echo 3.3 원격데스크톱 설정 유지 ^(허용된 IP 주소^)
+) else (
+    echo 3.3 원격데스크톱 해제 완료
+    Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0x00000001 /f | find /v "success"
+    Reg add "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 0x00000001 /f | find /v "success"
+)
+echo.
+
+TIMEOUT /t 2 > NUL
+echo.
+echo ※ 모든 보안 조치가 완료되었습니다. ※
+echo.
+echo ※ 시스템 재시작을 권장합니다. ※
+:-------------------------------------
+
+pause`)
 </script>
 
-/* Style 부분 */
 <style scoped>
 .security-audit-layout {
   display: flex;
