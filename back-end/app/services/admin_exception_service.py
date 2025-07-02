@@ -27,7 +27,7 @@ class ExceptionService:
             AND (uie.exclude_type = 'permanent' OR 
                  (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
             """,
-            (user_id,),
+            (user_id, ),
             fetch_all=True,
         )
 
@@ -48,14 +48,13 @@ class ExceptionService:
             AND (uee.exclude_type = 'permanent' OR 
                  (uee.exclude_type = 'temporary' AND CURDATE() BETWEEN uee.start_date AND uee.end_date))
             """,
-            (user_id,),
+            (user_id, ),
             fetch_all=True,
         )
 
         # 3. 사용자 부서 정보 조회
-        user_dept = execute_query(
-            "SELECT department FROM users WHERE uid = %s", (user_id,), fetch_one=True
-        )
+        user_dept = execute_query("SELECT department FROM users WHERE uid = %s",
+                                  (user_id, ), fetch_one=True)
 
         if not user_dept:
             return user_audit_exceptions + user_extended_exceptions
@@ -105,12 +104,8 @@ class ExceptionService:
         )
 
         # 모든 예외 설정 합치기
-        all_exceptions = (
-            user_audit_exceptions
-            + user_extended_exceptions
-            + dept_audit_exceptions
-            + dept_extended_exceptions
-        )
+        all_exceptions = (user_audit_exceptions + user_extended_exceptions +
+                          dept_audit_exceptions + dept_extended_exceptions)
 
         # 중복 제거 (같은 item_id에 대해 사용자별 설정이 부서별 설정보다 우선)
         unique_exceptions = {}
@@ -193,9 +188,8 @@ class ExceptionService:
             }
 
         # 3. 사용자 부서 정보 조회
-        user_dept = execute_query(
-            "SELECT department FROM users WHERE uid = %s", (user_id,), fetch_one=True
-        )
+        user_dept = execute_query("SELECT department FROM users WHERE uid = %s",
+                                  (user_id, ), fetch_one=True)
 
         if not user_dept:
             return {"is_excluded": False}
@@ -267,9 +261,8 @@ class ExceptionService:
 
         return {"is_excluded": False}
 
-    def get_user_exceptions(
-        self, user_id: int = None, item_id: int = None
-    ) -> List[Dict]:
+    def get_user_exceptions(self, user_id: int = None,
+                            item_id: int = None) -> List[Dict]:
         """사용자별 제외 설정 조회 (확장된 테이블 포함) - 에러 수정 버전"""
         try:
             # 기존 감사 항목 제외 설정
@@ -367,22 +360,19 @@ class ExceptionService:
             if extended_exceptions is None:
                 extended_exceptions = []
             elif not isinstance(extended_exceptions, list):
-                extended_exceptions = (
-                    list(extended_exceptions) if extended_exceptions else []
-                )
+                extended_exceptions = (list(extended_exceptions)
+                                       if extended_exceptions else [])
 
             # 결과 합치기
             all_exceptions = audit_exceptions + extended_exceptions
 
             # 정렬
             if all_exceptions:
-                all_exceptions.sort(
-                    key=lambda x: (
-                        x.get("username", ""),
-                        x.get("item_type", ""),
-                        x.get("item_name", ""),
-                    )
-                )
+                all_exceptions.sort(key=lambda x: (
+                    x.get("username", ""),
+                    x.get("item_type", ""),
+                    x.get("item_name", ""),
+                ))
 
             print(f"[DEBUG] 최종 결과 - 총 {len(all_exceptions)}건")
             return all_exceptions
@@ -394,9 +384,8 @@ class ExceptionService:
             traceback.print_exc()
             return []  # 에러 발생시 빈 리스트 반환
 
-    def get_department_exceptions(
-        self, department: str = None, item_id: int = None
-    ) -> List[Dict]:
+    def get_department_exceptions(self, department: str = None,
+                                  item_id: int = None) -> List[Dict]:
         """부서별 제외 설정 조회 (확장된 테이블 포함) - 에러 수정 버전"""
         try:
             # 기존 감사 항목 제외 설정
@@ -488,22 +477,19 @@ class ExceptionService:
             if extended_exceptions is None:
                 extended_exceptions = []
             elif not isinstance(extended_exceptions, list):
-                extended_exceptions = (
-                    list(extended_exceptions) if extended_exceptions else []
-                )
+                extended_exceptions = (list(extended_exceptions)
+                                       if extended_exceptions else [])
 
             # 결과 합치기
             all_exceptions = audit_exceptions + extended_exceptions
 
             # 정렬
             if all_exceptions:
-                all_exceptions.sort(
-                    key=lambda x: (
-                        x.get("department", ""),
-                        x.get("item_type", ""),
-                        x.get("item_name", ""),
-                    )
-                )
+                all_exceptions.sort(key=lambda x: (
+                    x.get("department", ""),
+                    x.get("item_type", ""),
+                    x.get("item_name", ""),
+                ))
 
             return all_exceptions
 
@@ -515,17 +501,15 @@ class ExceptionService:
             return []  # 에러 발생시 빈 리스트 반환
 
     # 나머지 메서드들은 기존과 동일 (add_user_exception, remove_user_exception 등)
-    def search_users(
-        self, search_query: str = "", department: str = "", limit: int = 50
-    ) -> List[Dict]:
+    def search_users(self, search_query: str = "", department: str = "",
+                     limit: int = 50) -> List[Dict]:
         """사용자 검색"""
         conditions = []
         params = []
 
         if search_query:
             conditions.append(
-                "(u.username LIKE %s OR u.user_id LIKE %s OR u.mail LIKE %s)"
-            )
+                "(u.username LIKE %s OR u.user_id LIKE %s OR u.mail LIKE %s)")
             search_pattern = f"%{search_query}%"
             params.extend([search_pattern, search_pattern, search_pattern])
 
@@ -547,9 +531,8 @@ class ExceptionService:
             fetch_all=True,
         )
 
-    def is_training_excluded_for_user(
-        self, user_id: int, year: int, period: str
-    ) -> Dict:
+    def is_training_excluded_for_user(self, user_id: int, year: int,
+                                      period: str) -> Dict:
         """특정 사용자의 특정 연도/기간 모의훈련 제외 설정 확인"""
         # 1. 연도별 제외 설정 확인 (우선순위: 높음)
         year_specific_item_id = f"training_{year}_{period}"
@@ -562,9 +545,8 @@ class ExceptionService:
         general_item_id = f"training_{period}"
         return self.is_extended_item_excluded_for_user(user_id, general_item_id)
 
-    def is_education_excluded_for_user(
-        self, user_id: int, year: int, period: str
-    ) -> Dict:
+    def is_education_excluded_for_user(self, user_id: int, year: int,
+                                       period: str) -> Dict:
         """특정 사용자의 특정 연도/기간 교육 제외 설정 확인"""
         # 1. 연도별 제외 설정 확인 (우선순위: 높음)
         year_specific_item_id = f"education_{year}_{period}"
@@ -611,9 +593,8 @@ class ExceptionService:
             }
 
         # 2. 사용자 부서 정보 조회
-        user_dept = execute_query(
-            "SELECT department FROM users WHERE uid = %s", (user_id,), fetch_one=True
-        )
+        user_dept = execute_query("SELECT department FROM users WHERE uid = %s",
+                                  (user_id, ), fetch_one=True)
 
         if not user_dept:
             return {"is_excluded": False}
@@ -697,32 +678,28 @@ class ExceptionService:
             category = item["category"]
             if category not in grouped_items:
                 grouped_items[category] = []
-            grouped_items[category].append(
-                {
-                    "item_id": item["item_id"],
-                    "item_name": item["item_name"],
-                    "description": item["description"],
-                    "check_type": item["check_type"],
-                    "penalty_weight": item["penalty_weight"],
-                    "source": "checklist_items",
-                }
-            )
+            grouped_items[category].append({
+                "item_id": item["item_id"],
+                "item_name": item["item_name"],
+                "description": item["description"],
+                "check_type": item["check_type"],
+                "penalty_weight": item["penalty_weight"],
+                "source": "checklist_items",
+            })
 
         # 수시 점검 항목들을 카테고리별로 분류
         for item in manual_items:
             category = item["category"]
             if category not in grouped_items:
                 grouped_items[category] = []
-            grouped_items[category].append(
-                {
-                    "item_id": item["item_id"],
-                    "item_name": item["item_name"],
-                    "description": item["description"],
-                    "check_type": item["check_type"],
-                    "penalty_weight": item["penalty_weight"],
-                    "source": "manual_check_items",
-                }
-            )
+            grouped_items[category].append({
+                "item_id": item["item_id"],
+                "item_name": item["item_name"],
+                "description": item["description"],
+                "check_type": item["check_type"],
+                "penalty_weight": item["penalty_weight"],
+                "source": "manual_check_items",
+            })
 
         # 4. 현재 연도 기준으로 ±2년 범위의 교육/훈련 항목 생성
         current_year = datetime.now().year
@@ -732,47 +709,43 @@ class ExceptionService:
         training_items = []
 
         for year in years:
-            education_items.extend(
-                [
-                    {
-                        "item_id": f"education_{year}_first_half",
-                        "item_name": f"{year}년 상반기 정보보호 교육",
-                        "description": f"{year}년 상반기 정보보호 교육 이수",
-                        "year": year,
-                        "period": "first_half",
-                        "source": "generated",
-                    },
-                    {
-                        "item_id": f"education_{year}_second_half",
-                        "item_name": f"{year}년 하반기 정보보호 교육",
-                        "description": f"{year}년 하반기 정보보호 교육 이수",
-                        "year": year,
-                        "period": "second_half",
-                        "source": "generated",
-                    },
-                ]
-            )
+            education_items.extend([
+                {
+                    "item_id": f"education_{year}_first_half",
+                    "item_name": f"{year}년 상반기 정보보호 교육",
+                    "description": f"{year}년 상반기 정보보호 교육 이수",
+                    "year": year,
+                    "period": "first_half",
+                    "source": "generated",
+                },
+                {
+                    "item_id": f"education_{year}_second_half",
+                    "item_name": f"{year}년 하반기 정보보호 교육",
+                    "description": f"{year}년 하반기 정보보호 교육 이수",
+                    "year": year,
+                    "period": "second_half",
+                    "source": "generated",
+                },
+            ])
 
-            training_items.extend(
-                [
-                    {
-                        "item_id": f"training_{year}_first_half",
-                        "item_name": f"{year}년 상반기 악성메일 모의훈련",
-                        "description": f"{year}년 상반기 악성메일 모의훈련 참여",
-                        "year": year,
-                        "period": "first_half",
-                        "source": "generated",
-                    },
-                    {
-                        "item_id": f"training_{year}_second_half",
-                        "item_name": f"{year}년 하반기 악성메일 모의훈련",
-                        "description": f"{year}년 하반기 악성메일 모의훈련 참여",
-                        "year": year,
-                        "period": "second_half",
-                        "source": "generated",
-                    },
-                ]
-            )
+            training_items.extend([
+                {
+                    "item_id": f"training_{year}_first_half",
+                    "item_name": f"{year}년 상반기 악성메일 모의훈련",
+                    "description": f"{year}년 상반기 악성메일 모의훈련 참여",
+                    "year": year,
+                    "period": "first_half",
+                    "source": "generated",
+                },
+                {
+                    "item_id": f"training_{year}_second_half",
+                    "item_name": f"{year}년 하반기 악성메일 모의훈련",
+                    "description": f"{year}년 하반기 악성메일 모의훈련 참여",
+                    "year": year,
+                    "period": "second_half",
+                    "source": "generated",
+                },
+            ])
 
         # 5. 교육/훈련 항목을 그룹에 추가
         grouped_items["정보보호 교육"] = education_items
@@ -802,7 +775,7 @@ class ExceptionService:
             # 사용자 존재 확인
             user = execute_query(
                 "SELECT uid, username, department FROM users WHERE uid = %s",
-                (user_uid,),
+                (user_uid, ),
                 fetch_one=True,
             )
 
@@ -947,7 +920,7 @@ class ExceptionService:
         # 항목 정보 조회
         item_info = execute_query(
             "SELECT item_name, category FROM checklist_items WHERE item_id = %s",
-            (item_id,),
+            (item_id, ),
             fetch_one=True,
         )
 
@@ -1167,7 +1140,7 @@ class ExceptionService:
         # 항목 정보 조회
         item_info = execute_query(
             "SELECT item_name, category FROM checklist_items WHERE item_id = %s",
-            (item_id,),
+            (item_id, ),
             fetch_one=True,
         )
 
@@ -1335,21 +1308,18 @@ class ExceptionService:
         """제외 설정 요약 통계"""
         with DatabaseManager.get_db_cursor(commit=False) as cursor:
             # 사용자별 제외 설정 통계
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT 
                     COUNT(*) as total_user_exceptions,
                     COUNT(CASE WHEN exclude_type = 'permanent' THEN 1 END) as permanent_user_exceptions,
                     COUNT(CASE WHEN exclude_type = 'temporary' THEN 1 END) as temporary_user_exceptions
                 FROM user_item_exceptions 
                 WHERE is_active = 1
-                """
-            )
+                """)
             user_stats = cursor.fetchone()
 
             # 부서별 제외 설정 통계
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT 
                     COUNT(*) as total_dept_exceptions,
                     COUNT(CASE WHEN exclude_type = 'permanent' THEN 1 END) as permanent_dept_exceptions,
@@ -1357,13 +1327,11 @@ class ExceptionService:
                     COUNT(DISTINCT department) as affected_departments
                 FROM department_item_exceptions 
                 WHERE is_active = 1
-                """
-            )
+                """)
             dept_stats = cursor.fetchone()
 
             # 가장 많이 제외된 항목들
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT 
                     ci.item_name,
                     ci.category,
@@ -1380,8 +1348,7 @@ class ExceptionService:
                 GROUP BY ci.item_id, ci.item_name, ci.category
                 ORDER BY exception_count DESC
                 LIMIT 5
-                """
-            )
+                """)
             top_excluded_items = cursor.fetchall()
 
         return {
@@ -1407,7 +1374,7 @@ class ExceptionService:
         # 항목 정보 조회
         item_info = execute_query(
             "SELECT item_name, item_category, item_code FROM manual_check_items WHERE item_id = %s",
-            (item_id,),
+            (item_id, ),
             fetch_one=True,
         )
 
@@ -1472,8 +1439,7 @@ class ExceptionService:
 
             # ★★★ 핵심: 기존 manual_check_results 데이터 동기화 ★★★
             sync_result = self._sync_manual_check_results_exclusion(
-                user_uid, item_info["item_code"], exclude_reason, is_excluded=True
-            )
+                user_uid, item_info["item_code"], exclude_reason, is_excluded=True)
 
             final_message = f"{action_msg} {sync_result['message']}"
 
@@ -1490,6 +1456,7 @@ class ExceptionService:
                 "message": f"수시 점검 제외 설정 추가 실패: {str(e)}",
             }
 
+    # _sync_manual_check_results_exclusion 메서드도 확인 (이미 올바르게 구현되어 있음)
     def _sync_manual_check_results_exclusion(
         self,
         user_id: int,
@@ -1515,7 +1482,7 @@ class ExceptionService:
                 if result > 0:
                     return {
                         "success": True,
-                        "message": f"기존 {result}건의 상시점검 결과가 제외 처리되었습니다.",
+                        "message": f"기존 {result}건의 수시점검 결과가 제외 처리되었습니다.",
                         "updated_count": result,
                     }
                 else:
@@ -1525,7 +1492,7 @@ class ExceptionService:
                         "updated_count": 0,
                     }
             else:
-                # 제외 해제 시: exclude_from_scoring = 0, exclude_reason 초기화
+                # ★★★ 제외 해제 시: exclude_from_scoring = 0, exclude_reason 초기화 ★★★
                 result = execute_query(
                     """
                     UPDATE manual_check_results 
@@ -1540,7 +1507,7 @@ class ExceptionService:
                 if result > 0:
                     return {
                         "success": True,
-                        "message": f"기존 {result}건의 상시점검 결과가 포함 처리되었습니다.",
+                        "message": f"기존 {result}건의 수시점검 결과가 포함 처리되었습니다.",
                         "updated_count": result,
                     }
                 else:
@@ -1586,38 +1553,47 @@ class ExceptionService:
                 print(f"[DEBUG] user_item_exceptions 업데이트 결과: {result}")
 
             elif item_type.startswith("manual_"):
-                # ★★★ manual_ 접두사가 있는 수시 점검 항목 - 동기화 추가 ★★★
+                # ★★★ 수시 점검 항목 제거 시 동기화 수정 ★★★
                 item_id = int(item_type.replace("manual_", ""))
-                print(
-                    f"[DEBUG] 수시 점검 항목 처리 (manual_ 접두사) - item_id: {item_id}"
-                )
+                print(f"[DEBUG] 수시 점검 항목 처리 (manual_ 접두사) - item_id: {item_id}")
 
-                # 먼저 item_code 조회
+                # 1. 먼저 item_code 조회
                 item_info = execute_query(
                     "SELECT item_code FROM manual_check_items WHERE item_id = %s",
-                    (item_id,),
+                    (item_id, ),
                     fetch_one=True,
                 )
 
+                if not item_info:
+                    return {"success": False, "message": "수시 점검 항목을 찾을 수 없습니다."}
+
+                # 2. user_item_exceptions에서 제외 설정 비활성화
                 result = execute_query(
-                    "UPDATE user_item_exceptions SET is_active = 0 WHERE user_id = %s AND item_id = %s AND item_type = 'manual'",
+                    """UPDATE user_item_exceptions 
+                    SET is_active = 0, updated_at = NOW() 
+                    WHERE user_id = %s AND item_id = %s AND item_type = 'manual'""",
                     (user_id, item_id),
                 )
                 print(f"[DEBUG] user_item_exceptions 업데이트 결과: {result}")
 
-                # 기존 manual_check_results 동기화
-                if item_info and result > 0:
+                # 3. ★★★ 핵심: manual_check_results 동기화 (제외 해제) ★★★
+                if result > 0:
                     sync_result = self._sync_manual_check_results_exclusion(
-                        user_id, item_info["item_code"], "", is_excluded=False
+                        user_id,
+                        item_info["item_code"],
+                        "",
+                        is_excluded=False  # False로 설정하여 제외 해제
                     )
-                    final_message = (
-                        f"제외 설정이 비활성화되었습니다. {sync_result['message']}"
-                    )
+                    print(f"[DEBUG] 동기화 결과: {sync_result}")
+
+                    final_message = f"제외 설정이 비활성화되었습니다. {sync_result['message']}"
                     return {
                         "success": True,
                         "message": final_message,
                         "sync_details": sync_result,
                     }
+                else:
+                    return {"success": False, "message": "해당 제외 설정을 찾을 수 없습니다."}
 
             else:
                 # 교육/훈련 항목 제외 설정 제거
@@ -1657,7 +1633,7 @@ class ExceptionService:
         # 항목 정보 조회
         item_info = execute_query(
             "SELECT item_name, item_category, item_code FROM manual_check_items WHERE item_id = %s",
-            (item_id,),
+            (item_id, ),
             fetch_one=True,
         )
 
@@ -1722,8 +1698,7 @@ class ExceptionService:
 
             # ★★★ 부서 소속 전체 사용자의 기존 결과 동기화 ★★★
             sync_result = self._sync_department_manual_check_results_exclusion(
-                department, item_info["item_code"], exclude_reason, is_excluded=True
-            )
+                department, item_info["item_code"], exclude_reason, is_excluded=True)
 
             final_message = f"{action_msg} {sync_result['message']}"
 
@@ -1833,9 +1808,7 @@ class ExceptionService:
             elif item_type.startswith("audit_"):
                 # audit_ 접두사가 있는 감사 항목
                 item_id = int(item_type.replace("audit_", ""))
-                print(
-                    f"[DEBUG] 부서별 감사 항목 처리 (audit_ 접두사) - item_id: {item_id}"
-                )
+                print(f"[DEBUG] 부서별 감사 항목 처리 (audit_ 접두사) - item_id: {item_id}")
                 result = execute_query(
                     "UPDATE department_item_exceptions SET is_active = 0 WHERE department = %s AND item_id = %s",
                     (department, item_id),
@@ -1843,14 +1816,12 @@ class ExceptionService:
             elif item_type.startswith("manual_"):
                 # ★★★ manual_ 접두사가 있는 수시 점검 항목 - 동기화 추가 ★★★
                 item_id = int(item_type.replace("manual_", ""))
-                print(
-                    f"[DEBUG] 부서별 수시 점검 항목 처리 (manual_ 접두사) - item_id: {item_id}"
-                )
+                print(f"[DEBUG] 부서별 수시 점검 항목 처리 (manual_ 접두사) - item_id: {item_id}")
 
                 # 먼저 item_code 조회
                 item_info = execute_query(
                     "SELECT item_code FROM manual_check_items WHERE item_id = %s",
-                    (item_id,),
+                    (item_id, ),
                     fetch_one=True,
                 )
 
@@ -1863,8 +1834,7 @@ class ExceptionService:
                 # 기존 manual_check_results 동기화
                 if item_info and result > 0:
                     sync_result = self._sync_department_manual_check_results_exclusion(
-                        department, item_info["item_code"], "", is_excluded=False
-                    )
+                        department, item_info["item_code"], "", is_excluded=False)
                     final_message = f"부서별 제외 설정이 비활성화되었습니다. {sync_result['message']}"
                     return {
                         "success": True,

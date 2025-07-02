@@ -86,9 +86,7 @@ class ManualCheckService:
 
             # 모든 경우에 실패하면 첫 번째 기간 사용
             first_period = periods[0]
-            print(
-                f"[DEBUG] 기본적으로 첫 번째 기간 사용: '{first_period['period_name']}'"
-            )
+            print(f"[DEBUG] 기본적으로 첫 번째 기간 사용: '{first_period['period_name']}'")
             return first_period["period_id"], first_period["period_name"]
 
         except Exception as e:
@@ -147,9 +145,8 @@ class ManualCheckService:
                 continue  # 이미 위에서 처리함
 
             required_cols = config["required_columns"]
-            matched_cols = sum(
-                1 for col in required_cols if any(req in col for req in columns)
-            )
+            matched_cols = sum(1 for col in required_cols
+                               if any(req in col for req in columns))
 
             if matched_cols >= len(required_cols) * 0.8:  # 80% 이상 일치
                 return check_type
@@ -307,8 +304,7 @@ class ManualCheckService:
                 import re
 
                 time_pattern = (
-                    r"(\d{4}-\d{2}-\d{2})\s+(AM|PM)\s+(\d{1,2}):(\d{2}):(\d{2})"
-                )
+                    r"(\d{4}-\d{2}-\d{2})\s+(AM|PM)\s+(\d{1,2}):(\d{2}):(\d{2})")
                 match = re.match(time_pattern, str_value)
 
                 if match:
@@ -370,9 +366,7 @@ class ManualCheckService:
                         new_columns.append(str(col1).strip())
                     else:
                         # 둘 다 있으면 합성
-                        new_columns.append(
-                            f"{str(col1).strip()}에서 {str(col2).strip()}"
-                        )
+                        new_columns.append(f"{str(col1).strip()}에서 {str(col2).strip()}")
                 else:
                     new_columns.append(str(col).strip())
 
@@ -383,7 +377,7 @@ class ManualCheckService:
             df_data = pd.read_excel(file, header=None, skiprows=2)
 
             # 컬럼명 설정
-            df_data.columns = new_columns[: len(df_data.columns)]
+            df_data.columns = new_columns[:len(df_data.columns)]
 
             return df_data
 
@@ -436,7 +430,7 @@ class ManualCheckService:
                 # ip 컬럼으로 검색 (last_ip 대신)
                 user = execute_query(
                     "SELECT uid FROM users WHERE ip LIKE %s LIMIT 1",
-                    (f"%{source_ip}%",),
+                    (f"%{source_ip}%", ),
                     fetch_one=True,
                 )
                 if user:
@@ -469,9 +463,8 @@ class ManualCheckService:
                     return admin_user["uid"]
 
                 # 4-2. 첫 번째 사용자 사용
-                first_user = execute_query(
-                    "SELECT uid FROM users ORDER BY uid LIMIT 1", fetch_one=True
-                )
+                first_user = execute_query("SELECT uid FROM users ORDER BY uid LIMIT 1",
+                                           fetch_one=True)
                 if first_user:
                     print(f"[DEBUG] 첫 번째 사용자 {first_user['uid']} 사용")
                     return first_user["uid"]
@@ -479,9 +472,7 @@ class ManualCheckService:
                 # 4-3. 마지막 수단: 사용자 생성 (옵션)
                 # return self._create_default_user(username, source_ip)
 
-            print(
-                f"[ERROR] 사용자를 찾을 수 없음 - 사용자명: {username}, IP: {source_ip}"
-            )
+            print(f"[ERROR] 사용자를 찾을 수 없음 - 사용자명: {username}, IP: {source_ip}")
             return None
 
         except Exception as e:
@@ -513,8 +504,7 @@ class ManualCheckService:
 
                 # ✅ 날짜 기반으로 적절한 기간 찾기
                 period_id, period_name = self._find_appropriate_period(
-                    check_date, "seal_check"
-                )
+                    check_date, "seal_check")
                 print(
                     f"[DEBUG] 봉인씰 - 행 {idx+2}: 매칭된 기간 = {period_name} (ID: {period_id})"
                 )
@@ -526,8 +516,7 @@ class ManualCheckService:
 
                 department = ""
                 if col_mapping["department"] and pd.notna(
-                    row[col_mapping["department"]]
-                ):
+                        row[col_mapping["department"]]):
                     department = str(row[col_mapping["department"]]).strip()
 
                 # 훼손여부 확인
@@ -601,8 +590,7 @@ class ManualCheckService:
 
                 # ✅ 날짜 기반으로 적절한 기간 찾기
                 period_id, period_name = self._find_appropriate_period(
-                    check_date, "malware_scan"
-                )
+                    check_date, "malware_scan")
                 print(
                     f"[DEBUG] 악성코드 - 행 {idx+2}: 매칭된 기간 = {period_name} (ID: {period_id})"
                 )
@@ -613,30 +601,18 @@ class ManualCheckService:
                     username = str(row[col_mapping["username"]]).strip()
 
                 # IP 주소
-                ip_address = (
-                    str(row[col_mapping["ip"]])
-                    if col_mapping["ip"] and pd.notna(row[col_mapping["ip"]])
-                    else ""
-                )
+                ip_address = (str(row[col_mapping["ip"]]) if col_mapping["ip"]
+                              and pd.notna(row[col_mapping["ip"]]) else "")
 
                 # 악성코드 정보
-                malware_name = (
-                    str(row[col_mapping["malware_name"]])
-                    if col_mapping["malware_name"]
-                    and pd.notna(row[col_mapping["malware_name"]])
-                    else ""
-                )
-                malware_type = (
-                    str(row[col_mapping["malware_type"]])
-                    if col_mapping["malware_type"]
-                    and pd.notna(row[col_mapping["malware_type"]])
-                    else ""
-                )
-                file_path = (
-                    str(row[col_mapping["path"]])
-                    if col_mapping["path"] and pd.notna(row[col_mapping["path"]])
-                    else ""
-                )
+                malware_name = (str(row[col_mapping["malware_name"]])
+                                if col_mapping["malware_name"]
+                                and pd.notna(row[col_mapping["malware_name"]]) else "")
+                malware_type = (str(row[col_mapping["malware_type"]])
+                                if col_mapping["malware_type"]
+                                and pd.notna(row[col_mapping["malware_type"]]) else "")
+                file_path = (str(row[col_mapping["path"]]) if col_mapping["path"]
+                             and pd.notna(row[col_mapping["path"]]) else "")
 
                 # 탐지 항목 확인
                 detection_item = ""
@@ -665,15 +641,11 @@ class ManualCheckService:
                     "malware_classification": malware_type,
                     "malware_path": file_path,
                     "detection_item": detection_item,
-                    "malware_notes": (
-                        f"탐지 항목: {detection_item}" if detection_item else "정상"
-                    ),
+                    "malware_notes": (f"탐지 항목: {detection_item}"
+                                      if detection_item else "정상"),
                     "overall_result": overall_result,
-                    "notes": (
-                        f"악성코드 검사: {detection_item}"
-                        if detection_item
-                        else "악성코드 미발견"
-                    ),
+                    "notes": (f"악성코드 검사: {detection_item}"
+                              if detection_item else "악성코드 미발견"),
                     "username": username,
                     "row_index": idx + 2,
                 }
@@ -710,8 +682,7 @@ class ManualCheckService:
                     for candidate in candidates:
                         candidate_lower = candidate.lower()
                         if candidate_lower in col_str or any(
-                            word in col_str for word in candidate_lower.split()
-                        ):
+                                word in col_str for word in candidate_lower.split()):
                             result[key] = col
                             break
                     if result[key]:
@@ -754,8 +725,7 @@ class ManualCheckService:
                     import re
 
                     time_pattern = (
-                        r"(\d{4}-\d{2}-\d{2})\s+(AM|PM)\s+(\d{1,2}):(\d{2}):(\d{2})"
-                    )
+                        r"(\d{4}-\d{2}-\d{2})\s+(AM|PM)\s+(\d{1,2}):(\d{2}):(\d{2})")
                     match = re.match(time_pattern, str_value)
 
                     if match:
@@ -865,9 +835,7 @@ class ManualCheckService:
                 if department_col and pd.notna(row[department_col]):
                     department = str(row[department_col]).strip()
 
-                print(
-                    f"[DEBUG] 행 {idx+1} 사용자 정보: 이름='{username}', 부서='{department}'"
-                )
+                print(f"[DEBUG] 행 {idx+1} 사용자 정보: 이름='{username}', 부서='{department}'")
 
                 # ✅ 회차별 주민등록번호 확인 및 최신 회차 기준 날짜 계산
                 ssn_found = False
@@ -877,9 +845,8 @@ class ManualCheckService:
                 print(f"[DEBUG] 행 {idx+1} 회차별 SSN 검사 시작")
 
                 # 최신 회차부터 역순으로 검사
-                sorted_rounds = sorted(
-                    round_columns, key=lambda x: x["round"], reverse=True
-                )
+                sorted_rounds = sorted(round_columns, key=lambda x: x["round"],
+                                       reverse=True)
 
                 for round_info in sorted_rounds:
                     round_col = round_info["column"]
@@ -893,9 +860,7 @@ class ManualCheckService:
 
                         # 숫자 형태의 SSN 개수
                         if isinstance(ssn_value, (int, float)) and ssn_value > 0:
-                            if (
-                                latest_round_with_ssn is None
-                            ):  # 첫 번째로 발견된 것이 최신
+                            if (latest_round_with_ssn is None):  # 첫 번째로 발견된 것이 최신
                                 ssn_found = True
                                 latest_round_with_ssn = round_num
                                 latest_round_ssn_count = int(ssn_value)
@@ -905,9 +870,9 @@ class ManualCheckService:
 
                         # 문자열 형태의 SSN (-, 0 제외)
                         elif isinstance(ssn_value, str) and ssn_value.strip() not in [
-                            "-",
-                            "",
-                            "0",
+                                "-",
+                                "",
+                                "0",
                         ]:
                             if latest_round_with_ssn is None:
                                 ssn_found = True
@@ -923,23 +888,18 @@ class ManualCheckService:
                 # ✅ 최신 회차 정보를 기반으로 대표 날짜 계산
                 if latest_round_with_ssn:
                     representative_date = self._calculate_round_date(
-                        upload_date, latest_round_with_ssn, latest_round_number
-                    )
+                        upload_date, latest_round_with_ssn, latest_round_number)
                 else:
                     # SSN이 없으면 최신 회차 날짜 사용
                     representative_date = self._calculate_round_date(
-                        upload_date, latest_round_number, latest_round_number
-                    )
+                        upload_date, latest_round_number, latest_round_number)
 
                 print(f"[DEBUG] 행 {idx+1} 대표 날짜: {representative_date}")
 
                 # ✅ 계산된 날짜를 기반으로 적절한 기간 찾기
                 period_id, period_name = self._find_appropriate_period(
-                    representative_date, "file_encryption"
-                )
-                print(
-                    f"[DEBUG] 행 {idx+1} 매칭된 기간: {period_name} (ID: {period_id})"
-                )
+                    representative_date, "file_encryption")
+                print(f"[DEBUG] 행 {idx+1} 매칭된 기간: {period_name} (ID: {period_id})")
 
                 # 암호화 상태 결정
                 if ssn_found and latest_round_with_ssn:
@@ -1025,9 +985,8 @@ class ManualCheckService:
                 if idx < 2:  # 헤더 행 건너뛰기
                     continue
 
-                ip_address = (
-                    str(row[local_ip_col]) if pd.notna(row[local_ip_col]) else ""
-                )
+                ip_address = (str(row[local_ip_col])
+                              if pd.notna(row[local_ip_col]) else "")
                 if not ip_address:
                     continue
 
@@ -1049,9 +1008,9 @@ class ManualCheckService:
                             analysis_result["total_violations"] += ssn_count
 
                         elif isinstance(ssn_value, str) and ssn_value.strip() not in [
-                            "-",
-                            "",
-                            "0",
+                                "-",
+                                "",
+                                "0",
                         ]:
                             # 문자열형 SSN (숫자 변환 시도)
                             try:
@@ -1059,8 +1018,7 @@ class ManualCheckService:
                                 if round_num not in analysis_result["round_violations"]:
                                     analysis_result["round_violations"][round_num] = 0
                                 analysis_result["round_violations"][
-                                    round_num
-                                ] += ssn_count
+                                    round_num] += ssn_count
                                 analysis_result["total_violations"] += ssn_count
                             except:
                                 # 변환 실패 시 1건으로 처리
@@ -1073,8 +1031,7 @@ class ManualCheckService:
             if round_columns:
                 latest_round = max(round_info["round"] for round_info in round_columns)
                 latest_violations = analysis_result["round_violations"].get(
-                    latest_round, 0
-                )
+                    latest_round, 0)
 
                 analysis_result["latest_round_analysis"] = {
                     "round": latest_round,
@@ -1085,13 +1042,11 @@ class ManualCheckService:
                 if latest_violations > 0:
                     analysis_result["overall_result"] = "fail"
                     analysis_result["detailed_notes"] = (
-                        f"최신 회차({latest_round}회차)에서 {latest_violations}건의 주민등록번호 발견"
-                    )
+                        f"최신 회차({latest_round}회차)에서 {latest_violations}건의 주민등록번호 발견")
                 else:
                     analysis_result["overall_result"] = "pass"
                     analysis_result["detailed_notes"] = (
-                        f"최신 회차({latest_round}회차)에서 주민등록번호 미발견"
-                    )
+                        f"최신 회차({latest_round}회차)에서 주민등록번호 미발견")
 
             return analysis_result
 
@@ -1333,9 +1288,7 @@ class ManualCheckService:
             # 점검 유형 자동 감지
             check_type = self.detect_file_type(df, filename)
             if not check_type:
-                raise ValueError(
-                    "점검 유형을 자동으로 감지할 수 없습니다. 파일명이나 컬럼을 확인해주세요."
-                )
+                raise ValueError("점검 유형을 자동으로 감지할 수 없습니다. 파일명이나 컬럼을 확인해주세요.")
 
             print(f"[DEBUG] 점검 유형 감지 완료: {check_type}")
 
@@ -1357,9 +1310,8 @@ class ManualCheckService:
                 )
 
             # 데이터베이스 저장 (중복 체크 및 업데이트)
-            save_result = self._save_to_existing_table(
-                processed_data, check_type, uploaded_by
-            )
+            save_result = self._save_to_existing_table(processed_data, check_type,
+                                                       uploaded_by)
 
             # ✅ 결과 메시지 개선
             total_processed = save_result["success_count"] + save_result["update_count"]
@@ -1547,9 +1499,8 @@ class ManualCheckService:
             )
 
             total = execute_query(count_query, params, fetch_one=True)
-            total_count = (
-                total[0] if isinstance(total, tuple) else total.get("COUNT(*)", 0)
-            )
+            total_count = (total[0] if isinstance(total, tuple) else total.get(
+                "COUNT(*)", 0))
 
             # 실제 데이터 조회 (페이지네이션 적용)
             base_query += " ORDER BY mcr.created_at DESC LIMIT %s OFFSET %s"
@@ -1568,29 +1519,24 @@ class ManualCheckService:
                     if processed_result.get("check_date"):
                         if hasattr(processed_result["check_date"], "strftime"):
                             processed_result["check_date"] = processed_result[
-                                "check_date"
-                            ].strftime("%Y-%m-%d")
+                                "check_date"].strftime("%Y-%m-%d")
                         else:
                             processed_result["check_date"] = str(
-                                processed_result["check_date"]
-                            )
+                                processed_result["check_date"])
 
                     if processed_result.get("created_at"):
                         if hasattr(processed_result["created_at"], "strftime"):
                             processed_result["created_at"] = processed_result[
-                                "created_at"
-                            ].strftime("%Y-%m-%d %H:%M:%S")
+                                "created_at"].strftime("%Y-%m-%d %H:%M:%S")
                         else:
                             processed_result["created_at"] = str(
-                                processed_result["created_at"]
-                            )
+                                processed_result["created_at"])
 
                     # ✅ 수정된 기간명 생성 로직
                     if processed_result.get("actual_period_name"):
                         # manual_check_periods 테이블의 실제 데이터 사용
                         processed_result["period_name"] = processed_result[
-                            "actual_period_name"
-                        ]
+                            "actual_period_name"]
                     else:
                         # period_id가 없거나 매칭되지 않는 경우 기본 로직
                         check_period = processed_result.get("check_period", "")
@@ -1631,9 +1577,7 @@ class ManualCheckService:
                 "total_pages": total_pages,
             }
 
-            print(
-                f"[DEBUG] 최종 결과 반환: {len(processed_results)}개 결과, 총 {total_count}개"
-            )
+            print(f"[DEBUG] 최종 결과 반환: {len(processed_results)}개 결과, 총 {total_count}개")
             return result_data
 
         except Exception as e:
@@ -1644,9 +1588,8 @@ class ManualCheckService:
             raise ValueError(f"점검 결과 조회 실패: {str(e)}")
 
     # 새로운 함수는 기존 함수를 래핑하는 방식으로 구현
-    def get_results(
-        self, year=None, check_type=None, period=None, user_id=None, page=1, size=20
-    ):
+    def get_results(self, year=None, check_type=None, period=None, user_id=None, page=1,
+                    size=20):
         """수시 점검 결과 조회 - 새로운 방식 (기존 함수 래핑)"""
         return self.get_check_results(
             year=year,
@@ -1662,9 +1605,8 @@ class ManualCheckService:
         """결과를 CSV로 내보내기"""
         try:
             # 모든 결과 조회 (페이지네이션 없이)
-            results_data = self.get_results(
-                year=year, check_type=check_type, period=period, page=1, size=10000
-            )
+            results_data = self.get_results(year=year, check_type=check_type,
+                                            period=period, page=1, size=10000)
 
             if not results_data["success"]:
                 raise ValueError("결과 조회 실패")
@@ -1749,9 +1691,7 @@ class ManualCheckService:
                 round_columns = self._detect_round_columns(df.columns)
 
                 if not round_columns:
-                    analysis_details.append(
-                        "회차별 주민등록번호 컬럼을 찾을 수 없어 정확한 분석이 어렵습니다."
-                    )
+                    analysis_details.append("회차별 주민등록번호 컬럼을 찾을 수 없어 정확한 분석이 어렵습니다.")
                     return {
                         "total_records": total_records,
                         "expected_pass": 0,
@@ -1774,9 +1714,8 @@ class ManualCheckService:
                     if idx < 2:  # 헤더 행 건너뛰기
                         continue
 
-                    ip_address = (
-                        str(row[local_ip_col]) if pd.notna(row[local_ip_col]) else ""
-                    )
+                    ip_address = (str(row[local_ip_col])
+                                  if pd.notna(row[local_ip_col]) else "")
                     if not ip_address:
                         continue
 
@@ -1784,9 +1723,8 @@ class ManualCheckService:
 
                     # 회차별 주민등록번호 확인
                     has_violations = False
-                    latest_round = max(
-                        round_info["round"] for round_info in round_columns
-                    )
+                    latest_round = max(round_info["round"]
+                                       for round_info in round_columns)
 
                     for round_info in round_columns:
                         round_col = round_info["column"]
@@ -1797,14 +1735,13 @@ class ManualCheckService:
 
                             # 최신 회차에서 위반 사항 확인
                             if round_num == latest_round:
-                                if (
-                                    isinstance(ssn_value, (int, float))
-                                    and ssn_value > 0
-                                ):
+                                if (isinstance(ssn_value, (int, float))
+                                        and ssn_value > 0):
                                     has_violations = True
-                                elif isinstance(
-                                    ssn_value, str
-                                ) and ssn_value.strip() not in ["-", "", "0"]:
+                                elif isinstance(ssn_value,
+                                                str) and ssn_value.strip() not in [
+                                                    "-", "", "0"
+                                                ]:
                                     has_violations = True
                                 break
 
@@ -1819,8 +1756,7 @@ class ManualCheckService:
             elif check_type == "seal_check":
                 # 봉인씰 분석
                 col_mapping = self._find_column_mapping(
-                    df.columns, {"damage_status": ["훼손여부", "상태", "봉인상태"]}
-                )
+                    df.columns, {"damage_status": ["훼손여부", "상태", "봉인상태"]})
 
                 if not col_mapping["damage_status"]:
                     return {
@@ -1844,8 +1780,7 @@ class ManualCheckService:
             elif check_type == "malware_scan":
                 # 악성코드 분석
                 col_mapping = self._find_column_mapping(
-                    df.columns, {"detection_item": ["탐지 항목", "탐지항목", "탐지"]}
-                )
+                    df.columns, {"detection_item": ["탐지 항목", "탐지항목", "탐지"]})
 
                 if not col_mapping["detection_item"]:
                     return {
@@ -1902,19 +1837,22 @@ class ManualCheckService:
                 "partially_encrypted": "부분암호화",
                 "not_applicable": "해당없음",
             },
-            "result": {"pass": "통과", "fail": "실패", "partial": "부분통과"},
+            "result": {
+                "pass": "통과",
+                "fail": "실패",
+                "partial": "부분통과"
+            },
         }
         return mappings.get(status_type, {}).get(status, status or "")
 
-    def update_check_result(
-        self, check_id, check_result=None, notes=None, check_type=None
-    ):
+    def update_check_result(self, check_id, check_result=None, notes=None,
+                            check_type=None):
         """점검 결과 수정"""
         try:
             # 기존 결과 확인
             existing = execute_query(
                 "SELECT check_id, user_id, check_item_code FROM manual_check_results WHERE check_id = %s",
-                (check_id,),
+                (check_id, ),
                 fetch_one=True,
             )
 
@@ -1975,7 +1913,7 @@ class ManualCheckService:
                 JOIN users u ON mcr.user_id = u.uid
                 WHERE mcr.check_id = %s
                 """,
-                (check_id,),
+                (check_id, ),
                 fetch_one=True,
             )
 
@@ -1984,8 +1922,7 @@ class ManualCheckService:
 
             # 결과 삭제 (하드 삭제)
             result = execute_query(
-                "DELETE FROM manual_check_results WHERE check_id = %s", (check_id,)
-            )
+                "DELETE FROM manual_check_results WHERE check_id = %s", (check_id, ))
 
             if result > 0:
                 check_type_name = self.get_check_type_name(existing["check_item_code"])
