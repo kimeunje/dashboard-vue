@@ -12,38 +12,78 @@ auth_service = AuthService()
 @auth_bp.route('/check-ip', methods=['POST'])
 @handle_exceptions
 def check_ip_authentication():
-    """IP 기반 인증 확인 (기존 check-credentials 대체)"""
+    """IP 기반 인증 확인 (상세 디버깅 추가)"""
     # 클라이언트 IP 추출
     client_ip = auth_service.get_client_ip(request)
-    current_app.logger.info(f"IP 인증 요청: {client_ip}")
 
-    # IP 기반 인증
-    result = auth_service.authenticate_by_ip(client_ip)
-    print(result)
-    if result["success"]:
-        return jsonify({
-            "success": True,
-            "email": result["email"],
-            "username": result["username"],
-            "name": result["name"],
-            "dept": result["dept"],
-            "role": result.get("role", "user"),
-            "client_ip": client_ip
-        })
-    else:
-        # 에러 코드에 따른 HTTP 상태 코드 설정
-        if result.get("code") == "OUTSIDE_BUSINESS_HOURS":
-            status_code = HTTP_STATUS['FORBIDDEN']
-        elif result.get("code") in ["IP_RANGE_NOT_ALLOWED", "USER_NOT_FOUND"]:
-            status_code = HTTP_STATUS['UNAUTHORIZED']
+    # 요청 관련 상세 디버깅
+    current_app.logger.info(f"[CHECK_IP_DETAIL] === /check-ip 요청 시작 ===")
+    current_app.logger.info(f"[CHECK_IP_DETAIL] 클라이언트 IP: {client_ip}")
+    current_app.logger.info(f"[CHECK_IP_DETAIL] 요청 메서드: {request.method}")
+    current_app.logger.info(f"[CHECK_IP_DETAIL] Content-Type: {request.content_type}")
+    current_app.logger.info(
+        f"[CHECK_IP_DETAIL] User-Agent: {request.headers.get('User-Agent', 'N/A')}")
+    current_app.logger.info(f"[CHECK_IP_DETAIL] 요청 헤더: {dict(request.headers)}")
+
+    try:
+        current_app.logger.info(f"[CHECK_IP_DETAIL] authenticate_by_ip 호출 시작")
+
+        # IP 기반 인증
+        result = auth_service.authenticate_by_ip(client_ip)
+
+        current_app.logger.info(f"[CHECK_IP_DETAIL] authenticate_by_ip 완료")
+        current_app.logger.info(
+            f"[CHECK_IP_DETAIL] 인증 결과: success={result.get('success')}")
+
+        if result["success"]:
+            response_data = {
+                "success": True,
+                "email": result["email"],
+                "username": result["username"],
+                "name": result["name"],
+                "dept": result["dept"],
+                "role": result.get("role", "user"),
+                "client_ip": client_ip
+            }
+
+            current_app.logger.info(f"[CHECK_IP_DETAIL] 성공 응답 생성: {response_data}")
+            current_app.logger.info(f"[CHECK_IP_DETAIL] === /check-ip 성공 완료 ===")
+
+            return jsonify(response_data)
         else:
-            status_code = HTTP_STATUS['UNAUTHORIZED']
+            current_app.logger.warning(f"[CHECK_IP_DETAIL] 인증 실패: {result}")
+
+            # 에러 코드에 따른 HTTP 상태 코드 설정
+            if result.get("code") == "OUTSIDE_BUSINESS_HOURS":
+                status_code = HTTP_STATUS['FORBIDDEN']
+            elif result.get("code") in ["IP_RANGE_NOT_ALLOWED", "USER_NOT_FOUND"]:
+                status_code = HTTP_STATUS['UNAUTHORIZED']
+            else:
+                status_code = HTTP_STATUS['UNAUTHORIZED']
+
+            error_response = {
+                "success": False,
+                "message": result["message"],
+                "code": result.get("code", "AUTH_FAILED")
+            }
+
+            current_app.logger.warning(
+                f"[CHECK_IP_DETAIL] 실패 응답: {error_response}, status={status_code}")
+            current_app.logger.info(f"[CHECK_IP_DETAIL] === /check-ip 실패 완료 ===")
+
+            return jsonify(error_response), status_code
+
+    except Exception as e:
+        current_app.logger.error(f"[CHECK_IP_DETAIL] /check-ip 예외 발생: {str(e)}")
+        import traceback
+        current_app.logger.error(f"[CHECK_IP_DETAIL] 스택 트레이스: {traceback.format_exc()}")
+        current_app.logger.error(f"[CHECK_IP_DETAIL] === /check-ip 예외 완료 ===")
 
         return jsonify({
             "success": False,
-            "message": result["message"],
-            "code": result.get("code", "AUTH_FAILED")
-        }), status_code
+            "message": "IP 인증 처리 중 오류가 발생했습니다.",
+            "code": "AUTH_ERROR"
+        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
 
 
 @auth_bp.route('/email-verification', methods=['POST'])
@@ -161,22 +201,97 @@ def logout():
 @handle_exceptions
 @validate_json(['username'])
 def authenticate():
-    """사용자 인증 및 감사 로그 초기화 (기존 유지)"""
-    data = request.json
-    username = data.get("username")
+    """사용자 인증 및 감사 로그 초기화 (상세 디버깅 추가)"""
+    client_ip = auth_service.get_client_ip(request)
 
-    result = auth_service.authenticate_user_in_db(username)
+    # 요청 관련 상세 디버깅
+    current_app.logger.info(f"[AUTHENTICATE_DETAIL] === /authenticate 요청 시작 ===")
+    current_app.logger.info(f"[AUTHENTICATE_DETAIL] 클라이언트 IP: {client_ip}")
+    current_app.logger.info(f"[AUTHENTICATE_DETAIL] 요청 메서드: {request.method}")
+    current_app.logger.info(
+        f"[AUTHENTICATE_DETAIL] Content-Type: {request.content_type}")
+    current_app.logger.info(
+        f"[AUTHENTICATE_DETAIL] Content-Length: {request.content_length}")
+    current_app.logger.info(
+        f"[AUTHENTICATE_DETAIL] User-Agent: {request.headers.get('User-Agent', 'N/A')}")
+    current_app.logger.info(f"[AUTHENTICATE_DETAIL] 요청 헤더: {dict(request.headers)}")
 
-    if result["success"]:
-        return jsonify({"user_id": result["user_id"]})
-    else:
-        status_code = HTTP_STATUS['UNAUTHORIZED'] if "검증에 실패" in result[
-            "message"] else HTTP_STATUS['INTERNAL_SERVER_ERROR']
+    # Raw 데이터 확인
+    try:
+        raw_data = request.get_data()
+        current_app.logger.info(
+            f"[AUTHENTICATE_DETAIL] Raw 요청 데이터 길이: {len(raw_data) if raw_data else 0}")
+        current_app.logger.info(f"[AUTHENTICATE_DETAIL] Raw 요청 데이터: {raw_data}")
+    except Exception as raw_error:
+        current_app.logger.error(
+            f"[AUTHENTICATE_DETAIL] Raw 데이터 읽기 실패: {str(raw_error)}")
+
+    try:
+        # JSON 파싱 시도
+        current_app.logger.info(f"[AUTHENTICATE_DETAIL] JSON 파싱 시도")
+        data = request.json
+        current_app.logger.info(f"[AUTHENTICATE_DETAIL] 파싱된 JSON: {data}")
+
+        if data is None:
+            current_app.logger.error(f"[AUTHENTICATE_DETAIL] JSON 파싱 결과가 None")
+            return jsonify({
+                "status": "failed",
+                "message": "JSON 데이터가 없거나 파싱에 실패했습니다.",
+                "statusCode": HTTP_STATUS['BAD_REQUEST'],
+            }), HTTP_STATUS['BAD_REQUEST']
+
+        username = data.get("username")
+        current_app.logger.info(
+            f"[AUTHENTICATE_DETAIL] username 추출: '{username}' (타입: {type(username)})")
+
+        if not username:
+            current_app.logger.error(f"[AUTHENTICATE_DETAIL] username이 비어있습니다")
+            return jsonify({
+                "status": "failed",
+                "message": "username이 필요합니다.",
+                "statusCode": HTTP_STATUS['BAD_REQUEST'],
+            }), HTTP_STATUS['BAD_REQUEST']
+
+        current_app.logger.info(f"[AUTHENTICATE_DETAIL] authenticate_user_in_db 호출 시작")
+        result = auth_service.authenticate_user_in_db(username)
+        current_app.logger.info(
+            f"[AUTHENTICATE_DETAIL] authenticate_user_in_db 완료: {result}")
+
+        if result["success"]:
+            response_data = {"user_id": result["user_id"]}
+            current_app.logger.info(f"[AUTHENTICATE_DETAIL] 성공 응답: {response_data}")
+            current_app.logger.info(
+                f"[AUTHENTICATE_DETAIL] === /authenticate 성공 완료 ===")
+            return jsonify(response_data)
+        else:
+            current_app.logger.warning(
+                f"[AUTHENTICATE_DETAIL] 인증 실패: {result['message']}")
+            status_code = HTTP_STATUS['UNAUTHORIZED'] if "검증에 실패" in result[
+                "message"] else HTTP_STATUS['INTERNAL_SERVER_ERROR']
+
+            error_response = {
+                "status": "failed",
+                "message": result["message"],
+                "statusCode": status_code,
+            }
+
+            current_app.logger.warning(f"[AUTHENTICATE_DETAIL] 실패 응답: {error_response}")
+            current_app.logger.info(
+                f"[AUTHENTICATE_DETAIL] === /authenticate 실패 완료 ===")
+            return jsonify(error_response), status_code
+
+    except Exception as e:
+        current_app.logger.error(f"[AUTHENTICATE_DETAIL] /authenticate 예외 발생: {str(e)}")
+        import traceback
+        current_app.logger.error(
+            f"[AUTHENTICATE_DETAIL] 스택 트레이스: {traceback.format_exc()}")
+        current_app.logger.error(f"[AUTHENTICATE_DETAIL] === /authenticate 예외 완료 ===")
+
         return jsonify({
             "status": "failed",
-            "message": result["message"],
-            "statusCode": status_code,
-        }), status_code
+            "message": f"서버 오류가 발생했습니다: {str(e)}",
+            "statusCode": HTTP_STATUS['INTERNAL_SERVER_ERROR'],
+        }), HTTP_STATUS['INTERNAL_SERVER_ERROR']
 
 
 @auth_bp.route('/ip-info', methods=['GET'])
