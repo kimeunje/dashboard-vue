@@ -180,37 +180,155 @@ def get_dashboard_stats():
         )
 
 
-# 기존 validate_check 엔드포인트 (정기 점검용, 감점 계산 포함)
+# 기존 validate_check 엔드포인트 (정기 점검용, 감점 계산 포함) - 강화된 디버깅
 @audit_bp.route("/validate_check", methods=["POST"])
 @handle_exceptions
 def validate_check():
-    """항목 검증 API (정기 점검용, 감점 계산 포함)"""
-    data = request.json
+    """항목 검증 API (정기 점검용, 감점 계산 포함) - 강화된 디버깅"""
+    client_ip = request.remote_addr
+
+    current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] === /validate_check 요청 시작 ===")
+    current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 클라이언트 IP: {client_ip}")
+    current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 요청 메서드: {request.method}")
+    current_app.logger.info(
+        f"[VALIDATE_CHECK_DEBUG] Content-Type: {request.content_type}"
+    )
+    current_app.logger.info(
+        f"[VALIDATE_CHECK_DEBUG] Content-Length: {request.content_length}"
+    )
+    current_app.logger.info(
+        f"[VALIDATE_CHECK_DEBUG] User-Agent: {request.headers.get('User-Agent', 'N/A')}"
+    )
+
+    # 모든 헤더 로깅
+    current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 모든 요청 헤더:")
+    for header_name, header_value in request.headers:
+        current_app.logger.info(
+            f"[VALIDATE_CHECK_DEBUG]   {header_name}: {header_value}"
+        )
+
+    # Raw 데이터 확인
+    try:
+        raw_data = request.get_data()
+        current_app.logger.info(
+            f"[VALIDATE_CHECK_DEBUG] Raw 요청 데이터 길이: {len(raw_data) if raw_data else 0}"
+        )
+        if raw_data:
+            current_app.logger.info(
+                f"[VALIDATE_CHECK_DEBUG] Raw 데이터: {raw_data.decode('utf-8', errors='ignore')}"
+            )
+    except Exception as raw_error:
+        current_app.logger.error(
+            f"[VALIDATE_CHECK_DEBUG] Raw 데이터 읽기 실패: {str(raw_error)}"
+        )
+
+    # JSON 파싱
+    try:
+        current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] JSON 파싱 시도")
+        data = request.json
+        current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 파싱된 JSON: {data}")
+    except Exception as json_error:
+        current_app.logger.error(
+            f"[VALIDATE_CHECK_DEBUG] JSON 파싱 실패: {str(json_error)}"
+        )
+        error_response = {"error": f"JSON 파싱 실패: {str(json_error)}"}
+        current_app.logger.error(
+            f"[VALIDATE_CHECK_DEBUG] 에러 응답 전송: {error_response}"
+        )
+        return jsonify(error_response), HTTP_STATUS["BAD_REQUEST"]
 
     if not data:
-        return (
-            jsonify({"error": "요청 데이터가 필요합니다."}),
-            HTTP_STATUS["BAD_REQUEST"],
+        current_app.logger.error(
+            f"[VALIDATE_CHECK_DEBUG] 요청 데이터가 None 또는 빈 값"
         )
+        error_response = {"error": "요청 데이터가 필요합니다."}
+        current_app.logger.error(
+            f"[VALIDATE_CHECK_DEBUG] 에러 응답 전송: {error_response}"
+        )
+        return jsonify(error_response), HTTP_STATUS["BAD_REQUEST"]
+
+    # 필수 필드 검증
+    required_fields = ["user_id", "item_type", "actual_value"]
+    missing_fields = [field for field in required_fields if field not in data]
+
+    if missing_fields:
+        current_app.logger.error(
+            f"[VALIDATE_CHECK_DEBUG] 필수 필드 누락: {missing_fields}"
+        )
+        error_response = {
+            "error": f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}"
+        }
+        current_app.logger.error(
+            f"[VALIDATE_CHECK_DEBUG] 에러 응답 전송: {error_response}"
+        )
+        return jsonify(error_response), HTTP_STATUS["BAD_REQUEST"]
+
+    current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 검증할 데이터:")
+    current_app.logger.info(f"[VALIDATE_CHECK_DEBUG]   user_id: {data.get('user_id')}")
+    current_app.logger.info(
+        f"[VALIDATE_CHECK_DEBUG]   item_type: {data.get('item_type')}"
+    )
+    current_app.logger.info(
+        f"[VALIDATE_CHECK_DEBUG]   actual_value: {data.get('actual_value')}"
+    )
 
     try:
-        result = audit_service.validate_check(data)
-        return jsonify(result)
-    except ValueError as e:
-        current_app.logger.error(f"검증 오류: {str(e)}")
-        return jsonify({"error": str(e)}), HTTP_STATUS["BAD_REQUEST"]
-    except Exception as e:
-        current_app.logger.error(f"서버 오류: {str(e)}")
-        return (
-            jsonify(
-                {
-                    "status": "failed",
-                    "message": "서버 오류가 발생했습니다.",
-                    "details": str(e) if current_app.debug else None,
-                }
-            ),
-            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        current_app.logger.info(
+            f"[VALIDATE_CHECK_DEBUG] audit_service.validate_check 호출 시작"
         )
+        result = audit_service.validate_check(data)
+        current_app.logger.info(
+            f"[VALIDATE_CHECK_DEBUG] audit_service.validate_check 완료"
+        )
+        current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 검증 결과: {result}")
+
+        # 성공 응답 로깅
+        response_data = jsonify(result)
+        current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] === 성공 응답 전송 ===")
+        current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 응답 상태 코드: 200")
+        current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 응답 데이터: {result}")
+        current_app.logger.info(
+            f"[VALIDATE_CHECK_DEBUG] === /validate_check 성공 완료 ==="
+        )
+
+        return response_data
+
+    except ValueError as e:
+        current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] 검증 오류: {str(e)}")
+        error_response = {"error": str(e)}
+        current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] === ValueError 응답 전송 ===")
+        current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] 응답 상태 코드: 400")
+        current_app.logger.error(
+            f"[VALIDATE_CHECK_DEBUG] 에러 응답 데이터: {error_response}"
+        )
+        current_app.logger.error(
+            f"[VALIDATE_CHECK_DEBUG] === /validate_check ValueError 완료 ==="
+        )
+        return jsonify(error_response), HTTP_STATUS["BAD_REQUEST"]
+
+    except Exception as e:
+        current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] 서버 오류: {str(e)}")
+        import traceback
+
+        current_app.logger.error(
+            f"[VALIDATE_CHECK_DEBUG] 스택 트레이스: {traceback.format_exc()}"
+        )
+
+        error_response = {
+            "status": "failed",
+            "message": "서버 오류가 발생했습니다.",
+            "details": str(e) if current_app.debug else None,
+        }
+        current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] === Exception 응답 전송 ===")
+        current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] 응답 상태 코드: 500")
+        current_app.logger.error(
+            f"[VALIDATE_CHECK_DEBUG] 에러 응답 데이터: {error_response}"
+        )
+        current_app.logger.error(
+            f"[VALIDATE_CHECK_DEBUG] === /validate_check Exception 완료 ==="
+        )
+
+        return jsonify(error_response), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
 
 # 로그 수신 엔드포인트 (기존 mock_app.py에서 이동)

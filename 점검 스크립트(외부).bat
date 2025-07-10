@@ -28,7 +28,7 @@ REM UTF-8 인코딩 설정
 chcp 65001 > nul
 
 :: === API 서버 설정 ===
-set SERVER_URL="http://10.106.110.141:8443"
+set SERVER_URL="http://172.30.1.63:5000"
 
 :: === 유틸리티 함수 ===
 set "WHITE=PowerShell -Command Write-Host -ForegroundColor White"
@@ -86,7 +86,7 @@ if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
                 "-Body $ipCheckBody " ^
                 "-ContentType 'application/json; charset=utf-8'); " ^
             "if ($ipResponse.success) { " ^
-                "$username = $ipResponse.name; " ^
+                "$username = $ipResponse.username; " ^
                 "Set-ItemProperty " ^
                     "-Path 'HKCU:\Environment' " ^
                     "-Name 'NICEDNB_USER' " ^
