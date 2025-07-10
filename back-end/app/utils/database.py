@@ -53,8 +53,8 @@ def get_db_connection():
 
 def execute_query(query, params=None, fetch_one=False, fetch_all=False):
     """수정된 쿼리 실행 헬퍼 함수"""
-    print(f"[DB_DEBUG] 쿼리: {query}")
-    print(f"[DB_DEBUG] 파라미터: {params}")
+    # print(f"[DB_DEBUG] 쿼리: {query}")
+    # print(f"[DB_DEBUG] 파라미터: {params}")
 
     with DatabaseManager.get_db_cursor() as cursor:
         cursor.execute(query, params or [])
