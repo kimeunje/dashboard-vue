@@ -3,7 +3,9 @@
 실제 데이터베이스 스키마에 맞춘 관리자 대시보드 API
 """
 
-from flask import Blueprint, request, jsonify
+import csv
+import io
+from flask import Blueprint, make_response, request, jsonify
 from datetime import datetime, timedelta
 from app.utils.decorators import token_required, handle_exceptions, admin_required
 from app.utils.constants import HTTP_STATUS
@@ -478,83 +480,89 @@ def get_users_list():
         }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
 
-def _get_filtered_users_fixed(year, department, risk_level, search, page, per_page,
-                              sort_by, sort_order):
-    """필터링된 사용자 목록 조회 - 수정된 스키마"""
+
+def _get_filtered_users_fixed(year, department, risk_level, search, page, per_page, sort_by, sort_order):
+    """필터링된 사용자 목록 조회 - audit_log 기반 마지막 업데이트 시간 포함"""
     try:
+        # WHERE 절 조건 구성
         where_conditions = []
         params = []
 
+        # 부서 필터
         if department:
-            where_conditions.append("u.department = %s")
-            params.append(department)
+            where_conditions.append("u.department LIKE %s")
+            params.append(f"%{department}%")
 
-        if search:
-            where_conditions.append(
-                "(u.username LIKE %s OR u.user_id LIKE %s OR u.mail LIKE %s)")
-            search_term = f"%{search}%"
-            params.extend([search_term, search_term, search_term])
-
+        # 위험도 필터
         if risk_level:
-            if risk_level == "critical":
+            if risk_level == 'low':
+                where_conditions.append("(sss.total_penalty IS NULL OR sss.total_penalty <= 1.0)")
+            elif risk_level == 'medium':
+                where_conditions.append("sss.total_penalty > 1.0 AND sss.total_penalty <= 2.0")
+            elif risk_level == 'high':
+                where_conditions.append("sss.total_penalty > 2.0 AND sss.total_penalty <= 3.0")
+            elif risk_level == 'critical':
                 where_conditions.append("sss.total_penalty > 3.0")
-            elif risk_level == "high":
-                where_conditions.append(
-                    "sss.total_penalty > 2.0 AND sss.total_penalty <= 3.0")
-            elif risk_level == "medium":
-                where_conditions.append(
-                    "sss.total_penalty > 1.0 AND sss.total_penalty <= 2.0")
-            elif risk_level == "low":
-                where_conditions.append("sss.total_penalty <= 1.0")
-            elif risk_level == "not_evaluated":
+            elif risk_level == 'not_evaluated':
                 where_conditions.append("sss.total_penalty IS NULL")
 
-        where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+        # 검색 필터
+        if search:
+            search_condition = "(u.username LIKE %s OR u.user_id LIKE %s OR u.mail LIKE %s)"
+            where_conditions.append(search_condition)
+            search_param = f"%{search}%"
+            params.extend([search_param, search_param, search_param])
 
-        # 정렬 설정
-        valid_sort_fields = {
-            "name": "u.username",
-            "department": "u.department",
-            "total_penalty": "sss.total_penalty",
-            "audit_penalty": "sss.audit_penalty",
-            "education_penalty": "sss.education_penalty",
-            "training_penalty": "sss.training_penalty",
-            "last_updated": "sss.last_calculated"
-        }
+        where_clause = "WHERE " + " AND ".join(where_conditions) if where_conditions else ""
 
-        sort_field = valid_sort_fields.get(sort_by, "sss.total_penalty")
-        order = "DESC" if sort_order.lower() == "desc" else "ASC"
-
-        # 총 개수 조회
+        # 전체 개수 조회
         count_query = f"""
-            SELECT COUNT(*)
+            SELECT COUNT(*) as total
             FROM users u
             LEFT JOIN security_score_summary sss ON u.uid = sss.user_id AND sss.evaluation_year = %s
-            WHERE {where_clause}
+            {where_clause}
         """
-
         count_params = [year] + params
-        total_count = execute_query(count_query, count_params,
-                                    fetch_one=True)["COUNT(*)"]
+        count_result = execute_query(count_query, count_params, fetch_one=True)
+        total_count = count_result['total'] if count_result else 0
 
-        # 페이징된 데이터 조회
+        # 정렬 필드 매핑
+        sort_fields = {
+            'name': 'u.username',
+            'department': 'u.department',
+            'total_penalty': 'COALESCE(sss.total_penalty, 0)',
+            'updated_at': 'last_audit_time'  # audit_log 기반 정렬
+        }
+        sort_field = sort_fields.get(sort_by, 'COALESCE(sss.total_penalty, 0)')
+        order = 'ASC' if sort_order.lower() == 'asc' else 'DESC'
+
+        # 페이징
         offset = (page - 1) * per_page
+
+        # 메인 데이터 조회 - audit_log에서 마지막 업데이트 시간 조회
         data_query = f"""
             SELECT 
                 u.uid,
+                u.user_id,
                 u.username as name,
-                u.user_id as employee_id,
-                u.department,
-                '' as position,  -- position 컬럼이 없으므로 빈 문자열
                 u.mail as email,
-                COALESCE(sss.total_penalty, 0) as total_penalty,
-                COALESCE(sss.audit_penalty, 0) as audit_penalty,
-                COALESCE(sss.education_penalty, 0) as education_penalty,
-                COALESCE(sss.training_penalty, 0) as training_penalty,
-                COALESCE(sss.audit_failed_count, 0) as audit_failed_count,
-                COALESCE(sss.education_incomplete_count, 0) as education_incomplete_count,
-                COALESCE(sss.training_failed_count, 0) as training_failed_count,
+                u.department,
+                u.ip,
+                u.role,
+                u.created_at,
+                u.updated_at,
+                COALESCE(sss.total_penalty, 0.0) as total_penalty,
+                COALESCE(sss.audit_penalty, 0.0) as audit_penalty,
+                COALESCE(sss.education_penalty, 0.0) as education_penalty,
+                COALESCE(sss.training_penalty, 0.0) as training_penalty,
+                COALESCE(sss.audit_failed_count, 0) as security_audit_penalty,
+                COALESCE(sss.education_incomplete_count, 0) as education_penalty_count,
+                COALESCE(sss.training_failed_count, 0) as training_penalty_count,
                 sss.last_calculated,
+                -- audit_log에서 사용자별 가장 최근 checked_at 시간 조회
+                (SELECT MAX(al.checked_at) 
+                 FROM audit_log al 
+                 WHERE al.user_id = u.uid) as last_audit_time,
                 CASE 
                     WHEN sss.total_penalty IS NULL THEN 'not_evaluated'
                     WHEN sss.total_penalty > 3.0 THEN 'critical'
@@ -564,7 +572,7 @@ def _get_filtered_users_fixed(year, department, risk_level, search, page, per_pa
                 END as risk_level
             FROM users u
             LEFT JOIN security_score_summary sss ON u.uid = sss.user_id AND sss.evaluation_year = %s
-            WHERE {where_clause}
+            {where_clause}
             ORDER BY {sort_field} {order}, u.username ASC
             LIMIT %s OFFSET %s
         """
@@ -578,9 +586,14 @@ def _get_filtered_users_fixed(year, department, risk_level, search, page, per_pa
             user['audit_penalty'] = float(user['audit_penalty'])
             user['education_penalty'] = float(user['education_penalty'])
             user['training_penalty'] = float(user['training_penalty'])
-            if user['last_calculated']:
-                user['last_updated'] = user['last_calculated'].strftime(
-                    '%Y-%m-%d %H:%M')
+            
+            # 마지막 업데이트 시간을 audit_log 기반으로 설정
+            if user['last_audit_time']:
+                user['updated_at'] = user['last_audit_time']
+                user['last_updated'] = user['last_audit_time'].strftime('%Y-%m-%d %H:%M:%S')
+            elif user['last_calculated']:
+                user['updated_at'] = user['last_calculated']
+                user['last_updated'] = user['last_calculated'].strftime('%Y-%m-%d %H:%M:%S')
             else:
                 user['last_updated'] = None
 
@@ -589,8 +602,6 @@ def _get_filtered_users_fixed(year, department, risk_level, search, page, per_pa
     except Exception as e:
         logging.error(f"Filtered users error: {str(e)}")
         return [], 0
-
-
 # === 사용자 상세 API 수정 ===
 
 
@@ -629,24 +640,44 @@ def get_user_detail(user_id):
 
 
 def _get_user_info_fixed(user_id):
-    """사용자 기본 정보 조회 - 수정된 스키마"""
+    """사용자 기본 정보 조회 - audit_log 기반 마지막 업데이트 포함"""
     try:
         user_query = """
             SELECT 
-                uid, 
-                username as name, 
-                user_id as employee_id, 
-                department, 
-                '' as position,  -- position 컬럼이 없으므로 빈 문자열
-                mail as email,
-                created_at,
-                last_updated as last_login
-            FROM users 
-            WHERE uid = %s
+                u.uid,
+                u.user_id,
+                u.username as name,
+                u.mail as email,
+                u.department,
+                u.ip,
+                u.role,
+                u.created_at,
+                u.updated_at,
+                -- audit_log에서 사용자의 가장 최근 checked_at 시간
+                (SELECT MAX(al.checked_at) 
+                 FROM audit_log al 
+                 WHERE al.user_id = u.uid) as last_audit_time
+            FROM users u
+            WHERE u.uid = %s
         """
-        return execute_query(user_query, (user_id, ), fetch_one=True)
+        
+        user_info = execute_query(user_query, (user_id,), fetch_one=True)
+        
+        if user_info:
+            # 마지막 업데이트 시간을 audit_log 기반으로 설정
+            if user_info['last_audit_time']:
+                user_info['updated_at'] = user_info['last_audit_time']
+            
+            # datetime 객체를 문자열로 변환
+            if user_info.get("created_at"):
+                user_info["created_at"] = user_info["created_at"].isoformat()
+            if user_info.get("updated_at"):
+                user_info["updated_at"] = user_info["updated_at"].isoformat()
+
+        return user_info
+
     except Exception as e:
-        logging.error(f"User info query error: {str(e)}")
+        logging.error(f"사용자 정보 조회 오류: {str(e)}")
         return None
 
 
@@ -916,3 +947,159 @@ def get_calculation_progress():
             "error": "계산 진행 상황 조회 중 오류가 발생했습니다.",
             "details": str(e)
         }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+
+# 내보내기 함수도 수정
+@admin_dashboard_bp.route("/export", methods=["GET"])
+@token_required
+@admin_required  
+@handle_exceptions
+def export_users():
+    """사용자 데이터 내보내기 (CSV) - audit_log 기반 마지막 업데이트 포함"""
+    year = request.args.get("year", datetime.now().year, type=int)
+    department = request.args.get("department", "")
+    risk_level = request.args.get("risk_level", "")
+    search = request.args.get("search", "")
+    user_ids = request.args.get("user_ids", "")
+    format_type = request.args.get("format", "csv")
+
+    try:
+        logging.info(f"데이터 내보내기 요청: year={year}, format={format_type}")
+
+        # 선택된 사용자만 내보내기
+        if user_ids:
+            user_id_list = [int(uid.strip()) for uid in user_ids.split(",") if uid.strip()]
+            users_data = _get_selected_users_for_export(user_id_list, year)
+        else:
+            # 전체 또는 필터링된 데이터 내보내기
+            users_data, _ = _get_filtered_users_fixed(
+                year, department, risk_level, search, 1, 10000, "total_penalty", "desc"
+            )
+
+        if format_type.lower() == "csv":
+            return _export_as_csv(users_data, year)
+        else:
+            return jsonify({"error": "지원하지 않는 형식입니다."}), HTTP_STATUS["BAD_REQUEST"]
+
+    except Exception as e:
+        logging.error(f"Export error: {str(e)}")
+        return jsonify({"error": "내보내기 중 오류가 발생했습니다."}), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+
+
+def _get_selected_users_for_export(user_ids, year):
+    """선택된 사용자들의 데이터 조회 - audit_log 기반"""
+    try:
+        if not user_ids:
+            return []
+
+        placeholders = ",".join(["%s"] * len(user_ids))
+        
+        query = f"""
+            SELECT 
+                u.uid,
+                u.user_id,
+                u.username as name,
+                u.mail as email,
+                u.department,
+                u.ip,
+                u.role,
+                COALESCE(sss.total_penalty, 0.0) as total_penalty,
+                COALESCE(sss.audit_penalty, 0.0) as audit_penalty,
+                COALESCE(sss.education_penalty, 0.0) as education_penalty,
+                COALESCE(sss.training_penalty, 0.0) as training_penalty,
+                COALESCE(sss.audit_failed_count, 0) as security_audit_penalty,
+                COALESCE(sss.education_incomplete_count, 0) as education_penalty_count,
+                COALESCE(sss.training_failed_count, 0) as training_penalty_count,
+                -- audit_log에서 가장 최근 checked_at 시간
+                (SELECT MAX(al.checked_at) 
+                 FROM audit_log al 
+                 WHERE al.user_id = u.uid) as last_audit_time,
+                CASE 
+                    WHEN sss.total_penalty IS NULL THEN 'not_evaluated'
+                    WHEN sss.total_penalty > 3.0 THEN 'critical'
+                    WHEN sss.total_penalty > 2.0 THEN 'high'
+                    WHEN sss.total_penalty > 1.0 THEN 'medium'
+                    ELSE 'low'
+                END as risk_level
+            FROM users u
+            LEFT JOIN security_score_summary sss ON u.uid = sss.user_id AND sss.evaluation_year = %s
+            WHERE u.uid IN ({placeholders})
+            ORDER BY u.username ASC
+        """
+        
+        params = [year] + user_ids
+        users_data = execute_query(query, params)
+
+        # 데이터 후처리
+        for user in users_data:
+            user['total_penalty'] = float(user['total_penalty'])
+            user['audit_penalty'] = float(user['audit_penalty'])
+            user['education_penalty'] = float(user['education_penalty'])
+            user['training_penalty'] = float(user['training_penalty'])
+            
+            # 마지막 업데이트 시간을 audit_log 기반으로 설정
+            if user['last_audit_time']:
+                user['updated_at'] = user['last_audit_time']
+                user['last_updated'] = user['last_audit_time'].strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                user['last_updated'] = '업데이트 없음'
+
+        return users_data
+
+    except Exception as e:
+        logging.error(f"Selected users export error: {str(e)}")
+        return []
+
+
+def _export_as_csv(users_data, year):
+    """CSV 형식으로 데이터 내보내기"""
+    try:
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # CSV 헤더
+        headers = [
+            "사번", "이름", "이메일", "부서", "IP주소", "권한",
+            "총감점", "감사감점", "교육감점", "훈련감점", 
+            "위험도", "마지막업데이트"
+        ]
+        writer.writerow(headers)
+
+        # 데이터 행
+        for user in users_data:
+            risk_labels = {
+                'low': '우수',
+                'medium': '주의', 
+                'high': '위험',
+                'critical': '매우위험',
+                'not_evaluated': '미평가'
+            }
+            
+            row = [
+                user.get('user_id', ''),
+                user.get('name', ''),
+                user.get('email', ''),
+                user.get('department', ''),
+                user.get('ip', ''),
+                '관리자' if user.get('role') == 'admin' else '일반사용자',
+                f"{user.get('total_penalty', 0):.1f}점",
+                f"{user.get('audit_penalty', 0):.1f}점",
+                f"{user.get('education_penalty', 0):.1f}점", 
+                f"{user.get('training_penalty', 0):.1f}점",
+                risk_labels.get(user.get('risk_level', 'not_evaluated'), '미평가'),
+                user.get('last_updated', '업데이트 없음')
+            ]
+            writer.writerow(row)
+
+        # CSV 응답 생성
+        csv_data = output.getvalue()
+        output.close()
+
+        response = make_response(csv_data.encode('utf-8-sig'))  # BOM 추가로 한글 깨짐 방지
+        response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
+        response.headers['Content-Disposition'] = f'attachment; filename="사용자_보안현황_{year}년_{datetime.now().strftime("%Y%m%d_%H%M")}.csv"'
+        
+        return response
+
+    except Exception as e:
+        logging.error(f"CSV export error: {str(e)}")
+        raise
