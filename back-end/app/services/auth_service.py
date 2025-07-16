@@ -20,20 +20,19 @@ class AuthService:
         self.verification_codes = {}  # 실제 환경에서는 Redis 등 사용 권장
 
     def authenticate_by_ip(self, client_ip: str) -> dict:
-        """users 테이블 기반 IP 인증 (강화된 디버깅)"""
+        """users 테이블 기반 IP 인증 (상세 디버깅 추가)"""
         try:
-            current_app.logger.info(f"[IP_AUTH_DEBUG] === IP 인증 프로세스 시작 ===")
-            current_app.logger.info(f"[IP_AUTH_DEBUG] 입력 IP: {client_ip}")
+            current_app.logger.info(f"[IP_AUTH_DETAIL] === IP 인증 프로세스 시작 ===")
+            current_app.logger.info(f"[IP_AUTH_DETAIL] 입력 IP: {client_ip}")
 
             # 2. IP 대역 체크
-            current_app.logger.info(f"[IP_AUTH_DEBUG] 2단계: IP 대역 체크 시작")
+            current_app.logger.info(f"[IP_AUTH_DETAIL] 2단계: IP 대역 체크 시작")
             ip_range_ok = self._is_ip_in_allowed_ranges(client_ip)
-            current_app.logger.info(f"[IP_AUTH_DEBUG] IP 대역 체크 결과: {ip_range_ok}")
+            current_app.logger.info(f"[IP_AUTH_DETAIL] IP 대역 체크 결과: {ip_range_ok}")
 
             if not ip_range_ok:
                 current_app.logger.warning(
-                    f"[IP_AUTH_DEBUG] 허용되지 않은 IP 대역: {client_ip}"
-                )
+                    f"[IP_AUTH_DETAIL] 허용되지 않은 IP 대역: {client_ip}")
                 return {
                     "success": False,
                     "message": f"허용되지 않은 네트워크({client_ip})에서의 접근입니다.",
@@ -41,85 +40,95 @@ class AuthService:
                 }
 
             # 3. users 테이블에서 IP로 사용자 찾기
-            current_app.logger.info(f"[IP_AUTH_DEBUG] 3단계: 사용자 조회 시작")
+            current_app.logger.info(f"[IP_AUTH_DETAIL] 3단계: 사용자 조회 시작")
             user_info = self._find_user_by_ip_from_db(client_ip)
-            current_app.logger.info(f"[IP_AUTH_DEBUG] 사용자 조회 결과: {user_info}")
+            current_app.logger.info(f"[IP_AUTH_DETAIL] 사용자 조회 결과: {user_info}")
 
             if not user_info:
                 current_app.logger.warning(
-                    f"[IP_AUTH_DEBUG] 사용자를 찾을 수 없음: {client_ip}"
-                )
+                    f"[IP_AUTH_DETAIL] 사용자를 찾을 수 없음: {client_ip}")
                 return {
                     "success": False,
                     "message": f"IP {client_ip}에 등록된 사용자를 찾을 수 없습니다. IT팀에 문의하세요.",
                     "code": "USER_NOT_FOUND",
                 }
 
-            # 4. 성공 응답 구성
-            current_app.logger.info(f"[IP_AUTH_DEBUG] 4단계: 성공 응답 구성")
-            success_response = {
+            # 4. 인증 성공 응답 생성
+            current_app.logger.info(f"[IP_AUTH_DETAIL] 4단계: 응답 데이터 생성")
+            response_data = {
                 "success": True,
+                "username": user_info["user_id"],  # 로그인 ID
                 "email": user_info["mail"],
-                "username": user_info["username"],
-                "name": user_info["username"],  # 실제 name 필드가 없으면 username 사용
+                "name": user_info["username"],  # 실명
                 "dept": user_info["department"],
                 "role": user_info.get("role", "user"),
+                "client_ip": client_ip,
             }
 
-            current_app.logger.info(f"[IP_AUTH_DEBUG] 성공 응답: {success_response}")
-            current_app.logger.info(f"[IP_AUTH_DEBUG] === IP 인증 성공 ===")
-            return success_response
+            current_app.logger.info(f"[IP_AUTH_DETAIL] 생성된 응답 데이터: {response_data}")
+            current_app.logger.info(f"[IP_AUTH_DETAIL] === IP 인증 성공 완료 ===")
+
+            return response_data
 
         except Exception as e:
-            current_app.logger.error(f"[IP_AUTH_DEBUG] IP 인증 중 예외 발생: {str(e)}")
+            current_app.logger.error(f"[IP_AUTH_DETAIL] IP 인증 중 예외 발생: {str(e)}")
             import traceback
-
             current_app.logger.error(
-                f"[IP_AUTH_DEBUG] 스택 트레이스: {traceback.format_exc()}"
-            )
-            current_app.logger.error(f"[IP_AUTH_DEBUG] === IP 인증 예외 ===")
-
+                f"[IP_AUTH_DETAIL] 스택 트레이스: {traceback.format_exc()}")
+            current_app.logger.error(f"[IP_AUTH_DETAIL] === IP 인증 예외 완료 ===")
             return {
                 "success": False,
-                "message": f"인증 처리 중 오류가 발생했습니다: {str(e)}",
+                "message": "인증 처리 중 오류가 발생했습니다.",
                 "code": "AUTH_ERROR",
             }
 
     def _find_user_by_ip_from_db(self, client_ip: str) -> dict:
-        """DB에서 IP로 사용자 찾기 (강화된 디버깅)"""
+        """users 테이블에서 IP로 사용자 찾기 (상세 디버깅 추가)"""
         try:
-            current_app.logger.info(f"[USER_LOOKUP_DEBUG] === 사용자 조회 시작 ===")
-            current_app.logger.info(f"[USER_LOOKUP_DEBUG] 조회할 IP: {client_ip}")
+            current_app.logger.info(f"[USER_LOOKUP_DETAIL] === 사용자 조회 시작 ===")
+            current_app.logger.info(f"[USER_LOOKUP_DETAIL] 조회 대상 IP: {client_ip}")
 
-            # 사용자 목록 조회
-            current_app.logger.info(f"[USER_LOOKUP_DEBUG] DB 쿼리 실행")
+            # SQL 쿼리 실행
+            current_app.logger.info(f"[USER_LOOKUP_DETAIL] SQL 쿼리 실행")
             users = execute_query(
-                "SELECT uid, user_id, username, mail, department, ip, role FROM users WHERE ip IS NOT NULL AND ip != ''",
+                """
+                SELECT uid, user_id, username, mail, department, ip, role
+                FROM users 
+                WHERE ip IS NOT NULL 
+                AND ip != ''
+                AND (
+                    FIND_IN_SET(%s, REPLACE(ip, ' ', '')) > 0
+                    OR ip = %s
+                )
+                """,
+                (client_ip, client_ip),
                 fetch_all=True,
             )
+
             current_app.logger.info(
-                f"[USER_LOOKUP_DEBUG] 조회된 사용자 수: {len(users) if users else 0}"
-            )
+                f"[USER_LOOKUP_DETAIL] 조회된 사용자 수: {len(users) if users else 0}")
+
+            if users:
+                for i, user in enumerate(users):
+                    current_app.logger.info(
+                        f"[USER_LOOKUP_DETAIL] 사용자 {i+1}: uid={user['uid']}, user_id={user['user_id']}, username={user['username']}, ip={user['ip']}"
+                    )
 
             if not users:
                 current_app.logger.warning(
-                    f"[USER_LOOKUP_DEBUG] IP가 설정된 사용자가 없음"
-                )
-                current_app.logger.warning(
-                    f"[USER_LOOKUP_DEBUG] === 사용자 조회 실패 ==="
-                )
+                    f"[USER_LOOKUP_DETAIL] IP {client_ip}에 매칭되는 사용자가 없습니다.")
                 return None
 
             # 정확한 IP 매칭 검증
-            current_app.logger.info(f"[USER_LOOKUP_DEBUG] IP 매칭 검증 시작")
+            current_app.logger.info(f"[USER_LOOKUP_DETAIL] IP 매칭 검증 시작")
             for user in users:
                 current_app.logger.info(
-                    f"[USER_LOOKUP_DEBUG] 검증 대상: {user['user_id']} (저장된 IP: {user['ip']})"
+                    f"[USER_LOOKUP_DETAIL] 검증 대상: {user['user_id']} (저장된 IP: {user['ip']})"
                 )
 
                 if self._verify_ip_match(client_ip, user["ip"]):
                     current_app.logger.info(
-                        f"[USER_LOOKUP_DEBUG] IP 매칭 성공: {user['user_id']} <- {client_ip}"
+                        f"[USER_LOOKUP_DETAIL] IP 매칭 성공: {user['user_id']} <- {client_ip}"
                     )
 
                     # DB의 role 컬럼 사용 (기본값: 'user')
@@ -135,43 +144,29 @@ class AuthService:
                     }
 
                     current_app.logger.info(
-                        f"[USER_LOOKUP_DEBUG] 반환할 사용자 정보: {result}"
-                    )
-                    current_app.logger.info(
-                        f"[USER_LOOKUP_DEBUG] === 사용자 조회 성공 ==="
-                    )
+                        f"[USER_LOOKUP_DETAIL] 반환할 사용자 정보: {result}")
+                    current_app.logger.info(f"[USER_LOOKUP_DETAIL] === 사용자 조회 성공 ===")
                     return result
                 else:
                     current_app.logger.warning(
-                        f"[USER_LOOKUP_DEBUG] IP 매칭 실패: {user['user_id']} (저장된 IP: {user['ip']})"
+                        f"[USER_LOOKUP_DETAIL] IP 매칭 실패: {user['user_id']} (저장된 IP: {user['ip']})"
                     )
 
-            current_app.logger.warning(
-                f"[USER_LOOKUP_DEBUG] 모든 사용자에 대해 IP 매칭 실패"
-            )
-            current_app.logger.warning(f"[USER_LOOKUP_DEBUG] === 사용자 조회 실패 ===")
+            current_app.logger.warning(f"[USER_LOOKUP_DETAIL] 모든 사용자에 대해 IP 매칭 실패")
+            current_app.logger.warning(f"[USER_LOOKUP_DETAIL] === 사용자 조회 실패 ===")
             return None
 
         except Exception as e:
-            current_app.logger.error(
-                f"[USER_LOOKUP_DEBUG] 사용자 조회 중 예외: {str(e)}"
-            )
+            current_app.logger.error(f"[USER_LOOKUP_DETAIL] 사용자 조회 중 예외: {str(e)}")
             import traceback
-
             current_app.logger.error(
-                f"[USER_LOOKUP_DEBUG] 스택 트레이스: {traceback.format_exc()}"
-            )
-            current_app.logger.error(f"[USER_LOOKUP_DEBUG] === 사용자 조회 예외 ===")
+                f"[USER_LOOKUP_DETAIL] 스택 트레이스: {traceback.format_exc()}")
+            current_app.logger.error(f"[USER_LOOKUP_DETAIL] === 사용자 조회 예외 ===")
             return None
 
     def _verify_ip_match(self, client_ip: str, stored_ips: str) -> bool:
-        """저장된 IP 목록과 클라이언트 IP 정확히 매칭 확인 (강화된 디버깅)"""
-        current_app.logger.info(f"[IP_MATCH_DEBUG] === IP 매칭 검증 시작 ===")
-        current_app.logger.info(f"[IP_MATCH_DEBUG] 클라이언트 IP: {client_ip}")
-        current_app.logger.info(f"[IP_MATCH_DEBUG] 저장된 IP들: {stored_ips}")
-
+        """저장된 IP 목록과 클라이언트 IP 정확히 매칭 확인 - 강화된 버전"""
         if not stored_ips:
-            current_app.logger.warning(f"[IP_MATCH_DEBUG] 저장된 IP가 없음")
             return False
 
         # 쉼표와 공백으로 분리하여 정확한 IP 목록 생성
@@ -181,17 +176,34 @@ class AuthService:
             if ip:  # 빈 문자열 제외
                 ip_list.append(ip)
 
-        current_app.logger.info(f"[IP_MATCH_DEBUG] 파싱된 IP 목록: {ip_list}")
-
         # 정확한 매칭만 허용
         match_found = client_ip in ip_list
 
-        current_app.logger.info(
-            f"[IP_MATCH_DEBUG] 매칭 결과: {client_ip} in {ip_list} = {match_found}"
-        )
-        current_app.logger.info(f"[IP_MATCH_DEBUG] === IP 매칭 검증 완료 ===")
+        current_app.logger.info(f"IP 매칭 검증: {client_ip} in {ip_list} = {match_found}")
 
         return match_found
+
+    def _check_business_hours(self) -> bool:
+        """업무시간 체크"""
+        if not IP_AUTH_CONFIG.get("enable_time_restriction", False):
+            return True
+
+        now = datetime.now()
+        business_hours = IP_AUTH_CONFIG["business_hours"]
+
+        # 주말 체크
+        if business_hours.get("weekdays_only", False) and now.weekday() >= 5:
+            current_app.logger.info("주말 접근 시도")
+            return False
+
+        # 시간 체크
+        current_hour = now.hour
+        if (current_hour < business_hours["start"]
+                or current_hour >= business_hours["end"]):
+            current_app.logger.info(f"업무시간 외 접근 시도: {current_hour}시")
+            return False
+
+        return True
 
     def _is_ip_in_allowed_ranges(self, client_ip: str) -> bool:
         """허용된 IP 대역 체크"""
@@ -251,10 +263,9 @@ class AuthService:
 
         if email in self.verification_codes:
             verification_info = self.verification_codes[email]
-            is_valid_code = is_valid_code or (
-                verification_info["code"] == code
-                and datetime.now() <= verification_info["expiry"]
-            )
+            is_valid_code = is_valid_code or (verification_info["code"] == code
+                                              and datetime.now()
+                                              <= verification_info["expiry"])
 
         return is_valid_code
 
@@ -266,27 +277,24 @@ class AuthService:
             "dept": user_info.get("dept"),
             "role": user_info.get("role", "user"),
             "client_ip": client_ip,  # IP 정보 추가
-            "exp": datetime.now()
-            + timedelta(seconds=current_app.config["TOKEN_EXPIRATION"]),
+            "exp": datetime.now() +
+            timedelta(seconds=current_app.config["TOKEN_EXPIRATION"]),
         }
 
-        return jwt.encode(
-            token_payload, current_app.config["JWT_SECRET"], algorithm="HS256"
-        )
+        return jwt.encode(token_payload, current_app.config["JWT_SECRET"],
+                          algorithm="HS256")
 
     def verify_token(self, token: str, client_ip: str = None) -> dict:
         """JWT 토큰 검증 (IP 검증 포함)"""
         try:
-            payload = jwt.decode(
-                token, current_app.config["JWT_SECRET"], algorithms=["HS256"]
-            )
+            payload = jwt.decode(token, current_app.config["JWT_SECRET"],
+                                 algorithms=["HS256"])
 
             # IP 검증 (옵션 - 경고만 기록)
             if client_ip and payload.get("client_ip"):
                 if payload["client_ip"] != client_ip:
                     current_app.logger.warning(
-                        f"토큰 IP 불일치: 토큰={payload['client_ip']}, 현재={client_ip}"
-                    )
+                        f"토큰 IP 불일치: 토큰={payload['client_ip']}, 현재={client_ip}")
                     # DHCP 환경을 고려해 경고만 기록하고 통과
 
             return {"valid": True, "payload": payload}
@@ -317,8 +325,7 @@ class AuthService:
         current_app.logger.info(f"[IP_EXTRACT_DEBUG] 모든 IP 소스:")
         for source_name, source_value in ip_sources:
             current_app.logger.info(
-                f"[IP_EXTRACT_DEBUG]   {source_name}: {source_value}"
-            )
+                f"[IP_EXTRACT_DEBUG]   {source_name}: {source_value}")
 
         # X-Forwarded-For 우선 처리 (쉼표로 구분된 첫 번째 IP)
         x_forwarded_for = request.headers.get("X-Forwarded-For")
@@ -326,17 +333,14 @@ class AuthService:
             # 첫 번째 IP가 실제 클라이언트 IP
             client_ip = x_forwarded_for.split(",")[0].strip()
             current_app.logger.info(
-                f"[IP_EXTRACT_DEBUG] X-Forwarded-For에서 추출: {client_ip}"
-            )
+                f"[IP_EXTRACT_DEBUG] X-Forwarded-For에서 추출: {client_ip}")
             current_app.logger.info(f"[IP_EXTRACT_DEBUG] === IP 추출 완료 ===")
             return client_ip
 
         # X-Real-IP 확인
         x_real_ip = request.headers.get("X-Real-IP")
         if x_real_ip:
-            current_app.logger.info(
-                f"[IP_EXTRACT_DEBUG] X-Real-IP에서 추출: {x_real_ip}"
-            )
+            current_app.logger.info(f"[IP_EXTRACT_DEBUG] X-Real-IP에서 추출: {x_real_ip}")
             current_app.logger.info(f"[IP_EXTRACT_DEBUG] === IP 추출 완료 ===")
             return x_real_ip
 
@@ -345,8 +349,7 @@ class AuthService:
             header_value = request.headers.get(header_name)
             if header_value:
                 current_app.logger.info(
-                    f"[IP_EXTRACT_DEBUG] {header_name}에서 추출: {header_value}"
-                )
+                    f"[IP_EXTRACT_DEBUG] {header_name}에서 추출: {header_value}")
                 current_app.logger.info(f"[IP_EXTRACT_DEBUG] === IP 추출 완료 ===")
                 return header_value
 
@@ -357,134 +360,99 @@ class AuthService:
         return final_ip
 
     def authenticate_user_in_db(self, username: str) -> dict:
-        """사용자 인증 및 감사 로그 초기화 (강화된 디버깅)"""
+        """데이터베이스에서 사용자 검증 및 감사 로그 초기화 (상세 디버깅 추가)"""
         try:
-            current_app.logger.info(f"[USER_AUTH_DEBUG] === 사용자 인증 시작 ===")
-            current_app.logger.info(f"[USER_AUTH_DEBUG] 인증할 사용자명: '{username}'")
-
-            # 1. 사용자 존재 확인
-            current_app.logger.info(f"[USER_AUTH_DEBUG] 1단계: 사용자 존재 확인")
-            user = execute_query(
-                "SELECT uid, user_id, username FROM users WHERE username = %s",
-                (username,),
-                fetch_one=True,
+            current_app.logger.info(f"[USER_AUTH_DETAIL] === 사용자 인증 시작 ===")
+            current_app.logger.info(
+                f"[USER_AUTH_DETAIL] 입력 username: '{username}' (타입: {type(username)}, 길이: {len(username) if username else 0})"
             )
 
-            current_app.logger.info(f"[USER_AUTH_DEBUG] 사용자 조회 결과: {user}")
+            if not username:
+                current_app.logger.error(f"[USER_AUTH_DETAIL] username이 None 또는 빈 문자열")
+                return {
+                    "success": False,
+                    "message": "username이 제공되지 않았습니다.",
+                }
+
+            # user_id 컬럼으로 조회 (영문 로그인 ID)
+            current_app.logger.info(f"[USER_AUTH_DETAIL] 1단계: user_id로 사용자 조회")
+            user = execute_query(
+                "SELECT uid, user_id, username FROM users WHERE user_id = %s",
+                (username, ), fetch_one=True)
+            current_app.logger.info(f"[USER_AUTH_DETAIL] 사용자 조회 결과: {user}")
 
             if not user:
                 current_app.logger.warning(
-                    f"[USER_AUTH_DEBUG] 사용자를 찾을 수 없음: {username}"
-                )
+                    f"[USER_AUTH_DETAIL] user_id로 사용자를 찾을 수 없음: '{username}'")
                 return {
                     "success": False,
-                    "message": f"사용자 '{username}'을 찾을 수 없습니다.",
+                    "message": f"사용자 '{username}'을(를) 찾을 수 없습니다. 운영실에 문의해주세요.",
                 }
 
             user_id = user["uid"]
-            current_app.logger.info(f"[USER_AUTH_DEBUG] 사용자 ID: {user_id}")
+            login_id = user["user_id"]
+            real_name = user["username"]
 
-            # 2. 감사 로그 테이블 존재 확인
-            current_app.logger.info(f"[USER_AUTH_DEBUG] 2단계: 감사 로그 테이블 확인")
-            try:
-                table_check = execute_query(
-                    "SHOW TABLES LIKE 'security_audit_logs'", fetch_one=True
-                )
-                current_app.logger.info(
-                    f"[USER_AUTH_DEBUG] 테이블 존재 확인: {table_check}"
-                )
+            current_app.logger.info(
+                f"[USER_AUTH_DETAIL] 사용자 정보: uid={user_id}, user_id={login_id}, username={real_name}"
+            )
 
-                if table_check:
-                    # 3. 오늘 날짜의 기존 로그 삭제 (중복 방지)
-                    current_app.logger.info(f"[USER_AUTH_DEBUG] 3단계: 기존 로그 삭제")
-                    delete_result = execute_query(
-                        """
-                        DELETE FROM security_audit_logs 
-                        WHERE user_id = %s AND DATE(check_datetime) = CURDATE()
-                        """,
-                        (user_id,),
-                    )
-                    current_app.logger.info(f"[USER_AUTH_DEBUG] 기존 로그 삭제 완료")
+            # 기존 감사 로그 확인
+            current_app.logger.info(f"[USER_AUTH_DETAIL] 2단계: 기존 감사 로그 확인")
+            existing_logs = execute_query(
+                """
+                SELECT COUNT(*) as log_count
+                FROM audit_log
+                WHERE user_id = %s AND DATE(checked_at) = DATE(NOW())
+                """,
+                (user_id, ),
+                fetch_one=True,
+            )["log_count"]
 
-                    # 4. 체크리스트 항목들에 대한 초기 로그 생성
-                    current_app.logger.info(f"[USER_AUTH_DEBUG] 4단계: 초기 로그 생성")
-                    checklist_items = execute_query(
-                        "SELECT item_id, item_name FROM checklist_items WHERE check_type = 'daily'",
-                        fetch_all=True,
-                    )
+            current_app.logger.info(f"[USER_AUTH_DETAIL] 기존 감사 로그 개수: {existing_logs}")
 
+            if existing_logs == 0:
+                current_app.logger.info(f"[USER_AUTH_DETAIL] 3단계: 감사 로그 생성 시작")
+
+                try:
+                    self._create_initial_audit_logs(user_id)
                     current_app.logger.info(
-                        f"[USER_AUTH_DEBUG] 체크리스트 항목 수: {len(checklist_items) if checklist_items else 0}"
-                    )
+                        f"[USER_AUTH_DETAIL] 감사 로그 생성 성공: uid={user_id}")
+                except Exception as log_error:
+                    current_app.logger.error(
+                        f"[USER_AUTH_DETAIL] 감사 로그 생성 실패: {str(log_error)}")
+                    import traceback
+                    current_app.logger.error(
+                        f"[USER_AUTH_DETAIL] 로그 생성 스택 트레이스: {traceback.format_exc()}")
+                    return {
+                        "success": False,
+                        "message": f"감사 로그 생성에 실패했습니다: {str(log_error)}",
+                    }
+            else:
+                current_app.logger.info(f"[USER_AUTH_DETAIL] 기존 감사 로그 존재, 생성 건너뜀")
 
-                    if checklist_items:
-                        log_count = 0
-                        for item in checklist_items:
-                            try:
-                                execute_query(
-                                    """
-                                    INSERT INTO security_audit_logs 
-                                    (user_id, item_id, item_name, check_datetime, passed, actual_value, notes, check_type) 
-                                    VALUES (%s, %s, %s, NOW(), NULL, '{}', '대기 중', 'daily')
-                                    """,
-                                    (user_id, item["item_id"], item["item_name"]),
-                                )
-                                log_count += 1
-                            except Exception as insert_error:
-                                current_app.logger.error(
-                                    f"[USER_AUTH_DEBUG] 로그 삽입 실패 - {item['item_name']}: {str(insert_error)}"
-                                )
+            result = {"success": True, "user_id": user_id}
+            current_app.logger.info(f"[USER_AUTH_DETAIL] 최종 결과: {result}")
+            current_app.logger.info(f"[USER_AUTH_DETAIL] === 사용자 인증 성공 ===")
 
-                        current_app.logger.info(
-                            f"[USER_AUTH_DEBUG] 초기 로그 생성 완료: {log_count}개"
-                        )
-                    else:
-                        current_app.logger.warning(
-                            f"[USER_AUTH_DEBUG] 체크리스트 항목이 없음"
-                        )
-                else:
-                    current_app.logger.warning(
-                        f"[USER_AUTH_DEBUG] security_audit_logs 테이블이 존재하지 않음"
-                    )
-
-            except Exception as log_error:
-                current_app.logger.error(
-                    f"[USER_AUTH_DEBUG] 감사 로그 처리 중 오류: {str(log_error)}"
-                )
-                # 로그 오류는 인증 실패로 처리하지 않음
-
-            # 5. 성공 응답 반환
-            current_app.logger.info(f"[USER_AUTH_DEBUG] 5단계: 성공 응답 구성")
-            success_response = {
-                "success": True,
-                "user_id": user_id,
-                "message": "사용자 인증 성공",
-            }
-
-            current_app.logger.info(f"[USER_AUTH_DEBUG] 성공 응답: {success_response}")
-            current_app.logger.info(f"[USER_AUTH_DEBUG] === 사용자 인증 성공 ===")
-            return success_response
+            return result
 
         except Exception as e:
-            current_app.logger.error(f"[USER_AUTH_DEBUG] 사용자 인증 중 예외: {str(e)}")
+            current_app.logger.error(f"[USER_AUTH_DETAIL] 사용자 인증 중 예외: {str(e)}")
             import traceback
-
             current_app.logger.error(
-                f"[USER_AUTH_DEBUG] 스택 트레이스: {traceback.format_exc()}"
-            )
-            current_app.logger.error(f"[USER_AUTH_DEBUG] === 사용자 인증 예외 ===")
-
+                f"[USER_AUTH_DETAIL] 스택 트레이스: {traceback.format_exc()}")
+            current_app.logger.error(f"[USER_AUTH_DETAIL] === 사용자 인증 예외 ===")
             return {
                 "success": False,
-                "message": f"사용자 인증 중 오류가 발생했습니다: {str(e)}",
+                "message": f"서버 오류가 발생했습니다: {str(e)}",
             }
 
     def _create_initial_audit_logs(self, user_id: int):
         """초기 감사 로그 생성 (디버깅 강화)"""
         try:
             current_app.logger.info(
-                f"[AUDIT_DEBUG] _create_initial_audit_logs 시작: user_id={user_id}"
-            )
+                f"[AUDIT_DEBUG] _create_initial_audit_logs 시작: user_id={user_id}")
 
             # 체크리스트 항목 조회
             checklist_items = execute_query(
@@ -505,10 +473,11 @@ class AuthService:
                 raise Exception("체크리스트 항목을 찾을 수 없습니다.")
 
             import json
-
             default_actual_value = json.dumps(
-                {"status": "pending", "message": "검사 대기 중"}, ensure_ascii=False
-            )
+                {
+                    "status": "pending",
+                    "message": "검사 대기 중"
+                }, ensure_ascii=False)
 
             # 각 항목별로 감사 로그 생성
             created_count = 0
@@ -545,8 +514,5 @@ class AuthService:
                 f"[AUDIT_DEBUG] _create_initial_audit_logs 실패: user_id={user_id}, error={str(e)}"
             )
             import traceback
-
-            current_app.logger.error(
-                f"[AUDIT_DEBUG] 스택 트레이스: {traceback.format_exc()}"
-            )
+            current_app.logger.error(f"[AUDIT_DEBUG] 스택 트레이스: {traceback.format_exc()}")
             raise
