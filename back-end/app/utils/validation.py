@@ -23,7 +23,7 @@ class 화면보호기_사용(ValidationStrategy):
 
     def validate(self, actual_value: dict) -> bool:
         return (str(actual_value.get("screenSaverEnabled")) == "1"
-                and int(actual_value.get("screenSaverTime", 0)) >= 600
+                and int(actual_value.get("screenSaverTime", 0)) <= 600
                 and str(actual_value.get("screenSaverSecure")) == "1")
 
 
