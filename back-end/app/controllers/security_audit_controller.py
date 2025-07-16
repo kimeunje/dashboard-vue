@@ -80,9 +80,7 @@ def execute_manual_check():
 
     if missing_fields:
         return (
-            jsonify(
-                {"error": f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}"}
-            ),
+            jsonify({"error": f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}"}),
             HTTP_STATUS["BAD_REQUEST"],
         )
 
@@ -92,7 +90,7 @@ def execute_manual_check():
 
         user_info = execute_query(
             "SELECT uid FROM users WHERE user_id = %s",
-            (user["username"],),
+            (user["username"], ),
             fetch_one=True,
         )
 
@@ -111,9 +109,8 @@ def execute_manual_check():
             "notes": data.get("notes", ""),
         }
 
-        result = audit_service.execute_manual_check(
-            user_id, data["item_id"], check_result
-        )
+        result = audit_service.execute_manual_check(user_id, data["item_id"],
+                                                    check_result)
         return jsonify(result), HTTP_STATUS["OK"]
 
     except ValueError as e:
@@ -122,13 +119,11 @@ def execute_manual_check():
     except Exception as e:
         current_app.logger.error(f"서버 오류: {str(e)}")
         return (
-            jsonify(
-                {
-                    "status": "failed",
-                    "message": "서버 오류가 발생했습니다.",
-                    "details": str(e) if current_app.debug else None,
-                }
-            ),
+            jsonify({
+                "status": "failed",
+                "message": "서버 오류가 발생했습니다.",
+                "details": str(e) if current_app.debug else None,
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -191,11 +186,9 @@ def validate_check():
     current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 클라이언트 IP: {client_ip}")
     current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 요청 메서드: {request.method}")
     current_app.logger.info(
-        f"[VALIDATE_CHECK_DEBUG] Content-Type: {request.content_type}"
-    )
+        f"[VALIDATE_CHECK_DEBUG] Content-Type: {request.content_type}")
     current_app.logger.info(
-        f"[VALIDATE_CHECK_DEBUG] Content-Length: {request.content_length}"
-    )
+        f"[VALIDATE_CHECK_DEBUG] Content-Length: {request.content_length}")
     current_app.logger.info(
         f"[VALIDATE_CHECK_DEBUG] User-Agent: {request.headers.get('User-Agent', 'N/A')}"
     )
@@ -204,23 +197,20 @@ def validate_check():
     current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 모든 요청 헤더:")
     for header_name, header_value in request.headers:
         current_app.logger.info(
-            f"[VALIDATE_CHECK_DEBUG]   {header_name}: {header_value}"
-        )
+            f"[VALIDATE_CHECK_DEBUG]   {header_name}: {header_value}")
 
     # Raw 데이터 확인
     try:
         raw_data = request.get_data()
         current_app.logger.info(
-            f"[VALIDATE_CHECK_DEBUG] Raw 요청 데이터 길이: {len(raw_data) if raw_data else 0}"
-        )
+            f"[VALIDATE_CHECK_DEBUG] Raw 요청 데이터 길이: {len(raw_data) if raw_data else 0}")
         if raw_data:
             current_app.logger.info(
                 f"[VALIDATE_CHECK_DEBUG] Raw 데이터: {raw_data.decode('utf-8', errors='ignore')}"
             )
     except Exception as raw_error:
         current_app.logger.error(
-            f"[VALIDATE_CHECK_DEBUG] Raw 데이터 읽기 실패: {str(raw_error)}"
-        )
+            f"[VALIDATE_CHECK_DEBUG] Raw 데이터 읽기 실패: {str(raw_error)}")
 
     # JSON 파싱
     try:
@@ -229,22 +219,15 @@ def validate_check():
         current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 파싱된 JSON: {data}")
     except Exception as json_error:
         current_app.logger.error(
-            f"[VALIDATE_CHECK_DEBUG] JSON 파싱 실패: {str(json_error)}"
-        )
+            f"[VALIDATE_CHECK_DEBUG] JSON 파싱 실패: {str(json_error)}")
         error_response = {"error": f"JSON 파싱 실패: {str(json_error)}"}
-        current_app.logger.error(
-            f"[VALIDATE_CHECK_DEBUG] 에러 응답 전송: {error_response}"
-        )
+        current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] 에러 응답 전송: {error_response}")
         return jsonify(error_response), HTTP_STATUS["BAD_REQUEST"]
 
     if not data:
-        current_app.logger.error(
-            f"[VALIDATE_CHECK_DEBUG] 요청 데이터가 None 또는 빈 값"
-        )
+        current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] 요청 데이터가 None 또는 빈 값")
         error_response = {"error": "요청 데이터가 필요합니다."}
-        current_app.logger.error(
-            f"[VALIDATE_CHECK_DEBUG] 에러 응답 전송: {error_response}"
-        )
+        current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] 에러 응답 전송: {error_response}")
         return jsonify(error_response), HTTP_STATUS["BAD_REQUEST"]
 
     # 필수 필드 검증
@@ -252,34 +235,24 @@ def validate_check():
     missing_fields = [field for field in required_fields if field not in data]
 
     if missing_fields:
-        current_app.logger.error(
-            f"[VALIDATE_CHECK_DEBUG] 필수 필드 누락: {missing_fields}"
-        )
-        error_response = {
-            "error": f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}"
-        }
-        current_app.logger.error(
-            f"[VALIDATE_CHECK_DEBUG] 에러 응답 전송: {error_response}"
-        )
+        current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] 필수 필드 누락: {missing_fields}")
+        error_response = {"error": f"필수 필드가 누락되었습니다: {', '.join(missing_fields)}"}
+        current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] 에러 응답 전송: {error_response}")
         return jsonify(error_response), HTTP_STATUS["BAD_REQUEST"]
 
     current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 검증할 데이터:")
     current_app.logger.info(f"[VALIDATE_CHECK_DEBUG]   user_id: {data.get('user_id')}")
     current_app.logger.info(
-        f"[VALIDATE_CHECK_DEBUG]   item_type: {data.get('item_type')}"
-    )
+        f"[VALIDATE_CHECK_DEBUG]   item_type: {data.get('item_type')}")
     current_app.logger.info(
-        f"[VALIDATE_CHECK_DEBUG]   actual_value: {data.get('actual_value')}"
-    )
+        f"[VALIDATE_CHECK_DEBUG]   actual_value: {data.get('actual_value')}")
 
     try:
         current_app.logger.info(
-            f"[VALIDATE_CHECK_DEBUG] audit_service.validate_check 호출 시작"
-        )
+            f"[VALIDATE_CHECK_DEBUG] audit_service.validate_check 호출 시작")
         result = audit_service.validate_check(data)
         current_app.logger.info(
-            f"[VALIDATE_CHECK_DEBUG] audit_service.validate_check 완료"
-        )
+            f"[VALIDATE_CHECK_DEBUG] audit_service.validate_check 완료")
         current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 검증 결과: {result}")
 
         # 성공 응답 로깅
@@ -287,9 +260,7 @@ def validate_check():
         current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] === 성공 응답 전송 ===")
         current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 응답 상태 코드: 200")
         current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] 응답 데이터: {result}")
-        current_app.logger.info(
-            f"[VALIDATE_CHECK_DEBUG] === /validate_check 성공 완료 ==="
-        )
+        current_app.logger.info(f"[VALIDATE_CHECK_DEBUG] === /validate_check 성공 완료 ===")
 
         return response_data
 
@@ -298,12 +269,9 @@ def validate_check():
         error_response = {"error": str(e)}
         current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] === ValueError 응답 전송 ===")
         current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] 응답 상태 코드: 400")
+        current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] 에러 응답 데이터: {error_response}")
         current_app.logger.error(
-            f"[VALIDATE_CHECK_DEBUG] 에러 응답 데이터: {error_response}"
-        )
-        current_app.logger.error(
-            f"[VALIDATE_CHECK_DEBUG] === /validate_check ValueError 완료 ==="
-        )
+            f"[VALIDATE_CHECK_DEBUG] === /validate_check ValueError 완료 ===")
         return jsonify(error_response), HTTP_STATUS["BAD_REQUEST"]
 
     except Exception as e:
@@ -311,8 +279,7 @@ def validate_check():
         import traceback
 
         current_app.logger.error(
-            f"[VALIDATE_CHECK_DEBUG] 스택 트레이스: {traceback.format_exc()}"
-        )
+            f"[VALIDATE_CHECK_DEBUG] 스택 트레이스: {traceback.format_exc()}")
 
         error_response = {
             "status": "failed",
@@ -321,12 +288,9 @@ def validate_check():
         }
         current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] === Exception 응답 전송 ===")
         current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] 응답 상태 코드: 500")
+        current_app.logger.error(f"[VALIDATE_CHECK_DEBUG] 에러 응답 데이터: {error_response}")
         current_app.logger.error(
-            f"[VALIDATE_CHECK_DEBUG] 에러 응답 데이터: {error_response}"
-        )
-        current_app.logger.error(
-            f"[VALIDATE_CHECK_DEBUG] === /validate_check Exception 완료 ==="
-        )
+            f"[VALIDATE_CHECK_DEBUG] === /validate_check Exception 완료 ===")
 
         return jsonify(error_response), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
@@ -389,9 +353,8 @@ def get_manual_check_history(item_id):
         from app.utils.database import execute_query
 
         # 사용자 ID 가져오기
-        user_info = execute_query(
-            "SELECT uid FROM users WHERE user_id = %s", (username,), fetch_one=True
-        )
+        user_info = execute_query("SELECT uid FROM users WHERE user_id = %s",
+                                  (username, ), fetch_one=True)
 
         if not user_info:
             return (
@@ -432,23 +395,18 @@ def get_manual_check_history(item_id):
             else:
                 checked_at = record["checked_at"]
 
-            result.append(
-                {
-                    "log_id": record["log_id"],
-                    "item_name": record["item_name"],
-                    "category": record["category"],
-                    "actual_value": actual_value,
-                    "passed": record["passed"],
-                    "notes": record["notes"],
-                    "checked_at": checked_at,
-                    "penalty_weight": float(
-                        record["penalty_weight"] or 0
-                    ),  # 수정: 감점 가중치 추가
-                    "penalty_applied": float(
-                        record["penalty_applied"] or 0
-                    ),  # 수정: 적용된 감점 추가
-                }
-            )
+            result.append({
+                "log_id": record["log_id"],
+                "item_name": record["item_name"],
+                "category": record["category"],
+                "actual_value": actual_value,
+                "passed": record["passed"],
+                "notes": record["notes"],
+                "checked_at": checked_at,
+                "penalty_weight": float(record["penalty_weight"] or 0),  # 수정: 감점 가중치 추가
+                "penalty_applied": float(record["penalty_applied"]
+                                         or 0),  # 수정: 적용된 감점 추가
+            })
 
         return jsonify(result), HTTP_STATUS["OK"]
 
@@ -493,9 +451,8 @@ def get_penalty_breakdown():
         from app.utils.database import execute_query
 
         # 사용자 ID 가져오기
-        user_info = execute_query(
-            "SELECT uid FROM users WHERE user_id = %s", (username,), fetch_one=True
-        )
+        user_info = execute_query("SELECT uid FROM users WHERE user_id = %s",
+                                  (username, ), fetch_one=True)
 
         if not user_info:
             return (
@@ -511,7 +468,7 @@ def get_penalty_breakdown():
             params = (user_id, check_type)
         else:
             type_condition = ""
-            params = (user_id,)
+            params = (user_id, )
 
         # 항목별 감점 분석
         breakdown = execute_query(
@@ -545,17 +502,15 @@ def get_penalty_breakdown():
         failed_items = sum(1 for item in breakdown if item["passed"] == 0)
 
         return (
-            jsonify(
-                {
-                    "breakdown": breakdown,
-                    "summary": {
-                        "total_penalty": round(total_penalty, 1),
-                        "failed_items": failed_items,
-                        "total_items": len(breakdown),
-                        "check_type": check_type,
-                    },
-                }
-            ),
+            jsonify({
+                "breakdown": breakdown,
+                "summary": {
+                    "total_penalty": round(total_penalty, 1),
+                    "failed_items": failed_items,
+                    "total_items": len(breakdown),
+                    "check_type": check_type,
+                },
+            }),
             HTTP_STATUS["OK"],
         )
 
