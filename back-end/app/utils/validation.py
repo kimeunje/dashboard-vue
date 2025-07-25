@@ -65,7 +65,7 @@ class 패스워드_복잡도_설정(ValidationStrategy):
 class 패스워드_주기적_변경(ValidationStrategy):
 
     def validate(self, actual_value: dict) -> bool:
-        return int(actual_value.get("maximumPasswordAge", 0)) >= 90
+        return int(actual_value.get("maximumPasswordAge", 0)) <= 90
 
 
 class 동일_패스워드_설정_제한(ValidationStrategy):
