@@ -124,10 +124,122 @@ def _get_user_info(user_id):
         return None
 
 
+# 기존 방식 유지 (미흡 건수별로 적용)
+# def _calculate_audit_penalty_all_logs(user_id, year):
+#     """상시감사 감점 계산 - 제외 설정 반영 (수정됨)"""
+#     try:
+#         # 2025년 모든 상시감사 로그 조회 + 제외 설정 확인
+#         audit_logs = execute_query(
+#             """
+#             SELECT
+#                 al.log_id,
+#                 al.item_id,
+#                 al.passed,
+#                 al.checked_at,
+#                 ci.item_name,
+#                 ci.penalty_weight,
+#                 CASE
+#                     WHEN (
+#                         EXISTS (
+#                             SELECT 1 FROM user_item_exceptions uie
+#                             WHERE uie.user_id = al.user_id
+#                             AND uie.item_id = al.item_id
+#                             AND uie.is_active = 1
+#                             AND (uie.exclude_type = 'permanent' OR
+#                                 (uie.exclude_type = 'temporary' AND CURDATE() BETWEEN uie.start_date AND uie.end_date))
+#                         )
+#                         OR EXISTS (
+#                             SELECT 1 FROM department_item_exceptions die
+#                             JOIN users u ON u.department = die.department
+#                             WHERE u.uid = al.user_id
+#                             AND die.item_id = CAST(al.item_id AS CHAR)
+#                             AND die.item_type = 'audit_item'
+#                             AND die.is_active = 1
+#                             AND (die.exclude_type = 'permanent' OR
+#                                 (die.exclude_type = 'temporary' AND CURDATE() BETWEEN die.start_date AND die.end_date))
+#                         )
+#                     ) THEN 1
+#                     ELSE 0
+#                 END as is_excluded
+#             FROM audit_log al
+#             JOIN checklist_items ci ON al.item_id = ci.item_id
+#             WHERE al.user_id = %s
+#             AND YEAR(al.checked_at) = %s
+#             AND ci.check_type = 'daily'
+#             ORDER BY al.checked_at DESC
+#         """,
+#             (user_id, year),
+#             fetch_all=True,
+#         )
+
+#         if not audit_logs:
+#             return 0.0, {
+#                 "total_count": 0,
+#                 "passed_count": 0,
+#                 "failed_count": 0,
+#                 "pending_count": 0,
+#                 "total_penalty": 0.0,
+#                 "failed_items": [],
+#             }
+
+#         # 통계 계산 (제외 설정 반영)
+#         total_count = len(audit_logs)
+#         passed_count = sum(1 for log in audit_logs
+#                            if log["passed"] == 1 and not log["is_excluded"])
+#         failed_count = sum(1 for log in audit_logs
+#                            if log["passed"] == 0 and not log["is_excluded"])
+#         pending_count = sum(1 for log in audit_logs
+#                             if log["passed"] is None and not log["is_excluded"])
+#         excluded_count = sum(1 for log in audit_logs if log["is_excluded"])
+
+#         # 감점 계산 - 제외되지 않은 실패 로그에 대해서만 감점
+#         total_penalty = 0.0
+#         failed_item_details = []
+
+#         for log in audit_logs:
+#             if log["passed"] == 0 and not log["is_excluded"]:  # 실패했고 제외되지 않은 경우
+#                 penalty = float(log["penalty_weight"]) if log["penalty_weight"] else 0.5
+#                 total_penalty += penalty
+#                 failed_item_details.append({
+#                     "item_name": log["item_name"],
+#                     "checked_at": log["checked_at"],
+#                     "penalty": penalty,
+#                     "is_excluded": False,
+#                 })
+
+#         audit_stats = {
+#             "total_count": total_count,
+#             "passed_count": passed_count,
+#             "failed_count": failed_count,  # 제외되지 않은 실패 건수만 포함
+#             "pending_count": pending_count,
+#             "excluded_count": excluded_count,  # 제외된 항목 수 추가
+#             "total_penalty": round(total_penalty, 2),
+#             "failed_items": failed_item_details,
+#         }
+
+#         return total_penalty, audit_stats
+
+#     except Exception as e:
+#         logging.error(f"Audit penalty calculation error: {str(e)}")
+#         return 0.0, {
+#             "total_count": 0,
+#             "passed_count": 0,
+#             "failed_count": 0,
+#             "pending_count": 0,
+#             "total_penalty": 0.0,
+#             "failed_items": [],
+#         }
+
+
 def _calculate_audit_penalty_all_logs(user_id, year):
-    """상시감사 감점 계산 - 제외 설정 반영 (수정됨)"""
+    """
+    ✅ 수정된 상시감사 감점 계산 로직 - 정기점검 항목별 적용
+    현재 실제 구현을 기반으로 정기점검만 항목별로 수정
+    """
     try:
-        # 2025년 모든 상시감사 로그 조회 + 제외 설정 확인
+        logging.info(f"Audit penalty calculation: user_id={user_id}, year={year}")
+
+        # 1. 현재 구현과 동일한 방식으로 정기점검 로그 조회
         audit_logs = execute_query(
             """
             SELECT 
@@ -181,41 +293,61 @@ def _calculate_audit_penalty_all_logs(user_id, year):
                 "failed_items": [],
             }
 
-        # 통계 계산 (제외 설정 반영)
+        # 2. 통계 계산 (제외 설정 반영)
         total_count = len(audit_logs)
         passed_count = sum(1 for log in audit_logs
                            if log["passed"] == 1 and not log["is_excluded"])
-        failed_count = sum(1 for log in audit_logs
-                           if log["passed"] == 0 and not log["is_excluded"])
         pending_count = sum(1 for log in audit_logs
                             if log["passed"] is None and not log["is_excluded"])
         excluded_count = sum(1 for log in audit_logs if log["is_excluded"])
 
-        # 감점 계산 - 제외되지 않은 실패 로그에 대해서만 감점
+        # 3. ✅ 수정된 감점 계산 - 정기점검 항목별 적용
+        # item_id별로 그룹핑하여 실패한 항목당 최대 1건만 반영
         total_penalty = 0.0
         failed_item_details = []
+        processed_items = set()  # 이미 처리된 item_id 추적
 
+        # 실패한 항목별로 처리 (중복 제거)
         for log in audit_logs:
             if log["passed"] == 0 and not log["is_excluded"]:  # 실패했고 제외되지 않은 경우
-                penalty = float(log["penalty_weight"]) if log["penalty_weight"] else 0.5
-                total_penalty += penalty
-                failed_item_details.append({
-                    "item_name": log["item_name"],
-                    "checked_at": log["checked_at"],
-                    "penalty": penalty,
-                    "is_excluded": False,
-                })
+                item_id = log["item_id"]
+
+                # 해당 item_id가 아직 처리되지 않은 경우에만 감점 적용
+                if item_id not in processed_items:
+                    penalty = float(
+                        log["penalty_weight"]) if log["penalty_weight"] else 0.5
+                    total_penalty += penalty
+                    processed_items.add(item_id)
+
+                    failed_item_details.append({
+                        "item_id": item_id,
+                        "item_name": log["item_name"],
+                        "checked_at": log["checked_at"],
+                        "penalty": penalty,
+                        "is_excluded": False,
+                        "calculation_method": "per_item"  # 항목별 적용 표시
+                    })
+
+        # failed_count는 실패한 고유 항목 수
+        failed_count = len(processed_items)
 
         audit_stats = {
             "total_count": total_count,
             "passed_count": passed_count,
-            "failed_count": failed_count,  # 제외되지 않은 실패 건수만 포함
+            "failed_count": failed_count,  # 실패한 항목 수 (건수가 아닌 항목 수)
             "pending_count": pending_count,
-            "excluded_count": excluded_count,  # 제외된 항목 수 추가
+            "excluded_count": excluded_count,
             "total_penalty": round(total_penalty, 2),
             "failed_items": failed_item_details,
+            "calculation_method": "daily_per_item",  # 정기점검 항목별 계산 방식 표시
+            "total_failure_logs": sum(
+                1 for log in audit_logs
+                if log["passed"] == 0 and not log["is_excluded"]),  # 실제 실패 로그 수
         }
 
+        logging.info(
+            f"정기점검 감점 계산 완료: 총 {audit_stats['total_failure_logs']}개 실패 로그 중 {failed_count}개 항목에서 감점 적용, 총 감점: {total_penalty}점"
+        )
         return total_penalty, audit_stats
 
     except Exception as e:
@@ -225,6 +357,7 @@ def _calculate_audit_penalty_all_logs(user_id, year):
             "passed_count": 0,
             "failed_count": 0,
             "pending_count": 0,
+            "excluded_count": 0,
             "total_penalty": 0.0,
             "failed_items": [],
         }

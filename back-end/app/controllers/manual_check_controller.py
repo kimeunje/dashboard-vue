@@ -51,18 +51,16 @@ def preview_upload_file():
 
         if not check_type:
             return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": "점검 유형을 자동으로 감지할 수 없습니다.",
-                        "found_columns": list(df.columns),
-                        "suggestions": [
-                            "개인정보 파일: '로컬 IP'와 'XXX회차에서 주민등록번호(수정)' 컬럼이 필요합니다.",
-                            "PC 봉인씰: '일시', '이름', '부서', '훼손여부' 컬럼이 필요합니다.",
-                            "악성코드 검사: 'IP', '악성코드명', '분류', '경로', '탐지 항목' 컬럼이 필요합니다.",
-                        ],
-                    }
-                ),
+                jsonify({
+                    "success": False,
+                    "error": "점검 유형을 자동으로 감지할 수 없습니다.",
+                    "found_columns": list(df.columns),
+                    "suggestions": [
+                        "개인정보 파일: '로컬 IP'와 'XXX회차에서 주민등록번호(수정)' 컬럼이 필요합니다.",
+                        "PC 봉인씰: '일시', '이름', '부서', '훼손여부' 컬럼이 필요합니다.",
+                        "악성코드 검사: 'IP', '악성코드명', '분류', '경로', '탐지 항목' 컬럼이 필요합니다.",
+                    ],
+                }),
                 HTTP_STATUS["BAD_REQUEST"],
             )
 
@@ -71,20 +69,17 @@ def preview_upload_file():
 
         if not is_valid:
             return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": message,
-                        "detected_type": manual_check_service.get_check_type_name(
-                            check_type
-                        ),
-                        "found_columns": list(df.columns),
-                        "file_info": {
-                            "total_rows": len(df),
-                            "total_columns": len(df.columns),
-                        },
-                    }
-                ),
+                jsonify({
+                    "success": False,
+                    "error": message,
+                    "detected_type": manual_check_service.get_check_type_name(
+                        check_type),
+                    "found_columns": list(df.columns),
+                    "file_info": {
+                        "total_rows": len(df),
+                        "total_columns": len(df.columns),
+                    },
+                }),
                 HTTP_STATUS["BAD_REQUEST"],
             )
 
@@ -104,35 +99,47 @@ def preview_upload_file():
 
         # 예상 결과 분석
         expected_results = manual_check_service._analyze_expected_results(
-            df, check_type
-        )
+            df, check_type)
 
         # ✅ 개인정보 암호화의 경우 추가 정보 제공 (수정된 부분)
         additional_info = {}
         if check_type == "file_encryption":
             try:
+                # 새로운 단순 형식에서는 회차 컬럼이 없음
                 round_columns = manual_check_service._detect_round_columns(df.columns)
                 print(f"[DEBUG] 감지된 회차 컬럼: {round_columns}")
 
-                detected_rounds = []
-                latest_round = None
+                # IP 컬럼과 주민등록번호 검출 컬럼 확인
+                ip_col = manual_check_service._find_local_ip_column(df.columns)
+                ssn_detection_col = manual_check_service._find_ssn_detection_column(
+                    df.columns)
 
-                if round_columns:
-                    # round_columns는 [{"column": col, "round": round_number}, ...] 형식
+                if len(round_columns) == 0:
+                    # 새로운 단순 형식
+                    additional_info = {
+                        "detected_rounds": [],
+                        "latest_round": None,
+                        "validation_logic": "주민등록번호 검출 수 기준으로 판정 (0건=통과, 1건이상=실패)",
+                        "round_count": 0,
+                        "format_type": "simple",
+                        "ip_column": ip_col,
+                        "ssn_detection_column": ssn_detection_col,
+                    }
+                else:
+                    # 기존 회차별 형식 (하위 호환성)
                     detected_rounds = [
                         f"{round_info['round']}회차" for round_info in round_columns
                     ]
-                    # 가장 큰 회차 번호 찾기
-                    latest_round = max(
-                        round_info["round"] for round_info in round_columns
-                    )
+                    latest_round = max(round_info["round"]
+                                       for round_info in round_columns)
 
-                additional_info = {
-                    "detected_rounds": detected_rounds,
-                    "latest_round": latest_round,
-                    "validation_logic": "최신 회차부터 역순으로 확인하여 0건 발견 시 통과",
-                    "round_count": len(round_columns),
-                }
+                    additional_info = {
+                        "detected_rounds": detected_rounds,
+                        "latest_round": latest_round,
+                        "validation_logic": "최신 회차부터 역순으로 확인하여 0건 발견 시 통과",
+                        "round_count": len(round_columns),
+                        "format_type": "legacy",
+                    }
 
                 print(f"[DEBUG] 추가 정보 생성 완료: {additional_info}")
 
@@ -141,25 +148,24 @@ def preview_upload_file():
                 additional_info = {
                     "detected_rounds": [],
                     "latest_round": None,
-                    "validation_logic": "회차별 주민등록번호 검증",
-                    "error": f"회차 정보 분석 중 오류 발생: {str(e)}",
+                    "validation_logic": "주민등록번호 검출 기준 검증",
+                    "error": f"정보 분석 중 오류 발생: {str(e)}",
+                    "format_type": "unknown",
                 }
 
-        return jsonify(
-            {
-                "success": True,
-                "data": {
-                    "detected_type": check_type,
-                    "type_name": manual_check_service.get_check_type_name(check_type),
-                    "total_records": len(df),
-                    "columns": list(df.columns),
-                    "preview_data": preview_data,
-                    "expected_results": expected_results,
-                    "validation_message": message,
-                    "additional_info": additional_info,
-                },
-            }
-        )
+        return jsonify({
+            "success": True,
+            "data": {
+                "detected_type": check_type,
+                "type_name": manual_check_service.get_check_type_name(check_type),
+                "total_records": len(df),
+                "columns": list(df.columns),
+                "preview_data": preview_data,
+                "expected_results": expected_results,
+                "validation_message": message,
+                "additional_info": additional_info,
+            },
+        })
 
     except Exception as e:
         print(f"미리보기 처리 오류: {str(e)}")
@@ -168,12 +174,10 @@ def preview_upload_file():
         traceback.print_exc()
 
         return (
-            jsonify(
-                {
-                    "success": False,
-                    "error": f"파일 미리보기 처리 중 오류가 발생했습니다: {str(e)}",
-                }
-            ),
+            jsonify({
+                "success": False,
+                "error": f"파일 미리보기 처리 중 오류가 발생했습니다: {str(e)}",
+            }),
             HTTP_STATUS["BAD_REQUEST"],
         )
 
@@ -198,24 +202,20 @@ def upload_excel_file():
 
     try:
         result = manual_check_service.process_bulk_upload(
-            file=file, uploaded_by=request.current_user["username"]
-        )
+            file=file, uploaded_by=request.current_user["username"])
 
-        return jsonify(
-            {
-                "success": True,
-                "message": result["message"],
-                "data": {
-                    "file_type": result["file_type"],
-                    "total_records": result["total_records"],
-                    "success_count": result["success_count"],
-                    "error_count": result["error_count"],
-                    "errors": (
-                        result["errors"][:10] if result["errors"] else []
-                    ),  # 최대 10개 오류만 반환
-                },
-            }
-        )
+        return jsonify({
+            "success": True,
+            "message": result["message"],
+            "data": {
+                "file_type": result["file_type"],
+                "total_records": result["total_records"],
+                "success_count": result["success_count"],
+                "error_count": result["error_count"],
+                "errors": (result["errors"][:10]
+                           if result["errors"] else []),  # 최대 10개 오류만 반환
+            },
+        })
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), HTTP_STATUS["BAD_REQUEST"]
@@ -248,30 +248,30 @@ def get_check_results():
 
         # 결과 데이터 변환
         for result in results["results"]:
-            result["check_type_name"] = type_mapping.get(
-                result["check_item_code"], result["check_item_code"]
-            )
+            result["check_type_name"] = type_mapping.get(result["check_item_code"],
+                                                         result["check_item_code"])
             result["result_id"] = result["check_id"]
             result["check_result"] = result["overall_result"]
             result["user_email"] = result.get("email", "")
 
-        return jsonify(
-            {
-                "success": True,
-                "data": results["results"],
-                "pagination": {
-                    "current_page": results["page"],
-                    "total_pages": results["total_pages"],
-                    "page_size": results["size"],
-                    "total_count": results["total"],
-                },
-                "type_mapping": type_mapping,
-            }
-        )
+        return jsonify({
+            "success": True,
+            "data": results["results"],
+            "pagination": {
+                "current_page": results["page"],
+                "total_pages": results["total_pages"],
+                "page_size": results["size"],
+                "total_count": results["total"],
+            },
+            "type_mapping": type_mapping,
+        })
 
     except Exception as e:
         return (
-            jsonify({"success": False, "error": str(e)}),
+            jsonify({
+                "success": False,
+                "error": str(e)
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -301,7 +301,10 @@ def update_check_result():
 
     except Exception as e:
         return (
-            jsonify({"success": False, "error": str(e)}),
+            jsonify({
+                "success": False,
+                "error": str(e)
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -318,7 +321,10 @@ def delete_check_result(check_id):
 
     except Exception as e:
         return (
-            jsonify({"success": False, "error": str(e)}),
+            jsonify({
+                "success": False,
+                "error": str(e)
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -346,17 +352,18 @@ def bulk_delete_results():
     try:
         result = manual_check_service.bulk_delete_results(result_ids)
 
-        return jsonify(
-            {
-                "success": True,
-                "message": result["message"],
-                "deleted_count": result["deleted_count"],
-            }
-        )
+        return jsonify({
+            "success": True,
+            "message": result["message"],
+            "deleted_count": result["deleted_count"],
+        })
 
     except Exception as e:
         return (
-            jsonify({"success": False, "error": str(e)}),
+            jsonify({
+                "success": False,
+                "error": str(e)
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -383,7 +390,10 @@ def download_template():
 
     except Exception as e:
         return (
-            jsonify({"success": False, "error": f"템플릿 생성 실패: {str(e)}"}),
+            jsonify({
+                "success": False,
+                "error": f"템플릿 생성 실패: {str(e)}"
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
@@ -395,17 +405,19 @@ def get_check_types():
     try:
         type_mapping = manual_check_service.get_check_type_mapping()
 
-        return jsonify(
-            {
-                "success": True,
-                "data": [
-                    {"code": code, "name": name} for code, name in type_mapping.items()
-                ],
-            }
-        )
+        return jsonify({
+            "success": True,
+            "data": [{
+                "code": code,
+                "name": name
+            } for code, name in type_mapping.items()],
+        })
 
     except Exception as e:
         return (
-            jsonify({"success": False, "error": str(e)}),
+            jsonify({
+                "success": False,
+                "error": str(e)
+            }),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
