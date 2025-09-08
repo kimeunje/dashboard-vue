@@ -146,16 +146,43 @@
             </div>
           </div>
 
-          <!-- 일별 감점 시각화 -->
+          <!-- 일별 감점 시각화 (페이지네이션 추가) -->
           <div class="section" v-if="currentDailyStats.length > 0">
-            <h2 class="section-title">{{ getTabTitle() }} 일별 현황</h2>
+            <div class="section-header">
+              <h2 class="section-title">{{ getTabTitle() }} 일별 현황</h2>
+              <div class="chart-controls">
+                <div class="date-range-info">
+                  {{ getCurrentDateRange() }}
+                </div>
+                <div class="pagination-controls">
+                  <button 
+                    @click="previousPage" 
+                    :disabled="currentChartPage === 0"
+                    class="nav-button prev"
+                  >
+                    ← 최신
+                  </button>
+                  <span class="page-info">
+                    {{ currentChartPage + 1 }} / {{ totalChartPages }}
+                  </span>
+                  <button 
+                    @click="nextPage" 
+                    :disabled="currentChartPage >= totalChartPages - 1"
+                    class="nav-button next"
+                  >
+                    과거 →
+                  </button>
+                </div>
+              </div>
+            </div>
+            
             <div class="daily-stats-container">
               <!-- 차트 영역 -->
               <div class="chart-container">
                 <div class="chart-area">
                   <div class="chart-bars">
                     <div
-                      v-for="(day, index) in currentDailyStats"
+                      v-for="(day, index) in paginatedDailyStats"
                       :key="index"
                       class="chart-bar-group"
                     >
@@ -188,7 +215,7 @@
                 </div>
               </div>
 
-              <!-- 일별 통계 테이블 -->
+              <!-- 일별 통계 테이블 (페이지네이션 적용) -->
               <div class="daily-stats-table">
                 <table>
                   <thead>
@@ -200,7 +227,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="(day, index) in currentDailyStats" :key="index">
+                    <tr v-for="(day, index) in paginatedDailyStats" :key="index">
                       <td>{{ day.date }}</td>
                       <td class="passed-count">{{ day.passed }}</td>
                       <td class="failed-count">{{ day.failed }}</td>
@@ -220,7 +247,7 @@
             </div>
           </div>
 
-          <!-- 항목별 상세 결과 테이블 (제외 설정 정보 추가) -->
+          <!-- 항목별 상세 결과 테이블 개선 -->
           <div class="section">
             <h2 class="section-title">{{ getTabTitle() }} 항목별 검사 결과</h2>
             <div v-if="currentItemStats.length > 0" class="items-container">
@@ -233,16 +260,12 @@
                 <div class="header-cell">양호</div>
                 <div class="header-cell">미흡</div>
                 <div class="header-cell">양호율</div>
-                <!-- 제외 상태 -->
                 <div class="header-cell">상세</div>
               </div>
 
               <div v-for="item in currentItemStats" :key="item.id" class="item-row-container">
-                <!-- 항목 정보 행 (제외 정보 추가) -->
-                <div
-                  class="item-row"
-                  :class="{ expanded: selectedItemId === item.id, excluded: item.isExcluded }"
-                >
+                <!-- 기존 항목 정보 행 -->
+                <div class="item-row" :class="{ expanded: selectedItemId === item.id, excluded: item.isExcluded }">
                   <div class="item-cell item-id">{{ item.id }}</div>
                   <div class="item-cell item-name">{{ item.name }}</div>
                   <div class="item-cell item-category">{{ item.category }}</div>
@@ -265,7 +288,6 @@
                       <span class="progress-text">{{ item.passRate }}%</span>
                     </div>
                   </div>
-
                   <div class="item-cell">
                     <button
                       @click="toggleItemDetail(item.id)"
@@ -277,8 +299,28 @@
                   </div>
                 </div>
 
-                <!-- 선택된 항목의 상세 정보 (제외 설정 정보 추가) -->
+                <!-- 개선된 상세보기 -->
                 <div v-if="selectedItemId === item.id" class="item-detail-container">
+                  <!-- 미흡 건 요약 -->
+                  <div v-if="getFailedLogsForItem(item.id).length > 0" class="critical-summary">
+                    <div class="summary-header">
+                      <h4>🚨 미흡 건 요약</h4>
+                      <span class="summary-count">{{ getFailedLogsForItem(item.id).length }}건</span>
+                    </div>
+                    <div class="summary-content">
+                      <div class="summary-stats">
+                        <span class="stat-item">
+                          <strong>최근 미흡:</strong> 
+                          {{ formatDate(getLatestFailedLog(item.id)?.checked_at) }}
+                        </span>
+                        <span class="stat-item">
+                          <strong>미흡률:</strong> 
+                          {{ Math.round((getFailedLogsForItem(item.id).length / getItemLogs(item.id).length) * 100) }}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="detail-header-inline">
                     <div class="detail-info">
                       <h3 class="detail-title">{{ item.name }} 상세 정보</h3>
@@ -307,38 +349,70 @@
                     </div>
                   </div>
 
-                  <!-- 항목 상세 로그 (제외 정보 추가) -->
+                  <!-- 필터 및 페이지네이션 컨트롤 -->
+                  <div class="detail-controls">
+                    <div class="filter-tabs">
+                      <button 
+                        @click="setDetailFilter(item.id, 'all')" 
+                        class="filter-tab" 
+                        :class="{ active: getDetailFilter(item.id) === 'all' }"
+                      >
+                        전체 ({{ getItemLogs(item.id).length }})
+                      </button>
+                      <button 
+                        @click="setDetailFilter(item.id, 'failed')" 
+                        class="filter-tab failed" 
+                        :class="{ active: getDetailFilter(item.id) === 'failed' }"
+                      >
+                        미흡만 ({{ getFailedLogsForItem(item.id).length }})
+                      </button>
+                      <button 
+                        @click="setDetailFilter(item.id, 'passed')" 
+                        class="filter-tab passed" 
+                        :class="{ active: getDetailFilter(item.id) === 'passed' }"
+                      >
+                        양호만 ({{ getPassedLogsForItem(item.id).length }})
+                      </button>
+                    </div>
 
-                  <!-- 항목 상세 로그 테이블 부분 -->
-                  <div v-if="getItemLogs(item.id).length > 0" class="logs-table-container-inline">
+                    <div class="pagination-info">
+                      {{ getCurrentPageInfo(item.id) }}
+                    </div>
+                  </div>
+
+                  <!-- 페이지네이션된 로그 테이블 -->
+                  <div v-if="getPaginatedLogs(item.id).length > 0" class="logs-table-container-inline">
                     <table class="logs-table">
                       <thead>
                         <tr>
                           <th>검사 일시</th>
                           <th>결과</th>
-                          <!-- 수시 점검이 아닌 경우에만 실제 값 컬럼 표시 -->
                           <th v-if="activeTab !== 'manual'">실제 값</th>
-
                           <th>제외</th>
                           <th>메모</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr
-                          v-for="log in getItemLogs(item.id)"
+                          v-for="log in getPaginatedLogs(item.id)"
                           :key="log.log_id"
-                          :class="{ 'excluded-row': log.is_excluded }"
+                          :class="{ 
+                            'excluded-row': log.is_excluded,
+                            'failed-row': log.passed === 0 && !log.is_excluded,
+                            'recent-failed': isRecentFailure(log)
+                          }"
                         >
-                          <td>{{ formatDate(log.checked_at) }}</td>
                           <td>
-                            <span
-                              class="result-badge"
-                              :class="log.passed === 1 ? 'passed' : 'failed'"
-                            >
+                            <div class="datetime-cell">
+                              {{ formatDate(log.checked_at) }}
+                              <span v-if="isRecentFailure(log)" class="recent-badge">최근</span>
+                            </div>
+                          </td>
+                          <td>
+                            <span class="result-badge" :class="log.passed === 1 ? 'passed' : 'failed'">
                               {{ log.passed === 1 ? '통과' : '실패' }}
                             </span>
                           </td>
-                          <!-- 수시 점검이 아닌 경우에만 실제 값 표시 -->
                           <td v-if="activeTab !== 'manual'" class="actual-value">
                             {{ formatActualValue(log.actual_value) }}
                           </td>
@@ -349,9 +423,30 @@
                         </tr>
                       </tbody>
                     </table>
+
+                    <!-- 페이지네이션 컨트롤 -->
+                    <div class="detail-pagination">
+                      <button 
+                        @click="previousDetailPage(item.id)" 
+                        :disabled="getDetailPage(item.id) === 0"
+                        class="nav-button"
+                      >
+                        ← 이전
+                      </button>
+                      <span class="page-info">
+                        {{ getDetailPage(item.id) + 1 }} / {{ getTotalDetailPages(item.id) }}
+                      </span>
+                      <button 
+                        @click="nextDetailPage(item.id)" 
+                        :disabled="getDetailPage(item.id) >= getTotalDetailPages(item.id) - 1"
+                        class="nav-button"
+                      >
+                        다음 →
+                      </button>
+                    </div>
                   </div>
                   <div v-else class="no-data-inline">
-                    <p>이 항목에 대한 상세 로그 데이터가 없습니다.</p>
+                    <p>선택한 조건에 해당하는 데이터가 없습니다.</p>
                   </div>
                 </div>
               </div>
@@ -426,6 +521,14 @@ const itemStats = ref({
 // Sidebar ref
 const sidebarRef = ref(null)
 
+// 차트 페이지네이션 관련 상태
+const currentChartPage = ref(0)
+const chartItemsPerPage = 10
+
+// 상세보기 페이지네이션 관련 상태
+const detailPageSettings = ref({}) // { itemId: { page: 0, filter: 'failed' } }
+const detailItemsPerPage = 5
+
 // 계산된 속성
 const isAuthenticated = computed(() => !!authStore.user)
 
@@ -454,6 +557,17 @@ const currentItemStats = computed(() => {
   return items.sort((a, b) => {
     return a.id - b.id // 1, 2, 3, 4... 순서로 정렬
   })
+})
+
+// 차트 페이지네이션 계산된 속성들
+const totalChartPages = computed(() => {
+  return Math.ceil(currentDailyStats.value.length / chartItemsPerPage)
+})
+
+const paginatedDailyStats = computed(() => {
+  const start = currentChartPage.value * chartItemsPerPage
+  const end = start + chartItemsPerPage
+  return currentDailyStats.value.slice(start, end)
 })
 
 // 통계 계산 함수들 (제외 항목 반영)
@@ -491,8 +605,149 @@ const getTotalPenalty = () => {
 }
 
 const getMaxValue = () => {
-  if (currentDailyStats.value.length === 0) return 1
-  return Math.max(...currentDailyStats.value.map((day) => Math.max(day.passed, day.failed)))
+  if (paginatedDailyStats.value.length === 0) return 1
+  return Math.max(...paginatedDailyStats.value.map((day) => Math.max(day.passed, day.failed)))
+}
+
+// 차트 페이지네이션 메서드들
+const getCurrentDateRange = () => {
+  if (paginatedDailyStats.value.length === 0) return ''
+  
+  const firstDate = paginatedDailyStats.value[0].date
+  const lastDate = paginatedDailyStats.value[paginatedDailyStats.value.length - 1].date
+  
+  if (firstDate === lastDate) {
+    return firstDate
+  }
+  
+  return `${firstDate} ~ ${lastDate}`
+}
+
+const previousPage = () => {
+  if (currentChartPage.value > 0) {
+    currentChartPage.value--
+  }
+}
+
+const nextPage = () => {
+  if (currentChartPage.value < totalChartPages.value - 1) {
+    currentChartPage.value++
+  }
+}
+
+// 상세보기 필터 및 페이지 관리
+const initDetailSettings = (itemId) => {
+  if (!detailPageSettings.value[itemId]) {
+    detailPageSettings.value[itemId] = {
+      page: 0,
+      filter: 'failed' // 기본적으로 미흡 건부터 표시
+    }
+  }
+}
+
+const getDetailFilter = (itemId) => {
+  initDetailSettings(itemId)
+  return detailPageSettings.value[itemId].filter
+}
+
+const setDetailFilter = (itemId, filter) => {
+  initDetailSettings(itemId)
+  detailPageSettings.value[itemId].filter = filter
+  detailPageSettings.value[itemId].page = 0 // 필터 변경시 첫 페이지로
+}
+
+const getDetailPage = (itemId) => {
+  initDetailSettings(itemId)
+  return detailPageSettings.value[itemId].page
+}
+
+// 항목별 로그 필터링 및 정렬
+const getFilteredLogs = (itemId) => {
+  const allLogs = getItemLogs(itemId)
+  const filter = getDetailFilter(itemId)
+  
+  let filtered = []
+  if (filter === 'failed') {
+    filtered = allLogs.filter(log => log.passed === 0)
+  } else if (filter === 'passed') {
+    filtered = allLogs.filter(log => log.passed === 1)
+  } else {
+    filtered = [...allLogs]
+  }
+  
+  // 미흡 건을 우선으로 정렬 (최신순)
+  return filtered.sort((a, b) => {
+    // 먼저 실패 여부로 정렬 (실패가 먼저)
+    if (a.passed !== b.passed) {
+      return a.passed - b.passed // 0(실패)이 1(성공)보다 먼저
+    }
+    // 같은 상태라면 최신순으로 정렬
+    return new Date(b.checked_at) - new Date(a.checked_at)
+  })
+}
+
+const getPaginatedLogs = (itemId) => {
+  const filteredLogs = getFilteredLogs(itemId)
+  const page = getDetailPage(itemId)
+  const start = page * detailItemsPerPage
+  const end = start + detailItemsPerPage
+  return filteredLogs.slice(start, end)
+}
+
+const getTotalDetailPages = (itemId) => {
+  const filteredLogs = getFilteredLogs(itemId)
+  return Math.ceil(filteredLogs.length / detailItemsPerPage)
+}
+
+// 특정 타입 로그 조회
+const getFailedLogsForItem = (itemId) => {
+  return getItemLogs(itemId).filter(log => log.passed === 0)
+}
+
+const getPassedLogsForItem = (itemId) => {
+  return getItemLogs(itemId).filter(log => log.passed === 1)
+}
+
+const getLatestFailedLog = (itemId) => {
+  const failedLogs = getFailedLogsForItem(itemId)
+  return failedLogs.sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at))[0]
+}
+
+// 최근 실패 여부 체크 (7일 이내)
+const isRecentFailure = (log) => {
+  if (log.passed === 1) return false
+  const logDate = new Date(log.checked_at)
+  const sevenDaysAgo = new Date()
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+  return logDate > sevenDaysAgo
+}
+
+// 페이지네이션 메서드
+const previousDetailPage = (itemId) => {
+  initDetailSettings(itemId)
+  if (detailPageSettings.value[itemId].page > 0) {
+    detailPageSettings.value[itemId].page--
+  }
+}
+
+const nextDetailPage = (itemId) => {
+  initDetailSettings(itemId)
+  const totalPages = getTotalDetailPages(itemId)
+  if (detailPageSettings.value[itemId].page < totalPages - 1) {
+    detailPageSettings.value[itemId].page++
+  }
+}
+
+// 페이지 정보 표시
+const getCurrentPageInfo = (itemId) => {
+  const filteredLogs = getFilteredLogs(itemId)
+  const page = getDetailPage(itemId)
+  const start = page * detailItemsPerPage + 1
+  const end = Math.min((page + 1) * detailItemsPerPage, filteredLogs.length)
+  
+  if (filteredLogs.length === 0) return '데이터 없음'
+  
+  return `${start}-${end} / ${filteredLogs.length}건`
 }
 
 // 탭 관련 메서드
@@ -674,9 +929,9 @@ const prepareAllDailyStats = () => {
       }
     })
 
-    // 날짜순으로 정렬
+    // 날짜순으로 정렬 (내림차순)
     const sortedDates = Object.values(groupedByDate).sort(
-      (a, b) => new Date(a.date) - new Date(b.date),
+      (a, b) => new Date(b.date) - new Date(a.date),
     )
 
     // 차트에서 사용하기 쉽게 데이터 구조 조정
@@ -747,6 +1002,7 @@ const toggleItemDetail = (itemId) => {
     selectedItemId.value = null
   } else {
     selectedItemId.value = itemId
+    initDetailSettings(itemId)
   }
 }
 
@@ -785,33 +1041,6 @@ const formatChartDate = (dateStr) => {
   return `${date.getMonth() + 1}/${date.getDate()}`
 }
 
-// 수시 점검용 실제 값 포맷팅 (기존 유지)
-const formatActualValueKey = (key) => {
-  const keyMap = {
-    seal_status: '봉인씰 상태',
-    check_date: '확인 날짜',
-    malware_detected: '악성코드 탐지',
-    threats_found: '위협 발견 수',
-    last_scan_date: '마지막 검사',
-    total_files: '전체 파일',
-    encrypted_files: '암호화된 파일',
-    encryption_rate: '암호화율',
-    screenSaverTime: '화면보호기 시간',
-    screenSaverSecure: '보안 설정',
-    screenSaverEnabled: '활성화 상태',
-    UpToDate: '업데이트',
-    DisplayName: '백신명',
-    RealTimeProtection: '실시간 보호',
-    minimumPasswordLength: '최소 길이',
-    passwordComplexity: '복잡도',
-    maximumPasswordAge: '변경 주기',
-    passwordHistorySize: '이력 크기',
-    folders: '공유 폴더',
-    fDenyTSConnections: '원격 접속 제한',
-  }
-  return keyMap[key] || key
-}
-
 // formatActualValue 함수 수정
 const formatActualValue = (actualValue) => {
   // 수시 점검인 경우 실제 값을 표시하지 않음
@@ -842,18 +1071,6 @@ const formatActualValue = (actualValue) => {
   return actualValue.toString()
 }
 
-// 감점 포맷팅 함수
-const formatPenalty = (penalty) => {
-  return penalty ? `-${penalty}점` : '0점'
-}
-
-const getPenaltyDescription = (penalty) => {
-  if (penalty === 0) return '감점 없음'
-  if (penalty <= 1.0) return '경미한 감점'
-  if (penalty <= 2.5) return '주의 필요'
-  return '즉시 개선 필요'
-}
-
 // 제외 유형 텍스트 변환
 const getExclusionTypeText = (exclusionType) => {
   switch (exclusionType) {
@@ -870,8 +1087,9 @@ const getExclusionTypeText = (exclusionType) => {
   }
 }
 
-// 탭 변경 시 선택된 항목 초기화
+// 탭 변경시 페이지 초기화
 watch(activeTab, () => {
+  currentChartPage.value = 0
   selectedItemId.value = null
 })
 
@@ -916,6 +1134,8 @@ watch(
         all: [],
       }
       selectedItemId.value = null
+      currentChartPage.value = 0
+      detailPageSettings.value = {}
     }
   },
 )
