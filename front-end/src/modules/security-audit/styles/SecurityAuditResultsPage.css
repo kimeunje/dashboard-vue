@@ -1,4 +1,8 @@
-/* 기본 페이지 레이아웃 */
+/* SecurityAuditResultsPage.css - 정리된 버전 */
+
+/* =================
+   기본 레이아웃
+   ================= */
 .security-audit-layout {
   display: flex;
   min-height: 100vh;
@@ -27,7 +31,9 @@
   font-weight: 400;
 }
 
-/* 탭 스타일 */
+/* =================
+   탭 스타일
+   ================= */
 .tabs-container {
   border-bottom: 1px solid #e5e7eb;
 }
@@ -79,7 +85,9 @@
   color: var(--primary-color);
 }
 
-/* 로딩 및 에러 상태 */
+/* =================
+   로딩 및 에러 상태
+   ================= */
 .loading-container,
 .error-container {
   display: flex;
@@ -116,7 +124,9 @@
   margin-top: 20px;
 }
 
-/* 통계 카드 그리드 */
+/* =================
+   통계 카드 그리드
+   ================= */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -125,7 +135,9 @@
   padding: 0 30px 30px 30px;
 }
 
-/* 일별 통계 */
+/* =================
+   일별 통계 차트
+   ================= */
 .daily-stats-container {
   padding: 30px;
   display: flex;
@@ -226,7 +238,70 @@
   background-color: #ffc107;
 }
 
-/* 일별 통계 테이블 */
+/* =================
+   차트 컨트롤 및 페이지네이션
+   ================= */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+
+.chart-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.date-range-info {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-button {
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  background-color: white;
+  color: #374151;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.nav-button:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.nav-button:disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+}
+
+.page-info {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* =================
+   일별 통계 테이블
+   ================= */
 .daily-stats-table {
   overflow-x: auto;
 }
@@ -268,14 +343,16 @@
   font-weight: 600;
 }
 
-/* 항목별 상세 결과 */
+/* =================
+   항목별 상세 결과
+   ================= */
 .items-container {
   margin: 0 30px 30px 30px;
 }
 
 .items-header {
   display: grid;
-  grid-template-columns: 80px 1fr 120px 100px 80px 80px 100px 100px 80px 100px;
+  grid-template-columns: 80px 1fr 120px 100px 80px 80px 100px 100px;
   gap: 16px;
   padding: 16px 20px;
   background-color: #f9fafb;
@@ -295,7 +372,7 @@
 
 .item-row {
   display: grid;
-  grid-template-columns: 80px 1fr 120px 100px 80px 80px 100px 100px 80px 100px;
+  grid-template-columns: 80px 1fr 120px 100px 80px 80px 100px 100px;
   gap: 16px;
   padding: 16px 20px;
   align-items: center;
@@ -402,38 +479,28 @@
   font-weight: 500;
 }
 
-.penalty-cell {
-  flex-direction: column;
-  gap: 2px;
+.detail-button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.penalty-value {
-  font-weight: 600;
-  font-size: 14px;
+.detail-button:hover {
+  background-color: var(--dark-blue);
 }
 
-.penalty-value.no-penalty {
-  color: #10b981;
+.detail-button.active {
+  background-color: #ef4444;
 }
 
-.penalty-value.low-penalty {
-  color: #fbbf24;
-}
-
-.penalty-value.medium-penalty {
-  color: #f59e0b;
-}
-
-.penalty-value.high-penalty {
-  color: #ef4444;
-}
-
-.penalty-info {
-  font-size: 11px;
-  color: #9ca3af;
-}
-
-/* 제외 상태 배지 */
+/* =================
+   배지 스타일
+   ================= */
 .excluded-badge {
   display: inline-flex;
   align-items: center;
@@ -457,30 +524,35 @@
   font-weight: 600;
 }
 
-.excluded-cell {
-  text-align: center;
+.result-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
 }
 
-.detail-button {
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+.result-badge.passed {
+  background-color: #dcfce7;
+  color: #166534;
 }
 
-.detail-button:hover {
-  background-color: var(--dark-blue);
+.result-badge.failed {
+  background-color: #fee2e2;
+  color: #dc2626;
 }
 
-.detail-button.active {
+.recent-badge {
   background-color: #ef4444;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
 }
 
-/* 항목 상세 정보 */
+/* =================
+   항목 상세 정보
+   ================= */
 .item-detail-container {
   padding: 20px 30px;
   background-color: #f8fafc;
@@ -526,7 +598,108 @@
   margin-left: 4px;
 }
 
-/* 로그 테이블 */
+/* =================
+   미흡 건 요약
+   ================= */
+.critical-summary {
+  background: linear-gradient(135deg, #fee2e2 0%, #fef3f3 100%);
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.summary-header h4 {
+  margin: 0;
+  color: #dc2626;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.summary-count {
+  background-color: #dc2626;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.summary-stats {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  color: #7f1d1d;
+  font-size: 14px;
+}
+
+/* =================
+   필터 및 컨트롤
+   ================= */
+.detail-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-tab {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  background-color: white;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-tab:hover {
+  background-color: #f9fafb;
+}
+
+.filter-tab.active {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.filter-tab.failed.active {
+  background-color: #ef4444;
+  border-color: #ef4444;
+}
+
+.filter-tab.passed.active {
+  background-color: #10b981;
+  border-color: #10b981;
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* =================
+   로그 테이블
+   ================= */
 .logs-table-container-inline {
   overflow-x: auto;
 }
@@ -560,21 +733,20 @@
   opacity: 0.8;
 }
 
-.result-badge {
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
+.failed-row {
+  background-color: #fef2f2 !important;
+  border-left: 3px solid #ef4444;
 }
 
-.result-badge.passed {
-  background-color: #dcfce7;
-  color: #166534;
+.recent-failed {
+  background-color: #fee2e2 !important;
+  border-left: 3px solid #dc2626;
 }
 
-.result-badge.failed {
-  background-color: #fee2e2;
-  color: #dc2626;
+.datetime-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .actual-value {
@@ -583,51 +755,30 @@
   font-size: 12px;
 }
 
-.penalty-applied {
-  text-align: center;
-  font-weight: 600;
-}
-
-.excluded-penalty {
-  color: #6c757d;
-  font-style: italic;
-  text-decoration: line-through;
-}
-
-.penalty-value {
-  color: #f59e0b;
-}
-
-.no-penalty {
-  color: #10b981;
-}
-
-.exclusion-status {
-  text-align: center;
-}
-
-.excluded-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: #6c757d;
-  font-size: 12px;
-}
-
-.included-indicator {
-  color: #28a745;
-  font-size: 12px;
-}
-
-.log-notes {
+.notes {
   font-size: 12px;
   color: #6b7280;
-  margin: 0;
   max-width: 150px;
   word-break: break-word;
 }
 
-/* 데이터 없음 상태 */
+/* =================
+   상세 페이지네이션
+   ================= */
+.detail-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #f8fafc;
+  border-radius: 6px;
+}
+
+/* =================
+   데이터 없음 상태
+   ================= */
 .no-data,
 .no-data-inline {
   text-align: center;
@@ -636,7 +787,9 @@
   font-style: italic;
 }
 
-/* 인증 관련 */
+/* =================
+   인증 관련
+   ================= */
 .not-authenticated {
   display: flex;
   align-items: center;
@@ -658,7 +811,9 @@
   margin-bottom: 20px;
 }
 
-/* 모바일 메뉴 토글 */
+/* =================
+   모바일 메뉴 토글
+   ================= */
 .mobile-menu-toggle {
   display: none;
   position: fixed;
@@ -673,18 +828,21 @@
   cursor: pointer;
 }
 
-/* 애니메이션 */
+/* =================
+   애니메이션
+   ================= */
 @keyframes spin {
   0% {
     transform: rotate(0deg);
   }
-
   100% {
     transform: rotate(360deg);
   }
 }
 
-/* 반응형 디자인 */
+/* =================
+   반응형 디자인
+   ================= */
 @media (max-width: 1200px) {
   .main-content {
     margin-left: 0;
@@ -703,7 +861,7 @@
 
   .items-header,
   .item-row {
-    grid-template-columns: 60px 1fr 100px 80px 60px 60px 80px 80px 60px 80px;
+    grid-template-columns: 60px 1fr 100px 80px 60px 60px 80px 80px;
     gap: 8px;
     padding: 12px 15px;
     font-size: 12px;
@@ -716,9 +874,20 @@
     margin-bottom: 20px;
   }
 
-  .section-title {
-    font-size: 18px;
-    padding: 15px 20px 0 20px;
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .chart-controls {
+    align-items: flex-start;
+    width: 100%;
+  }
+  
+  .pagination-controls {
+    justify-content: space-between;
+    width: 100%;
   }
 
   .tabs-header {
@@ -760,39 +929,39 @@
 
   .items-header,
   .item-row {
-    grid-template-columns: 50px 120px 80px 60px 50px 50px 60px 70px 50px 60px;
+    grid-template-columns: 50px 120px 80px 60px 50px 50px 60px 70px;
     gap: 4px;
     padding: 8px 10px;
     font-size: 11px;
-    min-width: 700px;
+    min-width: 600px;
   }
 
   .item-detail-container {
     padding: 15px 20px;
   }
 
-  .detail-meta {
-    gap: 6px;
+  .detail-controls {
+    flex-direction: column;
+    gap: 12px;
   }
-
-  .meta-item {
-    font-size: 13px;
+  
+  .summary-stats {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .filter-tabs {
+    flex-wrap: wrap;
   }
 
   .logs-table {
     font-size: 11px;
-    min-width: 600px;
+    min-width: 500px;
   }
 
   .logs-table th,
   .logs-table td {
     padding: 6px 8px;
-  }
-
-  .excluded-badge,
-  .included-badge {
-    font-size: 10px;
-    padding: 1px 6px;
   }
 }
 
@@ -804,16 +973,6 @@
   .page-title {
     font-size: 20px;
     margin-bottom: 15px;
-    padding-bottom: 8px;
-  }
-
-  .section {
-    margin-bottom: 20px;
-  }
-
-  .section-title {
-    font-size: 16px;
-    padding: 10px 15px 0 15px;
   }
 
   .stats-grid {
@@ -874,7 +1033,7 @@
 
   .logs-table {
     font-size: 10px;
-    min-width: 500px;
+    min-width: 400px;
   }
 
   .logs-table th,
@@ -886,7 +1045,7 @@
     max-width: 100px;
   }
 
-  .log-notes {
+  .notes {
     max-width: 80px;
   }
 }
