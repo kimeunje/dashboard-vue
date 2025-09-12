@@ -489,3 +489,292 @@
     margin-bottom: 12px;
   }
 }
+
+/* SecurityEducationPage.css - 추가할 스타일들 */
+
+/* 🔄 교육 카드 상태별 스타일 */
+.dashboard-card.education-completed {
+  border-left: 4px solid #10b981; /* 녹색: 완료 */
+}
+
+.dashboard-card.education-in-progress {
+  border-left: 4px solid #f59e0b; /* 노란색: 진행중 */
+}
+
+.dashboard-card.education-incomplete {
+  border-left: 4px solid #ef4444; /* 빨간색: 미완료 */
+}
+
+/* 🔄 교육 아이콘 상태별 스타일 */
+.card-icon.education.icon-success {
+  background: linear-gradient(135deg, #10b981, #059669); /* 녹색 */
+}
+
+.card-icon.education.icon-warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706); /* 노란색 */
+}
+
+.card-icon.education.icon-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626); /* 빨간색 */
+}
+
+/* 🔄 상태 뱃지 스타일 개선 */
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.success {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.status-badge.warning {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  animation: pulse-warning 2s infinite;
+}
+
+.status-badge.danger {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.status-badge.unknown {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.status-badge.excluded {
+  background-color: #e5e7eb;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+/* 🔄 기간별 카드 상태 스타일 개선 */
+.period-card.passed {
+  border-color: #10b981;
+  background-color: #ecfdf5;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.1);
+}
+
+.period-card.partial {
+  border-color: #f59e0b;
+  background-color: #fffbeb; /* 노란색 배경 - 진행중/부분완료 */
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.1);
+  animation: pulse-partial 3s infinite;
+}
+
+.period-card.failed {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.1);
+}
+
+.period-card.pending {
+  border-color: #f59e0b;
+  background-color: #fffbeb;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.1);
+}
+
+.period-card.excluded {
+  border-color: #6b7280;
+  background-color: #f9fafb;
+  opacity: 0.8;
+}
+
+/* 🔄 알림 메시지 스타일 개선 */
+.result-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.result-notice.pass {
+  background-color: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  color: #065f46;
+}
+
+.result-notice.pending {
+  background-color: #fffbeb; /* 노란색 배경 - 진행중 */
+  border: 1px solid #fde68a;
+  color: #92400e;
+  animation: pulse-pending 2s infinite;
+}
+
+.result-notice.fail {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.result-notice.excluded {
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+}
+
+/* 🔄 알림 아이콘 및 콘텐츠 스타일 */
+.notice-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notice-content {
+  flex: 1;
+}
+
+.notice-content p {
+  margin: 0 0 4px 0;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.notice-content small {
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: normal;
+}
+
+/* 🔄 진행률 표시 색상 클래스 */
+.completion-rate-excellent {
+  color: #10b981 !important;
+  font-weight: 600;
+}
+
+.completion-rate-good {
+  color: #3b82f6 !important;
+  font-weight: 600;
+}
+
+.completion-rate-warning {
+  color: #f59e0b !important;
+  font-weight: 600;
+}
+
+.completion-rate-poor {
+  color: #ef4444 !important;
+  font-weight: 600;
+}
+
+/* 🔄 애니메이션 효과 */
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes pulse-partial {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 1px 3px rgba(245, 158, 11, 0.1);
+  }
+  50% {
+    transform: scale(1.002);
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15);
+  }
+}
+
+@keyframes pulse-pending {
+  0%, 100% {
+    background-color: #fffbeb;
+  }
+  50% {
+    background-color: #fef3c7;
+  }
+}
+
+/* 🔄 카드 진행률 바 영역 개선 */
+.card-progress {
+  margin-top: 16px;
+}
+
+.card-progress .result-notice {
+  margin-top: 0;
+}
+
+/* 🔄 상세 정보 행 개선 */
+.detail-row .value.info {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.detail-row .value.success {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.detail-row .value.danger {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.detail-row .value.warning {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+/* 🔄 호버 효과 개선 */
+.period-card:hover {
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+
+.period-card.passed:hover {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.period-card.partial:hover {
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+}
+
+.period-card.failed:hover {
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+/* 🔄 반응형 개선 */
+@media (max-width: 768px) {
+  .status-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+  
+  .result-notice {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+  
+  .notice-icon {
+    font-size: 24px;
+    margin-top: 0;
+  }
+  
+  .card-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .card-header .status-badge {
+    order: 3;
+    width: 100%;
+    text-align: center;
+    margin-top: 8px;
+  }
+}
