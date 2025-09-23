@@ -75,11 +75,26 @@ class 동일_패스워드_설정_제한(ValidationStrategy):
 
 
 class 공유폴더_확인(ValidationStrategy):
-
     def validate(self, actual_value: dict) -> bool:
         actual_folders = actual_value.get("folders", [])
-        required_folders = ["IPC$"]
-        return set(actual_folders) == set(required_folders)
+        
+        # 공유 폴더가 없는 경우 패스 (보안상 안전함)
+        if not actual_folders:
+            return True
+        
+        # null이 포함된 경우 필터링 (실제로는 공유 폴더 없음)
+        actual_folders = [folder for folder in actual_folders if folder is not None]
+        
+        # 필터링 후 빈 배열이면 패스
+        if not actual_folders:
+            return True
+        
+        # IPC$만 있는 경우 패스 (시스템 기본 공유)
+        if set(actual_folders) == {"IPC$"}:
+            return True
+        
+        # 다른 불필요한 폴더가 있는 경우 실패
+        return False
 
 
 class 불분명_프린터_확인(ValidationStrategy):
