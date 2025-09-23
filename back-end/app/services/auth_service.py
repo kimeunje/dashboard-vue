@@ -490,7 +490,7 @@ class AuthService:
                     execute_query(
                         """
                         INSERT INTO audit_log (user_id, item_id, actual_value, passed, notes, checked_at)
-                        VALUES (%s, %s, %s, 0, '검사 대기 중', NOW())
+                        VALUES (%s, %s, %s, 1, 'pending 상태 자동 통과 처리', NOW())
                         """,
                         (user_id, item["item_id"], default_actual_value),
                     )

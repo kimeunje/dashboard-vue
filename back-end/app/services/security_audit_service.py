@@ -88,6 +88,37 @@ class AuditService:
     def get_user_logs(self, username: str, check_type: str = None) -> list:
         return self.get_user_logs_hybrid(username, check_type)
 
+
+    def _is_pending_status(self, actual_value, notes):
+        """pending 상태 여부 확인"""
+        # actual_value에서 pending 상태 확인
+        if isinstance(actual_value, dict):
+            if actual_value.get("status") == "pending":
+                return True
+            if "검사 대기 중" in str(actual_value.get("message", "")):
+                return True
+        
+        # actual_value가 문자열인 경우 JSON 파싱 시도
+        if isinstance(actual_value, str):
+            try:
+                parsed_value = json.loads(actual_value)
+                if isinstance(parsed_value, dict):
+                    if parsed_value.get("status") == "pending":
+                        return True
+                    if "검사 대기 중" in str(parsed_value.get("message", "")):
+                        return True
+            except (json.JSONDecodeError, TypeError):
+                # JSON 파싱 실패 시 문자열로 직접 확인
+                if "pending" in actual_value.lower() or "검사 대기 중" in actual_value:
+                    return True
+        
+        # notes에서 pending 상태 확인
+        if notes and ("검사 대기 중" in notes or "pending" in notes.lower()):
+            return True
+            
+        return False
+
+
     # 나머지 메서드들은 기존과 동일 (validate_check, execute_manual_check 등)
     def validate_check(self, data: dict) -> dict:
         """항목 검증 및 로그 업데이트 (제외 설정 반영)"""
@@ -118,17 +149,25 @@ class AuditService:
         # 제외 설정 확인 (수정된 버전)
         exception_info = self._check_item_excluded_for_user(user_id, item_id)
 
-        # 검증 로직
-        passed = None
+        # ✅ 추가: pending 상태 자동 처리 로직
+        if self._is_pending_status(actual_value, notes):
+            passed = 1  # pending 상태는 자동으로 통과 처리
+            if not notes or notes == "검사 대기 중":
+                notes = "pending 상태 자동 통과 처리"
+            else:
+                notes += " [pending 상태 자동 통과 처리]"
+        else:
+            # 검증 로직
+            passed = None
+            
+            # 예외 목록에 없는 경우만 검증
+            if item_name not in EXCEPTION_ITEM_NAMES:
+                # 검증 수행
+                passed = 1 if validate_security_item(item_name, actual_value) else 0
 
-        # 예외 목록에 없는 경우만 검증
-        if item_name not in EXCEPTION_ITEM_NAMES:
-            # 검증 수행
-            passed = 1 if validate_security_item(item_name, actual_value) else 0
-
-            # 검증 결과에 따라 자동으로 notes 생성
-            if notes == "":
-                notes = generate_notes(item_name, passed, actual_value)
+                # 검증 결과에 따라 자동으로 notes 생성
+                if notes == "":
+                    notes = generate_notes(item_name, passed, actual_value)
 
         # 제외 설정이 있는 경우 notes에 추가
         if exception_info["is_excluded"]:
