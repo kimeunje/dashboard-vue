@@ -778,3 +778,313 @@
     margin-top: 8px;
   }
 }
+
+/* 🔄 정보보호 교육 현황 - 단순화된 스타일 */
+
+/* ===== 전체 교육 상태 카드 ===== */
+.education-card {
+  transition: all 0.3s ease;
+}
+
+/* 🔄 교육 완료 상태 (100%만) */
+.education-card.education-completed {
+  border-left: 4px solid #22c55e;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+
+.education-card.education-completed .card-icon.education {
+  background: #22c55e;
+  color: white;
+}
+
+/* 🔄 교육 미완료 상태 (100% 외 모두) */
+.education-card.education-incomplete {
+  border-left: 4px solid #ef4444;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+}
+
+.education-card.education-incomplete .card-icon.education {
+  background: #ef4444;
+  color: white;
+}
+
+/* ===== 개별 교육 기간 카드 ===== */
+.period-card {
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+/* 🔄 수료 상태 (100%만) */
+.period-card.passed {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #22c55e;
+}
+
+.period-card.passed:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.15);
+}
+
+/* 🔄 미수료 상태 (100% 외 모두) */
+.period-card.failed {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-color: #ef4444;
+}
+
+.period-card.failed:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.15);
+}
+
+/* 제외된 기록 */
+.period-card.excluded {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-color: #64748b;
+  opacity: 0.8;
+}
+
+/* ===== 상태 뱃지 ===== */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 🔄 수료 뱃지 (100%만) */
+.status-badge.success {
+  background: #22c55e;
+  color: white;
+}
+
+/* 🔄 미수료 뱃지 (100% 외 모두) */
+.status-badge.danger {
+  background: #ef4444;
+  color: white;
+}
+
+.status-badge.excluded {
+  background: #64748b;
+  color: white;
+}
+
+.status-badge.unknown {
+  background: #6b7280;
+  color: white;
+}
+
+/* ===== 진행률 바 ===== */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 0.8s ease, background-color 0.3s ease;
+  border-radius: 4px;
+}
+
+/* 🔄 진행률 색상 단순화 */
+.progress-fill.excellent {
+  background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+}
+
+.progress-fill.poor {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* ===== 완료율 텍스트 ===== */
+.completion-rate-excellent {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.completion-rate-poor {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* ===== 알림 영역 ===== */
+.result-notice {
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* 🔄 수료 알림 (100%만) */
+.result-notice.pass {
+  background: #f0fdf4;
+  border: 1px solid #22c55e;
+  color: #15803d;
+}
+
+/* 🔄 미수료 알림 (100% 외 모두) */
+.result-notice.fail {
+  background: #fef2f2;
+  border: 1px solid #ef4444;
+  color: #dc2626;
+}
+
+.result-notice.excluded {
+  background: #f8fafc;
+  border: 1px solid #64748b;
+  color: #475569;
+}
+
+.result-notice.pending {
+  background: #f8fafc;
+  border: 1px solid #94a3b8;
+  color: #64748b;
+}
+
+/* ===== 관리자 화면 상태 스타일 ===== */
+.status-completed {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.status-incomplete {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.status-excluded {
+  color: #64748b;
+  font-weight: 500;
+  font-style: italic;
+}
+
+/* ===== 수료율 표시 ===== */
+.rate-excellent {
+  color: #22c55e;
+  font-weight: 700;
+}
+
+.rate-poor {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.text-excellent {
+  color: #22c55e;
+}
+
+.text-danger {
+  color: #ef4444;
+}
+
+/* ===== 대시보드 통계 ===== */
+.stats-excellent {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-left: 4px solid #22c55e;
+}
+
+.stats-poor {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-left: 4px solid #ef4444;
+}
+
+.stats-unknown {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-left: 4px solid #64748b;
+}
+
+/* ===== 완료 처리 버튼 ===== */
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-completed {
+  background: #22c55e;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: not-allowed;
+}
+
+.btn-disabled {
+  background: #9ca3af;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: not-allowed;
+}
+
+/* ===== 아이콘 상태 ===== */
+.icon-success {
+  color: #22c55e;
+}
+
+.icon-danger {
+  color: #ef4444;
+}
+
+/* ===== 반응형 조정 ===== */
+@media (max-width: 768px) {
+  .period-card {
+    padding: 16px;
+  }
+  
+  .status-badge {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  
+  .result-notice {
+    padding: 12px;
+  }
+}
+
+/* ===== 애니메이션 효과 ===== */
+@keyframes statusChange {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.period-card.status-changed {
+  animation: statusChange 0.6s ease;
+}
+
+/* ===== 접근성 개선 ===== */
+.status-badge:focus,
+.period-card:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* 🔄 제거된 기존 스타일들 */
+/* 
+기존에 있던 다음 클래스들은 더 이상 사용하지 않음:
+- .good, .warning, .partial
+- .completion-rate-warning, .completion-rate-good
+- .rate-good, .rate-warning
+- .text-good, .text-warning
+- .education-in-progress
+- .icon-warning
+- 기타 중간 단계 스타일들
+*/
