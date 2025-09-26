@@ -172,34 +172,28 @@ class EducationPeriodService:
             print(f"[DB_DEBUG] 기간 생성 예외: {str(e)}")
             return {"success": False, "message": f"기간 생성 실패: {str(e)}"}
 
+
     def complete_period(self, period_id: int, completed_by: str) -> dict:
-        """교육 기간 완료 처리 (자동 통과 기능 포함)"""
+        """교육 기간 완료 처리 - 부분 완료 사용자도 자동 통과 처리"""
         try:
-            print(
-                f"[DB_DEBUG] 완료 처리 시작 - period_id: {period_id}, completed_by: {completed_by}"
-            )
+            print(f"[DB_DEBUG] 완료 처리 시작 - period_id: {period_id}, completed_by: {completed_by}")
 
             with DatabaseManager.get_db_cursor() as cursor:
-                # 1. 기간 정보 조회
-                print(f"[DB_DEBUG] 기간 정보 조회 중...")
+                # 1. 기간 정보 확인
                 cursor.execute(
                     """
-                    SELECT period_name, education_type, education_year, auto_pass_setting, is_completed
-                    FROM security_education_periods 
+                    SELECT period_id, period_name, education_type, education_year, 
+                        is_completed, auto_pass_setting
+                    FROM security_education_periods
                     WHERE period_id = %s
                     """,
-                    (period_id, ),
+                    (period_id,),
                 )
+
                 period_info = cursor.fetchone()
-
-                print(f"[DB_DEBUG] 기간 정보: {period_info}")
-
                 if not period_info:
-                    print(f"[DB_DEBUG] 기간 정보 없음")
-                    return {
-                        "success": False,
-                        "message": "해당 기간을 찾을 수 없습니다.",
-                    }
+                    print(f"[DB_DEBUG] 기간을 찾을 수 없음")
+                    return {"success": False, "message": "해당 기간을 찾을 수 없습니다."}
 
                 if period_info["is_completed"]:
                     print(f"[DB_DEBUG] 이미 완료된 기간")
@@ -207,10 +201,13 @@ class EducationPeriodService:
 
                 # 2. 자동 통과 처리 (설정이 활성화된 경우)
                 auto_passed_count = 0
+                updated_partial_count = 0  # 🔄 부분 완료 사용자 업데이트 수
+
                 if period_info["auto_pass_setting"]:
                     print(f"[DB_DEBUG] 자동 통과 처리 시작")
 
                     try:
+                        # 🔄 미실시 사용자 자동 통과 처리 (기존 로직)
                         cursor.execute(
                             """
                             SELECT u.uid, u.username
@@ -221,21 +218,17 @@ class EducationPeriodService:
                                 WHERE period_id = %s
                             )
                             """,
-                            (period_id, ),
+                            (period_id,),
                         )
 
                         users_to_auto_pass = cursor.fetchall()
-                        print(f"[DB_DEBUG] 자동 통과 대상 사용자: {len(users_to_auto_pass)}명")
+                        print(f"[DB_DEBUG] 미실시 사용자 자동 통과 대상: {len(users_to_auto_pass)}명")
 
-                        # 각 사용자별로 자동 통과 기록 생성
+                        # 미실시 사용자별로 자동 통과 기록 생성
                         for user in users_to_auto_pass:
                             try:
-                                print(
-                                    f"[DB_DEBUG] 자동 통과 처리: {user['username']} (uid: {user['uid']})"
-                                )
+                                print(f"[DB_DEBUG] 미실시 사용자 자동 통과 처리: {user['username']} (uid: {user['uid']})")
 
-                                # security_education 테이블 스키마에 맞는 자동 통과 기록 생성
-                                # period_name을 course_name으로 사용하여 의미있는 과정명 표시
                                 cursor.execute(
                                     """
                                     INSERT INTO security_education 
@@ -249,7 +242,7 @@ class EducationPeriodService:
                                         period_id,
                                         period_info["education_type"],
                                         period_info["education_year"],
-                                        period_info["period_name"],  # 기간명을 과정명으로 사용
+                                        period_info["period_name"],
                                     ),
                                 )
 
@@ -258,32 +251,57 @@ class EducationPeriodService:
                                     print(f"[DB_DEBUG] {user['username']} 자동 통과 성공")
 
                             except Exception as user_error:
-                                print(
-                                    f"[DB_DEBUG] 사용자 {user['username']} 자동 통과 실패: {str(user_error)}"
-                                )
+                                print(f"[DB_DEBUG] 사용자 {user['username']} 자동 통과 실패: {str(user_error)}")
                                 continue
 
-                        print(f"[DB_DEBUG] 자동 통과 처리 완료 - {auto_passed_count}명")
-
-                        # 실제 INSERT된 데이터 확인
+                        # 🔄 핵심 개선: 부분 완료 사용자를 완전 수료로 변경
+                        print(f"[DB_DEBUG] 부분 완료 사용자 완전 수료 처리 시작")
+                        
                         cursor.execute(
                             """
-                            SELECT u.username, se.education_type, se.completion_rate, se.notes, se.created_at
-                            FROM security_education se
-                            JOIN users u ON se.user_id = u.uid
-                            WHERE se.period_id = %s AND se.notes = '기간 완료로 인한 자동 통과 처리'
-                            ORDER BY se.created_at DESC
-                            LIMIT 5
+                            SELECT user_id, completed_count, incomplete_count, 
+                                (completed_count / (completed_count + incomplete_count) * 100) as completion_rate
+                            FROM security_education 
+                            WHERE period_id = %s 
+                            AND (completed_count + incomplete_count) > 0
+                            AND (completed_count / (completed_count + incomplete_count) * 100) < 100
                             """,
-                            (period_id, ),
+                            (period_id,),
                         )
 
-                        inserted_records = cursor.fetchall()
-                        print(f"[DB_DEBUG] INSERT 확인 - {len(inserted_records)}건:")
-                        for record in inserted_records:
-                            print(
-                                f"[DB_DEBUG] - {record['username']}: {record['education_type']} ({record['created_at']})"
-                            )
+                        partial_users = cursor.fetchall()
+                        print(f"[DB_DEBUG] 부분 완료 사용자: {len(partial_users)}명")
+
+                        for partial_user in partial_users:
+                            try:
+                                # 🔄 부분 완료 사용자를 완전 수료로 업데이트
+                                # incomplete_count를 0으로 만들어 100% 수료 처리
+                                total_courses = partial_user['completed_count'] + partial_user['incomplete_count']
+                                
+                                cursor.execute(
+                                    """
+                                    UPDATE security_education 
+                                    SET completed_count = %s, 
+                                        incomplete_count = 0,
+                                        notes = CONCAT(COALESCE(notes, ''), 
+                                                    CASE WHEN notes IS NOT NULL AND notes != '' 
+                                                        THEN ' / ' ELSE '' END,
+                                                    '기간 완료로 인한 100% 수료 처리'),
+                                        updated_at = NOW()
+                                    WHERE user_id = %s AND period_id = %s
+                                    """,
+                                    (total_courses, partial_user['user_id'], period_id),
+                                )
+
+                                if cursor.rowcount > 0:
+                                    updated_partial_count += 1
+                                    print(f"[DB_DEBUG] 사용자 {partial_user['user_id']} 부분완료→완전수료 처리 완료")
+
+                            except Exception as update_error:
+                                print(f"[DB_DEBUG] 사용자 {partial_user['user_id']} 업데이트 실패: {str(update_error)}")
+                                continue
+
+                        print(f"[DB_DEBUG] 자동 통과 처리 완료 - 신규: {auto_passed_count}명, 업데이트: {updated_partial_count}명")
 
                     except Exception as e:
                         print(f"[DB_DEBUG] 자동 통과 처리 실패: {str(e)}")
@@ -304,19 +322,24 @@ class EducationPeriodService:
 
                 # 4. 결과 메시지 생성
                 message = f"{period_info['period_name']} 기간이 완료되었습니다."
-                if auto_passed_count > 0:
-                    message += f" 미실시 사용자 {auto_passed_count}명이 자동으로 통과 처리되었습니다."
+                if auto_passed_count > 0 or updated_partial_count > 0:
+                    if auto_passed_count > 0 and updated_partial_count > 0:
+                        message += f" 미실시 사용자 {auto_passed_count}명이 자동 통과, 부분완료 사용자 {updated_partial_count}명이 완전 수료 처리되었습니다."
+                    elif auto_passed_count > 0:
+                        message += f" 미실시 사용자 {auto_passed_count}명이 자동 통과 처리되었습니다."
+                    elif updated_partial_count > 0:
+                        message += f" 부분완료 사용자 {updated_partial_count}명이 완전 수료 처리되었습니다."
 
                 return {
                     "success": True,
                     "message": message,
                     "auto_passed_count": auto_passed_count,
+                    "updated_partial_count": updated_partial_count,  # 🔄 추가 정보
                 }
 
         except Exception as e:
             print(f"[DB_DEBUG] 완료 처리 예외: {str(e)}")
             import traceback
-
             traceback.print_exc()
             return {"success": False, "message": f"완료 처리 실패: {str(e)}"}
 
