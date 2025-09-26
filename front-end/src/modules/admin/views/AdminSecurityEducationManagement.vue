@@ -74,13 +74,13 @@
                       <span class="stat-number">{{
                         period.statistics.success_user_count || 0
                       }}</span>
-                      <span class="stat-text">성공자</span>
+                      <span class="stat-text">수료자</span>
                     </div>
                     <div class="stat-compact failure">
                       <span class="stat-number">{{
                         period.statistics.failure_user_count || 0
                       }}</span>
-                      <span class="stat-text">실패자</span>
+                      <span class="stat-text">미수료자</span>
                     </div>
                     <div
                       class="stat-compact rate"
@@ -89,7 +89,7 @@
                       <span class="stat-number">{{
                         formatSuccessRate(period.statistics.success_rate)
                       }}</span>
-                      <span class="stat-text">성공률</span>
+                      <span class="stat-text">수료율</span>
                     </div>
                   </div>
 
@@ -118,23 +118,6 @@
                     </span>
                   </div>
                   <div class="card-actions">
-                    <!-- 완료되지 않은 경우: 수정, 완료 처리, 삭제 버튼 표시 -->
-                    <!-- <button
-                      @click="viewDetailedStatistics(period)"
-                      class="stats-button"
-                      :disabled="loadingStats || !period.is_completed"
-                    >
-                      <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                        <path
-                          d="M1.5 1a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5h-13zm2 2h10v10H3.5V3z"
-                        />
-                        <path
-                          d="M6 7a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3A.5.5 0 0 1 6 7zM6 9a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3A.5.5 0 0 1 6 9z"
-                        />
-                      </svg>
-                      상세 통계
-                    </button> -->
-
                     <!-- 수정 버튼: 완료된 상태에서는 비활성화 -->
                     <button
                       @click="editPeriod(period)"
@@ -230,13 +213,13 @@
                     <div class="summary-value success">
                       {{ selectedPeriodStats.summary.success_users }}
                     </div>
-                    <div class="summary-label">성공자 수</div>
+                    <div class="summary-label">수료자 수</div>
                   </div>
                   <div class="summary-item">
                     <div class="summary-value failure">
                       {{ selectedPeriodStats.summary.failure_users }}
                     </div>
-                    <div class="summary-label">실패자 수</div>
+                    <div class="summary-label">미수료자 수</div>
                   </div>
                 </div>
               </div>
@@ -250,9 +233,9 @@
                       <tr>
                         <th>부서</th>
                         <th>참가자</th>
-                        <th>성공자</th>
-                        <th>실패자</th>
-                        <th>성공률</th>
+                        <th>수료자</th>
+                        <th>미수료자</th>
+                        <th>수료율</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -307,9 +290,9 @@
                         </td>
                         <td>
                           <span v-if="participant.user_status === 'success'" class="success-badge"
-                            >성공</span
+                            >수료</span
                           >
-                          <span v-else class="failure-badge">실패</span>
+                          <span v-else class="failure-badge">미수료</span>
                         </td>
                         <td>
                           <span v-if="participant.exclude_from_scoring" class="excluded-badge"
@@ -861,27 +844,19 @@
                       }}%
                     </td>
                     <td>
+                      <!-- 🔄 단순화된 상태 표시 -->
                       <span
                         :class="{
-                          'status-excellent':
+                          'status-completed':
                             record.completed_count + record.incomplete_count > 0 &&
                             record.completed_count /
                               (record.completed_count + record.incomplete_count) >=
-                              0.8,
-                          'status-good':
-                            record.completed_count + record.incomplete_count > 0 &&
-                            record.completed_count /
-                              (record.completed_count + record.incomplete_count) >=
-                              0.6 &&
+                              1.0,
+                          'status-incomplete':
+                            record.completed_count + record.incomplete_count === 0 ||
                             record.completed_count /
                               (record.completed_count + record.incomplete_count) <
-                              0.8,
-                          'status-poor':
-                            record.completed_count + record.incomplete_count > 0 &&
-                            record.completed_count /
-                              (record.completed_count + record.incomplete_count) <
-                              0.6,
-                          'status-none': record.completed_count + record.incomplete_count === 0,
+                              1.0,
                         }"
                       >
                         {{
@@ -889,13 +864,9 @@
                             ? '데이터없음'
                             : record.completed_count /
                                   (record.completed_count + record.incomplete_count) >=
-                                0.8
-                              ? '우수'
-                              : record.completed_count /
-                                    (record.completed_count + record.incomplete_count) >=
-                                  0.6
-                                ? '양호'
-                                : '미흡'
+                                1.0
+                              ? '수료'
+                              : '미수료'
                         }}
                       </span>
                     </td>
@@ -1268,13 +1239,11 @@ const formatSuccessRate = (rate) => {
 }
 
 /**
- * 성공률별 CSS 클래스 반환
+ * 🔄 단순화된 성공률별 CSS 클래스 반환
  */
 const getSuccessRateClass = (rate) => {
-  if (rate >= 90) return 'rate-excellent'
-  if (rate >= 80) return 'rate-good'
-  if (rate >= 70) return 'rate-warning'
-  return 'rate-poor'
+  if (rate >= 100) return 'rate-excellent'  // 🔄 100%만 excellent
+  return 'rate-poor'  // 🔄 100% 외는 모두 poor
 }
 
 /**
@@ -2351,37 +2320,31 @@ const getTypeClass = (educationType) => {
 }
 
 /**
- * 수료율별 CSS 클래스 반환
+ * 🔄 단순화된 수료율별 CSS 클래스 반환
  */
 const getRateClass = (rate) => {
-  if (rate >= 80) return 'rate-excellent'
-  if (rate >= 60) return 'rate-good'
-  if (rate >= 40) return 'rate-warning'
-  return 'rate-poor'
+  if (rate >= 100) return 'rate-excellent'  // 🔄 100%만 excellent
+  return 'rate-poor'  // 🔄 100% 외는 모두 poor
 }
 
 /**
- * 수료율 텍스트 CSS 클래스 반환
+ * 🔄 단순화된 수료율 텍스트 CSS 클래스 반환
  */
 const getRateTextClass = (rate) => {
-  if (rate >= 80) return 'text-excellent'
-  if (rate >= 60) return 'text-good'
-  if (rate >= 40) return 'text-warning'
-  return 'text-danger'
+  if (rate >= 100) return 'text-excellent'  // 🔄 100%만 excellent
+  return 'text-danger'  // 🔄 100% 외는 모두 danger
 }
 
 /**
- * 상태별 CSS 클래스 반환
+ * 🔄 단순화된 상태별 CSS 클래스 반환
  */
 const getStatusClass = (record) => {
   if (record.exclude_from_scoring) return 'status-excluded'
 
-  // 새로운 스키마 기반
+  // 새로운 스키마 기반 - 단순화
   if (record.completion_rate !== undefined) {
-    if (record.completion_rate >= 100) return 'status-completed'
-    if (record.completion_rate >= 80) return 'status-passed'
-    if (record.completion_rate > 0) return 'status-partial'
-    return 'status-not-started'
+    if (record.completion_rate >= 100) return 'status-completed'  // 🔄 100%만 완료
+    return 'status-incomplete'  // 🔄 100% 외는 모두 미완료
   }
 
   // 레거시 스키마 기반
@@ -2390,18 +2353,26 @@ const getStatusClass = (record) => {
 }
 
 /**
- * 상태 텍스트 반환
+ * 🔄 단순화된 상태 텍스트 반환
  */
 const getStatusText = (record) => {
-  if (record.status_text) return record.status_text
+  if (record.status_text) {
+    // 🔄 서버에서 제공된 상태 텍스트도 단순화
+    if (record.status_text.includes('완료') || record.status_text.includes('수료')) {
+      return '수료'
+    }
+    if (record.status_text.includes('제외')) {
+      return '제외'
+    }
+    return '미수료'
+  }
 
   if (record.exclude_from_scoring) return '제외'
 
-  // 새로운 스키마 기반
+  // 새로운 스키마 기반 - 단순화
   if (record.completion_rate !== undefined) {
-    if (record.completion_rate >= 100) return '완료'
-    if (record.completion_rate > 0) return `부분완료(${record.completion_rate.toFixed(0)}%)`
-    return '미실시'
+    if (record.completion_rate >= 100) return '수료'  // 🔄 100%만 수료
+    return '미수료'  // 🔄 100% 외는 모두 미수료
   }
 
   // 레거시 기반
