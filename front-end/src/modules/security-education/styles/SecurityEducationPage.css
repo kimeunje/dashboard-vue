@@ -291,8 +291,14 @@
   color: white;
 }
 
+/* 상태 뱃지 - 진행중 (노란색) */
 .status-badge.warning {
-  background-color: #f59e0b;
+  background: #f59e0b;
+  color: white;
+}
+
+.status-badge.info {
+  background: #3b82f6;
   color: white;
 }
 
@@ -1077,14 +1083,67 @@
   outline-offset: 2px;
 }
 
-/* 🔄 제거된 기존 스타일들 */
-/* 
-기존에 있던 다음 클래스들은 더 이상 사용하지 않음:
-- .good, .warning, .partial
-- .completion-rate-warning, .completion-rate-good
-- .rate-good, .rate-warning
-- .text-good, .text-warning
-- .education-in-progress
-- .icon-warning
-- 기타 중간 단계 스타일들
-*/
+
+/* 상태 뱃지 - 진행중 (노란색) */
+.status-badge.warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.status-badge.info {
+  background: #3b82f6;
+  color: white;
+}
+
+/* 카드 스타일 - 진행중 */
+.period-card.in-progress {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #f59e0b;
+}
+
+.period-card.in-progress:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.15);
+}
+
+/* 알림 영역 - 진행중 */
+.result-notice.pending {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+/* 진행률 바 - 진행중 (선택적) */
+.progress-fill.in-progress {
+  background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+}
+
+/* 대시보드 카드 - 진행중 */
+.education-card.education-in-progress {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.education-card.education-in-progress .card-icon.education {
+  background: #f59e0b;
+  color: white;
+}
+
+/* 아이콘 - 진행중 */
+.icon-warning {
+  color: #f59e0b;
+}
+
+/* 진행중 상태 애니메이션 (선택적) */
+@keyframes pulse-in-progress {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.period-card.in-progress {
+  animation: pulse-in-progress 2s ease-in-out infinite;
+}
+
+.status-badge.warning {
+  animation: pulse-in-progress 2s ease-in-out infinite;
+}
