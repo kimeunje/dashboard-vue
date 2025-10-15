@@ -458,206 +458,338 @@ const formatDate = (dateString) => {
   }
 }
 
-// 🔄 전체 교육 상태 관련 함수들 - 단순화
+// ✅ 전체 교육 상태 텍스트
 const getOverallStatusText = () => {
   const summary = educationData.value?.summary
+  const educations = educationData.value?.education_status || []
+  
   if (!summary) return '알 수 없음'
   
-  const completionRate = summary.completion_rate || 0
   const totalCourses = summary.total_courses || 0
-  
   if (totalCourses === 0) return '교육 없음'
-  if (completionRate >= 100) return '수료 완료'  // 🔄 100%만 수료
-  return '미수료'  // 🔄 100% 외는 모두 미수료
+  
+  // ✅ 진행중인 교육이 있는지 확인
+  const hasInProgress = educations.some(edu => edu.status === 'in_progress')
+  if (hasInProgress) return '진행중'
+  
+  const completionRate = summary.completion_rate || 0
+  if (completionRate >= 100) return '수료 완료'
+  
+  return '미수료'
 }
 
+// ✅ 전체 교육 상태 뱃지 클래스
 const getOverallStatusBadgeClass = () => {
   const summary = educationData.value?.summary
+  const educations = educationData.value?.education_status || []
+  
   if (!summary) return 'unknown'
   
-  const completionRate = summary.completion_rate || 0
   const totalCourses = summary.total_courses || 0
-  
   if (totalCourses === 0) return 'unknown'
-  if (completionRate >= 100) return 'success'  // 🔄 100%만 success
-  return 'danger'  // 🔄 100% 외는 모두 danger
+  
+  // ✅ 진행중인 교육이 있으면 warning
+  const hasInProgress = educations.some(edu => edu.status === 'in_progress')
+  if (hasInProgress) return 'warning'
+  
+  const completionRate = summary.completion_rate || 0
+  if (completionRate >= 100) return 'success'
+  
+  return 'danger'
 }
 
+// ✅ 전체 알림 클래스
 const getOverallNoticeClass = () => {
   const summary = educationData.value?.summary
+  const educations = educationData.value?.education_status || []
+  
   if (!summary) return 'pending'
   
-  const completionRate = summary.completion_rate || 0
   const totalCourses = summary.total_courses || 0
-  
   if (totalCourses === 0) return 'pending'
-  if (completionRate >= 100) return 'pass'  // 🔄 100%만 pass
-  return 'fail'  // 🔄 100% 외는 모두 fail
+  
+  // ✅ 진행중인 교육이 있으면 pending
+  const hasInProgress = educations.some(edu => edu.status === 'in_progress')
+  if (hasInProgress) return 'pending'
+  
+  const completionRate = summary.completion_rate || 0
+  if (completionRate >= 100) return 'pass'
+  
+  return 'fail'
 }
 
+// ✅ 전체 알림 아이콘
 const getOverallNoticeIcon = () => {
   const summary = educationData.value?.summary
+  const educations = educationData.value?.education_status || []
+  
   if (!summary) return '⚠️'
   
-  const completionRate = summary.completion_rate || 0
   const totalCourses = summary.total_courses || 0
-  
   if (totalCourses === 0) return '📚'
-  if (completionRate >= 100) return '✅'  // 🔄 100%만 완료 아이콘
-  return '⚠️'  // 🔄 100% 외는 모두 경고 아이콘
-}
-
-const getOverallNoticeMessage = () => {
-  const summary = educationData.value?.summary
-  if (!summary) return '교육 정보를 확인할 수 없습니다.'
+  
+  // ✅ 진행중인 교육이 있으면 🔄
+  const hasInProgress = educations.some(edu => edu.status === 'in_progress')
+  if (hasInProgress) return '🔄'
   
   const completionRate = summary.completion_rate || 0
-  const incompleteCount = summary.incomplete || 0
-  const totalCourses = summary.total_courses || 0
-  
-  if (totalCourses === 0) return '등록된 교육 과정이 없습니다.'
-  if (completionRate >= 100) return '모든 교육 과정을 수료했습니다.'  // 🔄 100%만 수료 메시지
-  
-  // 🔄 100% 외는 모두 미수료로 처리
-  if (incompleteCount > 0) return `${incompleteCount}개 교육과정이 미수료 상태입니다.`
-  return '교육 수료를 완료해주세요.'
-}
-
-// ✅ 개별 교육 상태 관련 함수들 - 단순화
-const getPeriodCardClass = (education) => {
-  if (!education) return 'pending'
-  if (education.exclude_from_scoring) return 'excluded'
-
-  // 🔄 단순한 분류: completion_rate 기반
-  if (education.completion_rate !== undefined) {
-    if (education.completion_rate >= 100) return 'passed'  // 🔄 100%만 passed
-    return 'failed'  // 🔄 100% 외는 모두 failed
-  }
-
-  return 'pending'
-}
-
-const getStatusBadgeClass = (education) => {
-  if (education.exclude_from_scoring) return 'excluded'
-  
-  if (education.completion_rate !== undefined) {
-    const rate = education.completion_rate
-    if (rate >= 100) return 'success'  // 🔄 100%만 success
-    return 'danger'  // 🔄 100% 외는 모두 danger
-  }
-  
-  // 레거시 필드 체크
-  if (education.status === 'completed') return 'success'
-  if (education.status === 'incomplete') return 'danger'
-  
-  return 'unknown'
-}
-
-// 🔄 단순화된 상태 텍스트 함수
-const getStatusText = (education) => {
-  if (education.exclude_from_scoring) return '제외'
-
-  if (education.completion_rate !== undefined) {
-    const rate = education.completion_rate
-    if (rate >= 100) return '수료'  // 🔄 100%만 수료
-    return '미수료'  // 🔄 100% 외는 모두 미수료
-  }
-
-  // 레거시 필드 체크
-  if (education.status === 'completed') return '수료'
-  if (education.status === 'incomplete') return '미수료'
-  
-  return '알 수 없음'
-}
-
-// 🔄 개별 교육 알림 관련 함수들 - 단순화
-const getIndividualNoticeClass = (education) => {
-  if (education.exclude_from_scoring) return 'excluded'
-  
-  if (education.completion_rate !== undefined) {
-    const rate = education.completion_rate
-    if (rate >= 100) return 'pass'  // 🔄 100%만 pass
-    return 'fail'  // 🔄 100% 외는 모두 fail
-  }
-  
-  // 레거시 필드 체크
-  if (education.status === 'completed') return 'pass'
-  if (education.status === 'incomplete') return 'fail'
-  
-  return 'pending'
-}
-
-const getIndividualNoticeIcon = (education) => {
-  if (education.exclude_from_scoring) return '🚫'
-  
-  if (education.completion_rate !== undefined) {
-    const rate = education.completion_rate
-    if (rate >= 100) return '✅'  // 🔄 100%만 완료 아이콘
-    return '⚠️'  // 🔄 100% 외는 모두 경고 아이콘
-  }
-  
-  // 레거시 필드 체크
-  if (education.status === 'completed') return '✅'
-  if (education.status === 'incomplete') return '⚠️'
+  if (completionRate >= 100) return '✅'
   
   return '⚠️'
 }
 
+// ✅ 전체 알림 메시지
+const getOverallNoticeMessage = () => {
+  const summary = educationData.value?.summary
+  const educations = educationData.value?.education_status || []
+  
+  if (!summary) return '교육 정보를 확인할 수 없습니다.'
+  
+  const totalCourses = summary.total_courses || 0
+  if (totalCourses === 0) return '등록된 교육 과정이 없습니다.'
+  
+  // ✅ 진행중인 교육 확인
+  const inProgressEducations = educations.filter(edu => edu.status === 'in_progress')
+  if (inProgressEducations.length > 0) {
+    const courseNames = inProgressEducations.map(edu => edu.course_name || edu.type_name).join(', ')
+    return `${inProgressEducations.length}개 교육이 진행 중입니다: ${courseNames}`
+  }
+  
+  const completionRate = summary.completion_rate || 0
+  if (completionRate >= 100) return '모든 교육 과정을 수료했습니다.'
+  
+  const incompleteCount = summary.incomplete || 0
+  if (incompleteCount > 0) {
+    return `${incompleteCount}개 교육과정이 미수료 상태입니다.`
+  }
+  
+  return '교육 수료를 완료해주세요.'
+}
+
+// ✅ 3. 카드 클래스 - status 필드 우선 확인
+const getPeriodCardClass = (education) => {
+  if (!education) return 'pending'
+  if (education.exclude_from_scoring) return 'excluded'
+
+  // ✅ status 필드 우선 확인
+  if (education.status) {
+    switch (education.status) {
+      case 'completed': return 'passed'
+      case 'in_progress': return 'in-progress'  // ✅ 추가
+      case 'incomplete': return 'failed'
+      case 'not_started': return 'pending'
+      case 'expired': return 'failed'
+      default: return 'pending'
+    }
+  }
+
+  // 폴백: completion_rate로 판단 (레거시)
+  if (education.completion_rate !== undefined) {
+    if (education.completion_rate >= 100) return 'passed'
+    return 'failed'
+  }
+
+  return 'pending'
+}
+
+// ✅ 2. 상태 뱃지 클래스 - status 필드 우선 확인
+const getStatusBadgeClass = (education) => {
+  if (education.exclude_from_scoring) return 'excluded'
+  
+  // ✅ status 필드 우선 확인
+  if (education.status) {
+    switch (education.status) {
+      case 'completed': return 'success'
+      case 'in_progress': return 'warning'  // ✅ 추가 (노란색)
+      case 'incomplete': return 'danger'
+      case 'not_started': return 'info'
+      case 'expired': return 'danger'
+      default: return 'unknown'
+    }
+  }
+  
+  // 폴백: completion_rate로 판단 (레거시)
+  if (education.completion_rate !== undefined) {
+    const rate = education.completion_rate
+    if (rate >= 100) return 'success'
+    return 'danger'
+  }
+  
+  return 'unknown'
+}
+
+// ✅ 1. 상태 텍스트 함수 - status 필드 우선 확인
+const getStatusText = (education) => {
+  if (education.exclude_from_scoring) return '제외'
+
+  // ✅ status 필드 우선 확인
+  if (education.status) {
+    switch (education.status) {
+      case 'completed': return '수료'
+      case 'in_progress': return '진행중'  // ✅ 추가
+      case 'incomplete': return '미수료'
+      case 'not_started': return '시작전'
+      case 'expired': return '기간만료'
+      default: return '알 수 없음'
+    }
+  }
+
+  // 폴백: completion_rate로 판단 (레거시)
+  if (education.completion_rate !== undefined) {
+    const rate = education.completion_rate
+    if (rate >= 100) return '수료'
+    return '미수료'
+  }
+
+  return '알 수 없음'
+}
+
+// ✅ 4. 알림 클래스 - status 필드 우선 확인
+const getIndividualNoticeClass = (education) => {
+  if (education.exclude_from_scoring) return 'excluded'
+  
+  // ✅ status 필드 우선 확인
+  if (education.status) {
+    switch (education.status) {
+      case 'completed': return 'pass'
+      case 'in_progress': return 'pending'  // ✅ 추가
+      case 'incomplete': return 'fail'
+      case 'not_started': return 'pending'
+      case 'expired': return 'fail'
+      default: return 'pending'
+    }
+  }
+  
+  // 폴백: completion_rate로 판단 (레거시)
+  if (education.completion_rate !== undefined) {
+    const rate = education.completion_rate
+    if (rate >= 100) return 'pass'
+    return 'fail'
+  }
+  
+  return 'pending'
+}
+
+// ✅ 5. 알림 아이콘 - status 필드 우선 확인
+const getIndividualNoticeIcon = (education) => {
+  if (education.exclude_from_scoring) return '🚫'
+  
+  // ✅ status 필드 우선 확인
+  if (education.status) {
+    switch (education.status) {
+      case 'completed': return '✅'
+      case 'in_progress': return '🔄'  // ✅ 추가
+      case 'incomplete': return '⚠️'
+      case 'not_started': return '📅'
+      case 'expired': return '❌'
+      default: return '⚠️'
+    }
+  }
+  
+  // 폴백: completion_rate로 판단 (레거시)
+  if (education.completion_rate !== undefined) {
+    const rate = education.completion_rate
+    if (rate >= 100) return '✅'
+    return '⚠️'
+  }
+  
+  return '⚠️'
+}
+
+// ✅ 6. 알림 메시지 - status 필드 우선 확인
 const getIndividualNoticeMessage = (education) => {
-  const typeName = education.type_name || education.course_name || education.type || '교육'
+  const typeName = education.course_name || education.type_name || education.type || '교육'
   
   if (education.exclude_from_scoring) {
     return `${typeName}이 점수 계산에서 제외되었습니다.`
   }
   
-  if (education.completion_rate !== undefined) {
-    const rate = education.completion_rate
-    if (rate >= 100) return `${typeName}을 수료했습니다.`  // 🔄 100%만 수료 메시지
-    return `${typeName}이 미수료 상태입니다.`  // 🔄 100% 외는 모두 미수료
+  // ✅ status 필드 우선 확인
+  if (education.status) {
+    switch (education.status) {
+      case 'completed': 
+        return `${typeName}을 수료했습니다.`
+      case 'in_progress': 
+        return `${typeName}이 진행 중입니다.`  // ✅ 추가
+      case 'incomplete': 
+        return `${typeName}이 미수료 상태입니다.`
+      case 'not_started': 
+        return `${typeName}이 아직 시작되지 않았습니다.`
+      case 'expired': 
+        return `${typeName}의 교육 기간이 만료되었습니다.`
+      default: 
+        return `${typeName} 상태를 확인해주세요.`
+    }
   }
   
-  // 레거시 필드 체크
-  if (education.status === 'completed') return `${typeName}을 수료했습니다.`
-  if (education.status === 'incomplete') return `${typeName}이 미수료 상태입니다.`
+  // 폴백: completion_rate로 판단 (레거시)
+  if (education.completion_rate !== undefined) {
+    const rate = education.completion_rate
+    if (rate >= 100) return `${typeName}을 수료했습니다.`
+    return `${typeName}이 미수료 상태입니다.`
+  }
   
   return `${typeName} 상태를 확인해주세요.`
 }
 
+// ✅ 7. 감점 계산 - status 필드 우선 확인
 const getIndividualPenalty = (education) => {
   if (education.exclude_from_scoring) return 0
   
-  if (education.completion_rate !== undefined) {
-    const rate = education.completion_rate
-    if (rate >= 100) return 0  // 🔄 100%만 감점 없음
-    return 0.5  // 🔄 100% 외는 모두 0.5점 감점
+  // ✅ status 필드 우선 확인
+  if (education.status) {
+    switch (education.status) {
+      case 'completed': return 0
+      case 'in_progress': return 0  // ✅ 진행 중은 감점 없음
+      case 'incomplete': return 0.5
+      case 'not_started': return 0  // 시작 전은 감점 없음
+      case 'expired': return 0.5
+      default: return 0
+    }
   }
   
-  // 레거시 필드 체크
-  if (education.status === 'completed') return 0
-  if (education.status === 'incomplete') return 0.5
+  // 폴백: completion_rate로 판단 (레거시)
+  if (education.completion_rate !== undefined) {
+    const rate = education.completion_rate
+    if (rate >= 100) return 0
+    return 0.5
+  }
   
-  return 0.5
+  return 0
 }
 
-// 🔄 교육 카드 전체 스타일 클래스 - 단순화
+// ✅ 대시보드 카드 클래스
 const getEducationCardClass = () => {
   const summary = educationData.value?.summary
+  const educations = educationData.value?.education_status || []
+  
   if (!summary) return ''
   
-  const completionRate = summary.completion_rate || 0
+  // ✅ 진행중인 교육이 있으면 in-progress
+  const hasInProgress = educations.some(edu => edu.status === 'in_progress')
+  if (hasInProgress) return 'education-in-progress'
   
-  if (completionRate >= 100) return 'education-completed'  // 🔄 100%만 완료
-  return 'education-incomplete'  // 🔄 100% 외는 모두 미완료
+  const completionRate = summary.completion_rate || 0
+  if (completionRate >= 100) return 'education-completed'
+  
+  return 'education-incomplete'
 }
 
+// ✅ 대시보드 아이콘 클래스
 const getEducationIconClass = () => {
   const summary = educationData.value?.summary
+  const educations = educationData.value?.education_status || []
+  
   if (!summary) return ''
   
-  const completionRate = summary.completion_rate || 0
+  // ✅ 진행중인 교육이 있으면 warning
+  const hasInProgress = educations.some(edu => edu.status === 'in_progress')
+  if (hasInProgress) return 'icon-warning'
   
-  if (completionRate >= 100) return 'icon-success'  // 🔄 100%만 success
-  return 'icon-danger'  // 🔄 100% 외는 모두 danger
+  const completionRate = summary.completion_rate || 0
+  if (completionRate >= 100) return 'icon-success'
+  
+  return 'icon-danger'
 }
 
 // 라이프사이클 훅
