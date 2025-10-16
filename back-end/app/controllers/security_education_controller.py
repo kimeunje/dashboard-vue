@@ -21,13 +21,14 @@ education_service = SecurityEducationService()
 period_service = EducationPeriodService()
 
 
+
+
 @education_bp.route("/user-summary", methods=["GET"])
 @token_required
 @handle_exceptions
 def get_user_education_summary():
     """
-    ✅ 사용자별 교육 현황 요약 조회 (수정된 버전)
-    - 기간 완료 여부를 고려한 상태 판단 추가
+    User education summary - Status determined by completion rate even after period completion
     """
     year = request.args.get("year", datetime.now().year, type=int)
 
@@ -37,10 +38,10 @@ def get_user_education_summary():
 
     try:
         print(
-            f"[DEBUG] 사용자 교육 요약 조회: username={username}, user_id={user_id}, year={year}"
+            f"[DEBUG] User education summary query: username={username}, user_id={user_id}, year={year}"
         )
 
-        # ✅ 사용자 ID 조회 (username으로 uid 찾기)
+        # Get user ID
         if not user_id:
             user_data = execute_query("SELECT uid FROM users WHERE user_id = %s",
                                       (username, ), fetch_one=True)
@@ -51,7 +52,7 @@ def get_user_education_summary():
                 )
             user_id = user_data["uid"]
 
-        # ✅ 수정된 교육 현황 조회 - 기간 완료 여부를 고려한 상태 판단
+        # Query education status with corrected logic
         education_status = execute_query(
             """
             SELECT 
@@ -69,23 +70,23 @@ def get_user_education_summary():
                 sep.start_date,
                 sep.end_date,
                 sep.is_completed as period_completed,
-                -- ✅ 핵심 수정: 기간 완료 여부를 고려한 상태 결정
                 CASE 
-                    -- 1. 기간이 완료된 경우 무조건 완료로 처리 (자동 통과 포함)
-                    WHEN sep.is_completed = 1 THEN 'completed'
-                    -- 2. 기간이 진행 중인 경우 수료율로 판단
+                    WHEN sep.is_completed = 1 THEN
+                        CASE 
+                            WHEN se.completion_rate >= 100 THEN 'completed'
+                            WHEN se.completion_rate > 0 THEN 'incomplete'
+                            ELSE 'incomplete'
+                        END
                     WHEN CURDATE() >= sep.start_date AND CURDATE() <= sep.end_date THEN
                         CASE 
-                            WHEN se.completion_rate >= 80 THEN 'completed'
+                            WHEN se.completion_rate >= 100 THEN 'completed'
                             WHEN se.completion_rate > 0 THEN 'incomplete'
                             ELSE 'in_progress'
                         END
-                    -- 3. 기간이 시작되지 않은 경우
                     WHEN CURDATE() < sep.start_date THEN 'not_started'
-                    -- 4. 기간이 종료되었지만 완료 처리되지 않은 경우
                     WHEN CURDATE() > sep.end_date AND sep.is_completed = 0 THEN
                         CASE 
-                            WHEN se.completion_rate >= 80 THEN 'completed'
+                            WHEN se.completion_rate >= 100 THEN 'completed'
                             WHEN se.completion_rate > 0 THEN 'incomplete'
                             ELSE 'expired'
                         END
@@ -100,7 +101,7 @@ def get_user_education_summary():
             fetch_all=True,
         )
 
-        # ✅ 기간은 있지만 교육 기록이 없는 경우도 확인
+        # Query periods without education records
         missing_periods = execute_query(
             """
             SELECT 
@@ -119,159 +120,128 @@ def get_user_education_summary():
                 sep.end_date,
                 sep.is_completed as period_completed,
                 CASE 
-                    -- 기간이 완료되었지만 교육 기록이 없는 경우 (자동 통과 대상)
-                    WHEN sep.is_completed = 1 THEN 'completed'  
-                    -- 기간이 진행 중인 경우
+                    WHEN sep.is_completed = 1 THEN 'incomplete'
                     WHEN CURDATE() >= sep.start_date AND CURDATE() <= sep.end_date THEN 'in_progress'
-                    -- 기간이 시작되지 않은 경우
                     WHEN CURDATE() < sep.start_date THEN 'not_started'
-                    -- 기간이 종료된 경우
-                    WHEN CURDATE() > sep.end_date THEN 'expired'
+                    WHEN CURDATE() > sep.end_date AND sep.is_completed = 0 THEN 'expired'
                     ELSE 'unknown'
                 END as status
             FROM security_education_periods sep
             WHERE sep.education_year = %s
-            AND NOT EXISTS (
-                SELECT 1 FROM security_education se 
-                WHERE se.period_id = sep.period_id AND se.user_id = %s
-            )
-            """,
+                AND NOT EXISTS (
+                    SELECT 1 
+                    FROM security_education se 
+                    WHERE se.period_id = sep.period_id 
+                    AND se.user_id = %s
+                )
+            ORDER BY sep.period_name
+        """,
             (year, user_id),
             fetch_all=True,
         )
 
-        # 두 결과 합치기
+        # Merge results
         all_education_status = list(education_status) + list(missing_periods)
 
-        # ✅ 데이터가 없는 경우 기본값 반환
-        if not all_education_status:
-            print(f"[DEBUG] 교육 데이터 없음 - 기본값 반환: user_id={user_id}, year={year}")
-            return jsonify({
-                "year": year,
-                "education_status": [],
-                "summary": {
-                    "total_courses": 0,
-                    "completed": 0,
-                    "incomplete": 0,
-                    "not_started": 0,
-                    "completion_rate": 0,
-                    "penalty_score": 0.0,
-                    "excluded_count": 0,
-                    "unique_courses": 0,
-                    "avg_completion_rate": 0.0,
-                },
-            })
+        print(f"[DEBUG] Education status query: existing records {len(education_status)}, "
+              f"missing periods {len(missing_periods)}, total {len(all_education_status)}")
 
-        # ✅ 새로운 스키마 기반 통계 계산
-        course_details = {}
+        # Build response data
+        result_records = []
         total_completed = 0
         total_incomplete = 0
+        total_in_progress = 0
         total_not_started = 0
         total_penalty = 0.0
         excluded_count = 0
 
         for record in all_education_status:
-            course_name = record["course_name"]
-            status = record["status"]  # ✅ DB에서 계산된 상태 사용
-
-            # 상태별 집계
+            # Count by status
+            status = record["status"]
             if status == "completed":
                 total_completed += 1
             elif status in ["incomplete", "expired"]:
                 total_incomplete += 1
-                # 감점 계산 (제외되지 않은 경우만)
-                if not record["exclude_from_scoring"]:
-                    total_penalty += 0.5
+            elif status == "in_progress":
+                total_in_progress += 1
             elif status == "not_started":
                 total_not_started += 1
 
+            # Check exclusion
             if record["exclude_from_scoring"]:
                 excluded_count += 1
+            
+            # Calculate penalty
+            penalty_applied = 0.0
+            if not record["exclude_from_scoring"]:
+                if status in ["incomplete", "expired"]:
+                    penalty_applied = 0.5
+            
+            total_penalty += penalty_applied
 
-            course_details[course_name] = {
-                "course_name": course_name,
-                "education_type": record["education_type"],
-                "completed_count": record["completed_count"],
-                "incomplete_count": record["incomplete_count"],
-                "total_courses": record["total_courses"],
+            # Build result record
+            result_record = {
+                "course_name": record["course_name"],
+                "completed_count": record["completed_count"] or 0,
+                "incomplete_count": record["incomplete_count"] or 0,
+                "total_courses": record["total_courses"] or 0,
                 "completion_rate": float(record["completion_rate"] or 0),
-                "education_date": record["education_date"],
+                "education_date": (str(record["education_date"])
+                                  if record["education_date"] else None),
+                "education_type": record["education_type"],
                 "exclude_from_scoring": bool(record["exclude_from_scoring"]),
                 "exclude_reason": record["exclude_reason"],
                 "notes": record["notes"],
                 "period_name": record["period_name"],
+                "status": status,
                 "start_date": (str(record["start_date"])
-                               if record["start_date"] else None),
-                "end_date": str(record["end_date"]) if record["end_date"] else None,
+                              if record["start_date"] else None),
+                "end_date": (str(record["end_date"]) 
+                            if record["end_date"] else None),
                 "period_completed": bool(record["period_completed"]),
-                "status": status,  # ✅ 상태 추가
-                "type_name": record["education_type"],
+                "penalty_applied": penalty_applied,
             }
+            result_records.append(result_record)
 
-        # ✅ 전체 통계 계산
-        total_courses = len(course_details)
-        overall_completion_rate = round(
-            (total_completed / total_courses * 100) if total_courses > 0 else 0, 1)
+        # Calculate overall statistics
+        total_courses = len(all_education_status)
+        overall_completion_rate = 0.0
+        if total_courses > 0:
+            overall_completion_rate = round(
+                (total_completed / total_courses) * 100, 2)
 
-        # ✅ 고유 과정 수 계산
-        unique_courses = len(
-            set(record["course_name"] for record in all_education_status))
+        print(f"[DEBUG] Statistics - completed: {total_completed}, incomplete: {total_incomplete}, "
+              f"in_progress: {total_in_progress}, not_started: {total_not_started}, "
+              f"overall completion rate: {overall_completion_rate}%")
 
-        # ✅ 평균 수료율 계산
-        valid_rates = [
-            float(record["completion_rate"] or 0) for record in all_education_status
-            if not record["exclude_from_scoring"]
-        ]
-        avg_completion_rate = round(
-            sum(valid_rates) / len(valid_rates) if valid_rates else 0, 1)
-
-        # ✅ 응답 데이터 구성
-        education_summary = {
+        return jsonify({
             "year": year,
-            "education_status": list(course_details.values()),
+            "education_status": result_records,
             "summary": {
                 "total_courses": total_courses,
                 "completed": total_completed,
                 "incomplete": total_incomplete,
+                "in_progress": total_in_progress,
                 "not_started": total_not_started,
                 "completion_rate": overall_completion_rate,
-                "penalty_score": float(total_penalty),
+                "penalty_score": round(total_penalty, 2),
                 "excluded_count": excluded_count,
-                "unique_courses": unique_courses,
-                "avg_completion_rate": avg_completion_rate,
+                "unique_courses": len(set(r["course_name"] 
+                                        for r in result_records)),
+                "avg_completion_rate": round(
+                    sum(r["completion_rate"] for r in result_records) / 
+                    len(result_records) if result_records else 0, 2
+                ),
             },
-        }
-
-        print(
-            f"[DEBUG] 수정된 응답 생성 완료: 완료={total_completed}, 미완료={total_incomplete}, 미시작={total_not_started}"
-        )
-        return jsonify(education_summary)
+        })
 
     except Exception as e:
-        print(f"[ERROR] 사용자 교육 요약 조회 실패: {str(e)}")
+        print(f"[ERROR] User education summary query failed: {str(e)}")
         import traceback
-
         traceback.print_exc()
-
-        # ✅ 오류 발생 시에도 기본값 반환
         return (
-            jsonify({
-                "year": year,
-                "education_status": [],
-                "summary": {
-                    "total_courses": 0,
-                    "completed": 0,
-                    "incomplete": 0,
-                    "not_started": 0,
-                    "completion_rate": 0,
-                    "penalty_score": 0.0,
-                    "excluded_count": 0,
-                    "unique_courses": 0,
-                    "avg_completion_rate": 0.0,
-                },
-                "error_message": "데이터 조회 중 오류가 발생했지만 기본 구조로 응답합니다.",
-            }),
-            HTTP_STATUS["OK"],
+            jsonify({"error": f"교육 현황 조회 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
 
@@ -398,15 +368,13 @@ def _get_education_records(year, education_type, status):
 
 
 def _get_status_text(record):
-    """통합된 상태 텍스트 생성 함수 (레거시 제거)"""
+    """Status text generation function - 100% required for completion"""
     if record["exclude_from_scoring"]:
         return "제외"
 
     completion_rate = float(record["completion_rate"] or 0)
     if completion_rate >= 100:
         return "완료"
-    elif completion_rate >= 80:
-        return "수료"
     elif completion_rate > 0:
         return f"부분완료({completion_rate:.0f}%)"
     else:
