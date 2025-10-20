@@ -261,7 +261,7 @@
               
               <td>
                 <span :class="['penalty-badge', getPenaltyClass(user.total_penalty)]">
-                  {{ user.total_penalty.toFixed(1) }}점
+                  {{ formatPenalty(user.total_penalty) }}점
                 </span>
               </td>
               <td>
@@ -772,26 +772,17 @@ const loadUsers = async () => {
     const response = await userApi.loadUsers()
     console.log('API 응답:', response)
     
-    // ✅ 원본 데이터 확인
-    console.log('원본 users 데이터:', response.users)
-    if (response.users && response.users.length > 0) {
-      console.log('첫 번째 사용자 원본:', response.users[0])
-      console.log('첫 번째 사용자 is_active 값:', response.users[0].is_active)
-      console.log('첫 번째 사용자 is_active 타입:', typeof response.users[0].is_active)
-    }
-    
-    // ✅ 비활성 사용자 찾기
-    const inactiveUsers = response.users.filter(u => !u.is_active || u.is_active === 0)
-    console.log('비활성 사용자 목록:', inactiveUsers)
-    
-    // is_active 기본값 설정
+    // ✅ 데이터 정규화: total_penalty를 숫자로 변환
     users.value = (response.users || []).map(user => ({
       ...user,
-      is_active: user.is_active !== undefined ? user.is_active : true
+      is_active: user.is_active !== undefined ? user.is_active : true,
+      total_penalty: parseFloat(user.total_penalty) || 0,  // ← 숫자로 변환
+      audit_penalty: parseFloat(user.audit_penalty) || 0,
+      education_penalty: parseFloat(user.education_penalty) || 0,
+      training_penalty: parseFloat(user.training_penalty) || 0,
     }))
     
-    console.log('업데이트된 users.value:', users.value)
-    console.log('첫 번째 사용자 is_active:', users.value[0]?.is_active)
+    console.log('정규화된 users.value:', users.value)
     
     pagination.value = response.pagination
     departmentOptions.value = response.department_options || []
@@ -884,7 +875,8 @@ const addUser = async () => {
 }
 
 // 사용자 수정 관련 함수들 (새로 추가)
-function editUser(user) {
+// 사용자 수정 관련 함수들
+const openEditUserModal = (user) => {
   editingUser.value = {
     uid: user.uid,
     name: user.name || user.username,
@@ -898,7 +890,7 @@ function editUser(user) {
   showEditUserModal.value = true
 }
 
-function closeEditUserModal() {
+const closeEditUserModal = () => {
   showEditUserModal.value = false
   editingUser.value = {
     uid: null,
@@ -912,7 +904,7 @@ function closeEditUserModal() {
   editUserErrors.value = {}
 }
 
-function validateEditUser() {
+const validateEditUser = () => {
   const errors = {}
 
   if (!editingUser.value.name.trim()) {
@@ -943,19 +935,16 @@ const updateUser = async () => {
 
   editUserLoading.value = true
   try {
-    // IP와 이름만 수정 가능하도록 데이터를 제한
     const updateData = {
       name: editingUser.value.name.trim(),
       ip: editingUser.value.ip.trim(),
     }
 
     const response = await userApi.updateUser(editingUser.value.uid, updateData)
-
-    // 성공 메시지 표시
     alert(response.message || '사용자 정보가 성공적으로 수정되었습니다.')
-
+    
     closeEditUserModal()
-    await loadUsers() // 목록 새로고침
+    await loadUsers()
   } catch (err) {
     console.error('사용자 수정 실패:', err)
     alert(`사용자 수정 실패: ${err.message}`)
@@ -967,9 +956,7 @@ const updateUser = async () => {
 // ============================================
 // 사용자 활성화/비활성화 토글 함수
 // ============================================
-// ============================================
-// 사용자 활성화/비활성화 토글 함수
-// ============================================
+// ✅ 5. toggleUserActive 함수에서도 데이터 정규화
 const toggleUserActive = async (user) => {
   const action = user.is_active ? '비활성화' : '활성화'
   const statusMessage = user.is_active 
@@ -997,30 +984,23 @@ const toggleUserActive = async (user) => {
 
     console.log('Toggle result:', result)
 
-    // ✅ 1. 즉시 로컬 상태 업데이트 (반응성 보장)
-    const userIndex = users.value.findIndex(u => u.uid === user.uid)
-    if (userIndex !== -1) {
-      // Vue 반응성을 위해 배열 전체를 새로 할당
-      users.value = users.value.map(u => 
-        u.uid === user.uid 
-          ? { ...u, is_active: result.is_active }
-          : u
-      )
-      console.log(`로컬 상태 업데이트 완료: ${user.name} is_active = ${result.is_active}`)
-    }
-
-    // ✅ 2. 성공 메시지 표시
-    alert(result.message)
+    // ✅ 즉시 로컬 상태 업데이트 (숫자 타입 유지)
+    users.value = users.value.map(u => 
+      u.uid === user.uid 
+        ? { 
+            ...u, 
+            is_active: result.is_active,
+            total_penalty: parseFloat(u.total_penalty) || 0  // ← 숫자 타입 보장
+          }
+        : u
+    )
     
-    // ✅ 3. 서버에서 최신 데이터 다시 로드 (확인 차원)
+    alert(result.message)
     await loadUsers()
     
-    console.log('사용자 목록 새로고침 완료')
   } catch (err) {
     console.error(`사용자 ${action} 실패:`, err)
     alert(err.message)
-    
-    // 실패 시에도 목록 새로고침 (서버 상태와 동기화)
     await loadUsers()
   }
 }
@@ -1134,37 +1114,41 @@ const getRiskLabel = (riskLevel) => {
   return labels[riskLevel] || '미평가'
 }
 
-// 감점에 따른 CSS 클래스 반환
+// ✅ 2. getPenaltyClass 함수 수정
 const getPenaltyClass = (penalty) => {
-  const penaltyNum = parseFloat(penalty || 0)
-  if (penaltyNum === 0) return 'penalty-perfect'
-  if (penaltyNum <= 0.5) return 'penalty-low'
-  if (penaltyNum <= 2.0) return 'penalty-medium'
+  const penaltyNum = parseFloat(penalty)
+  if (isNaN(penaltyNum) || penaltyNum === 0) return 'penalty-perfect'
+  if (penaltyNum <= 1.0) return 'penalty-low'
+  if (penaltyNum <= 2.5) return 'penalty-medium'
   return 'penalty-high'
 }
 
-// 리스크 레벨에 따른 CSS 클래스 반환
+// ✅ 3. getRiskClass 함수도 안전하게 처리
 const getRiskClass = (riskLevel) => {
-  const riskMap = {
-    '미평가': 'risk-none',
-    '낮음': 'risk-low',
-    '보통': 'risk-medium',
-    '높음': 'risk-high',
-    '매우 높음': 'risk-critical'
-  }
-  return riskMap[riskLevel] || 'risk-none'
+  if (!riskLevel) return 'risk-none'
+  return `risk-${riskLevel}`
 }
 
-// 날짜 포맷팅
-const formatDate = (dateStr) => {
-  if (!dateStr) return '미평가'
-  const date = new Date(dateStr)
-  if (isNaN(date.getTime())) return '미평가'
-  return date.toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  })
+
+// ✅ 1. 헬퍼 함수 추가 (script setup 부분 맨 위)
+const formatPenalty = (penalty) => {
+  const num = parseFloat(penalty)
+  return isNaN(num) ? '0.0' : num.toFixed(1)
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return '-'
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })
+  } catch (e) {
+    return '-'
+  }
 }
 
 // const formatDate = (dateString) => {
