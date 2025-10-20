@@ -278,7 +278,7 @@ def _get_filtered_users(
     sort_by,
     sort_order,
 ):
-    """필터링된 사용자 목록 조회 (is_active 포함)"""
+    """필터링된 사용자 목록 조회 (is_active 포함 - 활성/비활성 모두 조회)"""
     try:
         logging.info("=" * 80)
         logging.info("_get_filtered_users 함수 시작")
@@ -286,6 +286,9 @@ def _get_filtered_users(
         # WHERE 조건 구성
         where_conditions = []
         params = []
+
+        # ✅ is_active 조건 제거 - 모든 사용자 조회
+        # 기존: where_conditions.append("u.is_active = 1")  <- 이 조건을 제거함
 
         if search:
             where_conditions.append(
@@ -331,7 +334,7 @@ def _get_filtered_users(
         # 페이지네이션
         offset = (page - 1) * per_page
 
-        # ✅ 메인 데이터 조회 쿼리
+        # ✅ 메인 데이터 조회 쿼리 (is_active 필드 포함)
         data_query = f"""
             SELECT 
                 u.uid,
@@ -360,15 +363,16 @@ def _get_filtered_users(
             LIMIT %s OFFSET %s
         """
 
+        # 쿼리 실행
+        data_params = [year] + params + [per_page, offset]
+        
         # ✅ 쿼리 로그 출력
         logging.info("=" * 80)
         logging.info("실행할 쿼리:")
         logging.info(data_query)
         logging.info(f"파라미터: {data_params}")
         logging.info("=" * 80)
-
-        # 쿼리 실행
-        data_params = [year] + params + [per_page, offset]
+        
         users = execute_query(data_query, data_params)
         
         logging.info(f"쿼리 실행 완료. 결과 수: {len(users) if users else 0}")
@@ -398,11 +402,11 @@ def _get_filtered_users(
                 logging.warning(f"  → 예상치 못한 is_active 값: {is_active_raw}, True로 설정")
             
             # 날짜 포맷팅
-            if user_dict.get("last_updated"):
-                if hasattr(user_dict["last_updated"], 'isoformat'):
-                    user_dict["last_updated"] = user_dict["last_updated"].isoformat()
+            if user_dict.get("last_calculated"):
+                if hasattr(user_dict["last_calculated"], 'isoformat'):
+                    user_dict["last_calculated"] = user_dict["last_calculated"].isoformat()
                 else:
-                    user_dict["last_updated"] = str(user_dict["last_updated"])
+                    user_dict["last_calculated"] = str(user_dict["last_calculated"])
             
             # 리스크 레벨 계산
             total_penalty = float(user_dict.get("total_penalty", 0))
@@ -437,6 +441,9 @@ def _get_filtered_users(
         import traceback
         logging.error(traceback.format_exc())
         raise
+
+
+
 def _export_selected_users(user_ids, year, format_type):
     """선택된 사용자 내보내기"""
     try:

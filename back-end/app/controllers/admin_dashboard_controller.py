@@ -431,53 +431,53 @@ def _get_risk_users_fixed(year, limit=10):
 # === 사용자 관리 API 수정 ===
 
 
-@admin_dashboard_bp.route("/users", methods=["GET"])
-@token_required
-@admin_required
-@handle_exceptions
-def get_users_list():
-    """사용자 목록 조회 - 수정된 스키마"""
-    year = request.args.get("year", datetime.now().year, type=int)
-    department = request.args.get("department", "")
-    risk_level = request.args.get("risk_level", "")
-    search = request.args.get("search", "")
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 20, type=int)
-    sort_by = request.args.get("sort_by", "total_penalty")
-    sort_order = request.args.get("sort_order", "desc")
+# @admin_dashboard_bp.route("/users", methods=["GET"])
+# @token_required
+# @admin_required
+# @handle_exceptions
+# def get_users_list():
+#     """사용자 목록 조회 - 수정된 스키마"""
+#     year = request.args.get("year", datetime.now().year, type=int)
+#     department = request.args.get("department", "")
+#     risk_level = request.args.get("risk_level", "")
+#     search = request.args.get("search", "")
+#     page = request.args.get("page", 1, type=int)
+#     per_page = request.args.get("per_page", 20, type=int)
+#     sort_by = request.args.get("sort_by", "total_penalty")
+#     sort_order = request.args.get("sort_order", "desc")
 
-    try:
-        users_data, total_count = _get_filtered_users_fixed(year, department,
-                                                            risk_level, search, page,
-                                                            per_page, sort_by,
-                                                            sort_order)
+#     try:
+#         users_data, total_count = _get_filtered_users_fixed(year, department,
+#                                                             risk_level, search, page,
+#                                                             per_page, sort_by,
+#                                                             sort_order)
 
-        response_data = {
-            "users": users_data,
-            "pagination": {
-                "current_page": page,
-                "per_page": per_page,
-                "total_count": total_count,
-                "total_pages": (total_count + per_page - 1) // per_page
-            },
-            "filters": {
-                "year": year,
-                "department": department,
-                "risk_level": risk_level,
-                "search": search,
-                "sort_by": sort_by,
-                "sort_order": sort_order
-            }
-        }
+#         response_data = {
+#             "users": users_data,
+#             "pagination": {
+#                 "current_page": page,
+#                 "per_page": per_page,
+#                 "total_count": total_count,
+#                 "total_pages": (total_count + per_page - 1) // per_page
+#             },
+#             "filters": {
+#                 "year": year,
+#                 "department": department,
+#                 "risk_level": risk_level,
+#                 "search": search,
+#                 "sort_by": sort_by,
+#                 "sort_order": sort_order
+#             }
+#         }
 
-        return jsonify(response_data)
+#         return jsonify(response_data)
 
-    except Exception as e:
-        logging.error(f"Users list error: {str(e)}")
-        return jsonify({
-            "error": "사용자 목록 조회 중 오류가 발생했습니다.",
-            "details": str(e)
-        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+#     except Exception as e:
+#         logging.error(f"Users list error: {str(e)}")
+#         return jsonify({
+#             "error": "사용자 목록 조회 중 오류가 발생했습니다.",
+#             "details": str(e)
+#         }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
 
 def _get_filtered_users_fixed(year, department, risk_level, search, page, per_page,
