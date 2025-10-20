@@ -467,7 +467,7 @@ def _create_user_record(data, generated_uid):
 
 
 def _get_user_by_id(user_id, include_inactive=False):
-    """ID로 사용자 정보 조회 (IP 주소 포함)"""
+    """ID로 사용자 정보 조회 (is_active 포함)"""
     try:
         query = """
             SELECT 
@@ -478,13 +478,18 @@ def _get_user_by_id(user_id, include_inactive=False):
                 ip,
                 department,
                 role,
+                is_active,
                 created_at,
                 updated_at
             FROM users 
             WHERE uid = %s
         """
+        
+        # 비활성 사용자 제외 옵션
+        if not include_inactive:
+            query += " AND is_active = 1"
 
-        user = execute_query(query, (user_id, ), fetch_one=True)
+        user = execute_query(query, (user_id,), fetch_one=True)
 
         if user:
             # datetime 객체를 문자열로 변환
@@ -560,3 +565,70 @@ def _delete_user(user_id):
     except Exception as e:
         logging.error(f"사용자 삭제 오류: {str(e)}")
         raise
+
+
+# ============================================
+# 사용자 활성화/비활성화 토글 API
+# ============================================
+
+@admin_user_bp.route("/users/<int:user_id>/toggle-active", methods=["PATCH"])
+@token_required
+@admin_required
+@handle_exceptions
+def toggle_user_active(user_id):
+    """사용자 활성화/비활성화 토글"""
+    try:
+        # 사용자 존재 확인 (비활성 사용자 포함)
+        user = _get_user_by_id(user_id, include_inactive=True)
+        if not user:
+            return (
+                jsonify({
+                    "success": False,
+                    "message": "사용자를 찾을 수 없습니다."
+                }),
+                HTTP_STATUS["NOT_FOUND"],
+            )
+
+        # 현재 상태 확인
+        current_status = user.get("is_active", 1)
+        new_status = 0 if current_status == 1 else 1
+
+        # 자기 자신을 비활성화하려는 경우 방지
+        current_user = request.current_user
+        if current_user["username"] == user.get("name"):
+            return (
+                jsonify({
+                    "success": False,
+                    "message": "자기 자신을 비활성화할 수 없습니다."
+                }),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
+
+        # 상태 업데이트
+        update_query = """
+            UPDATE users 
+            SET is_active = %s, updated_at = %s
+            WHERE uid = %s
+        """
+        execute_query(update_query, (new_status, datetime.now(), user_id))
+
+        status_text = "활성화" if new_status == 1 else "비활성화"
+        logging.info(f"사용자 {status_text}: uid={user_id}, name={user.get('name')}, new_is_active={new_status}")
+
+        # ✅ 응답에 명확히 is_active 값 포함
+        return jsonify({
+            "success": True,
+            "message": f"사용자가 {status_text}되었습니다.",
+            "is_active": new_status  # 0 또는 1
+        })
+
+    except Exception as e:
+        logging.error(f"사용자 상태 변경 실패: {str(e)}")
+        return (
+            jsonify({
+                "success": False,
+                "message": "사용자 상태 변경 중 오류가 발생했습니다.",
+                "details": str(e),
+            }),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )

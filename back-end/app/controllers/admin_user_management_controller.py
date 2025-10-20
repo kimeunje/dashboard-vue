@@ -40,6 +40,7 @@ def get_users_list():
     sort_order = request.args.get("sort_order", "desc")
 
     try:
+        logging.info("🔵 get_users_list 호출됨")
         logging.info(f"사용자 목록 조회: year={year}, dept={department}, page={page}")
 
         # 필터링된 사용자 데이터 조회
@@ -54,6 +55,18 @@ def get_users_list():
             sort_by,
             sort_order,
         )
+
+        # ✅ 데이터 확인 로그
+        logging.info(f"조회된 사용자 수: {len(users_data)}")
+        if users_data:
+            first_user = users_data[0]
+            logging.info(f"첫 번째 사용자: {first_user.get('name')}")
+            logging.info(f"첫 번째 사용자 키: {first_user.keys()}")
+            logging.info(f"첫 번째 사용자 is_active: {first_user.get('is_active')}")
+            
+            # 비활성 사용자 찾기
+            inactive = [u for u in users_data if not u.get('is_active')]
+            logging.info(f"비활성 사용자 수: {len(inactive)}")
 
         response_data = {
             "users": users_data,
@@ -74,6 +87,7 @@ def get_users_list():
             },
         }
 
+        logging.info("✅ get_users_list 완료")
         return jsonify(response_data)
 
     except Exception as e:
@@ -254,28 +268,175 @@ def search_users():
 
 
 def _get_filtered_users(
-    search_query="",
-    department_filter="",
-    risk_filter="",
-    year=None,
-    sort_field="name",
-    order="ASC",
-    page=1,
-    per_page=50,
+    year,
+    department,
+    position,
+    risk_level,
+    search,
+    page,
+    per_page,
+    sort_by,
+    sort_order,
 ):
-    """훈련 감점이 올바르게 계산된 사용자 목록 조회"""
-    return _get_filtered_users_with_training_penalty(
-        search_query,
-        department_filter,
-        risk_filter,
-        year,
-        sort_field,
-        order,
-        page,
-        per_page,
-    )
+    """필터링된 사용자 목록 조회 (is_active 포함)"""
+    try:
+        logging.info("=" * 80)
+        logging.info("_get_filtered_users 함수 시작")
+        
+        # WHERE 조건 구성
+        where_conditions = []
+        params = []
 
+        if search:
+            where_conditions.append(
+                "(u.username LIKE %s OR u.user_id LIKE %s OR u.department LIKE %s)"
+            )
+            search_param = f"%{search}%"
+            params.extend([search_param, search_param, search_param])
 
+        if department:
+            where_conditions.append("u.department = %s")
+            params.append(department)
+
+        if position:
+            where_conditions.append("u.position = %s")
+            params.append(position)
+
+        where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+
+        # 정렬 필드 검증
+        allowed_sort_fields = {
+            "name": "u.username",
+            "department": "u.department",
+            "total_penalty": "sss.total_penalty",
+            "last_updated": "sss.last_calculated",
+        }
+
+        sort_field = allowed_sort_fields.get(sort_by, "u.username")
+        order = "DESC" if sort_order.upper() == "DESC" else "ASC"
+
+        # 전체 개수 조회
+        count_query = f"""
+            SELECT COUNT(DISTINCT u.uid)
+            FROM users u
+            LEFT JOIN security_score_summary sss ON u.uid = sss.user_id AND sss.evaluation_year = %s
+            WHERE {where_clause}
+        """
+
+        count_params = [year] + params
+        total_count = execute_query(count_query, count_params, fetch_one=True)[
+            "COUNT(DISTINCT u.uid)"
+        ]
+
+        # 페이지네이션
+        offset = (page - 1) * per_page
+
+        # ✅ 메인 데이터 조회 쿼리
+        data_query = f"""
+            SELECT 
+                u.uid,
+                u.username as name,
+                u.user_id,
+                u.mail as email,
+                u.ip,
+                u.department,
+                u.role,
+                u.is_active,
+                u.created_at,
+                u.updated_at,
+                COALESCE(sss.total_penalty, 0) as total_penalty,
+                COALESCE(sss.audit_penalty, 0) as audit_penalty,
+                COALESCE(sss.education_penalty, 0) as education_penalty,
+                COALESCE(sss.training_penalty, 0) as training_penalty,
+                COALESCE(sss.audit_failed_count, 0) as security_audit_penalty,
+                COALESCE(sss.education_incomplete_count, 0) as education_penalty_count,
+                COALESCE(sss.training_failed_count, 0) as training_penalty_count,
+                sss.last_calculated
+            FROM users u
+            LEFT JOIN security_score_summary sss 
+                ON u.uid = sss.user_id AND sss.evaluation_year = %s
+            WHERE {where_clause}
+            ORDER BY {sort_field} {order}
+            LIMIT %s OFFSET %s
+        """
+
+        # ✅ 쿼리 로그 출력
+        logging.info("=" * 80)
+        logging.info("실행할 쿼리:")
+        logging.info(data_query)
+        logging.info(f"파라미터: {data_params}")
+        logging.info("=" * 80)
+
+        # 쿼리 실행
+        data_params = [year] + params + [per_page, offset]
+        users = execute_query(data_query, data_params)
+        
+        logging.info(f"쿼리 실행 완료. 결과 수: {len(users) if users else 0}")
+
+        # 결과 데이터 포맷팅
+        users_data = []
+        for user in users:
+            user_dict = dict(user)
+            
+            # ✅ is_active 처리 - 디버깅 로그 추가
+            is_active_raw = user_dict.get("is_active")
+            logging.info(f"사용자 {user_dict.get('name')} (uid={user_dict.get('uid')}): is_active raw = {is_active_raw}, type = {type(is_active_raw)}")
+            
+            # ✅ 명확한 변환 로직
+            if is_active_raw is None:
+                user_dict["is_active"] = True
+                logging.warning(f"  → is_active가 None이므로 True로 설정")
+            elif is_active_raw == 0:
+                user_dict["is_active"] = False
+                logging.info(f"  → is_active = 0, False로 변환")
+            elif is_active_raw == 1:
+                user_dict["is_active"] = True
+                logging.info(f"  → is_active = 1, True로 변환")
+            else:
+                # 예상치 못한 값
+                user_dict["is_active"] = True
+                logging.warning(f"  → 예상치 못한 is_active 값: {is_active_raw}, True로 설정")
+            
+            # 날짜 포맷팅
+            if user_dict.get("last_updated"):
+                if hasattr(user_dict["last_updated"], 'isoformat'):
+                    user_dict["last_updated"] = user_dict["last_updated"].isoformat()
+                else:
+                    user_dict["last_updated"] = str(user_dict["last_updated"])
+            
+            # 리스크 레벨 계산
+            total_penalty = float(user_dict.get("total_penalty", 0))
+            if total_penalty == 0:
+                risk_level_val = "low"
+            elif total_penalty <= 0.5:
+                risk_level_val = "low"
+            elif total_penalty <= 2.0:
+                risk_level_val = "medium"
+            elif total_penalty <= 5.0:
+                risk_level_val = "high"
+            else:
+                risk_level_val = "critical"
+            
+            user_dict["risk_level"] = risk_level_val
+            users_data.append(user_dict)
+        
+        logging.info(f"데이터 포맷팅 완료. 최종 사용자 수: {len(users_data)}")
+        
+        # ✅ 비활성 사용자 확인
+        inactive_users = [u for u in users_data if not u.get("is_active")]
+        logging.info(f"비활성 사용자 수: {len(inactive_users)}")
+        if inactive_users:
+            logging.info(f"비활성 사용자 목록: {[u.get('name') for u in inactive_users]}")
+        
+        logging.info("=" * 80)
+
+        return users_data, total_count
+
+    except Exception as e:
+        logging.error(f"Filtered users query error: {str(e)}")
+        import traceback
+        logging.error(traceback.format_exc())
+        raise
 def _export_selected_users(user_ids, year, format_type):
     """선택된 사용자 내보내기"""
     try:
@@ -478,7 +639,7 @@ def _get_filtered_users_with_training_penalty(
             year = datetime.now().year
 
         # WHERE 조건 구성
-        where_conditions = ["u.is_active = 1"]
+        where_conditions = ["u.is_active = 1"]  # 기본 조건
         params = []
 
         if search_query:
@@ -522,7 +683,7 @@ def _get_filtered_users_with_training_penalty(
         # 페이지네이션
         offset = (page - 1) * per_page
 
-        # 메인 데이터 조회 (훈련 감점 포함)
+        # ✅ 메인 데이터 조회 - is_active 추가
         data_query = f"""
             SELECT 
                 u.uid,
@@ -531,23 +692,21 @@ def _get_filtered_users_with_training_penalty(
                 u.department,
                 u.position,
                 u.mail as email,
+                u.ip,
+                u.role,
+                u.is_active,                                    -- ✅ 이 줄 추가
+                u.created_at,
+                u.updated_at,
+                u.last_updated,
                 COALESCE(sss.total_penalty, 0) as total_penalty,
                 COALESCE(sss.audit_penalty, 0) as audit_penalty,
                 COALESCE(sss.education_penalty, 0) as education_penalty,
-                -- 훈련 감점은 user_phishing_summary에서 가져오기
                 COALESCE(ups.penalty_score, 0) as training_penalty,
-                COALESCE(sss.audit_failed_count, 0) as audit_failed_count,
-                COALESCE(sss.education_incomplete_count, 0) as education_incomplete_count,
-                -- 훈련 실패 건수는 user_phishing_summary에서 계산
-                COALESCE(ups.fail_count, 0) as training_failed_count,
-                sss.last_calculated,
-                CASE 
-                    WHEN sss.total_penalty IS NULL THEN 'not_evaluated'
-                    WHEN sss.total_penalty > 3.0 THEN 'critical'
-                    WHEN sss.total_penalty > 2.0 THEN 'high'
-                    WHEN sss.total_penalty > 1.0 THEN 'medium'
-                    ELSE 'low'
-                END as risk_level
+                COALESCE(sss.audit_failed_count, 0) as security_audit_penalty,
+                COALESCE(sss.education_incomplete_count, 0) as education_penalty_count,
+                COALESCE(ups.fail_count, 0) as training_penalty_count,
+                u.last_updated as last_audit_time,
+                sss.last_calculated
             FROM users u
             LEFT JOIN security_score_summary sss ON u.uid = sss.user_id AND sss.evaluation_year = %s
             LEFT JOIN user_phishing_summary ups ON u.uid = ups.user_id AND ups.training_year = %s
@@ -559,15 +718,19 @@ def _get_filtered_users_with_training_penalty(
         data_params = [year, year] + params + [per_page, offset]
         users_data = execute_query(data_query, data_params)
 
-        # 데이터 후처리
+        # ✅ 데이터 후처리 - is_active 변환 추가
         for user in users_data:
+            # is_active를 boolean으로 변환
+            is_active_val = user.get("is_active")
+            user["is_active"] = bool(is_active_val) if is_active_val in (0, 1) else True
+            
             # training_penalty를 실제 user_phishing_summary의 penalty_score로 업데이트
             user["training_penalty"] = float(user["training_penalty"])
             user["total_penalty"] = float(user["total_penalty"])
             user["audit_penalty"] = float(user["audit_penalty"])
             user["education_penalty"] = float(user["education_penalty"])
 
-            # 총 감점에 훈련 감점 반영 (기존 교육+감사 + 새로운 훈련 감점)
+            # 총 감점에 훈련 감점 반영
             recalculated_total = (
                 float(user["audit_penalty"])
                 + float(user["education_penalty"])
@@ -575,10 +738,22 @@ def _get_filtered_users_with_training_penalty(
             )
             user["total_penalty"] = min(5.0, recalculated_total)
 
-            if user["last_calculated"]:
-                user["last_updated"] = user["last_calculated"].strftime(
-                    "%Y-%m-%d %H:%M"
-                )
+            # 리스크 레벨 계산
+            total_penalty = user["total_penalty"]
+            if total_penalty == 0:
+                user["risk_level"] = "low"
+            elif total_penalty <= 0.5:
+                user["risk_level"] = "low"
+            elif total_penalty <= 2.0:
+                user["risk_level"] = "medium"
+            elif total_penalty <= 5.0:
+                user["risk_level"] = "high"
+            else:
+                user["risk_level"] = "critical"
+
+            # 날짜 포맷팅
+            if user.get("last_calculated"):
+                user["last_updated"] = user["last_calculated"].strftime("%Y-%m-%d %H:%M:%S")
             else:
                 user["last_updated"] = None
 
