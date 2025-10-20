@@ -77,7 +77,7 @@ def get_filtered_users():
             "year": year,
             "users": filtered_users,
             "pagination": {
-                "page": page,
+                "current_page": page,
                 "per_page": per_page,
                 "total_count": total_count,
                 "total_pages": (total_count + per_page - 1) // per_page

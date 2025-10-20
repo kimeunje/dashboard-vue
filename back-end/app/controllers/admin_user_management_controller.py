@@ -58,7 +58,7 @@ def get_users_list():
         response_data = {
             "users": users_data,
             "pagination": {
-                "page": page,
+                "current_page": page,
                 "per_page": per_page,
                 "total_count": total_count,
                 "total_pages": (total_count + per_page - 1) // per_page,
