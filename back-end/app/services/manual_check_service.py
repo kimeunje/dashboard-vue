@@ -6,6 +6,9 @@ import io
 import re
 from app.utils.database import DatabaseManager, execute_query
 from datetime import datetime, timedelta
+import hashlib
+import json
+from collections import defaultdict
 
 
 class ManualCheckService:
@@ -153,26 +156,36 @@ class ManualCheckService:
 
         return None
 
-    def _has_encryption_columns(self, columns):
-        """개인정보 암호화 파일 여부 확인 - 새로운 단순 형식"""
-        has_ip = False
-        has_ssn_detection = False
 
+    def _has_encryption_columns(self, columns):
+        """개인정보 암호화 파일 여부 확인 - 신규 형식"""
+        has_ip = False
+        has_username = False
+        has_ssn_count = False
+        
         # IP 컬럼 확인
         ip_keywords = ["IP", "로컬 IP", "로컬IP", "ip", "접근 IP"]
         for col in columns:
             if any(keyword in str(col) for keyword in ip_keywords):
                 has_ip = True
                 break
-
-        # 주민등록번호 검출 컬럼 확인 (기존 회차별 패턴 제거)
-        ssn_keywords = ["주민등록번호 검출", "주민등록번호검출", "주민등록번호", "ssn", "SSN"]
+        
+        # 사용자명 컬럼 확인
+        username_keywords = ["사용자명", "사용자", "이름"]
+        for col in columns:
+            if any(keyword in str(col) for keyword in username_keywords):
+                has_username = True
+                break
+        
+        # 주민등록번호 건수 컬럼 확인
+        ssn_keywords = ["주민등록번호 건수", "주민등록번호건수", "건수"]
         for col in columns:
             if any(keyword in str(col) for keyword in ssn_keywords):
-                has_ssn_detection = True
+                has_ssn_count = True
                 break
+        
+        return has_ip and has_username and has_ssn_count
 
-        return has_ip and has_ssn_detection
 
     def validate_file_structure(self, df, check_type):
         """파일 구조 검증 - 개인정보 암호화 특별 처리"""
@@ -196,19 +209,42 @@ class ManualCheckService:
 
         return True, "구조 검증 완료"
 
+
     def _validate_encryption_structure(self, df):
-        """개인정보 암호화 파일 구조 검증 - 새로운 단순 형식"""
+        """개인정보 암호화 파일 구조 검증 - 신규 형식"""
         columns = [col.strip() for col in df.columns]
+        
+        # 필수 컬럼 확인
+        required_columns = {
+            "ip": ["로컬 IP", "로컬IP", "IP", "ip"],
+            "username": ["사용자명", "사용자", "이름"],
+            "ssn_count": ["주민등록번호 건수", "주민등록번호건수", "건수"],
+        }
+        
+        missing = []
+        for key, keywords in required_columns.items():
+            found = False
+            for col in columns:
+                if any(keyword in str(col) for keyword in keywords):
+                    found = True
+                    break
+            if not found:
+                missing.append(f"{key} ({', '.join(keywords[:2])})")
+        
+        if missing:
+            return False, f"필수 컬럼이 없습니다: {', '.join(missing)}"
+        
+        return True, "개인정보 암호화 파일 구조 확인 완료 - 신규 형식"
 
-        # IP 컬럼 확인
-        if not self._find_local_ip_column(columns):
-            return False, "IP 컬럼을 찾을 수 없습니다. (예: 'IP', '로컬 IP' 등)"
 
-        # 주민등록번호 검출 컬럼 확인
-        if not self._find_ssn_detection_column(columns):
-            return False, "주민등록번호 검출 컬럼을 찾을 수 없습니다. (예: '주민등록번호 검출' 등)"
+    def _find_ssn_count_column(self, columns):
+        """주민등록번호 건수 컬럼 찾기"""
+        ssn_keywords = ["주민등록번호 건수", "주민등록번호건수", "건수"]
+        for col in columns:
+            if any(keyword in str(col) for keyword in ssn_keywords):
+                return col
+        return None
 
-        return True, "개인정보 암호화 파일 구조 확인 완료 - 단순 형식"
 
     def _find_ssn_detection_column(self, columns):
         """주민등록번호 검출 컬럼 찾기"""
@@ -735,117 +771,218 @@ class ManualCheckService:
     # ✅ 4단계: 개인정보 암호화 데이터 처리 로직 수정 (회차별 날짜 계산 포함)
 
     def _process_file_encryption_data(self, df, uploaded_by):
-        """개인정보 파일 암호화 데이터 처리 - 새로운 단순 형식"""
+        """
+        개인정보 파일 암호화 데이터 처리 - 신규 로직
+        
+        컬럼 구조:
+        - 로컬 IP, 사용자명, 검출일시, 파일명, 보호 상태, 주민등록번호 건수
+        
+        판정 로직:
+        - 주민등록번호 건수 = 0 또는 빈 값 → 양호
+        - 주민등록번호 건수 >= 1 AND 보호 상태 in [완전삭제, 암호화, 일반삭제, 휴지통] → 양호
+        - 그 외 → 미흡
+        
+        중복 처리:
+        - 같은 사용자의 모든 검출 건을 그룹핑
+        - 하나라도 미흡이면 해당 사용자는 미흡 처리
+        - 미흡 건들의 상세 정보를 JSON으로 저장
+        """
         processed_data = []
         upload_date = datetime.now()
-
-        print(f"[DEBUG] === 개인정보 암호화 처리 시작 (새로운 형식) ===")
+        
+        print(f"[DEBUG] === 개인정보 암호화 처리 시작 (신규 로직) ===")
         print(f"[DEBUG] 총 데이터프레임 행 수: {len(df)}")
         print(f"[DEBUG] 컬럼명: {list(df.columns)}")
-
-        # IP 컬럼 찾기
-        ip_col = self._find_local_ip_column(df.columns)
-        if not ip_col:
-            raise ValueError("IP 컬럼을 찾을 수 없습니다.")
-        print(f"[DEBUG] IP 컬럼: {ip_col}")
-
-        # 주민등록번호 검출 컬럼 찾기
-        ssn_detection_col = self._find_ssn_detection_column(df.columns)
-        if not ssn_detection_col:
-            raise ValueError("주민등록번호 검출 컬럼을 찾을 수 없습니다.")
-        print(f"[DEBUG] 주민등록번호 검출 컬럼: {ssn_detection_col}")
-
-        # 사용자명, 부서 컬럼 찾기 (선택사항)
-        username_col = self._find_username_column(df.columns)
-        department_col = self._find_department_column(df.columns)
-
-        valid_data_rows = 0
-
-        # 데이터 행별 처리 (2행부터 시작)
+        
+        # 컬럼 매핑
+        col_mapping = self._find_column_mapping(
+            df.columns,
+            {
+                "ip": ["로컬 IP", "로컬IP", "IP", "ip"],
+                "username": ["사용자명", "사용자", "이름"],
+                "detection_time": ["검출일시", "검출시각", "일시", "날짜"],
+                "filename": ["파일명", "파일이름", "파일"],
+                "protection_status": ["보호 상태", "보호상태", "상태"],
+                "ssn_count": ["주민등록번호 건수", "주민등록번호건수", "건수"],
+            },
+        )
+        
+        # 필수 컬럼 확인
+        required = ["ip", "username", "ssn_count"]
+        missing = [k for k in required if not col_mapping[k]]
+        if missing:
+            raise ValueError(f"필수 컬럼이 없습니다: {missing}")
+        
+        print(f"[DEBUG] 컬럼 매핑: {col_mapping}")
+        
+        # 보호 상태 양호 목록 (대소문자 무시)
+        SAFE_PROTECTION_STATES = {
+            "완전삭제", "암호화", "일반삭제", "휴지통",
+            "완전 삭제", "일반 삭제",  # 공백 포함 버전
+        }
+        
+        # 사용자별 검출 건 그룹핑
+        user_detections = defaultdict(list)
+        
         for idx, row in df.iterrows():
             try:
-                # IP 주소 추출
-                ip_address = str(row[ip_col]).strip() if pd.notna(row[ip_col]) else ""
-                if not ip_address:
+                # 기본 정보 추출
+                ip_address = str(row[col_mapping["ip"]]).strip() if pd.notna(row[col_mapping["ip"]]) else ""
+                username = str(row[col_mapping["username"]]).strip() if pd.notna(row[col_mapping["username"]]) else ""
+                
+                if not ip_address or not username:
+                    print(f"[SKIP] 행 {idx+2}: IP 또는 사용자명 누락")
                     continue
-
-                print(f"[DEBUG] 행 {idx+1} 처리 중 - IP: {ip_address}")
-
-                # 주민등록번호 검출 여부 확인
-                ssn_detection = row[ssn_detection_col] if pd.notna(
-                    row[ssn_detection_col]) else 0
-
-                # 다양한 형태의 데이터 처리
+                
+                # 검출일시
+                detection_time = upload_date
+                if col_mapping["detection_time"] and pd.notna(row[col_mapping["detection_time"]]):
+                    detection_time = self._parse_datetime(row[col_mapping["detection_time"]])
+                
+                # 파일명
+                filename = ""
+                if col_mapping["filename"] and pd.notna(row[col_mapping["filename"]]):
+                    filename = str(row[col_mapping["filename"]]).strip()
+                
+                # 보호 상태
+                protection_status = ""
+                if col_mapping["protection_status"] and pd.notna(row[col_mapping["protection_status"]]):
+                    protection_status = str(row[col_mapping["protection_status"]]).strip()
+                
+                # 주민등록번호 건수
                 ssn_count = 0
-                if isinstance(ssn_detection, (int, float)):
-                    ssn_count = int(ssn_detection)
-                elif isinstance(ssn_detection, str):
-                    if ssn_detection.strip() == "-" or ssn_detection.strip() == "":
+                if pd.notna(row[col_mapping["ssn_count"]]):
+                    try:
+                        ssn_count = int(float(row[col_mapping["ssn_count"]]))
+                    except:
                         ssn_count = 0
-                    else:
-                        try:
-                            ssn_count = int(float(ssn_detection.strip()))
-                        except:
-                            ssn_count = 0
-
-                print(f"[DEBUG] 행 {idx+1} - 주민등록번호 검출 수: {ssn_count}")
-
-                # 판정 로직 (단순화)
-                if ssn_count > 0:
-                    encryption_status = "not_encrypted"
-                    overall_result = "fail"
-                    notes = f"주민등록번호 {ssn_count}건 검출 - 암호화 필요"
+                
+                # 판정 로직
+                is_safe = False
+                if ssn_count == 0:
+                    # 건수가 0이면 무조건 양호
+                    is_safe = True
+                elif protection_status in SAFE_PROTECTION_STATES:
+                    # 건수가 있어도 보호 상태가 양호 목록에 있으면 양호
+                    is_safe = True
                 else:
+                    # 건수가 있고 보호 상태가 양호 목록에 없으면 미흡
+                    is_safe = False
+                
+                # 사용자별로 그룹핑 (username을 키로 사용)
+                user_key = username
+                user_detections[user_key].append({
+                    "ip": ip_address,
+                    "username": username,
+                    "detection_time": detection_time,
+                    "filename": filename,
+                    "protection_status": protection_status,
+                    "ssn_count": ssn_count,
+                    "is_safe": is_safe,
+                    "row_index": idx + 2,
+                })
+                
+                print(f"[DEBUG] 행 {idx+2}: {username} - SSN:{ssn_count}, 상태:{protection_status}, 판정:{'양호' if is_safe else '미흡'}")
+                
+            except Exception as e:
+                print(f"[ERROR] 행 {idx+2} 처리 오류: {str(e)}")
+                continue
+        
+        # 사용자별 통합 처리
+        for username, detections in user_detections.items():
+            try:
+                # 가장 최근 검출일시 사용
+                latest_detection = max(detections, key=lambda x: x["detection_time"])
+                check_date = latest_detection["detection_time"]
+                
+                # 해당 날짜에 맞는 기간 찾기
+                period_id, period_name = self._find_appropriate_period(check_date, "file_encryption")
+                
+                # 모든 검출 건 중 미흡 건만 추출
+                unsafe_detections = [d for d in detections if not d["is_safe"]]
+                
+                # 전체 판정: 미흡 건이 하나라도 있으면 미흡
+                overall_result = "fail" if unsafe_detections else "pass"
+                
+                # 통계 정보
+                total_detections = len(detections)
+                unsafe_count = len(unsafe_detections)
+                safe_count = total_detections - unsafe_count
+                
+                # 미흡 건 상세 정보 생성 (파일명은 해시화)
+                violation_details = []
+                for detection in unsafe_detections[:10]:  # 최대 10개만 저장
+                    # 파일명 해시 생성 (민감 정보 보호)
+                    filename_hash = ""
+                    if detection["filename"]:
+                        filename_hash = hashlib.sha256(
+                            detection["filename"].encode('utf-8')
+                        ).hexdigest()[:16]  # 앞 16자만 사용
+                    
+                    violation_details.append({
+                        "file_hash": filename_hash,
+                        "ssn_count": detection["ssn_count"],
+                        "protection_status": detection["protection_status"],
+                        "detection_time": detection["detection_time"].strftime("%Y-%m-%d %H:%M:%S"),
+                    })
+                
+                # encryption_notes 필드에 상세 정보 저장 (JSON 형식)
+                encryption_notes = json.dumps({
+                    "total_files": total_detections,
+                    "safe_files": safe_count,
+                    "unsafe_files": unsafe_count,
+                    "violations": violation_details,
+                    "summary": f"총 {total_detections}건 검출, {unsafe_count}건 미흡"
+                }, ensure_ascii=False)
+                
+                # notes 필드에는 사용자 친화적 메시지
+                if overall_result == "pass":
+                    notes = f"개인정보 파일 암호화 양호 (총 {total_detections}건 검출, 모두 적절히 보호됨)"
+                else:
+                    notes = f"개인정보 파일 암호화 미흡 (총 {total_detections}건 중 {unsafe_count}건 미흡 - 상세 내역 확인 필요)"
+                
+                # 암호화 상태
+                if overall_result == "pass":
                     encryption_status = "fully_encrypted"
-                    overall_result = "pass"
-                    notes = "주민등록번호 미검출 - 암호화 완료"
-
-                # 사용자명, 부서 정보 추출
-                username = ""
-                department = ""
-                if username_col and pd.notna(row[username_col]):
-                    username = str(row[username_col]).strip()
-                if department_col and pd.notna(row[department_col]):
-                    department = str(row[department_col]).strip()
-
-                # 적절한 기간 찾기
-                period_id, period_name = self._find_appropriate_period(
-                    upload_date, "file_encryption")
-
-                # 처리된 데이터 생성
+                elif unsafe_count < total_detections:
+                    encryption_status = "partially_encrypted"
+                else:
+                    encryption_status = "not_encrypted"
+                
+                # processed_data 생성
                 processed_row = {
                     "check_item_code": "file_encryption",
-                    "source_ip": ip_address,
-                    "check_year": upload_date.year,
+                    "source_ip": latest_detection["ip"],
+                    "check_year": check_date.year,
                     "check_period": period_name,
                     "period_id": period_id,
-                    "check_date": upload_date,
+                    "check_date": check_date,
                     "checker_name": uploaded_by,
                     "encryption_status": encryption_status,
-                    "unencrypted_files": ssn_count,
-                    "encryption_completed": 1 if ssn_count == 0 else 0,
-                    "round_number": None,  # 새로운 형식에서는 회차 없음
-                    "ssn_included": 1 if ssn_count > 0 else 0,
+                    "files_scanned": total_detections,
+                    "unencrypted_files": unsafe_count,
+                    "encryption_completed": 1 if overall_result == "pass" else 0,
+                    "encryption_notes": encryption_notes,  # 상세 정보 (JSON)
+                    "ssn_included": 1 if unsafe_count > 0 else 0,
                     "overall_result": overall_result,
-                    "notes": notes,
+                    "notes": notes,  # 사용자 친화적 메시지
                     "username": username,
-                    "department": department,
-                    "row_index": idx + 1,
+                    "row_index": latest_detection["row_index"],
                 }
-
+                
                 processed_data.append(processed_row)
-                valid_data_rows += 1
-                print(f"[DEBUG] 행 {idx+1} 처리 완료 - 결과: {overall_result}")
-
+                
+                print(f"[DEBUG] 사용자 {username} 처리 완료: {overall_result} (총:{total_detections}, 미흡:{unsafe_count})")
+                
             except Exception as e:
-                print(f"개인정보 파일 암호화 데이터 처리 오류 (행 {idx + 1}): {str(e)}")
+                print(f"[ERROR] 사용자 {username} 통합 처리 오류: {str(e)}")
                 continue
-
-        print(f"[DEBUG] === 개인정보 암호화 처리 완료 ===")
-        print(f"[DEBUG] 총 처리된 데이터 행: {valid_data_rows}")
-        print(f"[DEBUG] 생성된 processed_data: {len(processed_data)}개")
-
+        
+        print(f"[DEBUG] === 처리 완료: 총 {len(processed_data)}명의 사용자 데이터 생성 ===")
+        
         return processed_data
+
+
 
     # 데이터 처리 통합 함수
     def _process_check_data(self, df, check_type, uploaded_by):
@@ -1230,11 +1367,12 @@ class ManualCheckService:
     def get_check_type_name(self, check_type):
         """점검 유형명 반환"""
         type_names = {
-            "file_encryption": "개인정보 파일 암호화 (회차별 검증)",
+            "file_encryption": "개인정보 파일 암호화",  # (회차별 검증) 제거
             "seal_check": "PC 봉인씰 확인",
             "malware_scan": "악성코드 전체 검사",
         }
         return type_names.get(check_type, check_type)
+
 
     def get_check_types(self):
         """지원되는 점검 유형 목록 반환 (period_service와 일관성 유지)"""
@@ -1245,9 +1383,9 @@ class ManualCheckService:
         }
 
     def get_check_type_mapping(self):
-        """점검 유형 매핑 정보 반환 - 개인정보 암호화 설명 업데이트"""
+        """점검 유형 매핑 정보 반환"""
         return {
-            "file_encryption": "개인정보 파일 암호화 (회차별)",
+            "file_encryption": "개인정보 파일 암호화",  # (회차별) 제거
             "seal_check": "PC 봉인씰 확인",
             "malware_scan": "악성코드 전체 검사",
         }
@@ -1263,29 +1401,15 @@ class ManualCheckService:
         return "\n".join(template_data)
 
     def generate_file_encryption_template(self):
-        """개인정보 파일 암호화 템플릿 생성 - 새로운 단순 형식"""
-        template_content = """# 개인정보 파일 암호화 점검 템플릿 (새로운 형식)
-
-    ## 개인정보 파일 암호화
-    필수 컬럼: IP, 주민등록번호 검출
-    - IP: 검사 대상 PC의 IP 주소
-    - 주민등록번호 검출: 검출된 주민등록번호 건수 (숫자)
-    - 판정 기준: 
-    * 0건: 통과 (암호화 완료)
-    * 1건 이상: 실패 (암호화 필요)
-
-    헤더: 1행
-    데이터: 2행부터
-
-    예시 데이터:
-    IP,주민등록번호 검출
-    192.168.1.100,0
-    192.168.1.101,3
-    192.168.1.102,0
-
-    템플릿 다운로드: ?type=file_encryption
-    """
-        return template_content
+        """개인정보 파일 암호화 템플릿 생성 - 신규 형식"""
+        template_data = [
+            "로컬 IP,사용자명,검출일시,파일명,보호 상태,주민등록번호 건수",
+            "192.168.1.100,홍길동,2025-10-20 14:30:00,문서1.xlsx,암호화,2",
+            "192.168.1.101,김철수,2025-10-20 14:35:00,파일2.docx,미보호,3",
+            "192.168.1.102,이영희,2025-10-20 14:40:00,데이터3.xlsx,완전삭제,1",
+            "192.168.1.103,박민수,2025-10-20 14:45:00,,휴지통,0",
+        ]
+        return "\n".join(template_data)
 
     def generate_seal_check_template(self):
         """PC 봉인씰 확인 템플릿 생성"""
@@ -1587,7 +1711,7 @@ class ManualCheckService:
     # 기타 분석 함수들
 
     def _analyze_expected_results(self, df, check_type):
-        """업로드 파일의 예상 결과 분석 - 새로운 형식"""
+        """업로드 파일의 예상 결과 분석 - 신규 형식"""
         try:
             total_records = len(df)
             expected_pass = 0
@@ -1595,66 +1719,149 @@ class ManualCheckService:
             analysis_details = []
 
             if check_type == "file_encryption":
-                # IP 컬럼 찾기
-                ip_col = self._find_local_ip_column(df.columns)
-                ssn_detection_col = self._find_ssn_detection_column(df.columns)
-
-                if not ip_col or not ssn_detection_col:
+                # 컬럼 찾기
+                col_mapping = self._find_column_mapping(
+                    df.columns,
+                    {
+                        "ip": ["로컬 IP", "로컬IP", "IP", "ip"],
+                        "username": ["사용자명", "사용자", "이름"],
+                        "protection_status": ["보호 상태", "보호상태", "상태"],
+                        "ssn_count": ["주민등록번호 건수", "주민등록번호건수", "건수"],
+                    },
+                )
+                
+                if not col_mapping["ip"] or not col_mapping["ssn_count"]:
                     return {
                         "total_records": total_records,
                         "expected_pass": 0,
                         "expected_fail": 0,
                         "analysis_details": ["필수 컬럼을 찾을 수 없습니다."],
                     }
-
-                # 데이터 행별 분석
-                data_rows = 0
+                
+                # 보호 상태 양호 목록
+                SAFE_PROTECTION_STATES = {
+                    "완전삭제", "암호화", "일반삭제", "휴지통",
+                    "완전 삭제", "일반 삭제",
+                }
+                
+                # 사용자별 그룹핑
+                from collections import defaultdict
+                user_results = defaultdict(list)
+                
                 for idx, row in df.iterrows():
-                    ip_address = str(row[ip_col]).strip() if pd.notna(
-                        row[ip_col]) else ""
-                    if not ip_address:
+                    ip_address = str(row[col_mapping["ip"]]).strip() if pd.notna(row[col_mapping["ip"]]) else ""
+                    username = str(row[col_mapping["username"]]).strip() if pd.notna(row[col_mapping["username"]]) else ""
+                    
+                    if not ip_address or not username:
                         continue
-
-                    data_rows += 1
-                    ssn_detection = row[ssn_detection_col] if pd.notna(
-                        row[ssn_detection_col]) else 0
-
-                    # 주민등록번호 검출 수 확인
+                    
+                    # 주민등록번호 건수
                     ssn_count = 0
-                    if isinstance(ssn_detection, (int, float)):
-                        ssn_count = int(ssn_detection)
-                    elif isinstance(ssn_detection, str):
+                    if pd.notna(row[col_mapping["ssn_count"]]):
                         try:
-                            ssn_count = int(float(ssn_detection.strip())
-                                            ) if ssn_detection.strip() != "-" else 0
+                            ssn_count = int(float(row[col_mapping["ssn_count"]]))
                         except:
                             ssn_count = 0
-
-                    if ssn_count > 0:
+                    
+                    # 보호 상태
+                    protection_status = ""
+                    if col_mapping["protection_status"] and pd.notna(row[col_mapping["protection_status"]]):
+                        protection_status = str(row[col_mapping["protection_status"]]).strip()
+                    
+                    # 판정
+                    is_safe = (ssn_count == 0) or (protection_status in SAFE_PROTECTION_STATES)
+                    
+                    user_results[username].append(is_safe)
+                
+                # 사용자별 최종 판정
+                for username, results in user_results.items():
+                    if all(results):
+                        expected_pass += 1
+                    else:
                         expected_fail += 1
+                
+                analysis_details.append(
+                    f"총 {len(user_results)}명의 사용자, 예상 통과: {expected_pass}명, 예상 실패: {expected_fail}명"
+                )
+                
+                return {
+                    "total_records": len(user_results),
+                    "expected_pass": expected_pass,
+                    "expected_fail": expected_fail,
+                    "analysis_details": analysis_details,
+                }
+            
+            elif check_type == "seal_check":
+                # PC 봉인씰 확인 분석
+                col_mapping = self._find_column_mapping(
+                    df.columns,
+                    {
+                        "damage_status": ["훼손여부", "상태", "봉인상태"],
+                    },
+                )
+                
+                for idx, row in df.iterrows():
+                    if col_mapping["damage_status"] and pd.notna(row[col_mapping["damage_status"]]):
+                        status = str(row[col_mapping["damage_status"]]).strip()
+                        if "훼손" in status:
+                            expected_fail += 1
+                        else:
+                            expected_pass += 1
+                
+                analysis_details.append(f"예상 통과: {expected_pass}건, 예상 실패: {expected_fail}건")
+                
+                return {
+                    "total_records": total_records,
+                    "expected_pass": expected_pass,
+                    "expected_fail": expected_fail,
+                    "analysis_details": analysis_details,
+                }
+            
+            elif check_type == "malware_scan":
+                # 악성코드 검사 분석
+                col_mapping = self._find_column_mapping(
+                    df.columns,
+                    {
+                        "detection_item": ["탐지 항목", "탐지항목", "탐지"],
+                    },
+                )
+                
+                for idx, row in df.iterrows():
+                    if col_mapping["detection_item"]:
+                        detection = row[col_mapping["detection_item"]]
+                        if pd.notna(detection) and str(detection).strip():
+                            expected_fail += 1
+                        else:
+                            expected_pass += 1
                     else:
                         expected_pass += 1
-
-                analysis_details.append(f"총 {data_rows}개 IP 주소 분석 완료")
-                analysis_details.append(f"단순 검출 건수 기준으로 판정")
-
-                if expected_fail > 0:
-                    analysis_details.append(f"{expected_fail}개 IP에서 주민등록번호 검출됨")
-
+                
+                analysis_details.append(f"예상 통과: {expected_pass}건, 예상 실패: {expected_fail}건")
+                
+                return {
+                    "total_records": total_records,
+                    "expected_pass": expected_pass,
+                    "expected_fail": expected_fail,
+                    "analysis_details": analysis_details,
+                }
+            
+            # 기타 타입
             return {
                 "total_records": total_records,
-                "expected_pass": expected_pass,
-                "expected_fail": expected_fail,
-                "analysis_details": analysis_details,
+                "expected_pass": 0,
+                "expected_fail": 0,
+                "analysis_details": ["분석 지원 안 됨"],
             }
 
         except Exception as e:
+            print(f"예상 결과 분석 오류: {str(e)}")
             return {
                 "total_records": total_records,
                 "expected_pass": 0,
                 "expected_fail": 0,
                 "analysis_details": [f"분석 중 오류 발생: {str(e)}"],
             }
+
 
     def _get_status_korean(self, status, status_type):
         """영문 상태를 한글로 변환"""
