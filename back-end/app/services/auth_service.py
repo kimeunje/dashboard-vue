@@ -19,68 +19,63 @@ class AuthService:
     def __init__(self):
         self.verification_codes = {}  # 실제 환경에서는 Redis 등 사용 권장
 
-    def authenticate_by_ip(self, client_ip: str) -> dict:
-        """users 테이블 기반 IP 인증 (상세 디버깅 추가)"""
+
+    def authenticate_by_ip(self, client_ip):
+        """IP 기반 사용자 인증 (비활성 사용자 체크 추가)"""
         try:
-            current_app.logger.info(f"[IP_AUTH_DETAIL] === IP 인증 프로세스 시작 ===")
-            current_app.logger.info(f"[IP_AUTH_DETAIL] 입력 IP: {client_ip}")
+            # 로그 시작
+            current_app.logger.info(f"IP 기반 인증 시작: IP={client_ip}")
 
-            # 2. IP 대역 체크
-            current_app.logger.info(f"[IP_AUTH_DETAIL] 2단계: IP 대역 체크 시작")
-            ip_range_ok = self._is_ip_in_allowed_ranges(client_ip)
-            current_app.logger.info(f"[IP_AUTH_DETAIL] IP 대역 체크 결과: {ip_range_ok}")
-
-            if not ip_range_ok:
-                current_app.logger.warning(
-                    f"[IP_AUTH_DETAIL] 허용되지 않은 IP 대역: {client_ip}")
+            if not client_ip:
                 return {
                     "success": False,
-                    "message": f"허용되지 않은 네트워크({client_ip})에서의 접근입니다.",
-                    "code": "IP_RANGE_NOT_ALLOWED",
+                    "message": "클라이언트 IP를 확인할 수 없습니다.",
                 }
 
-            # 3. users 테이블에서 IP로 사용자 찾기
-            current_app.logger.info(f"[IP_AUTH_DETAIL] 3단계: 사용자 조회 시작")
-            user_info = self._find_user_by_ip_from_db(client_ip)
-            current_app.logger.info(f"[IP_AUTH_DETAIL] 사용자 조회 결과: {user_info}")
+            # IP 주소로 사용자 조회 (✅ is_active 필드 추가)
+            user_query = """
+                SELECT uid, user_id, username, mail, department, role, is_active
+                FROM users 
+                WHERE FIND_IN_SET(%s, REPLACE(ip, ' ', '')) > 0
+            """
 
-            if not user_info:
-                current_app.logger.warning(
-                    f"[IP_AUTH_DETAIL] 사용자를 찾을 수 없음: {client_ip}")
+            user = execute_query(user_query, (client_ip,), fetch_one=True)
+
+            if not user:
+                current_app.logger.warning(f"등록되지 않은 IP: {client_ip}")
                 return {
                     "success": False,
-                    "message": f"IP {client_ip}에 등록된 사용자를 찾을 수 없습니다. IT팀에 문의하세요.",
-                    "code": "USER_NOT_FOUND",
+                    "message": f"등록되지 않은 IP 주소입니다: {client_ip}",
                 }
 
-            # 4. 인증 성공 응답 생성
-            current_app.logger.info(f"[IP_AUTH_DETAIL] 4단계: 응답 데이터 생성")
-            response_data = {
+            # ✅ 비활성 사용자 체크 추가
+            if user.get("is_active") == 0:
+                current_app.logger.warning(
+                    f"비활성화된 사용자 로그인 시도: {user['username']} ({client_ip})"
+                )
+                return {
+                    "success": False,
+                    "message": "비활성화된 계정입니다. 관리자에게 문의하세요.",
+                }
+
+            current_app.logger.info(f"IP 인증 성공: {user['username']} from {client_ip}")
+
+            return {
                 "success": True,
-                "username": user_info["user_id"],  # 로그인 ID
-                "email": user_info["mail"],
-                "name": user_info["username"],  # 실명
-                "dept": user_info["department"],
-                "role": user_info.get("role", "user"),
-                "client_ip": client_ip,
+                "username": user["user_id"],
+                "name": user["username"],
+                "email": user["mail"],
+                "dept": user["department"],
+                "role": user.get("role", "user"),
             }
-
-            current_app.logger.info(f"[IP_AUTH_DETAIL] 생성된 응답 데이터: {response_data}")
-            current_app.logger.info(f"[IP_AUTH_DETAIL] === IP 인증 성공 완료 ===")
-
-            return response_data
 
         except Exception as e:
-            current_app.logger.error(f"[IP_AUTH_DETAIL] IP 인증 중 예외 발생: {str(e)}")
-            import traceback
-            current_app.logger.error(
-                f"[IP_AUTH_DETAIL] 스택 트레이스: {traceback.format_exc()}")
-            current_app.logger.error(f"[IP_AUTH_DETAIL] === IP 인증 예외 완료 ===")
+            current_app.logger.error(f"IP 인증 오류: {str(e)}")
             return {
                 "success": False,
-                "message": "인증 처리 중 오류가 발생했습니다.",
-                "code": "AUTH_ERROR",
+                "message": f"인증 처리 중 오류가 발생했습니다: {str(e)}",
             }
+
 
     def _find_user_by_ip_from_db(self, client_ip: str) -> dict:
         """users 테이블에서 IP로 사용자 찾기 (상세 디버깅 추가)"""
@@ -359,34 +354,44 @@ class AuthService:
         current_app.logger.info(f"[IP_EXTRACT_DEBUG] === IP 추출 완료 ===")
         return final_ip
 
-    def authenticate_user_in_db(self, username: str) -> dict:
-        """데이터베이스에서 사용자 검증 및 감사 로그 초기화 (상세 디버깅 추가)"""
+
+    def authenticate_user_in_db(self, username):
+        """사용자명으로 DB 인증 (비활성 사용자 체크 추가)"""
         try:
-            current_app.logger.info(f"[USER_AUTH_DETAIL] === 사용자 인증 시작 ===")
-            current_app.logger.info(
-                f"[USER_AUTH_DETAIL] 입력 username: '{username}' (타입: {type(username)}, 길이: {len(username) if username else 0})"
-            )
+            current_app.logger.info(f"[USER_AUTH_DETAIL] === 사용자 인증 시작: '{username}' ===")
 
             if not username:
-                current_app.logger.error(f"[USER_AUTH_DETAIL] username이 None 또는 빈 문자열")
                 return {
                     "success": False,
-                    "message": "username이 제공되지 않았습니다.",
+                    "message": "사용자명이 필요합니다.",
                 }
 
-            # user_id 컬럼으로 조회 (영문 로그인 ID)
+            # user_id 컬럼으로 조회 (✅ is_active 필드 추가)
             current_app.logger.info(f"[USER_AUTH_DETAIL] 1단계: user_id로 사용자 조회")
             user = execute_query(
-                "SELECT uid, user_id, username FROM users WHERE user_id = %s",
-                (username, ), fetch_one=True)
+                "SELECT uid, user_id, username, is_active FROM users WHERE user_id = %s",
+                (username,), 
+                fetch_one=True
+            )
             current_app.logger.info(f"[USER_AUTH_DETAIL] 사용자 조회 결과: {user}")
 
             if not user:
                 current_app.logger.warning(
-                    f"[USER_AUTH_DETAIL] user_id로 사용자를 찾을 수 없음: '{username}'")
+                    f"[USER_AUTH_DETAIL] user_id로 사용자를 찾을 수 없음: '{username}'"
+                )
                 return {
                     "success": False,
                     "message": f"사용자 '{username}'을(를) 찾을 수 없습니다. 운영실에 문의해주세요.",
+                }
+
+            # ✅ 비활성 사용자 체크 추가
+            if user.get("is_active") == 0:
+                current_app.logger.warning(
+                    f"[USER_AUTH_DETAIL] 비활성화된 사용자 로그인 시도: {user['username']}"
+                )
+                return {
+                    "success": False,
+                    "message": "비활성화된 계정입니다. 관리자에게 문의하세요.",
                 }
 
             user_id = user["uid"]
@@ -405,7 +410,7 @@ class AuthService:
                 FROM audit_log
                 WHERE user_id = %s AND DATE(checked_at) = DATE(NOW())
                 """,
-                (user_id, ),
+                (user_id,),
                 fetch_one=True,
             )["log_count"]
 
@@ -417,13 +422,16 @@ class AuthService:
                 try:
                     self._create_initial_audit_logs(user_id)
                     current_app.logger.info(
-                        f"[USER_AUTH_DETAIL] 감사 로그 생성 성공: uid={user_id}")
+                        f"[USER_AUTH_DETAIL] 감사 로그 생성 성공: uid={user_id}"
+                    )
                 except Exception as log_error:
                     current_app.logger.error(
-                        f"[USER_AUTH_DETAIL] 감사 로그 생성 실패: {str(log_error)}")
+                        f"[USER_AUTH_DETAIL] 감사 로그 생성 실패: {str(log_error)}"
+                    )
                     import traceback
                     current_app.logger.error(
-                        f"[USER_AUTH_DETAIL] 로그 생성 스택 트레이스: {traceback.format_exc()}")
+                        f"[USER_AUTH_DETAIL] 로그 생성 스택 트레이스: {traceback.format_exc()}"
+                    )
                     return {
                         "success": False,
                         "message": f"감사 로그 생성에 실패했습니다: {str(log_error)}",
@@ -441,12 +449,13 @@ class AuthService:
             current_app.logger.error(f"[USER_AUTH_DETAIL] 사용자 인증 중 예외: {str(e)}")
             import traceback
             current_app.logger.error(
-                f"[USER_AUTH_DETAIL] 스택 트레이스: {traceback.format_exc()}")
-            current_app.logger.error(f"[USER_AUTH_DETAIL] === 사용자 인증 예외 ===")
+                f"[USER_AUTH_DETAIL] 스택 트레이스: {traceback.format_exc()}"
+            )
             return {
                 "success": False,
-                "message": f"서버 오류가 발생했습니다: {str(e)}",
+                "message": f"인증 처리 중 오류가 발생했습니다: {str(e)}",
             }
+
 
     def _create_initial_audit_logs(self, user_id: int):
         """초기 감사 로그 생성 (디버깅 강화)"""
