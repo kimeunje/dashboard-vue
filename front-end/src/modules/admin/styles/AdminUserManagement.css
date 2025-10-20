@@ -225,7 +225,7 @@
 }
 
 .filter-item select,
-.filter-item input[type="text"] {
+.filter-item input[type='text'] {
   padding: 0.75rem;
   border: 1px solid #d1d5db;
   border-radius: 6px;
@@ -235,7 +235,7 @@
 }
 
 .filter-item select:focus,
-.filter-item input[type="text"]:focus {
+.filter-item input[type='text']:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
@@ -289,8 +289,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .error-state svg {
@@ -352,7 +356,7 @@
   cursor: pointer;
 }
 
-.checkbox-container input[type="checkbox"] {
+.checkbox-container input[type='checkbox'] {
   margin: 0;
   margin-right: 0.5rem;
 }
@@ -1002,4 +1006,146 @@
     flex-wrap: wrap;
     justify-content: center;
   }
+}
+
+/* ============================================
+   사용자 활성화/비활성화 스타일
+   ============================================ */
+
+/* 상태 열 너비 */
+.status-col {
+  width: 80px;
+  text-align: center;
+}
+
+/* 상태 배지 기본 스타일 */
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+/* 활성 상태 배지 */
+.status-badge.active {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.active:hover {
+  background-color: #bbf7d0;
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(22, 101, 52, 0.2);
+}
+
+/* 비활성 상태 배지 */
+.status-badge.inactive {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.status-badge.inactive:hover {
+  background-color: #fecaca;
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(153, 27, 27, 0.2);
+}
+
+/* 비활성 사용자 행 스타일 */
+tr.inactive-user {
+  opacity: 0.6;
+  background-color: #f9fafb;
+}
+
+tr.inactive-user:hover {
+  opacity: 0.8;
+  background-color: #f3f4f6;
+}
+
+/* 비활성 사용자 이름에 취소선 */
+tr.inactive-user .user-name {
+  text-decoration: line-through;
+  color: #6b7280;
+}
+
+/* 비활성 사용자의 배지 투명도 */
+tr.inactive-user .penalty-badge,
+tr.inactive-user .risk-badge {
+  opacity: 0.7;
+}
+
+/* 반응형: 모바일 */
+@media (max-width: 768px) {
+  .status-col {
+    width: 60px;
+  }
+  
+  .status-badge {
+    padding: 3px 8px;
+    font-size: 0.7rem;
+  }
+}
+
+/* 감점 배지 스타일 */
+.penalty-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.penalty-perfect {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.penalty-low {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.penalty-medium {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.penalty-high {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* 리스크 배지 스타일 */
+.risk-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.risk-none {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.risk-low {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.risk-medium {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.risk-high {
+  background-color: #fed7aa;
+  color: #9a3412;
+}
+
+.risk-critical {
+  background-color: #fee2e2;
+  color: #991b1b;
 }
