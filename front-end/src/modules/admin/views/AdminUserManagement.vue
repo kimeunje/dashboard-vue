@@ -25,12 +25,18 @@
       <div class="button-group">
         <button @click="showAddUserModal = true" class="add-user-btn">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+            <path
+              d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"
+            />
           </svg>
           사용자 추가
         </button>
 
-        <button @click="exportSelected" :disabled="selectedUsers.length === 0" class="export-selected-btn">
+        <button
+          @click="exportSelected"
+          :disabled="selectedUsers.length === 0"
+          class="export-selected-btn"
+        >
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
             <path
               d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
@@ -76,9 +82,7 @@
           <div class="filter-item">
             <label>년도</label>
             <select v-model="filters.year">
-              <option v-for="year in yearOptions" :key="year" :value="year">
-                {{ year }}년
-              </option>
+              <option v-for="year in yearOptions" :key="year" :value="year">{{ year }}년</option>
             </select>
           </div>
 
@@ -124,7 +128,13 @@
                 placeholder="이름, 사번, 이메일로 검색..."
                 class="search-input"
               />
-              <svg class="search-icon" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <svg
+                class="search-icon"
+                width="16"
+                height="16"
+                fill="currentColor"
+                viewBox="0 0 16 16"
+              >
                 <path
                   d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"
                 />
@@ -204,30 +214,24 @@
                   @change="toggleSelectAll"
                 />
               </th>
-              <th class="user-col">사용자</th>
-              <th class="department-col">부서</th>
-              <th class="penalty-col">총 감점</th>
-              <th class="breakdown-col">감점 내역</th>
-              <th class="risk-col">위험도</th>
-              <th class="updated-col">마지막 업데이트</th>
+              <th>이름</th>
+              <th>부서</th>
+              <th>이메일</th>
+              <!-- ✅ 상태 열 추가 -->
+              <th class="status-col">상태</th>
+              <th>총 감점</th>
+              <th>리스크 레벨</th>
+              <th>최근 업데이트</th>
               <th class="actions-col">작업</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="users.length === 0" class="empty-row">
-              <td colspan="8" class="empty-message">
-                <div class="empty-content">
-                  <svg width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
-                    <path
-                      d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1h8zm-7.978-1A.261.261 0 0 1 7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002a.274.274 0 0 1-.014.002H7.022zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM6.936 9.28a5.88 5.88 0 0 0-1.23-.247A7.35 7.35 0 0 0 5 9c-4 0-5 3-5 4 0 .667.333 1 1 1h4.216A2.238 2.238 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816zM4.92 10A5.493 5.493 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275zM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0zm3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"
-                    />
-                  </svg>
-                  <h3>사용자가 없습니다</h3>
-                  <p>필터 조건을 변경하거나 새 사용자를 추가해보세요.</p>
-                </div>
-              </td>
-            </tr>
-            <tr v-else v-for="user in users" :key="user.uid" class="user-row">
+            <!-- ✅ 비활성 사용자 행에 클래스 추가 -->
+            <tr 
+              v-for="user in users" 
+              :key="user.uid"
+              :class="{ 'inactive-user': !user.is_active }"
+            >
               <td class="checkbox-col">
                 <input
                   type="checkbox"
@@ -235,62 +239,43 @@
                   v-model="selectedUsers"
                 />
               </td>
-              <td class="user-col">
+              <td>
                 <div class="user-info">
-                  <div class="user-name">{{ user.name }}</div>
-                  <div class="user-details">
-                    <span class="user-id">{{ user.uid }}</span>
-                    <span class="user-email">{{ user.email }}</span>
-                  </div>
-                  <div class="user-position">{{ user.position }}</div>
+                  <span class="user-name">{{ user.name }}</span>
+                  <span class="user-id">{{ user.employee_id }}</span>
                 </div>
               </td>
-              <td class="department-col">
-                <span class="department-badge">{{ user.department }}</span>
+              <td>{{ user.department }}</td>
+              <td>{{ user.email }}</td>
+              
+              <!-- ✅ 상태 버튼 추가 -->
+              <td class="status-col">
+                <button
+                  @click="toggleUserActive(user)"
+                  :class="['status-badge', user.is_active ? 'active' : 'inactive']"
+                  :title="user.is_active ? '클릭하여 비활성화' : '클릭하여 활성화'"
+                >
+                  {{ user.is_active ? '활성' : '비활성' }}
+                </button>
               </td>
-              <td class="penalty-col">
-                <div class="penalty-info">
-                  <span class="penalty-value">{{ user.total_penalty }}점</span>
-                  <span class="penalty-grade">{{ getRiskLabel(user.risk_level) }}</span>
-                </div>
-              </td>
-              <td class="breakdown-col">
-                <div class="breakdown-items">
-                  <div v-if="user.security_audit_penalty > 0" class="breakdown-item">
-                    <span class="item-label">보안감사</span>
-                    <span class="item-value">-{{ user.security_audit_penalty }}점</span>
-                  </div>
-                  <div v-if="user.education_penalty > 0" class="breakdown-item">
-                    <span class="item-label">교육</span>
-                    <span class="item-value">-{{ user.education_penalty }}점</span>
-                  </div>
-                  <div v-if="user.training_penalty > 0" class="breakdown-item">
-                    <span class="item-label">훈련</span>
-                    <span class="item-value">-{{ user.training_penalty }}점</span>
-                  </div>
-                  <div v-if="user.total_penalty === 0" class="breakdown-item">
-                    <span class="item-label no-penalty">감점 없음</span>
-                  </div>
-                </div>
-              </td>
-              <td class="risk-col">
-                <span class="risk-badge" :class="user.risk_level">
-                  {{ getRiskLabel(user.risk_level) }}
+              
+              <td>
+                <span :class="['penalty-badge', getPenaltyClass(user.total_penalty)]">
+                  {{ user.total_penalty.toFixed(1) }}점
                 </span>
               </td>
-              <td class="updated-col">
-                <div class="time-info">
-                  <div class="date">{{ formatDate(user.updated_at || user.last_audit_time) }}</div>
-                  <div class="time">{{ formatTime(user.updated_at || user.last_audit_time) }}</div>
-                  <div v-if="!user.updated_at && !user.last_audit_time" class="no-audit">미실시</div>
-                </div>
+              <td>
+                <span :class="['risk-badge', getRiskClass(user.risk_level)]">
+                  {{ user.risk_level }}
+                </span>
               </td>
+              <td>{{ formatDate(user.last_updated) }}</td>
               <td class="actions-col">
                 <div class="action-buttons">
                   <button
-                    @click="editUser(user)"
+                    @click="openEditUserModal(user)"
                     class="edit-btn"
-                    title="사용자 수정"
+                    title="수정"
                   >
                     <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                       <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L8.5 11.207l-3 1a.5.5 0 0 1-.604-.604l1-3L12.146.146zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
@@ -372,7 +357,9 @@
           <h2>새 사용자 추가</h2>
           <button @click="closeAddUserModal" class="modal-close-btn">
             <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z"/>
+              <path
+                d="M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z"
+              />
             </svg>
           </button>
         </div>
@@ -402,7 +389,9 @@
                 :class="{ error: newUserErrors.email }"
                 placeholder="example@company.com"
               />
-              <span v-if="newUserErrors.email" class="error-message">{{ newUserErrors.email }}</span>
+              <span v-if="newUserErrors.email" class="error-message">{{
+                newUserErrors.email
+              }}</span>
             </div>
           </div>
 
@@ -430,7 +419,9 @@
                 :class="{ error: newUserErrors.department }"
                 placeholder="소속 부서를 입력하세요"
               />
-              <span v-if="newUserErrors.department" class="error-message">{{ newUserErrors.department }}</span>
+              <span v-if="newUserErrors.department" class="error-message">{{
+                newUserErrors.department
+              }}</span>
             </div>
           </div>
 
@@ -455,9 +446,7 @@
           </div>
 
           <div class="modal-actions">
-            <button type="button" @click="closeAddUserModal" class="cancel-btn">
-              취소
-            </button>
+            <button type="button" @click="closeAddUserModal" class="cancel-btn">취소</button>
             <button type="submit" :disabled="addUserLoading" class="submit-btn">
               {{ addUserLoading ? '추가 중...' : '사용자 추가' }}
             </button>
@@ -473,7 +462,9 @@
           <h2>사용자 정보 수정</h2>
           <button @click="closeEditUserModal" class="modal-close-btn">
             <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z"/>
+              <path
+                d="M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z"
+              />
             </svg>
           </button>
         </div>
@@ -490,7 +481,9 @@
                 :class="{ error: editUserErrors.name }"
                 placeholder="사용자 실명을 입력하세요"
               />
-              <span v-if="editUserErrors.name" class="error-message">{{ editUserErrors.name }}</span>
+              <span v-if="editUserErrors.name" class="error-message">{{
+                editUserErrors.name
+              }}</span>
             </div>
 
             <div class="form-group">
@@ -548,12 +541,7 @@
 
             <div class="form-group">
               <label for="edit-role">권한 (읽기전용)</label>
-              <select
-                id="edit-role"
-                v-model="editingUser.role"
-                disabled
-                class="disabled-field"
-              >
+              <select id="edit-role" v-model="editingUser.role" disabled class="disabled-field">
                 <option value="user">일반 사용자</option>
                 <option value="admin">관리자</option>
               </select>
@@ -562,9 +550,7 @@
           </div>
 
           <div class="modal-actions">
-            <button type="button" @click="closeEditUserModal" class="cancel-btn">
-              취소
-            </button>
+            <button type="button" @click="closeEditUserModal" class="cancel-btn">취소</button>
             <button type="submit" :disabled="editUserLoading" class="submit-btn">
               {{ editUserLoading ? '수정 중...' : '수정 완료' }}
             </button>
@@ -603,7 +589,7 @@ const newUser = ref({
   department: '',
   role: 'user',
   is_active: true,
-  notes: ''
+  notes: '',
 })
 const newUserErrors = ref({})
 
@@ -617,7 +603,7 @@ const editingUser = ref({
   ip: '',
   department: '',
   user_id: '',
-  role: 'user'
+  role: 'user',
 })
 const editUserErrors = ref({})
 
@@ -778,17 +764,42 @@ const userApi = {
 
 // 사용자 관리 함수들
 const loadUsers = async () => {
+  console.log('=== loadUsers 시작 ===')
   loading.value = true
   error.value = ''
 
   try {
     const response = await userApi.loadUsers()
-    users.value = response.users || []
+    console.log('API 응답:', response)
+    
+    // ✅ 원본 데이터 확인
+    console.log('원본 users 데이터:', response.users)
+    if (response.users && response.users.length > 0) {
+      console.log('첫 번째 사용자 원본:', response.users[0])
+      console.log('첫 번째 사용자 is_active 값:', response.users[0].is_active)
+      console.log('첫 번째 사용자 is_active 타입:', typeof response.users[0].is_active)
+    }
+    
+    // ✅ 비활성 사용자 찾기
+    const inactiveUsers = response.users.filter(u => !u.is_active || u.is_active === 0)
+    console.log('비활성 사용자 목록:', inactiveUsers)
+    
+    // is_active 기본값 설정
+    users.value = (response.users || []).map(user => ({
+      ...user,
+      is_active: user.is_active !== undefined ? user.is_active : true
+    }))
+    
+    console.log('업데이트된 users.value:', users.value)
+    console.log('첫 번째 사용자 is_active:', users.value[0]?.is_active)
+    
     pagination.value = response.pagination
     departmentOptions.value = response.department_options || []
     positionOptions.value = response.position_options || []
 
     selectedUsers.value = []
+    
+    console.log('=== loadUsers 완료 ===')
   } catch (err) {
     console.error('사용자 데이터 로드 실패:', err)
     error.value = err.message
@@ -806,7 +817,7 @@ function resetNewUser() {
     department: '',
     role: 'user',
     is_active: true,
-    notes: ''
+    notes: '',
   }
   newUserErrors.value = {}
 }
@@ -826,8 +837,9 @@ function validateNewUser() {
   if (!newUser.value.ip.trim()) {
     errors.ip = 'IP 주소는 필수입니다.'
   } else {
-    const ipAddresses = newUser.value.ip.split(',').map(ip => ip.trim())
-    const ipPattern = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
+    const ipAddresses = newUser.value.ip.split(',').map((ip) => ip.trim())
+    const ipPattern =
+      /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
 
     for (const ip of ipAddresses) {
       if (!ipPattern.test(ip)) {
@@ -880,7 +892,7 @@ function editUser(user) {
     ip: user.ip || '',
     department: user.department || '',
     user_id: user.user_id || '',
-    role: user.role || 'user'
+    role: user.role || 'user',
   }
   editUserErrors.value = {}
   showEditUserModal.value = true
@@ -895,7 +907,7 @@ function closeEditUserModal() {
     ip: '',
     department: '',
     user_id: '',
-    role: 'user'
+    role: 'user',
   }
   editUserErrors.value = {}
 }
@@ -910,8 +922,9 @@ function validateEditUser() {
   if (!editingUser.value.ip.trim()) {
     errors.ip = 'IP 주소는 필수입니다.'
   } else {
-    const ipAddresses = editingUser.value.ip.split(',').map(ip => ip.trim())
-    const ipPattern = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
+    const ipAddresses = editingUser.value.ip.split(',').map((ip) => ip.trim())
+    const ipPattern =
+      /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
 
     for (const ip of ipAddresses) {
       if (!ipPattern.test(ip)) {
@@ -933,7 +946,7 @@ const updateUser = async () => {
     // IP와 이름만 수정 가능하도록 데이터를 제한
     const updateData = {
       name: editingUser.value.name.trim(),
-      ip: editingUser.value.ip.trim()
+      ip: editingUser.value.ip.trim(),
     }
 
     const response = await userApi.updateUser(editingUser.value.uid, updateData)
@@ -950,6 +963,68 @@ const updateUser = async () => {
     editUserLoading.value = false
   }
 }
+
+// ============================================
+// 사용자 활성화/비활성화 토글 함수
+// ============================================
+// ============================================
+// 사용자 활성화/비활성화 토글 함수
+// ============================================
+const toggleUserActive = async (user) => {
+  const action = user.is_active ? '비활성화' : '활성화'
+  const statusMessage = user.is_active 
+    ? '비활성화된 사용자는 로그인할 수 없습니다.' 
+    : '활성화된 사용자는 로그인할 수 있습니다.'
+  
+  if (!confirm(`${user.name} 사용자를 ${action}하시겠습니까?\n\n${statusMessage}`)) {
+    return
+  }
+
+  try {
+    const response = await fetch(`/api/admin/users/${user.uid}/toggle-active`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${authStore.token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const result = await response.json()
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || `사용자 ${action} 실패`)
+    }
+
+    console.log('Toggle result:', result)
+
+    // ✅ 1. 즉시 로컬 상태 업데이트 (반응성 보장)
+    const userIndex = users.value.findIndex(u => u.uid === user.uid)
+    if (userIndex !== -1) {
+      // Vue 반응성을 위해 배열 전체를 새로 할당
+      users.value = users.value.map(u => 
+        u.uid === user.uid 
+          ? { ...u, is_active: result.is_active }
+          : u
+      )
+      console.log(`로컬 상태 업데이트 완료: ${user.name} is_active = ${result.is_active}`)
+    }
+
+    // ✅ 2. 성공 메시지 표시
+    alert(result.message)
+    
+    // ✅ 3. 서버에서 최신 데이터 다시 로드 (확인 차원)
+    await loadUsers()
+    
+    console.log('사용자 목록 새로고침 완료')
+  } catch (err) {
+    console.error(`사용자 ${action} 실패:`, err)
+    alert(err.message)
+    
+    // 실패 시에도 목록 새로고침 (서버 상태와 동기화)
+    await loadUsers()
+  }
+}
+
 
 // 기존 함수들 (변경 없음)
 const goToUserDetail = (userId) => {
@@ -996,7 +1071,7 @@ const toggleSelectAll = () => {
   if (isAllSelected.value) {
     selectedUsers.value = []
   } else {
-    selectedUsers.value = users.value.map(user => user.uid)
+    selectedUsers.value = users.value.map((user) => user.uid)
   }
 }
 
@@ -1054,17 +1129,50 @@ const getRiskLabel = (riskLevel) => {
     medium: '주의',
     high: '위험',
     critical: '매우 위험',
-    not_evaluated: '미평가'
+    not_evaluated: '미평가',
   }
   return labels[riskLevel] || '미평가'
 }
 
-const formatDate = (dateString) => {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  if (isNaN(date.getTime())) return '-'
-  return date.toLocaleDateString('ko-KR')
+// 감점에 따른 CSS 클래스 반환
+const getPenaltyClass = (penalty) => {
+  const penaltyNum = parseFloat(penalty || 0)
+  if (penaltyNum === 0) return 'penalty-perfect'
+  if (penaltyNum <= 0.5) return 'penalty-low'
+  if (penaltyNum <= 2.0) return 'penalty-medium'
+  return 'penalty-high'
 }
+
+// 리스크 레벨에 따른 CSS 클래스 반환
+const getRiskClass = (riskLevel) => {
+  const riskMap = {
+    '미평가': 'risk-none',
+    '낮음': 'risk-low',
+    '보통': 'risk-medium',
+    '높음': 'risk-high',
+    '매우 높음': 'risk-critical'
+  }
+  return riskMap[riskLevel] || 'risk-none'
+}
+
+// 날짜 포맷팅
+const formatDate = (dateStr) => {
+  if (!dateStr) return '미평가'
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return '미평가'
+  return date.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
+}
+
+// const formatDate = (dateString) => {
+//   if (!dateString) return '-'
+//   const date = new Date(dateString)
+//   if (isNaN(date.getTime())) return '-'
+//   return date.toLocaleDateString('ko-KR')
+// }
 
 const formatTime = (dateString) => {
   if (!dateString) return '-'
