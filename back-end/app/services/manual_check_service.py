@@ -484,161 +484,123 @@ class ManualCheckService:
             print(f"[ERROR] 사용자 ID 찾기 오류: {str(e)}")
             return None
 
-    def _process_seal_check_data(self, df, uploaded_by):
-        """PC 봉인씰 확인 데이터 처리 - 기간 매칭 로직 추가"""
+    def _process_seal_check_data(self, df, uploaded_by, period_id, period_info):
+        """PC 봉인씰 확인 데이터 처리 - period_id 포함"""
         processed_data = []
-
+        
         # 컬럼 매핑
-        col_mapping = self._find_column_mapping(
-            df.columns,
-            {
-                "datetime": ["일시", "점검일시", "날짜"],
-                "username": ["이름", "사용자명", "담당자"],
-                "department": ["부서", "부서명"],
-                "damage_status": ["훼손여부", "상태", "봉인상태"],
-            },
-        )
-
+        column_mapping = {
+            "username": ["사용자명", "이름", "성명"],
+            "source_ip": ["로컬 IP", "IP", "IP주소", "IP 주소"],
+            "check_date": ["점검일시", "검출일시", "점검일", "일시"],
+            "seal_status": ["봉인씰상태", "상태", "봉인상태"],
+            "seal_number": ["봉인번호", "번호"],
+        }
+        
+        mapped_cols = self._find_column_mapping_flexible(df.columns, column_mapping)
+        
         for idx, row in df.iterrows():
             try:
-                # ✅ 일시 정보 파싱 (엑셀 파일의 실제 날짜 사용)
-                check_date = datetime.now()  # 기본값
-                if col_mapping["datetime"] and pd.notna(row[col_mapping["datetime"]]):
-                    check_date = self._parse_datetime(row[col_mapping["datetime"]])
-                    print(f"[DEBUG] 봉인씰 - 행 {idx+2}: 파싱된 날짜 = {check_date}")
-
-                # ✅ 날짜 기반으로 적절한 기간 찾기
-                period_id, period_name = self._find_appropriate_period(
-                    check_date, "seal_check")
-                print(
-                    f"[DEBUG] 봉인씰 - 행 {idx+2}: 매칭된 기간 = {period_name} (ID: {period_id})"
-                )
-
-                # 사용자명과 부서 정보
-                username = ""
-                if col_mapping["username"] and pd.notna(row[col_mapping["username"]]):
-                    username = str(row[col_mapping["username"]]).strip()
-
-                department = ""
-                if col_mapping["department"] and pd.notna(
-                        row[col_mapping["department"]]):
-                    department = str(row[col_mapping["department"]]).strip()
-
-                # 훼손여부 확인
-                damage_status = "정상"  # 기본값
-                if col_mapping["damage_status"]:
-                    damage_value = row[col_mapping["damage_status"]]
-                    if pd.notna(damage_value):
-                        damage_status = str(damage_value).strip()
-
-                # 봉인씰 상태 매핑
-                seal_status_map = {
-                    "훼손": "damaged",
-                    "정상": "normal",
-                    "미부착": "missing",
-                }
-                seal_status = seal_status_map.get(damage_status, "normal")
-
-                # 결과 판정: 훼손이면 불합격
-                overall_result = "fail" if "훼손" in damage_status else "pass"
-
+                username = str(row.get(mapped_cols["username"], "")).strip()
+                if not username or username.lower() == "nan":
+                    continue
+                
+                user_id = self._find_user_id_flexible(username, "")
+                if not user_id:
+                    print(f"[WARNING] 사용자를 찾을 수 없음: {username}")
+                    continue
+                
+                source_ip = str(row.get(mapped_cols["source_ip"], "")).strip()
+                check_date = self._parse_datetime_safe(row.get(mapped_cols["check_date"]))
+                seal_status = str(row.get(mapped_cols["seal_status"], "정상")).strip()
+                seal_number = str(row.get(mapped_cols.get("seal_number", ""), "")).strip()
+                
+                overall_result = "pass" if seal_status in ["정상", "양호"] else "fail"
+                
                 processed_row = {
+                    "user_id": user_id,
                     "check_item_code": "seal_check",
-                    "check_year": check_date.year,  # ✅ 실제 연도 사용
-                    "check_period": period_name,  # ✅ 동적 기간명 사용 (하드코딩 제거)
-                    "period_id": period_id,  # ✅ 기간 ID 설정 (중요!)
-                    "check_date": check_date,  # ✅ 실제 날짜 사용
+                    "source_ip": source_ip if source_ip and source_ip != "nan" else None,
+                    "check_year": period_info["period_year"],  # ✅ 기간 정보 사용
+                    "check_period": period_info["period_name"],  # ✅ 기간 정보 사용
+                    "check_date": check_date,
                     "checker_name": uploaded_by,
+                    "period_id": period_id,  # ✅ period_id 추가
                     "seal_status": seal_status,
-                    "seal_notes": f"봉인씰 상태: {damage_status}",
+                    "seal_notes": seal_number if seal_number else None,
                     "overall_result": overall_result,
-                    "notes": f"PC 봉인씰 확인: {damage_status}",
+                    "notes": f"봉인씰 상태: {seal_status}",
                     "username": username,
-                    "department": department,
                     "row_index": idx + 2,
                 }
-
+                
                 processed_data.append(processed_row)
-
+                
             except Exception as e:
-                print(f"PC 봉인씰 확인 데이터 처리 오류 (행 {idx + 2}): {str(e)}")
+                print(f"봉인씰 데이터 처리 오류 (행 {idx + 2}): {str(e)}")
                 continue
-
+        
         return processed_data
 
     # ✅ 3단계: 악성코드 데이터 처리 로직 수정
-    def _process_malware_scan_data(self, df, uploaded_by):
-        """악성코드 전체 검사 데이터 처리 - 기간 매칭 로직 추가"""
+    def _process_malware_scan_data(self, df, uploaded_by, period_id, period_info):
+        """악성코드 전체 검사 데이터 처리 - period_id 포함"""
         processed_data = []
-
-        # 컬럼 매핑 - 일시 컬럼 추가
-        col_mapping = self._find_column_mapping(
-            df.columns,
-            {
-                "datetime": ["일시", "점검일시", "날짜", "검사일시"],
-                "ip": ["IP", "로컬 IP", "IP주소"],
-                "username": ["사용자명", "사용자", "이름"],
-                "malware_name": ["악성코드명", "악성코드", "위협명"],
-                "malware_type": ["악성코드 분류", "분류", "유형"],
-                "path": ["경로", "파일경로", "위치"],
-                "detection_item": ["탐지 항목", "탐지항목", "탐지"],
-            },
-        )
-
+        
+        # 컬럼 매핑
+        column_mapping = {
+            "username": ["사용자명", "이름", "성명"],
+            "source_ip": ["로컬 IP", "IP", "IP주소", "IP 주소"],
+            "check_date": ["점검일시", "검출일시", "점검일", "일시"],
+            "detection_item": ["탐지 항목", "탐지항목", "탐지내용"],
+            "malware_name": ["악성코드명", "악성코드 이름", "위협명"],
+            "malware_type": ["악성코드 분류", "분류", "유형"],
+            "file_path": ["파일 경로", "경로", "위치"],
+        }
+        
+        mapped_cols = self._find_column_mapping_flexible(df.columns, column_mapping)
+        
         for idx, row in df.iterrows():
             try:
-                # ✅ 일시 정보 추출 - 엑셀 파일의 실제 일시 사용
-                check_date = datetime.now()  # 기본값
-                if col_mapping["datetime"] and pd.notna(row[col_mapping["datetime"]]):
-                    check_date = self._parse_datetime(row[col_mapping["datetime"]])
-                    print(f"[DEBUG] 악성코드 - 행 {idx+2}: 파싱된 날짜 = {check_date}")
-
-                # ✅ 날짜 기반으로 적절한 기간 찾기
-                period_id, period_name = self._find_appropriate_period(
-                    check_date, "malware_scan")
-                print(
-                    f"[DEBUG] 악성코드 - 행 {idx+2}: 매칭된 기간 = {period_name} (ID: {period_id})"
-                )
-
-                # 사용자명 추출
-                username = ""
-                if col_mapping["username"] and pd.notna(row[col_mapping["username"]]):
-                    username = str(row[col_mapping["username"]]).strip()
-
-                # IP 주소
-                ip_address = (str(row[col_mapping["ip"]]) if col_mapping["ip"]
-                              and pd.notna(row[col_mapping["ip"]]) else "")
-
-                # 악성코드 정보
-                malware_name = (str(row[col_mapping["malware_name"]])
-                                if col_mapping["malware_name"]
-                                and pd.notna(row[col_mapping["malware_name"]]) else "")
-                malware_type = (str(row[col_mapping["malware_type"]])
-                                if col_mapping["malware_type"]
-                                and pd.notna(row[col_mapping["malware_type"]]) else "")
-                file_path = (str(row[col_mapping["path"]]) if col_mapping["path"]
-                             and pd.notna(row[col_mapping["path"]]) else "")
-
-                # 탐지 항목 확인
-                detection_item = ""
-                if col_mapping["detection_item"]:
-                    detection_value = row[col_mapping["detection_item"]]
-                    if pd.notna(detection_value):
-                        detection_item = str(detection_value).strip()
-
-                # 결과 판정: 탐지 항목이 있으면 불합격
-                overall_result = "fail" if detection_item else "pass"
-                malware_scan_result = "infected" if detection_item else "clean"
-                threats_found = 1 if detection_item else 0
-
+                username = str(row.get(mapped_cols["username"], "")).strip()
+                if not username or username.lower() == "nan":
+                    continue
+                
+                user_id = self._find_user_id_flexible(username, "")
+                if not user_id:
+                    print(f"[WARNING] 사용자를 찾을 수 없음: {username}")
+                    continue
+                
+                source_ip = str(row.get(mapped_cols["source_ip"], "")).strip()
+                check_date = self._parse_datetime_safe(row.get(mapped_cols["check_date"]))
+                detection_item = str(row.get(mapped_cols.get("detection_item", ""), "")).strip()
+                
+                # 탐지 항목이 있으면 악성코드 발견
+                if detection_item and detection_item.lower() not in ["nan", "없음", "-", ""]:
+                    malware_scan_result = "발견"
+                    threats_found = 1
+                    overall_result = "fail"
+                    malware_name = str(row.get(mapped_cols.get("malware_name", ""), detection_item)).strip()
+                    malware_type = str(row.get(mapped_cols.get("malware_type", ""), "")).strip()
+                    file_path = str(row.get(mapped_cols.get("file_path", ""), "")).strip()
+                else:
+                    malware_scan_result = "정상"
+                    threats_found = 0
+                    overall_result = "pass"
+                    malware_name = None
+                    malware_type = None
+                    file_path = None
+                    detection_item = None
+                
                 processed_row = {
+                    "user_id": user_id,
                     "check_item_code": "malware_scan",
-                    "source_ip": ip_address,
-                    "check_year": check_date.year,  # ✅ 실제 연도 사용
-                    "check_period": period_name,  # ✅ 동적 기간명 사용 (하드코딩 제거)
-                    "period_id": period_id,  # ✅ 기간 ID 설정 (중요!)
-                    "check_date": check_date,  # ✅ 엑셀 파일의 실제 일시 사용
+                    "source_ip": source_ip if source_ip and source_ip != "nan" else None,
+                    "check_year": period_info["period_year"],  # ✅ 기간 정보 사용
+                    "check_period": period_info["period_name"],  # ✅ 기간 정보 사용
+                    "check_date": check_date,
                     "checker_name": uploaded_by,
+                    "period_id": period_id,  # ✅ period_id 추가
                     "malware_scan_result": malware_scan_result,
                     "threats_found": threats_found,
                     "threats_cleaned": 0 if threats_found > 0 else 1,
@@ -646,22 +608,21 @@ class ManualCheckService:
                     "malware_classification": malware_type,
                     "malware_path": file_path,
                     "detection_item": detection_item,
-                    "malware_notes": (f"탐지 항목: {detection_item}"
-                                      if detection_item else "정상"),
+                    "malware_notes": (f"탐지 항목: {detection_item}" if detection_item else "정상"),
                     "overall_result": overall_result,
-                    "notes": (f"악성코드 검사: {detection_item}"
-                              if detection_item else "악성코드 미발견"),
+                    "notes": (f"악성코드 검사: {detection_item}" if detection_item else "악성코드 미발견"),
                     "username": username,
                     "row_index": idx + 2,
                 }
-
+                
                 processed_data.append(processed_row)
-
+                
             except Exception as e:
                 print(f"악성코드 전체 검사 데이터 처리 오류 (행 {idx + 2}): {str(e)}")
                 continue
-
+        
         return processed_data
+
 
     # ✅ 유연한 컬럼 매핑 함수 (멀티헤더 지원)
     def _find_column_mapping_flexible(self, columns, mapping_dict):
@@ -769,232 +730,130 @@ class ManualCheckService:
             return datetime.now()
 
     # ✅ 4단계: 개인정보 암호화 데이터 처리 로직 수정 (회차별 날짜 계산 포함)
-
-    def _process_file_encryption_data(self, df, uploaded_by):
-        """
-        개인정보 파일 암호화 데이터 처리 - 신규 로직
-        
-        컬럼 구조:
-        - 로컬 IP, 사용자명, 검출일시, 파일명, 보호 상태, 주민등록번호 건수
-        
-        판정 로직:
-        - 주민등록번호 건수 = 0 또는 빈 값 → 양호
-        - 주민등록번호 건수 >= 1 AND 보호 상태 in [완전삭제, 암호화, 일반삭제, 휴지통] → 양호
-        - 그 외 → 미흡
-        
-        중복 처리:
-        - 같은 사용자의 모든 검출 건을 그룹핑
-        - 하나라도 미흡이면 해당 사용자는 미흡 처리
-        - 미흡 건들의 상세 정보를 JSON으로 저장
-        """
+    def _process_file_encryption_data(self, df, uploaded_by, period_id, period_info):
+        """개인정보 파일 암호화 데이터 처리 - period_id 포함"""
         processed_data = []
-        upload_date = datetime.now()
-        
-        print(f"[DEBUG] === 개인정보 암호화 처리 시작 (신규 로직) ===")
-        print(f"[DEBUG] 총 데이터프레임 행 수: {len(df)}")
-        print(f"[DEBUG] 컬럼명: {list(df.columns)}")
         
         # 컬럼 매핑
-        col_mapping = self._find_column_mapping(
-            df.columns,
-            {
-                "ip": ["로컬 IP", "로컬IP", "IP", "ip"],
-                "username": ["사용자명", "사용자", "이름"],
-                "detection_time": ["검출일시", "검출시각", "일시", "날짜"],
-                "filename": ["파일명", "파일이름", "파일"],
-                "protection_status": ["보호 상태", "보호상태", "상태"],
-                "ssn_count": ["주민등록번호 건수", "주민등록번호건수", "건수"],
-            },
-        )
-        
-        # 필수 컬럼 확인
-        required = ["ip", "username", "ssn_count"]
-        missing = [k for k in required if not col_mapping[k]]
-        if missing:
-            raise ValueError(f"필수 컬럼이 없습니다: {missing}")
-        
-        print(f"[DEBUG] 컬럼 매핑: {col_mapping}")
-        
-        # 보호 상태 양호 목록 (대소문자 무시)
-        SAFE_PROTECTION_STATES = {
-            "완전삭제", "암호화", "일반삭제", "휴지통",
-            "완전 삭제", "일반 삭제",  # 공백 포함 버전
+        column_mapping = {
+            "username": ["사용자명", "이름", "성명"],
+            "source_ip": ["로컬 IP", "IP", "IP주소", "IP 주소"],
+            "check_date": ["점검일시", "검출일시", "점검일", "일시"],
+            "file_name": ["파일명", "파일이름", "파일 이름"],
+            "protection_status": ["보호 상태", "보호상태", "상태", "암호화상태"],
+            "ssn_count": ["주민등록번호 건수", "주민번호 건수", "건수"],
         }
         
-        # 사용자별 검출 건 그룹핑
-        user_detections = defaultdict(list)
+        mapped_cols = self._find_column_mapping_flexible(df.columns, column_mapping)
+        
+        # 사용자별로 그룹화
+        user_data = {}
         
         for idx, row in df.iterrows():
             try:
-                # 기본 정보 추출
-                ip_address = str(row[col_mapping["ip"]]).strip() if pd.notna(row[col_mapping["ip"]]) else ""
-                username = str(row[col_mapping["username"]]).strip() if pd.notna(row[col_mapping["username"]]) else ""
-                
-                if not ip_address or not username:
-                    print(f"[SKIP] 행 {idx+2}: IP 또는 사용자명 누락")
+                username = str(row.get(mapped_cols["username"], "")).strip()
+                if not username or username.lower() == "nan":
                     continue
                 
-                # 검출일시
-                detection_time = upload_date
-                if col_mapping["detection_time"] and pd.notna(row[col_mapping["detection_time"]]):
-                    detection_time = self._parse_datetime(row[col_mapping["detection_time"]])
+                source_ip = str(row.get(mapped_cols.get("source_ip", ""), "")).strip()
                 
-                # 파일명
-                filename = ""
-                if col_mapping["filename"] and pd.notna(row[col_mapping["filename"]]):
-                    filename = str(row[col_mapping["filename"]]).strip()
+                # 사용자 키 생성 (이름 + IP)
+                user_key = f"{username}_{source_ip if source_ip and source_ip != 'nan' else 'no_ip'}"
                 
-                # 보호 상태
-                protection_status = ""
-                if col_mapping["protection_status"] and pd.notna(row[col_mapping["protection_status"]]):
-                    protection_status = str(row[col_mapping["protection_status"]]).strip()
+                if user_key not in user_data:
+                    user_data[user_key] = {
+                        "username": username,
+                        "source_ip": source_ip if source_ip and source_ip != "nan" else None,
+                        "check_date": self._parse_datetime_safe(row.get(mapped_cols.get("check_date"))),
+                        "files": [],
+                        "total_files": 0,
+                        "unencrypted_files": 0,
+                        "total_ssn": 0,
+                    }
                 
-                # 주민등록번호 건수
-                ssn_count = 0
-                if pd.notna(row[col_mapping["ssn_count"]]):
-                    try:
-                        ssn_count = int(float(row[col_mapping["ssn_count"]]))
-                    except:
-                        ssn_count = 0
+                # 파일 정보 수집
+                protection_status = str(row.get(mapped_cols.get("protection_status", ""), "")).strip()
+                ssn_count = int(row.get(mapped_cols.get("ssn_count", ""), 0) or 0)
                 
-                # 판정 로직
-                is_safe = False
-                if ssn_count == 0:
-                    # 건수가 0이면 무조건 양호
-                    is_safe = True
-                elif protection_status in SAFE_PROTECTION_STATES:
-                    # 건수가 있어도 보호 상태가 양호 목록에 있으면 양호
-                    is_safe = True
-                else:
-                    # 건수가 있고 보호 상태가 양호 목록에 없으면 미흡
-                    is_safe = False
-                
-                # 사용자별로 그룹핑 (username을 키로 사용)
-                user_key = username
-                user_detections[user_key].append({
-                    "ip": ip_address,
-                    "username": username,
-                    "detection_time": detection_time,
-                    "filename": filename,
+                user_data[user_key]["files"].append({
                     "protection_status": protection_status,
                     "ssn_count": ssn_count,
-                    "is_safe": is_safe,
-                    "row_index": idx + 2,
                 })
+                user_data[user_key]["total_files"] += 1
+                user_data[user_key]["total_ssn"] += ssn_count
                 
-                print(f"[DEBUG] 행 {idx+2}: {username} - SSN:{ssn_count}, 상태:{protection_status}, 판정:{'양호' if is_safe else '미흡'}")
-                
+                # 미보호 파일 카운트
+                if protection_status in ["미보호", "미암호화", "unprotected"]:
+                    user_data[user_key]["unencrypted_files"] += 1
+                    
             except Exception as e:
-                print(f"[ERROR] 행 {idx+2} 처리 오류: {str(e)}")
+                print(f"파일 암호화 데이터 수집 오류 (행 {idx + 2}): {str(e)}")
                 continue
         
-        # 사용자별 통합 처리
-        for username, detections in user_detections.items():
+        # 사용자별 집계 데이터를 processed_data로 변환
+        for user_key, data in user_data.items():
             try:
-                # 가장 최근 검출일시 사용
-                latest_detection = max(detections, key=lambda x: x["detection_time"])
-                check_date = latest_detection["detection_time"]
+                user_id = self._find_user_id_flexible(data["username"], "")
+                if not user_id:
+                    print(f"[WARNING] 사용자를 찾을 수 없음: {data['username']}")
+                    continue
                 
-                # 해당 날짜에 맞는 기간 찾기
-                period_id, period_name = self._find_appropriate_period(check_date, "file_encryption")
-                
-                # 모든 검출 건 중 미흡 건만 추출
-                unsafe_detections = [d for d in detections if not d["is_safe"]]
-                
-                # 전체 판정: 미흡 건이 하나라도 있으면 미흡
-                overall_result = "fail" if unsafe_detections else "pass"
-                
-                # 통계 정보
-                total_detections = len(detections)
-                unsafe_count = len(unsafe_detections)
-                safe_count = total_detections - unsafe_count
-                
-                # 미흡 건 상세 정보 생성 (파일명은 해시화)
-                violation_details = []
-                for detection in unsafe_detections[:10]:  # 최대 10개만 저장
-                    # 파일명 해시 생성 (민감 정보 보호)
-                    filename_hash = ""
-                    if detection["filename"]:
-                        filename_hash = hashlib.sha256(
-                            detection["filename"].encode('utf-8')
-                        ).hexdigest()[:16]  # 앞 16자만 사용
-                    
-                    violation_details.append({
-                        "file_hash": filename_hash,
-                        "ssn_count": detection["ssn_count"],
-                        "protection_status": detection["protection_status"],
-                        "detection_time": detection["detection_time"].strftime("%Y-%m-%d %H:%M:%S"),
-                    })
-                
-                # encryption_notes 필드에 상세 정보 저장 (JSON 형식)
-                encryption_notes = json.dumps({
-                    "total_files": total_detections,
-                    "safe_files": safe_count,
-                    "unsafe_files": unsafe_count,
-                    "violations": violation_details,
-                    "summary": f"총 {total_detections}건 검출, {unsafe_count}건 미흡"
-                }, ensure_ascii=False)
-                
-                # notes 필드에는 사용자 친화적 메시지
-                if overall_result == "pass":
-                    notes = f"개인정보 파일 암호화 양호 (총 {total_detections}건 검출, 모두 적절히 보호됨)"
+                # ✅ 암호화 상태 판단 - 정확한 ENUM 값 매핑
+                if data["unencrypted_files"] == 0 and data["total_files"] > 0:
+                    encryption_status = "fully_encrypted"  # ✅ 완전 암호화
+                    overall_result = "pass"
+                elif data["unencrypted_files"] > 0 and data["unencrypted_files"] < data["total_files"]:
+                    encryption_status = "partially_encrypted"  # ✅ 부분 암호화
+                    overall_result = "fail"
+                elif data["unencrypted_files"] == data["total_files"] and data["total_files"] > 0:
+                    encryption_status = "not_encrypted"  # ✅ 미암호화
+                    overall_result = "fail"
                 else:
-                    notes = f"개인정보 파일 암호화 미흡 (총 {total_detections}건 중 {unsafe_count}건 미흡 - 상세 내역 확인 필요)"
+                    encryption_status = "not_applicable"  # ✅ 해당 없음 (파일 없음)
+                    overall_result = "pass"
                 
-                # 암호화 상태
-                if overall_result == "pass":
-                    encryption_status = "fully_encrypted"
-                elif unsafe_count < total_detections:
-                    encryption_status = "partially_encrypted"
-                else:
-                    encryption_status = "not_encrypted"
-                
-                # processed_data 생성
                 processed_row = {
+                    "user_id": user_id,
                     "check_item_code": "file_encryption",
-                    "source_ip": latest_detection["ip"],
-                    "check_year": check_date.year,
-                    "check_period": period_name,
-                    "period_id": period_id,
-                    "check_date": check_date,
+                    "source_ip": data["source_ip"],
+                    "check_year": period_info["period_year"],
+                    "check_period": period_info["period_name"],
+                    "check_date": data["check_date"],
                     "checker_name": uploaded_by,
-                    "encryption_status": encryption_status,
-                    "files_scanned": total_detections,
-                    "unencrypted_files": unsafe_count,
-                    "encryption_completed": 1 if overall_result == "pass" else 0,
-                    "encryption_notes": encryption_notes,  # 상세 정보 (JSON)
-                    "ssn_included": 1 if unsafe_count > 0 else 0,
+                    "period_id": period_id,
+                    "encryption_status": encryption_status,  # ✅ 올바른 ENUM 값
+                    "unencrypted_files": data["unencrypted_files"],
+                    "encryption_completed": 1 if data["unencrypted_files"] == 0 else 0,
+                    "round_number": None,
+                    "ssn_included": data["total_ssn"],
                     "overall_result": overall_result,
-                    "notes": notes,  # 사용자 친화적 메시지
-                    "username": username,
-                    "row_index": latest_detection["row_index"],
+                    "notes": f"총 {data['total_files']}개 파일 중 {data['unencrypted_files']}개 미암호화, 주민번호 {data['total_ssn']}건",
+                    "username": data["username"],
+                    "row_index": 0,
                 }
                 
                 processed_data.append(processed_row)
                 
-                print(f"[DEBUG] 사용자 {username} 처리 완료: {overall_result} (총:{total_detections}, 미흡:{unsafe_count})")
-                
             except Exception as e:
-                print(f"[ERROR] 사용자 {username} 통합 처리 오류: {str(e)}")
+                print(f"파일 암호화 데이터 처리 오류 (사용자: {data['username']}): {str(e)}")
+                import traceback
+                traceback.print_exc()
                 continue
-        
-        print(f"[DEBUG] === 처리 완료: 총 {len(processed_data)}명의 사용자 데이터 생성 ===")
         
         return processed_data
 
-
-
     # 데이터 처리 통합 함수
-    def _process_check_data(self, df, check_type, uploaded_by):
-        """점검 유형에 따른 데이터 처리 분기"""
+    def _process_check_data(self, df, check_type, uploaded_by, period_id, period_info):
+        """점검 유형에 따라 데이터 처리 - period_id 포함"""
         if check_type == "seal_check":
-            return self._process_seal_check_data(df, uploaded_by)
+            return self._process_seal_check_data(df, uploaded_by, period_id, period_info)
         elif check_type == "malware_scan":
-            return self._process_malware_scan_data(df, uploaded_by)
+            return self._process_malware_scan_data(df, uploaded_by, period_id, period_info)
         elif check_type == "file_encryption":
-            return self._process_file_encryption_data(df, uploaded_by)
+            return self._process_file_encryption_data(df, uploaded_by, period_id, period_info)
         else:
-            raise ValueError(f"지원하지 않는 점검 유형: {check_type}")
+            raise ValueError(f"지원하지 않는 점검 유형입니다: {check_type}")
+
 
     # 기존 함수들 - 개인정보 암호화 관련 분석 (기존 로직 유지)
     def _analyze_encryption_file(self, df):
@@ -1276,24 +1135,32 @@ class ManualCheckService:
             "errors": errors[:10],  # 최대 10개 오류만 반환
         }
 
-    # ✅ 메인 업로드 처리 함수에도 디버그 추가
 
-    def process_bulk_upload(self, file, uploaded_by):
-        """엑셀/CSV 파일 일괄 업로드 처리 - 건너뛴 행 정보 포함"""
+    # ✅ 메인 업로드 처리 함수에도 디버그 추가
+    def process_bulk_upload(self, file, period_id, uploaded_by):
+        """엑셀/CSV 파일 일괄 업로드 처리 - 기간 선택 필수"""
         try:
             filename = file.filename
-            print(f"[DEBUG] 업로드 시작 - 파일명: {filename}, 업로더: {uploaded_by}")
+            print(f"[DEBUG] 업로드 시작 - 파일명: {filename}, 기간ID: {period_id}, 업로더: {uploaded_by}")
+
+            # ✅ 1. 기간 유효성 검증
+            period_info = self._validate_period(period_id)
+            if not period_info:
+                raise ValueError("유효하지 않은 점검 기간입니다.")
+            
+            if period_info["is_completed"]:
+                raise ValueError("완료된 기간에는 업로드할 수 없습니다.")
+
+            print(f"[DEBUG] 기간 검증 완료 - {period_info['period_name']} ({period_info['check_type']})")
 
             # 파일 읽기 - 멀티 헤더 처리
             if filename.lower().endswith(".csv"):
                 df = pd.read_csv(file, encoding="utf-8-sig")
             elif filename.lower().endswith((".xlsx", ".xls")):
-                # 엑셀 파일의 경우 멀티 헤더 처리
                 df = self._read_excel_with_multi_header(file)
             else:
                 raise ValueError("지원하지 않는 파일 형식입니다. (Excel, CSV만 지원)")
 
-            # 빈 데이터프레임 체크
             if df.empty:
                 raise ValueError("파일에 데이터가 없습니다.")
 
@@ -1304,7 +1171,14 @@ class ManualCheckService:
             if not check_type:
                 raise ValueError("점검 유형을 자동으로 감지할 수 없습니다. 파일명이나 컬럼을 확인해주세요.")
 
-            print(f"[DEBUG] 점검 유형 감지 완료: {check_type}")
+            # ✅ 2. 점검 유형과 기간의 점검 유형이 일치하는지 검증
+            if check_type != period_info["check_type"]:
+                raise ValueError(
+                    f"파일의 점검 유형({self.get_check_type_name(check_type)})과 "
+                    f"선택한 기간의 점검 유형({self.get_check_type_name(period_info['check_type'])})이 일치하지 않습니다."
+                )
+
+            print(f"[DEBUG] 점검 유형 일치 확인 완료: {check_type}")
 
             # 파일 구조 검증
             is_valid, message = self.validate_file_structure(df, check_type)
@@ -1313,30 +1187,22 @@ class ManualCheckService:
 
             print(f"[DEBUG] 파일 구조 검증 완료: {message}")
 
-            # 데이터 처리
-            processed_data = self._process_check_data(df, check_type, uploaded_by)
+            # ✅ 3. 데이터 처리 시 period_id 포함
+            processed_data = self._process_check_data(df, check_type, uploaded_by, period_id, period_info)
             print(f"[DEBUG] 데이터 처리 완료 - {len(processed_data)}개 데이터 생성")
 
-            # 처리된 데이터 중 일부 샘플 출력
-            for i, data in enumerate(processed_data[:2]):  # 처음 2개만
-                print(
-                    f"[DEBUG] 샘플 데이터 {i+1}: 사용자={data.get('username')}, IP={data.get('source_ip')}, 기간={data.get('check_period')}"
-                )
+            # 데이터베이스 저장
+            save_result = self._save_to_existing_table(processed_data, check_type, uploaded_by)
 
-            # 데이터베이스 저장 (중복 체크 및 업데이트)
-            save_result = self._save_to_existing_table(processed_data, check_type,
-                                                       uploaded_by)
-
-            # ✅ 결과 메시지 개선 - 건너뛴 행 정보 포함
+            # 결과 메시지 구성
             total_processed = save_result["success_count"] + save_result["update_count"]
             skipped_count = save_result.get("skipped_count", 0)
 
             if save_result["update_count"] > 0:
-                message = f"{self.get_check_type_name(check_type)} 업로드 완료 (신규: {save_result['success_count']}건, 업데이트: {save_result['update_count']}건"
+                message = f"{period_info['period_name']} - {self.get_check_type_name(check_type)} 업로드 완료 (신규: {save_result['success_count']}건, 업데이트: {save_result['update_count']}건"
             else:
-                message = f"{self.get_check_type_name(check_type)} 업로드 완료"
+                message = f"{period_info['period_name']} - {self.get_check_type_name(check_type)} 업로드 완료"
 
-            # ✅ 건너뛴 행이 있는 경우 메시지에 포함
             if skipped_count > 0:
                 if ")" in message:
                     message = message.replace(")", f", 건너뜀: {skipped_count}건)")
@@ -1353,7 +1219,7 @@ class ManualCheckService:
                 "success_count": save_result["success_count"],
                 "update_count": save_result["update_count"],
                 "error_count": save_result["error_count"],
-                "skipped_count": skipped_count,  # ✅ 건너뛴 수 추가
+                "skipped_count": skipped_count,
                 "errors": save_result["errors"],
             }
 
@@ -1363,7 +1229,28 @@ class ManualCheckService:
             traceback.print_exc()
             raise ValueError(f"파일 처리 중 오류가 발생했습니다: {str(e)}")
 
+
     # 기타 유틸리티 함수들
+    def _validate_period(self, period_id):
+        """점검 기간 유효성 검증"""
+        try:
+            query = """
+                SELECT period_id, check_type, period_year, period_name, 
+                    start_date, end_date, is_completed
+                FROM manual_check_periods
+                WHERE period_id = %s AND is_active = 1
+            """
+            result = execute_query(query, (period_id,))
+            
+            if not result or len(result) == 0:
+                return None
+            
+            return result[0]
+        except Exception as e:
+            print(f"[ERROR] 기간 검증 실패: {str(e)}")
+            return None
+    
+
     def get_check_type_name(self, check_type):
         """점검 유형명 반환"""
         type_names = {
@@ -2016,3 +1903,138 @@ class ManualCheckService:
     def generate_upload_template(self):
         """업로드 템플릿 생성"""
         return self.generate_file_encryption_template()
+
+    def preview_file(self, file):
+        """파일 미리보기 (점검 유형 자동 감지)"""
+        try:
+            filename = file.filename
+            print(f"[DEBUG] 미리보기 시작 - 파일명: {filename}")
+
+            # 파일 읽기
+            if filename.lower().endswith(".csv"):
+                df = pd.read_csv(file, encoding="utf-8-sig")
+            elif filename.lower().endswith((".xlsx", ".xls")):
+                df = self._read_excel_with_multi_header(file)
+            else:
+                raise ValueError("지원하지 않는 파일 형식입니다.")
+
+            if df.empty:
+                raise ValueError("파일에 데이터가 없습니다.")
+
+            # 점검 유형 자동 감지
+            check_type = self.detect_file_type(df, filename)
+            if not check_type:
+                raise ValueError("점검 유형을 자동으로 감지할 수 없습니다.")
+
+            print(f"[DEBUG] 감지된 점검 유형: {check_type}")
+
+            # 파일 구조 검증
+            is_valid, message = self.validate_file_structure(df, check_type)
+            if not is_valid:
+                raise ValueError(message)
+
+            # 예상 결과 분석
+            expected_results = self._analyze_expected_results(df, check_type)
+
+            # ✅ 추가 정보 (파일 암호화의 경우)
+            additional_info = {}
+            if check_type == "file_encryption":
+                additional_info = self._get_encryption_additional_info(df)
+
+            # ✅ return 문 수정 - check_type 추가
+            return {
+                "file_type": check_type,  # ✅ 기존 필드
+                "check_type": check_type,  # ✅ 프론트엔드 호환성을 위해 추가
+                "type_name": self.get_check_type_name(check_type),
+                "total_records": len(df),
+                "columns": list(df.columns),
+                "expected_results": expected_results,
+                "additional_info": additional_info if additional_info else None,
+            }
+
+        except Exception as e:
+            print(f"파일 미리보기 오류: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise ValueError(f"파일 분석 실패: {str(e)}")
+        
+
+    def _get_encryption_additional_info(self, df):
+        """파일 암호화 추가 정보 추출"""
+        try:
+            additional_info = {}
+            
+            # 회차 정보 추출
+            round_columns = []
+            for col in df.columns:
+                col_str = str(col).lower()
+                if '회차' in col_str:
+                    # 숫자 추출
+                    import re
+                    numbers = re.findall(r'\d+', str(col))
+                    if numbers:
+                        round_columns.append(int(numbers[0]))
+            
+            if round_columns:
+                round_columns.sort()
+                additional_info["detected_rounds"] = round_columns
+                additional_info["latest_round"] = max(round_columns)
+                additional_info["validation_logic"] = "회차별 검증"
+            
+            return additional_info if additional_info else None
+            
+        except Exception as e:
+            print(f"[WARNING] 암호화 추가 정보 추출 실패: {str(e)}")
+            return None
+
+
+    def _find_user_id_flexible(self, username, department=""):
+        """사용자 ID를 유연하게 찾기 (이름 또는 부서로)"""
+        try:
+            from app.utils.database import execute_query
+            
+            # 1. 이름과 부서로 검색
+            if department and department.strip():
+                query = """
+                    SELECT uid, username, department 
+                    FROM users 
+                    WHERE username = %s AND department = %s 
+                    LIMIT 1
+                """
+                result = execute_query(query, (username, department))
+                if result and len(result) > 0:
+                    print(f"[DB_DEBUG] 이름+부서로 사용자 발견: {username} ({department})")
+                    return result[0]["uid"]
+            
+            # 2. 이름만으로 검색
+            query = """
+                SELECT uid, username, department 
+                FROM users 
+                WHERE username = %s 
+                LIMIT 1
+            """
+            result = execute_query(query, (username,))
+            if result and len(result) > 0:
+                print(f"[DB_DEBUG] 이름으로만 사용자 발견: {username} -> 실제 부서: {result[0]['department']}")
+                return result[0]["uid"]
+            
+            # 3. 유사 이름 검색 (LIKE)
+            query = """
+                SELECT uid, username, department 
+                FROM users 
+                WHERE username LIKE %s 
+                LIMIT 1
+            """
+            result = execute_query(query, (f"%{username}%",))
+            if result and len(result) > 0:
+                print(f"[DB_DEBUG] 유사 이름으로 사용자 발견: {result[0]['username']} ({result[0]['department']})")
+                return result[0]["uid"]
+            
+            print(f"[DB_DEBUG] 사용자를 찾을 수 없음: {username} ({department})")
+            return None
+            
+        except Exception as e:
+            print(f"[ERROR] 사용자 검색 실패: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None
