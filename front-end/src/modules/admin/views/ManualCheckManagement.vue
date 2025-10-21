@@ -448,123 +448,170 @@
     </div>
 
     <!-- 일괄 업로드 모달 - 개선된 버전 -->
+    <!-- 일괄 업로드 모달 - 기간 선택 추가 버전 -->
     <div v-if="showBulkUploadModal" class="modal-overlay" @click="closeBulkUploadModal">
-      <div class="modal-content" @click.stop>
+      <div class="modal-content upload-modal" @click.stop>
         <div class="modal-header">
           <h3>점검 결과 엑셀 업로드</h3>
           <button @click="closeBulkUploadModal" class="close-button">×</button>
         </div>
 
         <div class="modal-body">
-          <div class="upload-section">
-            <div class="upload-area" @drop="handleFileDrop" @dragover.prevent @dragenter.prevent>
-              <input
-                type="file"
-                ref="fileInput"
-                @change="handleFileSelect"
-                accept=".csv,.xlsx,.xls"
-                style="display: none"
-              />
+          <!-- ✅ 1단계: 점검 기간 선택 -->
+          <div class="upload-step">
+            <h4>1단계: 점검 기간 선택 (필수)</h4>
+            <div class="period-selection">
+              <select 
+                v-model="selectedUploadPeriod" 
+                @change="onPeriodChange" 
+                class="period-select"
+              >
+                <option value="">점검 기간을 선택하세요</option>
+                <optgroup
+                  v-for="(typeData, checkType) in availablePeriodsForUpload"
+                  :key="checkType"
+                  :label="`${getCheckTypeName(checkType)} 점검`"
+                >
+                  <option
+                    v-for="period in typeData.periods"
+                    :key="period.period_id"
+                    :value="period.period_id"
+                  >
+                    {{ period.period_year }}년 - {{ period.period_name }} 
+                    ({{ formatDateRange(period.start_date, period.end_date) }})
+                    - {{ getPeriodStatusText(period) }}
+                  </option>
+                </optgroup>
+              </select>
+            </div>
 
-              <div v-if="!selectedFile" class="upload-placeholder">
-                <div class="upload-icon">📁</div>
-                <p>Excel 또는 CSV 파일을 드래그하거나 클릭하여 선택하세요</p>
-                <p class="upload-subtitle">파일 유형이 자동으로 감지됩니다</p>
-                <button @click="$refs.fileInput.click()" class="select-file-button">
-                  파일 선택
-                </button>
+            <!-- ✅ 선택된 기간 정보 표시 -->
+            <div v-if="selectedPeriodInfo" class="selected-period-info">
+              <div class="info-card">
+                <h5>선택된 점검 기간</h5>
+                <p><strong>기간명:</strong> {{ selectedPeriodInfo.period_name }}</p>
+                <p><strong>점검유형:</strong> {{ getCheckTypeName(selectedPeriodInfo.check_type) }}</p>
+                <p>
+                  <strong>기간:</strong> 
+                  {{ formatDateRange(selectedPeriodInfo.start_date, selectedPeriodInfo.end_date) }}
+                </p>
+                <p>
+                  <strong>상태:</strong>
+                  <span :class="getPeriodStatusClass(selectedPeriodInfo)">
+                    {{ getPeriodStatusText(selectedPeriodInfo) }}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ✅ 2단계: 파일 업로드 -->
+          <div class="upload-step" :class="{ disabled: !selectedUploadPeriod }">
+            <h4>2단계: Excel/CSV 파일 업로드</h4>
+
+            <!-- 기간 미선택 시 안내 메시지 -->
+            <div v-if="!selectedUploadPeriod" class="warning-message">
+              <p>⚠️ 먼저 점검 기간을 선택해주세요.</p>
+            </div>
+
+            <div v-else class="upload-section">
+              <div class="upload-area" @drop="handleFileDrop" @dragover.prevent @dragenter.prevent>
+                <input
+                  type="file"
+                  ref="fileInput"
+                  @change="handleFileSelect"
+                  accept=".csv,.xlsx,.xls"
+                  style="display: none"
+                />
+
+                <div v-if="!selectedFile" class="upload-placeholder">
+                  <div class="upload-icon">📁</div>
+                  <p>Excel 또는 CSV 파일을 드래그하거나 클릭하여 선택하세요</p>
+                  <p class="upload-subtitle">파일 유형이 자동으로 감지됩니다</p>
+                  <button @click="$refs.fileInput.click()" class="select-file-button">
+                    파일 선택
+                  </button>
+                </div>
+
+                <div v-else class="file-selected">
+                  <div class="file-info">
+                    <div class="file-icon">📄</div>
+                    <div>
+                      <div class="file-name">{{ selectedFile.name }}</div>
+                      <div class="file-size">{{ formatFileSize(selectedFile.size) }}</div>
+                    </div>
+                  </div>
+                  <button @click="removeSelectedFile" class="remove-file-button">×</button>
+                </div>
               </div>
 
-              <div v-else class="file-selected">
-                <div class="file-info">
-                  <div class="file-icon">📄</div>
-                  <div>
-                    <div class="file-name">{{ selectedFile.name }}</div>
-                    <div class="file-size">{{ formatFileSize(selectedFile.size) }}</div>
+              <!-- 파일 미리보기 정보 -->
+              <div v-if="filePreviewInfo" class="preview-info">
+                <div class="preview-header">
+                  <h4>📄 파일 분석 결과</h4>
+                  <span class="detected-type">{{ filePreviewInfo.type_name }}</span>
+                </div>
+
+                <!-- ✅ 점검 유형 일치 확인 -->
+                <div 
+                  v-if="selectedPeriodInfo && filePreviewInfo.check_type !== selectedPeriodInfo.check_type" 
+                  class="type-mismatch-warning"
+                >
+                  <p>⚠️ <strong>점검 유형 불일치!</strong></p>
+                  <p>
+                    선택한 기간: <strong>{{ getCheckTypeName(selectedPeriodInfo.check_type) }}</strong><br>
+                    파일 유형: <strong>{{ getCheckTypeName(filePreviewInfo.check_type) }}</strong>
+                  </p>
+                  <p>올바른 점검 유형의 기간을 선택하거나 다른 파일을 업로드해주세요.</p>
+                </div>
+
+                <div class="preview-stats">
+                  <div class="stat-item">
+                    <span class="stat-label">총 레코드:</span>
+                    <span class="stat-value">{{ filePreviewInfo.total_records }}건</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">예상 통과:</span>
+                    <span class="stat-value success">
+                      {{ filePreviewInfo.expected_results?.expected_pass || 0 }}건
+                    </span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">예상 실패:</span>
+                    <span class="stat-value danger">
+                      {{ filePreviewInfo.expected_results?.expected_fail || 0 }}건
+                    </span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">통과율:</span>
+                    <span class="stat-value">
+                      {{ filePreviewInfo.expected_results?.pass_rate || 0 }}%
+                    </span>
                   </div>
                 </div>
-                <button @click="removeSelectedFile" class="remove-file-button">×</button>
-              </div>
-            </div>
 
-            <!-- 파일 미리보기 정보 -->
-            <div v-if="filePreviewInfo" class="preview-info">
-              <div class="preview-header">
-                <h4>📄 파일 분석 결과</h4>
-                <span class="detected-type">{{ filePreviewInfo.type_name }}</span>
-              </div>
-
-              <div class="preview-stats">
-                <div class="stat-item">
-                  <span class="stat-label">총 레코드:</span>
-                  <span class="stat-value">{{ filePreviewInfo.total_records }}건</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">예상 통과:</span>
-                  <span class="stat-value success"
-                    >{{ filePreviewInfo.expected_results?.expected_pass || 0 }}건</span
-                  >
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">예상 실패:</span>
-                  <span class="stat-value danger"
-                    >{{ filePreviewInfo.expected_results?.expected_fail || 0 }}건</span
-                  >
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">통과율:</span>
-                  <span class="stat-value"
-                    >{{ filePreviewInfo.expected_results?.pass_rate || 0 }}%</span
-                  >
+                <!-- 개인정보 암호화 추가 정보 -->
+                <div v-if="filePreviewInfo.additional_info?.detected_rounds" class="encryption-info">
+                  <h5>🔐 회차별 검증 정보</h5>
+                  <p>
+                    <strong>감지된 회차:</strong>
+                    {{ filePreviewInfo.additional_info.detected_rounds.join(', ') }}
+                  </p>
+                  <p>
+                    <strong>최신 회차:</strong> {{ filePreviewInfo.additional_info.latest_round }}회차
+                  </p>
                 </div>
               </div>
 
-              <!-- 개인정보 암호화 추가 정보 -->
-              <div v-if="filePreviewInfo.additional_info?.detected_rounds" class="encryption-info">
-                <h5>🔍 회차별 검증 정보</h5>
-                <p>
-                  <strong>감지된 회차:</strong>
-                  {{ filePreviewInfo.additional_info.detected_rounds.join(', ') }}
-                </p>
-                <p>
-                  <strong>최신 회차:</strong> {{ filePreviewInfo.additional_info.latest_round }}회차
-                </p>
-                <p>
-                  <strong>검증 방식:</strong> {{ filePreviewInfo.additional_info.validation_logic }}
-                </p>
-              </div>
-
-              <!-- 분석 상세 내용 -->
-              <div
-                v-if="filePreviewInfo.expected_results?.analysis_details?.length > 0"
-                class="analysis-details"
-              >
-                <h5>📊 분석 상세 (처음 5개)</h5>
+              <div class="upload-instructions">
+                <h4>💡 업로드 가이드</h4>
                 <ul>
-                  <li
-                    v-for="detail in filePreviewInfo.expected_results.analysis_details.slice(0, 5)"
-                    :key="detail"
-                  >
-                    {{ detail }}
-                  </li>
+                  <li><strong>PC 봉인씰 확인:</strong> 일시, 이름, 부서, 훼손여부</li>
+                  <li><strong>악성코드 전체 검사:</strong> 일시, IP, 악성코드명, 분류, 경로, 탐지항목</li>
+                  <li><strong>개인정보 파일 암호화:</strong> 로컬 IP, 파일명, 보호상태, 주민번호 건수</li>
+                  <li>동일한 사용자/날짜의 기존 데이터는 자동 업데이트됩니다</li>
                 </ul>
               </div>
-            </div>
-
-            <div class="upload-instructions">
-              <h4>💡 업로드 가이드</h4>
-              <ul>
-                <li>
-                  <strong>개인정보 파일 암호화:</strong> 로컬 IP, XXX회차에서 주민등록번호(수정)
-                </li>
-                <li><strong>PC 봉인씰 확인:</strong> 일시, 이름, 부서, 훼손여부</li>
-                <li>
-                  <strong>악성코드 전체 검사:</strong> 일시, IP, 악성코드명, 분류, 경로, 탐지항목
-                </li>
-                <li>엑셀 파일의 멀티 헤더(1-2행 합성) 구조를 자동으로 처리합니다</li>
-                <li>데이터는 3행부터 시작되어야 합니다</li>
-                <li>동일한 사용자/날짜의 기존 데이터는 자동 업데이트됩니다</li>
-              </ul>
             </div>
           </div>
         </div>
@@ -573,8 +620,9 @@
           <button @click="closeBulkUploadModal" class="cancel-button">취소</button>
           <button
             @click="uploadFile"
-            :disabled="!selectedFile || uploading || !filePreviewInfo"
+            :disabled="!canUpload || hasTypeMismatch"
             class="upload-button"
+            :title="getUploadButtonTooltip()"
           >
             <span v-if="uploading" class="loading-spinner"></span>
             {{ uploading ? '업로드 중...' : '업로드 시작' }}
@@ -680,6 +728,10 @@ const uploading = ref(false)
 const editingRecord = ref({})
 const saving = ref(false)
 
+// ✅ 추가: 업로드용 기간 선택 관련 상태
+const selectedUploadPeriod = ref('')  // 선택된 기간 ID
+const availablePeriodsForUpload = ref({})  // 업로드 가능한 기간 목록
+
 // 기간 관리
 const editingPeriod = ref(null)
 const savingPeriod = ref(false)
@@ -719,6 +771,38 @@ const availableYears = computed(() => {
 const paginatedRecords = computed(() => {
   return filteredRecords.value
 })
+
+
+// 기존 computed 속성들 뒤에 추가
+
+// ✅ 선택된 기간 정보
+const selectedPeriodInfo = computed(() => {
+  if (!selectedUploadPeriod.value) return null
+
+  for (const typeData of Object.values(availablePeriodsForUpload.value)) {
+    const period = typeData.periods?.find((p) => p.period_id == selectedUploadPeriod.value)
+    if (period) return period
+  }
+  return null
+})
+
+// ✅ 점검 유형 불일치 여부
+const hasTypeMismatch = computed(() => {
+  if (!selectedPeriodInfo.value || !filePreviewInfo.value) return false
+  return filePreviewInfo.value.check_type !== selectedPeriodInfo.value.check_type
+})
+
+// ✅ 업로드 가능 여부
+const canUpload = computed(() => {
+  return (
+    selectedUploadPeriod.value &&
+    selectedFile.value &&
+    filePreviewInfo.value &&
+    !uploading.value &&
+    !hasTypeMismatch.value
+  )
+})
+
 
 // 기간 섹션 토글
 const togglePeriodSection = () => {
@@ -815,6 +899,41 @@ const loadPeriodStatus = async () => {
   } catch (err) {
     console.error('기간 상태 조회 오류:', err)
     displayToast('기간 상태 조회에 실패했습니다.', 'error')
+  }
+}
+
+// ✅ 업로드 가능한 기간 목록 로드
+const loadAvailablePeriodsForUpload = async () => {
+  try {
+    const response = await fetch('/api/manual-check/periods/status', {
+      credentials: 'include',
+    })
+
+    if (!response.ok) throw new Error('기간 목록 로드 실패')
+
+    const result = await response.json()
+    
+    if (result.success) {
+      // 완료되지 않은 기간만 필터링
+      const filteredPeriods = {}
+      
+      for (const [checkType, typeData] of Object.entries(result.data.check_types || {})) {
+        const activePeriods = typeData.periods?.filter(p => !p.is_completed) || []
+        if (activePeriods.length > 0) {
+          filteredPeriods[checkType] = {
+            ...typeData,
+            periods: activePeriods
+          }
+        }
+      }
+      
+      availablePeriodsForUpload.value = filteredPeriods
+      
+      console.log('[DEBUG] 업로드 가능한 기간:', availablePeriodsForUpload.value)
+    }
+  } catch (err) {
+    console.error('기간 목록 로드 오류:', err)
+    displayToast('기간 목록을 불러오는데 실패했습니다.', 'error')
   }
 }
 
@@ -1365,22 +1484,47 @@ const bulkDelete = async () => {
   }
 }
 
-// 파일 업로드
-const openBulkUploadModal = () => {
+// ✅ 업로드 모달 열기 - 기간 목록도 함께 로드
+const openBulkUploadModal = async () => {
   showBulkUploadModal.value = true
   selectedFile.value = null
+  selectedUploadPeriod.value = ''  // ✅ 기간 선택 초기화
+  filePreviewInfo.value = null
   uploadPreview.value = []
+  
+  // ✅ 업로드 가능한 기간 목록 로드
+  await loadAvailablePeriodsForUpload()
 }
 
+// ✅ 업로드 모달 닫기
 const closeBulkUploadModal = () => {
   showBulkUploadModal.value = false
   selectedFile.value = null
+  selectedUploadPeriod.value = ''  // ✅ 기간 선택 초기화
   filePreviewInfo.value = null
   uploadPreview.value = []
 }
 
-// 파일 업로드 관련 메서드 수정
+// ✅ 기간 선택 변경 시 파일 초기화
+const onPeriodChange = () => {
+  if (selectedFile.value) {
+    // 기간 변경 시 파일 초기화하고 재선택 필요 알림
+    selectedFile.value = null
+    filePreviewInfo.value = null
+    uploadPreview.value = []
+    displayToast('기간이 변경되어 파일을 다시 선택해주세요.', 'info')
+  }
+}
+
+// ✅ 파일 선택 처리 - 기간 선택 확인 추가
 const handleFileSelect = async (event) => {
+  // ✅ 기간 선택 여부 확인
+  if (!selectedUploadPeriod.value) {
+    displayToast('먼저 점검 기간을 선택해주세요.', 'warning')
+    event.target.value = '' // input 초기화
+    return
+  }
+
   const file = event.target.files[0]
   if (!file) return
 
@@ -1388,8 +1532,16 @@ const handleFileSelect = async (event) => {
   await previewFile(file)
 }
 
+// ✅ 드래그 앤 드롭 처리 - 기간 선택 확인 추가
 const handleFileDrop = async (event) => {
   event.preventDefault()
+  
+  // ✅ 기간 선택 여부 확인
+  if (!selectedUploadPeriod.value) {
+    displayToast('먼저 점검 기간을 선택해주세요.', 'warning')
+    return
+  }
+
   const files = event.dataTransfer.files
   if (files.length > 0) {
     const file = files[0]
@@ -1478,14 +1630,48 @@ const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
+// ✅ 파일 업로드 실행 - period_id 포함
 const uploadFile = async () => {
-  if (!selectedFile.value || uploading.value || !filePreviewInfo.value) return
+  // ✅ 업로드 전 검증
+  if (!selectedUploadPeriod.value) {
+    displayToast('점검 기간을 선택해주세요.', 'warning')
+    return
+  }
+
+  if (!selectedFile.value) {
+    displayToast('파일을 선택해주세요.', 'warning')
+    return
+  }
+
+  if (!filePreviewInfo.value) {
+    displayToast('파일 분석이 완료되지 않았습니다.', 'warning')
+    return
+  }
+
+  // ✅ 점검 유형 일치 확인
+  if (hasTypeMismatch.value) {
+    displayToast(
+      `점검 유형이 일치하지 않습니다.\n기간: ${getCheckTypeName(selectedPeriodInfo.value.check_type)}\n파일: ${getCheckTypeName(filePreviewInfo.value.check_type)}`,
+      'error'
+    )
+    return
+  }
+
+  if (uploading.value) return
 
   uploading.value = true
 
   try {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
+    formData.append('period_id', selectedUploadPeriod.value)  // ✅ period_id 추가
+
+    console.log('[DEBUG] 업로드 요청:', {
+      filename: selectedFile.value.name,
+      period_id: selectedUploadPeriod.value,
+      period_name: selectedPeriodInfo.value?.period_name,
+      check_type: selectedPeriodInfo.value?.check_type
+    })
 
     const response = await fetch('/api/manual-check/upload', {
       method: 'POST',
@@ -1497,21 +1683,28 @@ const uploadFile = async () => {
 
     if (result.success) {
       const data = result.data
-      let message = `업로드 완료! ${data.file_type}`
-      message += `\n총 ${data.total_records}건 중 ${data.success_count}건 성공`
-
-      if (data.error_count > 0) {
-        message += `, ${data.error_count}건 실패`
-
-        // 오류 상세 정보가 있으면 표시
-        if (data.errors && data.errors.length > 0) {
-          console.log('업로드 오류 상세:', data.errors)
+      let message = result.message || `업로드 완료! ${data.file_type}`
+      
+      // ✅ 상세 결과 추가
+      if (data.success_count > 0 || data.error_count > 0) {
+        message += `\n총 ${data.total_records}건 중 ${data.success_count}건 성공`
+        
+        if (data.error_count > 0) {
+          message += `, ${data.error_count}건 실패`
+          
+          // 오류 상세 정보가 있으면 콘솔에 출력
+          if (data.errors && data.errors.length > 0) {
+            console.log('업로드 오류 상세:', data.errors)
+          }
         }
       }
 
       displayToast(message, 'success')
       closeBulkUploadModal()
+      
+      // ✅ 데이터 새로고침
       await loadCheckData()
+      await loadPeriodStatus()
     } else {
       throw new Error(result.error || '업로드 실패')
     }
@@ -1522,6 +1715,27 @@ const uploadFile = async () => {
     uploading.value = false
   }
 }
+
+// ✅ 업로드 버튼 툴팁 메시지
+const getUploadButtonTooltip = () => {
+  if (!selectedUploadPeriod.value) {
+    return '먼저 점검 기간을 선택해주세요'
+  }
+  if (!selectedFile.value) {
+    return '파일을 선택해주세요'
+  }
+  if (hasTypeMismatch.value) {
+    return '점검 유형이 일치하지 않습니다'
+  }
+  if (!filePreviewInfo.value) {
+    return '파일 분석 중...'
+  }
+  if (uploading.value) {
+    return '업로드 중...'
+  }
+  return '업로드 시작'
+}
+
 
 // 템플릿 다운로드 개선
 const downloadTemplate = async () => {
@@ -1560,6 +1774,49 @@ const downloadTemplate = async () => {
   }
 }
 
+// ✅ 날짜 범위 포맷팅
+const formatDateRange = (startDate, endDate) => {
+  if (!startDate || !endDate) return '-'
+  
+  const start = new Date(startDate).toLocaleDateString('ko-KR', {
+    month: 'short',
+    day: 'numeric'
+  })
+  const end = new Date(endDate).toLocaleDateString('ko-KR', {
+    month: 'short',
+    day: 'numeric'
+  })
+  
+  return `${start} ~ ${end}`
+}
+
+// ✅ 기간 상태 텍스트 반환
+const getPeriodStatusText = (period) => {
+  if (period.is_completed) return '완료됨'
+
+  const now = new Date()
+  const startDate = new Date(period.start_date)
+  const endDate = new Date(period.end_date)
+
+  if (now < startDate) return '예정'
+  if (now > endDate) return '종료됨'
+  return '진행중'
+}
+
+// ✅ 기간 상태 CSS 클래스 반환
+const getPeriodStatusClass = (period) => {
+  if (period.is_completed) return 'status-completed'
+
+  const now = new Date()
+  const startDate = new Date(period.start_date)
+  const endDate = new Date(period.end_date)
+
+  if (now < startDate) return 'status-upcoming'
+  if (now > endDate) return 'status-ended'
+  return 'status-active'
+}
+
+
 // 페이지네이션
 const changePage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
@@ -1578,13 +1835,15 @@ const displayToast = (message, type = 'success') => {
   }, 3000)
 }
 
-// 감시자
+// ✅ 연도 변경 시 모든 데이터 새로고침
 watch(selectedYear, () => {
   currentPage.value = 1
   loadPeriodStatus()
   loadCheckData()
+  loadAvailablePeriodsForUpload()  // ✅ 추가
 })
 
+// 기존 watch 유지
 watch([selectedCheckType, selectedResult], () => {
   currentPage.value = 1
   loadCheckData()
@@ -1594,10 +1853,11 @@ watch(() => periodForm.start_date, onDateChange)
 watch(() => periodForm.end_date, onDateChange)
 watch(() => periodForm.check_type, onDateChange)
 
-// 생명주기
+// ✅ 생명주기 - 기간 목록 로드 추가
 onMounted(() => {
   loadPeriodStatus()
   loadCheckData()
+  loadAvailablePeriodsForUpload()  // ✅ 추가
 })
 </script>
 
