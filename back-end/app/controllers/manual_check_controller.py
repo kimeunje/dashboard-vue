@@ -14,11 +14,11 @@ manual_check_service = ManualCheckService()
 @manual_check_bp.route("/upload/preview", methods=["POST"])
 @token_required
 @handle_exceptions
-def preview_upload_file():
-    """파일 업로드 미리보기 - 멀티 헤더 지원"""
+def preview_upload():
+    """업로드 파일 미리보기"""
     if "file" not in request.files:
         return (
-            jsonify({"error": "파일이 제공되지 않았습니다."}),
+            jsonify({"error": "파일이 업로드되지 않았습니다."}),
             HTTP_STATUS["BAD_REQUEST"],
         )
 
@@ -30,166 +30,36 @@ def preview_upload_file():
         )
 
     try:
-        filename = file.filename
-
-        # 파일 읽기 - 멀티 헤더 지원
-        if filename.lower().endswith(".csv"):
-            df = pd.read_csv(file, encoding="utf-8-sig")
-        elif filename.lower().endswith((".xlsx", ".xls")):
-            df = manual_check_service._read_excel_with_multi_header(file)
-        else:
-            raise ValueError("지원하지 않는 파일 형식입니다. (Excel, CSV만 지원)")
-
-        # 빈 데이터프레임 체크
-        if df.empty:
-            raise ValueError("파일에 데이터가 없습니다.")
-
-        print(f"[DEBUG] 미리보기 컬럼명: {list(df.columns)}")
-
-        # 점검 유형 자동 감지
-        check_type = manual_check_service.detect_file_type(df, filename)
-
-        if not check_type:
-            return (
-                jsonify({
-                    "success": False,
-                    "error": "점검 유형을 자동으로 감지할 수 없습니다.",
-                    "found_columns": list(df.columns),
-                    "suggestions": [
-                        "개인정보 파일: '로컬 IP'와 'XXX회차에서 주민등록번호(수정)' 컬럼이 필요합니다.",
-                        "PC 봉인씰: '일시', '이름', '부서', '훼손여부' 컬럼이 필요합니다.",
-                        "악성코드 검사: 'IP', '악성코드명', '분류', '경로', '탐지 항목' 컬럼이 필요합니다.",
-                    ],
-                }),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
-
-        # 파일 구조 검증
-        is_valid, message = manual_check_service.validate_file_structure(df, check_type)
-
-        if not is_valid:
-            return (
-                jsonify({
-                    "success": False,
-                    "error": message,
-                    "detected_type": manual_check_service.get_check_type_name(
-                        check_type),
-                    "found_columns": list(df.columns),
-                    "file_info": {
-                        "total_rows": len(df),
-                        "total_columns": len(df.columns),
-                    },
-                }),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
-
-        # 미리보기 데이터 생성
-        preview_data = []
-        sample_size = min(5, len(df))
-
-        for i in range(sample_size):
-            row_data = {}
-            for col in df.columns:
-                value = df.iloc[i][col]
-                if pd.isna(value):
-                    row_data[col] = ""
-                else:
-                    row_data[col] = str(value)
-            preview_data.append(row_data)
-
-        # 예상 결과 분석
-        expected_results = manual_check_service._analyze_expected_results(
-            df, check_type)
-
-        # ✅ 개인정보 암호화의 경우 추가 정보 제공 (수정된 부분)
-        additional_info = {}
-        if check_type == "file_encryption":
-            try:
-                # 새로운 단순 형식에서는 회차 컬럼이 없음
-                round_columns = manual_check_service._detect_round_columns(df.columns)
-                print(f"[DEBUG] 감지된 회차 컬럼: {round_columns}")
-
-                # IP 컬럼과 주민등록번호 검출 컬럼 확인
-                ip_col = manual_check_service._find_local_ip_column(df.columns)
-                ssn_detection_col = manual_check_service._find_ssn_detection_column(
-                    df.columns)
-
-                if len(round_columns) == 0:
-                    # 새로운 단순 형식
-                    additional_info = {
-                        "detected_rounds": [],
-                        "latest_round": None,
-                        "validation_logic": "주민등록번호 검출 수 기준으로 판정 (0건=통과, 1건이상=실패)",
-                        "round_count": 0,
-                        "format_type": "simple",
-                        "ip_column": ip_col,
-                        "ssn_detection_column": ssn_detection_col,
-                    }
-                else:
-                    # 기존 회차별 형식 (하위 호환성)
-                    detected_rounds = [
-                        f"{round_info['round']}회차" for round_info in round_columns
-                    ]
-                    latest_round = max(round_info["round"]
-                                       for round_info in round_columns)
-
-                    additional_info = {
-                        "detected_rounds": detected_rounds,
-                        "latest_round": latest_round,
-                        "validation_logic": "최신 회차부터 역순으로 확인하여 0건 발견 시 통과",
-                        "round_count": len(round_columns),
-                        "format_type": "legacy",
-                    }
-
-                print(f"[DEBUG] 추가 정보 생성 완료: {additional_info}")
-
-            except Exception as e:
-                print(f"[ERROR] 개인정보 암호화 추가 정보 생성 오류: {str(e)}")
-                additional_info = {
-                    "detected_rounds": [],
-                    "latest_round": None,
-                    "validation_logic": "주민등록번호 검출 기준 검증",
-                    "error": f"정보 분석 중 오류 발생: {str(e)}",
-                    "format_type": "unknown",
-                }
-
-        return jsonify({
+        result = manual_check_service.preview_file(file)
+        
+        # ✅ check_type 추가
+        preview_data = {
             "success": True,
             "data": {
-                "detected_type": check_type,
-                "type_name": manual_check_service.get_check_type_name(check_type),
-                "total_records": len(df),
-                "columns": list(df.columns),
-                "preview_data": preview_data,
-                "expected_results": expected_results,
-                "validation_message": message,
-                "additional_info": additional_info,
-            },
-        })
+                **result,
+                "check_type": result.get("file_type"),  # ✅ 점검 유형 코드 추가
+            }
+        }
+        
+        return jsonify(preview_data)
 
     except Exception as e:
-        print(f"미리보기 처리 오류: {str(e)}")
-        import traceback
-
-        traceback.print_exc()
-
         return (
             jsonify({
                 "success": False,
-                "error": f"파일 미리보기 처리 중 오류가 발생했습니다: {str(e)}",
+                "error": str(e)
             }),
             HTTP_STATUS["BAD_REQUEST"],
         )
 
-
 @manual_check_bp.route("/upload", methods=["POST"])
 @token_required
 @handle_exceptions
-def upload_excel_file():
-    """엑셀 파일 업로드 및 일괄 처리 (수정된 버전)"""
+def bulk_upload():
+    """점검 결과 일괄 업로드 - 기간 선택 필수"""
     if "file" not in request.files:
         return (
-            jsonify({"error": "파일이 제공되지 않았습니다."}),
+            jsonify({"error": "파일이 업로드되지 않았습니다."}),
             HTTP_STATUS["BAD_REQUEST"],
         )
 
@@ -197,12 +67,23 @@ def upload_excel_file():
     if file.filename == "":
         return (
             jsonify({"error": "파일이 선택되지 않았습니다."}),
+            HTTP_STATUS["BAD_REQUEST"],
+        )
+
+    # ✅ period_id 필수 파라미터로 추가
+    period_id = request.form.get("period_id", type=int)
+    if not period_id:
+        return (
+            jsonify({"error": "점검 기간을 선택해주세요."}),
             HTTP_STATUS["BAD_REQUEST"],
         )
 
     try:
         result = manual_check_service.process_bulk_upload(
-            file=file, uploaded_by=request.current_user["username"])
+            file=file, 
+            period_id=period_id,  # ✅ period_id 전달
+            uploaded_by=request.current_user["username"]
+        )
 
         return jsonify({
             "success": True,
@@ -213,7 +94,7 @@ def upload_excel_file():
                 "success_count": result["success_count"],
                 "error_count": result["error_count"],
                 "errors": (result["errors"][:10]
-                           if result["errors"] else []),  # 최대 10개 오류만 반환
+                           if result["errors"] else []),
             },
         })
 
@@ -414,6 +295,117 @@ def get_check_types():
         })
 
     except Exception as e:
+        return (
+            jsonify({
+                "success": False,
+                "error": str(e)
+            }),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
+
+
+@manual_check_bp.route("/periods/status", methods=["GET"])
+@token_required
+@handle_exceptions
+def get_periods_status():
+    """점검 기간 현황 조회 (업로드용)"""
+    try:
+        year = request.args.get("year", datetime.now().year, type=int)
+        
+        
+        # ✅ 직접 데이터베이스 쿼리로 기간 조회
+        from app.utils.database import execute_query
+        
+        query = """
+            SELECT 
+                period_id,
+                check_type,
+                period_year,
+                period_name,
+                start_date,
+                end_date,
+                is_completed,
+                completed_at,
+                completed_by,
+                description,
+                created_at
+            FROM manual_check_periods
+            WHERE period_year = %s AND is_active = 1
+            ORDER BY 
+                CASE check_type
+                    WHEN 'seal_check' THEN 1
+                    WHEN 'malware_scan' THEN 2
+                    WHEN 'file_encryption' THEN 3
+                    ELSE 4
+                END,
+                start_date DESC
+        """
+        
+        periods = execute_query(query, (year,))
+        
+        
+        # ✅ 점검 유형별로 그룹화
+        check_types = {}
+        
+        for period in periods:
+            check_type = period["check_type"]
+            
+            if check_type not in check_types:
+                check_types[check_type] = {
+                    "periods": []
+                }
+            
+            # ✅ 날짜를 문자열로 변환
+            period_data = {
+                "period_id": period["period_id"],
+                "check_type": period["check_type"],
+                "period_year": period["period_year"],
+                "period_name": period["period_name"],
+                "start_date": period["start_date"].strftime('%Y-%m-%d') if period["start_date"] else None,
+                "end_date": period["end_date"].strftime('%Y-%m-%d') if period["end_date"] else None,
+                "is_completed": bool(period["is_completed"]),
+                "completed_at": period["completed_at"].strftime('%Y-%m-%d %H:%M:%S') if period["completed_at"] else None,
+                "completed_by": period["completed_by"],
+                "description": period["description"],
+            }
+            
+            # ✅ 기간 상태 판단 (타입 통일)
+            from datetime import datetime as dt, date
+            now = dt.now().date()  # ✅ date 타입으로 변환
+            start = period["start_date"]
+            end = period["end_date"]
+            
+            # ✅ date 타입으로 통일
+            if isinstance(start, dt):
+                start = start.date()
+            if isinstance(end, dt):
+                end = end.date()
+            
+            if period["is_completed"]:
+                period_data["status"] = "completed"
+            elif start and end:
+                if now < start:
+                    period_data["status"] = "upcoming"
+                elif now > end:
+                    period_data["status"] = "ended"
+                else:
+                    period_data["status"] = "active"
+            else:
+                period_data["status"] = "unknown"
+            
+            check_types[check_type]["periods"].append(period_data)
+        
+        
+        return jsonify({
+            "success": True,
+            "data": {
+                "check_types": check_types
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return (
             jsonify({
                 "success": False,
