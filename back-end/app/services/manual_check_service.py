@@ -512,10 +512,23 @@ class ManualCheckService:
                 
                 source_ip = str(row.get(mapped_cols["source_ip"], "")).strip()
                 check_date = self._parse_datetime_safe(row.get(mapped_cols["check_date"]))
-                seal_status = str(row.get(mapped_cols["seal_status"], "정상")).strip()
+                seal_status_raw = str(row.get(mapped_cols["seal_status"], "정상")).strip()
                 seal_number = str(row.get(mapped_cols.get("seal_number", ""), "")).strip()
-                
-                overall_result = "pass" if seal_status in ["정상", "양호"] else "fail"
+
+                # 한글 → ENUM 값 매핑
+                seal_status_mapping = {
+                    "정상": "normal",
+                    "양호": "normal",
+                    "훼손": "damaged",
+                    "손상": "damaged",
+                    "분실": "missing",
+                    "미부착": "missing",
+                    "교체필요": "replacement_needed",
+                    "교체": "replacement_needed",
+                }
+
+                seal_status = seal_status_mapping.get(seal_status_raw, "normal")
+                overall_result = "pass" if seal_status == "normal" else "fail"
                 
                 processed_row = {
                     "user_id": user_id,
@@ -577,14 +590,14 @@ class ManualCheckService:
                 
                 # 탐지 항목이 있으면 악성코드 발견
                 if detection_item and detection_item.lower() not in ["nan", "없음", "-", ""]:
-                    malware_scan_result = "발견"
+                    malware_scan_result = "infected"
                     threats_found = 1
                     overall_result = "fail"
                     malware_name = str(row.get(mapped_cols.get("malware_name", ""), detection_item)).strip()
                     malware_type = str(row.get(mapped_cols.get("malware_type", ""), "")).strip()
                     file_path = str(row.get(mapped_cols.get("file_path", ""), "")).strip()
                 else:
-                    malware_scan_result = "정상"
+                    malware_scan_result = "clean"
                     threats_found = 0
                     overall_result = "pass"
                     malware_name = None
@@ -774,16 +787,19 @@ class ManualCheckService:
                 # 파일 정보 수집
                 protection_status = str(row.get(mapped_cols.get("protection_status", ""), "")).strip()
                 ssn_count = int(row.get(mapped_cols.get("ssn_count", ""), 0) or 0)
-                
+
                 user_data[user_key]["files"].append({
                     "protection_status": protection_status,
                     "ssn_count": ssn_count,
                 })
                 user_data[user_key]["total_files"] += 1
                 user_data[user_key]["total_ssn"] += ssn_count
-                
-                # 미보호 파일 카운트
-                if protection_status in ["미보호", "미암호화", "unprotected"]:
+
+                # 보호 상태가 "안전한 상태" 목록에 있는지 확인
+                SAFE_PROTECTION_STATES = {"완전삭제", "암호화", "일반삭제", "휴지통", "완전 삭제", "일반 삭제"}
+
+                # 미보호 파일 카운트 - 안전 목록에 없으면 미암호화로 처리
+                if not protection_status or protection_status not in SAFE_PROTECTION_STATES:
                     user_data[user_key]["unencrypted_files"] += 1
                     
             except Exception as e:
