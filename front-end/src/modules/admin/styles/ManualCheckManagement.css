@@ -1814,3 +1814,298 @@ button:disabled {
     transform: rotate(360deg);
   }
 }
+
+/* ===== 업로드 모달 - 기간 선택 스타일 ===== */
+
+.upload-modal {
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.upload-step {
+  margin-bottom: 24px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  transition: all 0.3s ease;
+}
+
+.upload-step.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  background-color: #f3f4f6;
+}
+
+.upload-step h4 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* 기간 선택 드롭다운 */
+.period-selection {
+  margin-bottom: 16px;
+}
+
+.period-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.period-select:hover {
+  border-color: #9ca3af;
+}
+
+.period-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.period-select optgroup {
+  font-weight: 600;
+  color: #1f2937;
+  padding: 8px 0;
+}
+
+.period-select option {
+  padding: 8px;
+  color: #374151;
+}
+
+/* 선택된 기간 정보 카드 */
+.selected-period-info {
+  margin-top: 16px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.info-card {
+  padding: 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.info-card h5 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.info-card p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.info-card strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* 경고 메시지 */
+.warning-message {
+  padding: 16px;
+  background-color: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.warning-message p {
+  margin: 0;
+  color: #92400e;
+  font-weight: 500;
+}
+
+/* 점검 유형 불일치 경고 */
+.type-mismatch-warning {
+  padding: 16px;
+  margin-bottom: 16px;
+  background-color: #fee2e2;
+  border: 2px solid #ef4444;
+  border-radius: 8px;
+  animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.type-mismatch-warning p {
+  margin: 8px 0;
+  color: #991b1b;
+  line-height: 1.6;
+}
+
+.type-mismatch-warning strong {
+  font-weight: 600;
+  color: #7f1d1d;
+}
+
+/* 상태 뱃지 */
+.status-upcoming {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.status-active {
+  color: #10b981;
+  font-weight: 500;
+}
+
+.status-ended {
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+.status-completed {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* 업로드 버튼 비활성화 스타일 개선 */
+.upload-button:disabled {
+  background-color: #9ca3af;
+  border-color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.upload-button:disabled:hover {
+  background-color: #9ca3af;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 파일 미리보기 정보 개선 */
+.preview-info {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.preview-header h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.detected-type {
+  padding: 4px 12px;
+  background: #3b82f6;
+  color: white;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* 통계 항목 */
+.preview-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.stat-value.success {
+  color: #10b981;
+}
+
+.stat-value.danger {
+  color: #ef4444;
+}
+
+/* 암호화 정보 */
+.encryption-info {
+  margin-top: 16px;
+  padding: 12px;
+  background: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 4px;
+}
+
+.encryption-info h5 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.encryption-info p {
+  margin: 6px 0;
+  font-size: 13px;
+  color: #1e3a8a;
+  line-height: 1.5;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .upload-modal {
+    max-width: 95%;
+    margin: 20px;
+  }
+
+  .preview-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-step {
+    padding: 16px;
+  }
+}
