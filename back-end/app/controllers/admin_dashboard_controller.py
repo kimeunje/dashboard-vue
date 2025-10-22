@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 from app.utils.decorators import token_required, handle_exceptions, admin_required
 from app.utils.constants import HTTP_STATUS
 from app.utils.database import execute_query
+from urllib.parse import quote
+
 import logging
 
 # 블루프린트 생성
@@ -480,71 +482,71 @@ def _get_risk_users_fixed(year, limit=10):
 #         }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
 
-def _get_filtered_users_fixed(year, department, risk_level, search, page, per_page,
-                              sort_by, sort_order):
-    """필터링된 사용자 목록 조회 - audit_log 기반 마지막 업데이트 시간 포함"""
+
+def _get_filtered_users_fixed(year, department, risk_level, search, page, per_page, 
+                               sort_by="total_penalty", order="desc"):
+    """필터링된 사용자 목록 조회 - 건수 포함"""
     try:
-        # WHERE 절 조건 구성
-        where_conditions = []
-        params = []
+        where_conditions = ["u.is_active = 1"]
+        params = [year]
 
-        # 부서 필터
+        # 필터 조건
         if department:
-            where_conditions.append("u.department LIKE %s")
-            params.append(f"%{department}%")
+            where_conditions.append("u.department = %s")
+            params.append(department)
 
-        # 위험도 필터
-        if risk_level:
-            if risk_level == 'low':
-                where_conditions.append(
-                    "(sss.total_penalty IS NULL OR sss.total_penalty <= 1.0)")
-            elif risk_level == 'medium':
-                where_conditions.append(
-                    "sss.total_penalty > 1.0 AND sss.total_penalty <= 2.0")
-            elif risk_level == 'high':
-                where_conditions.append(
-                    "sss.total_penalty > 2.0 AND sss.total_penalty <= 3.0")
-            elif risk_level == 'critical':
-                where_conditions.append("sss.total_penalty > 3.0")
-            elif risk_level == 'not_evaluated':
-                where_conditions.append("sss.total_penalty IS NULL")
-
-        # 검색 필터
         if search:
-            search_condition = "(u.username LIKE %s OR u.user_id LIKE %s OR u.mail LIKE %s)"
-            where_conditions.append(search_condition)
-            search_param = f"%{search}%"
-            params.extend([search_param, search_param, search_param])
+            where_conditions.append(
+                "(u.username LIKE %s OR u.user_id LIKE %s OR u.mail LIKE %s)"
+            )
+            search_term = f"%{search}%"
+            params.extend([search_term, search_term, search_term])
 
-        where_clause = "WHERE " + " AND ".join(
-            where_conditions) if where_conditions else ""
+        if risk_level:
+            risk_conditions = {
+                'critical': 'sss.total_penalty > 3.0',
+                'high': 'sss.total_penalty > 2.0 AND sss.total_penalty <= 3.0',
+                'medium': 'sss.total_penalty > 1.0 AND sss.total_penalty <= 2.0',
+                'low': 'sss.total_penalty > 0 AND sss.total_penalty <= 1.0',
+                'excellent': 'COALESCE(sss.total_penalty, 0) = 0'
+            }
+            if risk_level in risk_conditions:
+                where_conditions.append(f"({risk_conditions[risk_level]})")
+
+        where_clause = " AND ".join(where_conditions)
 
         # 전체 개수 조회
         count_query = f"""
             SELECT COUNT(*) as total
             FROM users u
-            LEFT JOIN security_score_summary sss ON u.uid = sss.user_id AND sss.evaluation_year = %s
-            {where_clause}
+            LEFT JOIN security_score_summary sss ON u.uid = sss.user_id 
+                AND sss.evaluation_year = %s
+            WHERE {where_clause}
         """
-        count_params = [year] + params
-        count_result = execute_query(count_query, count_params, fetch_one=True)
+        
+        count_result = execute_query(count_query, params, fetch_one=True)
         total_count = count_result['total'] if count_result else 0
 
-        # 정렬 필드 매핑
-        sort_fields = {
+        # 정렬
+        sort_columns = {
             'name': 'u.username',
+            'user_id': 'u.user_id',
             'department': 'u.department',
             'total_penalty': 'COALESCE(sss.total_penalty, 0)',
-            'updated_at': 'last_audit_time'  # audit_log 기반 정렬
+            'audit_penalty': 'COALESCE(sss.audit_penalty, 0)',
+            'education_penalty': 'COALESCE(sss.education_penalty, 0)',
+            'training_penalty': 'COALESCE(sss.training_penalty, 0)'
         }
-        sort_field = sort_fields.get(sort_by, 'COALESCE(sss.total_penalty, 0)')
-        order = 'ASC' if sort_order.lower() == 'asc' else 'DESC'
+        
+        sort_column = sort_columns.get(sort_by, 'COALESCE(sss.total_penalty, 0)')
+        order_direction = 'DESC' if order.lower() == 'desc' else 'ASC'
 
         # 페이징
         offset = (page - 1) * per_page
+        params.extend([per_page, offset])
 
-        # 메인 데이터 조회 - audit_log에서 마지막 업데이트 시간 조회
-        data_query = f"""
+        # 메인 쿼리 - 건수 컬럼 추가
+        query = f"""
             SELECT 
                 u.uid,
                 u.user_id,
@@ -553,17 +555,17 @@ def _get_filtered_users_fixed(year, department, risk_level, search, page, per_pa
                 u.department,
                 u.ip,
                 u.role,
-                u.created_at,
-                u.updated_at,
                 COALESCE(sss.total_penalty, 0.0) as total_penalty,
                 COALESCE(sss.audit_penalty, 0.0) as audit_penalty,
                 COALESCE(sss.education_penalty, 0.0) as education_penalty,
                 COALESCE(sss.training_penalty, 0.0) as training_penalty,
+                -- ✅ 건수 컬럼 추가
+                COALESCE(sss.audit_failed_count, 0) as audit_failed_count,
+                COALESCE(sss.education_incomplete_count, 0) as education_incomplete_count,
+                COALESCE(sss.training_failed_count, 0) as training_failed_count,
                 COALESCE(sss.audit_failed_count, 0) as security_audit_penalty,
                 COALESCE(sss.education_incomplete_count, 0) as education_penalty_count,
                 COALESCE(sss.training_failed_count, 0) as training_penalty_count,
-                sss.last_calculated,
-                -- audit_log에서 사용자별 가장 최근 checked_at 시간 조회
                 (SELECT MAX(al.checked_at) 
                  FROM audit_log al 
                  WHERE al.user_id = u.uid) as last_audit_time,
@@ -575,40 +577,27 @@ def _get_filtered_users_fixed(year, department, risk_level, search, page, per_pa
                     ELSE 'low'
                 END as risk_level
             FROM users u
-            LEFT JOIN security_score_summary sss ON u.uid = sss.user_id AND sss.evaluation_year = %s
-            {where_clause}
-            ORDER BY {sort_field} {order}, u.username ASC
+            LEFT JOIN security_score_summary sss ON u.uid = sss.user_id 
+                AND sss.evaluation_year = %s
+            WHERE {where_clause}
+            ORDER BY {sort_column} {order_direction}, u.username ASC
             LIMIT %s OFFSET %s
         """
 
-        data_params = [year] + params + [per_page, offset]
-        users_data = execute_query(data_query, data_params)
+        users_data = execute_query(query, params)
 
         # 데이터 후처리
         for user in users_data:
-            user['total_penalty'] = float(user['total_penalty'])
-            user['audit_penalty'] = float(user['audit_penalty'])
-            user['education_penalty'] = float(user['education_penalty'])
-            user['training_penalty'] = float(user['training_penalty'])
-
-            # 마지막 업데이트 시간을 audit_log 기반으로 설정
             if user['last_audit_time']:
-                user['updated_at'] = user['last_audit_time']
-                user['last_updated'] = user['last_audit_time'].strftime(
-                    '%Y-%m-%d %H:%M:%S')
-            elif user['last_calculated']:
-                user['updated_at'] = user['last_calculated']
-                user['last_updated'] = user['last_calculated'].strftime(
-                    '%Y-%m-%d %H:%M:%S')
+                user['last_updated'] = user['last_audit_time'].strftime('%Y-%m-%d %H:%M:%S')
             else:
-                user['last_updated'] = None
+                user['last_updated'] = '업데이트 없음'
 
         return users_data, total_count
 
     except Exception as e:
-        logging.error(f"Filtered users error: {str(e)}")
+        logging.error(f"Filtered users query error: {str(e)}")
         return [], 0
-
 
 # === 사용자 상세 API 수정 ===
 
@@ -957,48 +946,54 @@ def get_calculation_progress():
         }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
 
-# 내보내기 함수도 수정
+
 @admin_dashboard_bp.route("/export", methods=["GET"])
 @token_required
 @admin_required
 @handle_exceptions
 def export_users():
-    """사용자 데이터 내보내기 (CSV) - audit_log 기반 마지막 업데이트 포함"""
+    """사용자 데이터 내보내기 (CSV)"""
     year = request.args.get("year", datetime.now().year, type=int)
     department = request.args.get("department", "")
     risk_level = request.args.get("risk_level", "")
     search = request.args.get("search", "")
     user_ids = request.args.get("user_ids", "")
     format_type = request.args.get("format", "csv")
+    export_type = request.args.get("type", "summary")  # summary | detailed | item_detailed
+    export_mode = request.args.get("mode", "count")  # count | score | item_count
 
     try:
-        logging.info(f"데이터 내보내기 요청: year={year}, format={format_type}")
+        logging.info(f"데이터 내보내기 요청: year={year}, type={export_type}, mode={export_mode}")
 
         # 선택된 사용자만 내보내기
         if user_ids:
-            user_id_list = [
-                int(uid.strip()) for uid in user_ids.split(",") if uid.strip()
-            ]
+            user_id_list = [int(uid.strip()) for uid in user_ids.split(",") if uid.strip()]
             users_data = _get_selected_users_for_export(user_id_list, year)
         else:
             # 전체 또는 필터링된 데이터 내보내기
             users_data, _ = _get_filtered_users_fixed(year, department, risk_level,
-                                                      search, 1, 10000, "total_penalty",
-                                                      "desc")
+                                                      search, 1, 10000, "total_penalty", "desc")
 
         if format_type.lower() == "csv":
-            return _export_as_csv(users_data, year)
+            if export_type == "detailed":
+                # 상세 보고서 (사용자별 전체 내역)
+                return _export_as_csv_detailed(users_data, year)
+            elif export_mode == "item_count":
+                # 항목별 상세 건수
+                return _export_as_csv_with_item_details(users_data, year)
+            else:
+                # 기본 요약 보고서
+                return _export_as_csv(users_data, year)
         else:
             return jsonify({"error": "지원하지 않는 형식입니다."}), HTTP_STATUS["BAD_REQUEST"]
 
     except Exception as e:
         logging.error(f"Export error: {str(e)}")
-        return jsonify({"error": "내보내기 중 오류가 발생했습니다."
-                        }), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
+        return jsonify({"error": "내보내기 중 오류가 발생했습니다."}), HTTP_STATUS["INTERNAL_SERVER_ERROR"]
 
 
 def _get_selected_users_for_export(user_ids, year):
-    """선택된 사용자들의 데이터 조회 - audit_log 기반"""
+    """선택된 사용자들의 데이터 조회 - 건수 포함"""
     try:
         if not user_ids:
             return []
@@ -1018,6 +1013,10 @@ def _get_selected_users_for_export(user_ids, year):
                 COALESCE(sss.audit_penalty, 0.0) as audit_penalty,
                 COALESCE(sss.education_penalty, 0.0) as education_penalty,
                 COALESCE(sss.training_penalty, 0.0) as training_penalty,
+                -- ✅ 건수 컬럼 추가
+                COALESCE(sss.audit_failed_count, 0) as audit_failed_count,
+                COALESCE(sss.education_incomplete_count, 0) as education_incomplete_count,
+                COALESCE(sss.training_failed_count, 0) as training_failed_count,
                 COALESCE(sss.audit_failed_count, 0) as security_audit_penalty,
                 COALESCE(sss.education_incomplete_count, 0) as education_penalty_count,
                 COALESCE(sss.training_failed_count, 0) as training_penalty_count,
@@ -1051,8 +1050,7 @@ def _get_selected_users_for_export(user_ids, year):
             # 마지막 업데이트 시간을 audit_log 기반으로 설정
             if user['last_audit_time']:
                 user['updated_at'] = user['last_audit_time']
-                user['last_updated'] = user['last_audit_time'].strftime(
-                    '%Y-%m-%d %H:%M:%S')
+                user['last_updated'] = user['last_audit_time'].strftime('%Y-%m-%d %H:%M:%S')
             else:
                 user['last_updated'] = '업데이트 없음'
 
@@ -1064,14 +1062,19 @@ def _get_selected_users_for_export(user_ids, year):
 
 
 def _export_as_csv(users_data, year):
-    """CSV 형식으로 데이터 내보내기"""
+    """CSV 형식으로 데이터 내보내기 - 건수 기반"""
     try:
         output = io.StringIO()
         writer = csv.writer(output)
 
-        # CSV 헤더
+        # CSV 헤더 - 건수 중심으로 변경
         headers = [
-            "사번", "이름", "이메일", "부서", "IP주소", "권한", "총감점", "감사감점", "교육감점", "훈련감점", "위험도",
+            "사번", "이름", "이메일", "부서", "IP주소", "권한",
+            "총 미흡 건수",  # 변경: 총감점 → 총 미흡 건수
+            "감사 미흡 건수",  # 변경: 감사감점 → 감사 미흡 건수
+            "교육 미완료 건수",  # 변경: 교육감점 → 교육 미완료 건수
+            "훈련 실패 건수",  # 변경: 훈련감점 → 훈련 실패 건수
+            "위험도",
             "마지막업데이트"
         ]
         writer.writerow(headers)
@@ -1086,32 +1089,511 @@ def _export_as_csv(users_data, year):
                 'not_evaluated': '미평가'
             }
 
+            # 건수 계산
+            audit_count = user.get('security_audit_penalty', 0) or user.get('audit_failed_count', 0)
+            education_count = user.get('education_penalty_count', 0) or user.get('education_incomplete_count', 0)
+            training_count = user.get('training_penalty_count', 0) or user.get('training_failed_count', 0)
+            total_count = audit_count + education_count + training_count
+
             row = [
                 user.get('user_id', ''),
                 user.get('name', ''),
                 user.get('email', ''),
                 user.get('department', ''),
-                user.get('ip', ''), '관리자' if user.get('role') == 'admin' else '일반사용자',
-                f"{user.get('total_penalty', 0):.1f}점",
-                f"{user.get('audit_penalty', 0):.1f}점",
-                f"{user.get('education_penalty', 0):.1f}점",
-                f"{user.get('training_penalty', 0):.1f}점",
+                user.get('ip', ''),
+                '관리자' if user.get('role') == 'admin' else '일반사용자',
+                f"{total_count}건",  # 총 건수
+                f"{audit_count}건",  # 감사 건수
+                f"{education_count}건",  # 교육 건수
+                f"{training_count}건",  # 훈련 건수
                 risk_labels.get(user.get('risk_level', 'not_evaluated'), '미평가'),
                 user.get('last_updated', '업데이트 없음')
             ]
             writer.writerow(row)
 
-        # CSV 응답 생성
+        # CSV 데이터 생성
         csv_data = output.getvalue()
         output.close()
 
-        response = make_response(csv_data.encode('utf-8-sig'))  # BOM 추가로 한글 깨짐 방지
-        response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
-        response.headers[
-            'Content-Disposition'] = f'attachment; filename="사용자_보안현황_{year}년_{datetime.now().strftime("%Y%m%d_%H%M")}.csv"'
+        # UTF-8 BOM 추가
+        csv_with_bom = '\ufeff' + csv_data
+        csv_bytes = csv_with_bom.encode('utf-8')
+        
+        response = make_response(csv_bytes)
+        response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        
+        # 파일명 설정
+        filename = f"사용자_보안현황_{year}년_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+        encoded_filename = quote(filename)
+        
+        response.headers['Content-Disposition'] = (
+            f"attachment; "
+            f"filename*=UTF-8''{encoded_filename}; "
+            f'filename="security_status_{year}.csv"'
+        )
 
+        logging.info(f"CSV 파일 생성 완료 (건수 기반): {filename} (총 {len(users_data)}명)")
         return response
 
     except Exception as e:
         logging.error(f"CSV export error: {str(e)}")
         raise
+
+
+
+def _export_as_csv_detailed(users_data, year):
+    """
+    상세 보고서 CSV 내보내기 - 각 사용자의 감점 상세 내역 포함
+    """
+    try:
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # 메인 헤더
+        writer.writerow([f'종합보안점수 상세 보고서 ({year}년)'])
+        writer.writerow(['생성일시:', datetime.now().strftime('%Y-%m-%d %H:%M:%S')])
+        writer.writerow([])  # 빈 줄
+
+        # 사용자별 상세 정보 작성
+        for idx, user in enumerate(users_data, 1):
+            # 사용자 기본 정보 섹션
+            writer.writerow([f'=== {idx}. {user.get("name", "Unknown")} ({user.get("user_id", "")}) ==='])
+            writer.writerow([])
+            
+            # 기본 정보
+            writer.writerow(['[기본 정보]'])
+            writer.writerow(['사번', user.get('user_id', '')])
+            writer.writerow(['이름', user.get('name', '')])
+            writer.writerow(['부서', user.get('department', '')])
+            writer.writerow(['이메일', user.get('email', '')])
+            writer.writerow(['IP주소', user.get('ip', '')])
+            writer.writerow([])
+            
+            # 종합 점수
+            writer.writerow(['[종합 보안 점수]'])
+            writer.writerow(['총 감점', f"{user.get('total_penalty', 0):.1f}점"])
+            writer.writerow(['상시감사 감점', f"{user.get('audit_penalty', 0):.1f}점"])
+            writer.writerow(['교육 감점', f"{user.get('education_penalty', 0):.1f}점"])
+            writer.writerow(['모의훈련 감점', f"{user.get('training_penalty', 0):.1f}점"])
+            
+            risk_labels = {
+                'low': '우수',
+                'medium': '주의',
+                'high': '위험',
+                'critical': '매우위험',
+                'not_evaluated': '미평가'
+            }
+            writer.writerow(['위험도', risk_labels.get(user.get('risk_level', 'not_evaluated'), '미평가')])
+            writer.writerow([])
+            
+            # 상세 감점 내역 조회
+            user_id = user.get('uid')
+            if user_id:
+                # 1. 상시감사 상세 내역
+                audit_details = _get_audit_details(user_id, year)
+                if audit_details:
+                    writer.writerow(['[상시감사 상세 내역]'])
+                    writer.writerow(['점검일시', '항목명', '결과', '감점'])
+                    for detail in audit_details:
+                        writer.writerow([
+                            detail.get('checked_at', ''),
+                            detail.get('item_name', ''),
+                            '미흡' if detail.get('passed') == 0 else '양호',
+                            f"{detail.get('penalty', 0):.1f}점" if detail.get('passed') == 0 else '0점'
+                        ])
+                    writer.writerow([])
+                
+                # 2. 교육 상세 내역
+                education_details = _get_education_details(user_id, year)
+                if education_details:
+                    writer.writerow(['[정보보호 교육 상세 내역]'])
+                    writer.writerow(['교육기간', '상태', '감점'])
+                    for detail in education_details:
+                        writer.writerow([
+                            detail.get('period_name', ''),
+                            '미완료' if detail.get('is_incomplete') else '완료',
+                            f"{detail.get('penalty', 0):.1f}점" if detail.get('is_incomplete') else '0점'
+                        ])
+                    writer.writerow([])
+                
+                # 3. 모의훈련 상세 내역
+                training_details = _get_training_details(user_id, year)
+                if training_details:
+                    writer.writerow(['[모의훈련 상세 내역]'])
+                    writer.writerow(['훈련일시', '훈련유형', '결과', '감점'])
+                    for detail in training_details:
+                        writer.writerow([
+                            detail.get('sent_time', ''),
+                            detail.get('mail_type', ''),
+                            detail.get('result', ''),
+                            f"{detail.get('penalty', 0):.1f}점" if detail.get('failed') else '0점'
+                        ])
+                    writer.writerow([])
+            
+            writer.writerow([])  # 사용자 구분 빈 줄
+            writer.writerow(['-' * 80])  # 구분선
+            writer.writerow([])
+
+        # 요약 통계
+        writer.writerow(['=== 전체 요약 통계 ==='])
+        writer.writerow([])
+        total_users = len(users_data)
+        high_risk_users = len([u for u in users_data if u.get('total_penalty', 0) > 2.0])
+        medium_risk_users = len([u for u in users_data if 1.0 < u.get('total_penalty', 0) <= 2.0])
+        low_risk_users = len([u for u in users_data if 0 < u.get('total_penalty', 0) <= 1.0])
+        excellent_users = len([u for u in users_data if u.get('total_penalty', 0) == 0])
+        
+        writer.writerow(['전체 사용자 수', total_users])
+        writer.writerow(['우수 (0점)', excellent_users])
+        writer.writerow(['양호 (0-1점)', low_risk_users])
+        writer.writerow(['주의 (1-2점)', medium_risk_users])
+        writer.writerow(['위험 (2점 초과)', high_risk_users])
+        writer.writerow([])
+        
+        avg_penalty = sum([u.get('total_penalty', 0) for u in users_data]) / total_users if total_users > 0 else 0
+        writer.writerow(['평균 감점', f"{avg_penalty:.2f}점"])
+
+        # CSV 데이터 생성
+        csv_data = output.getvalue()
+        output.close()
+
+        # UTF-8 BOM 추가
+        csv_with_bom = '\ufeff' + csv_data
+        csv_bytes = csv_with_bom.encode('utf-8')
+        
+        response = make_response(csv_bytes)
+        response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        
+        # 파일명 설정
+        filename = f"상세보고서_전체사용자_{year}년_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+        encoded_filename = quote(filename)
+        
+        response.headers['Content-Disposition'] = (
+            f"attachment; "
+            f"filename*=UTF-8''{encoded_filename}; "
+            f'filename="detailed_report_{year}.csv"'
+        )
+
+        logging.info(f"상세 보고서 CSV 파일 생성 완료: {filename} (총 {len(users_data)}명)")
+        return response
+
+    except Exception as e:
+        logging.error(f"Detailed CSV export error: {str(e)}")
+        raise
+
+
+
+def _get_audit_details(user_id, year):
+    """상시감사 상세 내역 조회"""
+    try:
+        from app.utils.database import execute_query
+        
+        query = """
+            SELECT 
+                al.checked_at,
+                ci.item_name,
+                al.passed,
+                ci.penalty_weight as penalty
+            FROM audit_log al
+            INNER JOIN checklist_items ci ON al.item_id = ci.item_id
+            WHERE al.user_id = %s 
+            AND YEAR(al.checked_at) = %s
+            AND al.passed = 0
+            ORDER BY al.checked_at DESC
+            LIMIT 100
+        """
+        
+        return execute_query(query, (user_id, year))
+    except Exception as e:
+        logging.error(f"Audit details error: {str(e)}")
+        return []
+
+
+def _get_education_details(user_id, year):
+    """교육 상세 내역 조회"""
+    try:
+        from app.utils.database import execute_query
+        
+        query = """
+            SELECT 
+                ep.period_name,
+                CASE 
+                    WHEN se.completion_status = 'incomplete' THEN 1
+                    ELSE 0
+                END as is_incomplete,
+                CASE 
+                    WHEN se.completion_status = 'incomplete' THEN 0.5
+                    ELSE 0
+                END as penalty
+            FROM security_education se
+            INNER JOIN education_periods ep ON se.period_id = ep.period_id
+            WHERE se.user_id = %s 
+            AND se.education_year = %s
+            AND se.exclude_from_scoring = 0
+            ORDER BY ep.start_date DESC
+        """
+        
+        return execute_query(query, (user_id, year))
+    except Exception as e:
+        logging.error(f"Education details error: {str(e)}")
+        return []
+
+
+def _get_training_details(user_id, year):
+    """모의훈련 상세 내역 조회"""
+    try:
+        from app.utils.database import execute_query
+        
+        query = """
+            SELECT 
+                pt.email_sent_time as sent_time,
+                pt.mail_type,
+                pt.training_result as result,
+                CASE 
+                    WHEN pt.training_result = 'fail' THEN 1
+                    ELSE 0
+                END as failed,
+                CASE 
+                    WHEN pt.training_result = 'fail' THEN 0.5
+                    ELSE 0
+                END as penalty
+            FROM phishing_training pt
+            WHERE pt.user_id = %s 
+            AND pt.training_year = %s
+            AND pt.exclude_from_scoring = 0
+            ORDER BY pt.email_sent_time DESC
+            LIMIT 50
+        """
+        
+        return execute_query(query, (user_id, year))
+    except Exception as e:
+        logging.error(f"Training details error: {str(e)}")
+        return []
+    
+
+def _export_as_csv_with_item_details(users_data, year):
+    """
+    CSV 형식으로 데이터 내보내기 - 개별 항목별 건수 포함
+    각 감사 항목별로 미흡 건수를 개별 컬럼으로 표시
+    """
+    try:
+        # 1단계: 모든 감사 항목 목록 조회
+        checklist_items = _get_all_checklist_items()
+        manual_check_items = _get_all_manual_check_items()
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # CSV 헤더 구성
+        base_headers = [
+            "사번", "이름", "이메일", "부서", "IP주소", "권한"
+        ]
+        
+        # 상시감사 항목별 헤더 추가
+        audit_headers = [item['item_name'] for item in checklist_items]
+        
+        # 수시점검 항목별 헤더 추가
+        manual_headers = [item['item_name'] for item in manual_check_items]
+        
+        # 교육/훈련 헤더
+        summary_headers = [
+            "교육 미완료 건수",
+            "훈련 실패 건수",
+            "총 미흡 건수",
+            "위험도",
+            "마지막업데이트"
+        ]
+        
+        # 전체 헤더 조합
+        headers = base_headers + audit_headers + manual_headers + summary_headers
+        writer.writerow(headers)
+
+        # 데이터 행
+        for user in users_data:
+            # 2단계: 사용자별 항목별 미흡 건수 조회
+            user_id = user.get('uid')
+            item_counts = _get_user_item_counts(user_id, year, checklist_items, manual_check_items)
+            
+            risk_labels = {
+                'low': '우수',
+                'medium': '주의',
+                'high': '위험',
+                'critical': '매우위험',
+                'not_evaluated': '미평가'
+            }
+
+            # 기본 정보
+            base_data = [
+                user.get('user_id', ''),
+                user.get('name', ''),
+                user.get('email', ''),
+                user.get('department', ''),
+                user.get('ip', ''),
+                '관리자' if user.get('role') == 'admin' else '일반사용자'
+            ]
+            
+            # 상시감사 항목별 건수
+            audit_counts = [f"{item_counts['audit'].get(item['item_id'], 0)}건" 
+                          for item in checklist_items]
+            
+            # 수시점검 항목별 건수
+            manual_counts = [f"{item_counts['manual'].get(item['item_id'], 0)}건" 
+                           for item in manual_check_items]
+            
+            # 교육/훈련/총합
+            education_count = user.get('education_incomplete_count', 0)
+            training_count = user.get('training_failed_count', 0)
+            
+            # 총 미흡 건수 계산
+            total_audit = sum(item_counts['audit'].values())
+            total_manual = sum(item_counts['manual'].values())
+            total_count = total_audit + total_manual + education_count + training_count
+            
+            summary_data = [
+                f"{education_count}건",
+                f"{training_count}건",
+                f"{total_count}건",
+                risk_labels.get(user.get('risk_level', 'not_evaluated'), '미평가'),
+                user.get('last_updated', '업데이트 없음')
+            ]
+            
+            # 전체 행 조합
+            row = base_data + audit_counts + manual_counts + summary_data
+            writer.writerow(row)
+
+        # CSV 데이터 생성
+        csv_data = output.getvalue()
+        output.close()
+
+        # UTF-8 BOM 추가
+        csv_with_bom = '\ufeff' + csv_data
+        csv_bytes = csv_with_bom.encode('utf-8')
+        
+        response = make_response(csv_bytes)
+        response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        
+        # 파일명 설정
+        filename = f"사용자_보안현황_항목별_{year}년_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+        encoded_filename = quote(filename)
+        
+        response.headers['Content-Disposition'] = (
+            f"attachment; "
+            f"filename*=UTF-8''{encoded_filename}; "
+            f'filename="security_status_detailed_{year}.csv"'
+        )
+
+        logging.info(f"CSV 파일 생성 완료 (항목별 상세): {filename} (총 {len(users_data)}명)")
+        return response
+
+    except Exception as e:
+        logging.error(f"CSV export with item details error: {str(e)}")
+        raise
+
+
+def _get_all_checklist_items():
+    """모든 상시감사 항목 조회"""
+    try:
+        from app.utils.database import execute_query
+        
+        query = """
+            SELECT item_id, item_name, category
+            FROM checklist_items
+            WHERE check_type = 'daily'
+            ORDER BY item_id ASC
+        """
+        
+        return execute_query(query, fetch_all=True)
+    except Exception as e:
+        logging.error(f"Get checklist items error: {str(e)}")
+        return []
+
+
+def _get_all_manual_check_items():
+    """모든 수시점검 항목 조회"""
+    try:
+        from app.utils.database import execute_query
+        
+        query = """
+            SELECT item_id, item_name, item_category as category
+            FROM manual_check_items
+            WHERE is_active = 1
+            ORDER BY item_id ASC
+        """
+        
+        return execute_query(query, fetch_all=True)
+    except Exception as e:
+        logging.error(f"Get manual check items error: {str(e)}")
+        return []
+
+
+def _get_user_item_counts(user_id, year, checklist_items, manual_check_items):
+    """
+    사용자별 개별 항목 미흡 건수 조회
+    
+    Returns:
+        {
+            'audit': {item_id: count, ...},  # 상시감사 항목별 건수
+            'manual': {item_id: count, ...}  # 수시점검 항목별 건수
+        }
+    """
+    try:
+        from app.utils.database import execute_query
+        
+        result = {
+            'audit': {},
+            'manual': {}
+        }
+        
+        # 1. 상시감사 항목별 미흡 건수 (audit_log)
+        if checklist_items:
+            audit_query = """
+                SELECT 
+                    al.item_id,
+                    COUNT(*) as fail_count
+                FROM audit_log al
+                WHERE al.user_id = %s 
+                AND YEAR(al.checked_at) = %s
+                AND al.passed = 0
+                GROUP BY al.item_id
+            """
+            
+            audit_results = execute_query(audit_query, (user_id, year), fetch_all=True)
+            
+            # 딕셔너리로 변환
+            for row in audit_results:
+                result['audit'][row['item_id']] = row['fail_count']
+        
+        # 2. 수시점검 항목별 미흡 건수 (manual_check_results)
+        if manual_check_items:
+            manual_query = """
+                SELECT 
+                    mci.item_id,
+                    COUNT(*) as fail_count
+                FROM manual_check_results mcr
+                INNER JOIN manual_check_items mci 
+                    ON mcr.check_item_code = CONCAT(
+                        CASE 
+                            WHEN mci.item_code = 'seal_check' THEN 'seal_check'
+                            WHEN mci.item_code = 'malware_scan' THEN 'malware_scan'
+                            WHEN mci.item_code = 'file_encryption' THEN 'file_encryption'
+                            ELSE mci.item_code
+                        END
+                    )
+                WHERE mcr.user_id = %s 
+                AND mcr.check_year = %s
+                AND mcr.overall_result = 'fail'
+                AND mcr.exclude_from_scoring = 0
+                GROUP BY mci.item_id
+            """
+            
+            manual_results = execute_query(manual_query, (user_id, year), fetch_all=True)
+            
+            # 딕셔너리로 변환
+            for row in manual_results:
+                result['manual'][row['item_id']] = row['fail_count']
+        
+        return result
+        
+    except Exception as e:
+        logging.error(f"Get user item counts error: {str(e)}")
+        return {'audit': {}, 'manual': {}}
