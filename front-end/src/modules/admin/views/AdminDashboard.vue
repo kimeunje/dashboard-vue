@@ -25,6 +25,9 @@
             </svg>
             새로고침
           </button>
+          <button @click="exportItemDetails" :disabled="loading" class="export-btn item-detail">
+            <span>📋 항목별 내보내기</span>
+          </button>
           <button @click="exportSummary" class="export-btn" :disabled="loading">
             <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
               <path
@@ -983,25 +986,85 @@ function isAdmin() {
   return userRole === 'admin' || authStore.user?.username === 'admin'
 }
 
-// 내보내기 함수들
 async function exportSummary() {
   try {
     loading.value = true
-    const response = await adminAPI.exportData('summary', 'csv')
+    
+    console.log('전체 사용자 데이터 내보내기 시작...');
+    
+    // 전체 사용자 데이터 내보내기 API 호출
+    const params = new URLSearchParams({
+      year: selectedYear.value,
+      format: 'csv'
+    });
+
+    const response = await fetch(`/api/admin/dashboard/export?${params}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${authStore.token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
 
     // 파일 다운로드 처리
     const blob = await response.blob()
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `관리자_대시보드_요약_${selectedYear.value}.csv`
+    
+    // 파일명: 종합보안점수_전체사용자_2025년_20250122.csv
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    a.download = `종합보안점수_전체사용자_${selectedYear.value}년_${today}.csv`
+    
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
+    
+    console.log('데이터 내보내기 완료');
+    showSuccess(`${selectedYear.value}년 전체 사용자 데이터가 성공적으로 내보내졌습니다.`)
   } catch (err) {
     console.error('요약 데이터 내보내기 실패:', err)
-    error.value = '데이터 내보내기에 실패했습니다.'
+    error.value = `데이터 내보내기에 실패했습니다: ${err.message}`
+  } finally {
+    loading.value = false
+  }
+}
+
+// 2. 항목별 상세 내보내기 (신규)
+async function exportItemDetails() {
+  try {
+    loading.value = true
+    const params = new URLSearchParams({
+      year: selectedYear.value,
+      format: 'csv',
+      mode: 'item_count'  // 핵심!
+    });
+
+    const response = await fetch(`/api/admin/dashboard/export?${params}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    });
+
+    if (!response.ok) throw new Error('내보내기 실패');
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `사용자_보안현황_항목별_${selectedYear.value}년.csv`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    
+    showSuccess('항목별 상세 보고서가 성공적으로 내보내졌습니다.')
+  } catch (err) {
+    error.value = `항목별 데이터 내보내기에 실패했습니다: ${err.message}`
   } finally {
     loading.value = false
   }
@@ -1010,20 +1073,51 @@ async function exportSummary() {
 async function exportDetailed() {
   try {
     loading.value = true
-    const response = await adminAPI.exportData('detailed', 'csv')
+    
+    console.log('상세 데이터 내보내기 시작...');
+    
+    // type=detailed 파라미터 추가
+    const params = new URLSearchParams({
+      year: selectedYear.value,
+      format: 'csv',
+      type: 'detailed'  // 상세 보고서 모드
+    });
+
+    // 현재 적용된 필터가 있다면 추가
+    if (dashboardData.value?.filters) {
+      const filters = dashboardData.value.filters;
+      if (filters.department) params.append('department', filters.department);
+      if (filters.risk_level) params.append('risk_level', filters.risk_level);
+      if (filters.search) params.append('search', filters.search);
+    }
+
+    const response = await fetch(`/api/admin/dashboard/export?${params}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${authStore.token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
 
     const blob = await response.blob()
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `사용자_상세_현황_${selectedYear.value}.csv`
+    a.download = `상세보고서_전체사용자_${selectedYear.value}년_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.csv`
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
+    
+    console.log('상세 데이터 내보내기 완료');
+    showSuccess('상세 보고서가 성공적으로 내보내졌습니다.')
   } catch (err) {
     console.error('상세 데이터 내보내기 실패:', err)
-    error.value = '상세 데이터 내보내기에 실패했습니다.'
+    error.value = `상세 데이터 내보내기에 실패했습니다: ${err.message}`
   } finally {
     loading.value = false
   }
@@ -1032,24 +1126,93 @@ async function exportDetailed() {
 async function exportDepartmentData() {
   try {
     loading.value = true
-    const response = await adminAPI.exportData('department', 'csv')
+    
+    console.log('부서별 데이터 내보내기 시작...');
+    
+    // 부서별 집계 데이터 내보내기
+    const params = new URLSearchParams({
+      year: selectedYear.value,
+      format: 'csv',
+      type: 'department'
+    });
+
+    const response = await fetch(`/api/admin/dashboard/export?${params}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${authStore.token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
 
     const blob = await response.blob()
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `부서별_현황_${selectedYear.value}.csv`
+    a.download = `부서별_현황_${selectedYear.value}년.csv`
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
+    
+    console.log('부서별 데이터 내보내기 완료');
+    showSuccess('부서별 데이터가 성공적으로 내보내졌습니다.')
   } catch (err) {
     console.error('부서별 데이터 내보내기 실패:', err)
-    error.value = '부서별 데이터 내보내기에 실패했습니다.'
+    error.value = `부서별 데이터 내보내기에 실패했습니다: ${err.message}`
   } finally {
     loading.value = false
   }
 }
+
+// 선택된 사용자만 내보내기 (필요시 추가)
+async function exportSelectedUsers(userIds) {
+  try {
+    loading.value = true
+    
+    console.log('선택된 사용자 데이터 내보내기 시작...');
+    
+    const params = new URLSearchParams({
+      year: selectedYear.value,
+      format: 'csv',
+      user_ids: userIds.join(',')
+    });
+
+    const response = await fetch(`/api/admin/dashboard/export?${params}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${authStore.token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `선택된_사용자_${userIds.length}명_${selectedYear.value}년.csv`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    
+    console.log('선택된 사용자 데이터 내보내기 완료');
+    showSuccess(`${userIds.length}명의 사용자 데이터가 성공적으로 내보내졌습니다.`)
+  } catch (err) {
+    console.error('선택된 사용자 데이터 내보내기 실패:', err)
+    error.value = `선택된 사용자 데이터 내보내기에 실패했습니다: ${err.message}`
+  } finally {
+    loading.value = false
+  }
+}
+
 
 // 디바운스 함수
 function debounce(func, wait) {
