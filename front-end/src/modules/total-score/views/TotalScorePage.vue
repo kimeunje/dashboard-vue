@@ -150,7 +150,7 @@
               </router-link>
               <router-link 
                 v-if="scoreData.manual_check_stats" 
-                to="/security-audit/manual-results" 
+                to="/security-audit/results" 
                 class="detail-link"
                 style="margin-left: 1rem;"
               >
@@ -195,10 +195,6 @@
                   </div>
                 </div>
               </div>
-
-              <div v-else class="no-penalty-items">
-                모든 교육을 완료했습니다 ✓
-              </div>
             </div>
 
             <div class="card-footer">
@@ -242,10 +238,6 @@
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div v-else class="no-penalty-items">
-                모든 훈련을 통과했습니다 ✓
               </div>
             </div>
 
