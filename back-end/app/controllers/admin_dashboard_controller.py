@@ -959,8 +959,8 @@ def export_users():
     search = request.args.get("search", "")
     user_ids = request.args.get("user_ids", "")
     format_type = request.args.get("format", "csv")
-    export_type = request.args.get("type", "summary")  # summary | detailed | item_detailed
-    export_mode = request.args.get("mode", "count")  # count | score | item_count
+    export_type = request.args.get("type", "summary")
+    export_mode = request.args.get("mode", "count")  # count | item_count | normalized
 
     try:
         logging.info(f"데이터 내보내기 요청: year={year}, type={export_type}, mode={export_mode}")
@@ -978,6 +978,9 @@ def export_users():
             if export_type == "detailed":
                 # 상세 보고서 (사용자별 전체 내역)
                 return _export_as_csv_detailed(users_data, year)
+            elif export_mode == "normalized":
+                # 항목별 정규화 (결함 있으면 1건)
+                return _export_as_csv_item_normalized(users_data, year)
             elif export_mode == "item_count":
                 # 항목별 상세 건수
                 return _export_as_csv_with_item_details(users_data, year)
@@ -1596,4 +1599,211 @@ def _get_user_item_counts(user_id, year, checklist_items, manual_check_items):
         
     except Exception as e:
         logging.error(f"Get user item counts error: {str(e)}")
+        return {'audit': {}, 'manual': {}}
+
+
+def _export_as_csv_item_normalized(users_data, year):
+    """
+    CSV 형식으로 데이터 내보내기 - 항목별 정규화 (결함 있으면 1건)
+    
+    기존: 화면보호기 49건, 백신 3건 → 점수 계산 복잡
+    신규: 화면보호기 1건, 백신 1건 → 결함 여부만 표시
+    """
+    try:
+        # 1단계: 모든 감사 항목 목록 조회
+        checklist_items = _get_all_checklist_items()
+        manual_check_items = _get_all_manual_check_items()
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # CSV 헤더 구성
+        base_headers = [
+            "사번", "이름", "이메일", "부서", "IP주소", "권한"
+        ]
+        
+        # 상시감사 항목별 헤더 추가
+        audit_headers = [item['item_name'] for item in checklist_items]
+        
+        # 수시점검 항목별 헤더 추가
+        manual_headers = [item['item_name'] for item in manual_check_items]
+        
+        # 교육/훈련 헤더
+        summary_headers = [
+            "교육 미완료",
+            "훈련 실패",
+            "총 미흡 항목수",
+            "위험도",
+            "마지막업데이트"
+        ]
+        
+        # 전체 헤더 조합
+        headers = base_headers + audit_headers + manual_headers + summary_headers
+        writer.writerow(headers)
+
+        # 데이터 행
+        for user in users_data:
+            # 2단계: 사용자별 항목별 결함 여부 조회 (정규화)
+            user_id = user.get('uid')
+            item_status = _get_user_item_status_normalized(user_id, year, checklist_items, manual_check_items)
+            
+            risk_labels = {
+                'low': '우수',
+                'medium': '주의',
+                'high': '위험',
+                'critical': '매우위험',
+                'not_evaluated': '미평가'
+            }
+
+            # 기본 정보
+            base_data = [
+                user.get('user_id', ''),
+                user.get('name', ''),
+                user.get('email', ''),
+                user.get('department', ''),
+                user.get('ip', ''),
+                '관리자' if user.get('role') == 'admin' else '일반사용자'
+            ]
+            
+            # 상시감사 항목별 상태 (결함 있으면 1건, 없으면 0건)
+            audit_status = ["1건" if item_status['audit'].get(item['item_id'], False) else "0건"
+                          for item in checklist_items]
+            
+            # 수시점검 항목별 상태
+            manual_status = ["1건" if item_status['manual'].get(item['item_id'], False) else "0건"
+                           for item in manual_check_items]
+            
+            # 교육/훈련
+            education_has_issue = user.get('education_incomplete_count', 0) > 0
+            training_has_issue = user.get('training_failed_count', 0) > 0
+            
+            # 총 미흡 항목 수 계산 (결함이 있는 항목 개수)
+            total_issues = (
+                sum(1 for status in item_status['audit'].values() if status) +
+                sum(1 for status in item_status['manual'].values() if status) +
+                (1 if education_has_issue else 0) +
+                (1 if training_has_issue else 0)
+            )
+            
+            summary_data = [
+                "1건" if education_has_issue else "0건",
+                "1건" if training_has_issue else "0건",
+                f"{total_issues}건",
+                risk_labels.get(user.get('risk_level', 'not_evaluated'), '미평가'),
+                user.get('last_updated', '업데이트 없음')
+            ]
+            
+            # 전체 행 조합
+            row = base_data + audit_status + manual_status + summary_data
+            writer.writerow(row)
+
+        # CSV 데이터 생성
+        csv_data = output.getvalue()
+        output.close()
+
+        # UTF-8 BOM 추가
+        csv_with_bom = '\ufeff' + csv_data
+        csv_bytes = csv_with_bom.encode('utf-8')
+        
+        response = make_response(csv_bytes)
+        response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        
+        # 파일명 설정
+        filename = f"사용자_보안현황_정규화_{year}년_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+        encoded_filename = quote(filename)
+        
+        response.headers['Content-Disposition'] = (
+            f"attachment; "
+            f"filename*=UTF-8''{encoded_filename}; "
+            f'filename="security_status_normalized_{year}.csv"'
+        )
+
+        logging.info(f"CSV 파일 생성 완료 (정규화): {filename} (총 {len(users_data)}명)")
+        return response
+
+    except Exception as e:
+        logging.error(f"CSV export normalized error: {str(e)}")
+        raise
+
+
+def _get_user_item_status_normalized(user_id, year, checklist_items, manual_check_items):
+    """
+    사용자별 개별 항목 결함 여부 조회 (정규화 - 있으면 True, 없으면 False)
+    
+    Returns:
+        {
+            'audit': {item_id: True/False, ...},  # 상시감사 항목별 결함 여부
+            'manual': {item_id: True/False, ...}  # 수시점검 항목별 결함 여부
+        }
+    """
+    try:
+        from app.utils.database import execute_query
+        
+        result = {
+            'audit': {},
+            'manual': {}
+        }
+        
+        # 1. 상시감사 항목별 결함 여부 (audit_log)
+        if checklist_items:
+            audit_query = """
+                SELECT 
+                    al.item_id,
+                    COUNT(*) as fail_count
+                FROM audit_log al
+                WHERE al.user_id = %s 
+                AND YEAR(al.checked_at) = %s
+                AND al.passed = 0
+                GROUP BY al.item_id
+            """
+            
+            audit_results = execute_query(audit_query, (user_id, year), fetch_all=True)
+            
+            # 모든 항목을 False로 초기화
+            for item in checklist_items:
+                result['audit'][item['item_id']] = False
+            
+            # 결함이 있는 항목만 True로 설정 (건수 상관없이)
+            for row in audit_results:
+                if row['fail_count'] > 0:
+                    result['audit'][row['item_id']] = True
+        
+        # 2. 수시점검 항목별 결함 여부 (manual_check_results)
+        if manual_check_items:
+            manual_query = """
+                SELECT 
+                    mci.item_id,
+                    COUNT(*) as fail_count
+                FROM manual_check_results mcr
+                INNER JOIN manual_check_items mci 
+                    ON mcr.check_item_code = CONCAT(
+                        CASE 
+                            WHEN mci.item_code = 'seal_check' THEN 'seal_check'
+                            WHEN mci.item_code = 'malware_scan' THEN 'malware_scan'
+                            WHEN mci.item_code = 'file_encryption' THEN 'file_encryption'
+                            ELSE mci.item_code
+                        END
+                    )
+                WHERE mcr.user_id = %s 
+                AND mcr.check_year = %s
+                AND mcr.overall_result = 'fail'
+                AND mcr.exclude_from_scoring = 0
+                GROUP BY mci.item_id
+            """
+            
+            manual_results = execute_query(manual_query, (user_id, year), fetch_all=True)
+            
+            # 모든 항목을 False로 초기화
+            for item in manual_check_items:
+                result['manual'][item['item_id']] = False
+            
+            # 결함이 있는 항목만 True로 설정
+            for row in manual_results:
+                if row['fail_count'] > 0:
+                    result['manual'][row['item_id']] = True
+        
+        return result
+        
+    except Exception as e:
+        logging.error(f"Get user item status error: {str(e)}")
         return {'audit': {}, 'manual': {}}
