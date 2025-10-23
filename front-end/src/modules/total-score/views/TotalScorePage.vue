@@ -37,7 +37,7 @@
 
           <div class="score-details">
             <div class="detail-item">
-              <span class="detail-label">상시감사</span>
+              <span class="detail-label">정보보안 감사</span>
               <span class="detail-value penalty">{{ getAuditTotalCount() }}건</span>
             </div>
             <div class="detail-item">
@@ -70,14 +70,14 @@
                   <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
                 </svg>
               </div>
-              <h3>보안 감사</h3>
+              <h3>정보보안 감사</h3>
             </div>
 
             <div class="card-content">
               <div class="main-score penalty">{{ getAuditTotalCount() }}건</div>
               <div class="score-detail">
-                <p>총 실패 항목: {{ getAuditTotalCount() }}개</p>
-                <p>상시 감사: {{ scoreData.audit_stats?.failed_count || 0 }}개 / {{ scoreData.audit_stats?.total_count || 0 }}개</p>
+                <p>총 미흡 항목: {{ getAuditTotalCount() }}개</p>
+                <p>정기 점검: {{ scoreData.audit_stats?.failed_count || 0 }}개 / {{ scoreData.audit_stats?.total_count || 0 }}개</p>
                 <p v-if="scoreData.manual_check_stats">
                   수시 점검: {{ scoreData.manual_check_stats.failed_count || 0 }}개 / {{ scoreData.manual_check_stats.total_count || 0 }}개
                 </p>
@@ -85,7 +85,7 @@
 
               <!-- 상시 감사 항목 -->
               <div v-if="scoreData.audit_stats && scoreData.audit_stats.items?.length > 0" class="penalty-items">
-                <h4>📋 상시 감사 항목</h4>
+                <h4>📋 정기 점검 항목</h4>
                 <div class="penalty-list">
                   <div
                     v-for="item in scoreData.audit_stats.items"
@@ -96,7 +96,7 @@
                     <div class="item-info">
                       <div class="item-name">{{ item.item_name }}</div>
                       <div class="item-status">
-                        {{ item.result === 'pass' ? '✓ 통과' : '✗ 실패' }}
+                        {{ item.result === 'pass' ? '✓ 양호' : '✗ 미흡' }}
                       </div>
                     </div>
                   </div>
@@ -105,7 +105,7 @@
               
               <!-- items가 없고 failed_items만 있는 경우 (하위 호환성) -->
               <div v-else-if="scoreData.audit_stats?.failed_items?.length > 0" class="penalty-items">
-                <h4>📋 상시 감사 항목</h4>
+                <h4>📋 수시 점검 항목</h4>
                 <div class="penalty-list">
                   <div
                     v-for="item in scoreData.audit_stats.failed_items"
@@ -114,7 +114,7 @@
                   >
                     <div class="item-info">
                       <div class="item-name">{{ item.item_name }}</div>
-                      <div class="item-status">✗ 실패</div>
+                      <div class="item-status">✗ 양호</div>
                     </div>
                   </div>
                 </div>
@@ -132,7 +132,7 @@
                   >
                     <div class="item-info">
                       <div class="item-name">{{ item.check_type }}</div>
-                      <div class="item-status">{{ item.result === 'pass' ? '✓ 통과' : '✗ 실패' }}</div>
+                      <div class="item-status">{{ item.result === 'pass' ? '✓ 양호' : '✗ 미흡' }}</div>
                     </div>
                   </div>
                 </div>
@@ -146,7 +146,7 @@
 
             <div class="card-footer">
               <router-link to="/security-audit/results" class="detail-link">
-                상시 감사 상세 보기 →
+                정기 점검 상세 보기 →
               </router-link>
               <router-link 
                 v-if="scoreData.manual_check_stats" 
