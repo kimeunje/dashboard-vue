@@ -231,15 +231,15 @@ def _get_user_info(user_id):
 #         }
 
 
+
 def _calculate_audit_penalty_all_logs(user_id, year):
     """
-    ✅ 수정된 상시감사 감점 계산 로직 - 정기점검 항목별 적용
-    현재 실제 구현을 기반으로 정기점검만 항목별로 수정
+    ✅ 최종 수정된 상시감사 감점 계산 로직 - items 배열 포함
     """
     try:
-        logging.info(f"Audit penalty calculation: user_id={user_id}, year={year}")
+        logging.info(f"[AUDIT_ITEMS_DEBUG] 감사 항목 계산 시작: user_id={user_id}, year={year}")
 
-        # 1. 현재 구현과 동일한 방식으로 정기점검 로그 조회
+        # 1. 정기점검 로그 조회
         audit_logs = execute_query(
             """
             SELECT 
@@ -283,17 +283,22 @@ def _calculate_audit_penalty_all_logs(user_id, year):
             fetch_all=True,
         )
 
+        logging.info(f"[AUDIT_ITEMS_DEBUG] 조회된 로그 수: {len(audit_logs) if audit_logs else 0}개")
+
         if not audit_logs:
+            logging.warning(f"[AUDIT_ITEMS_DEBUG] 로그가 없음 - 빈 응답 반환")
             return 0.0, {
                 "total_count": 0,
                 "passed_count": 0,
                 "failed_count": 0,
                 "pending_count": 0,
+                "excluded_count": 0,
                 "total_penalty": 0.0,
                 "failed_items": [],
+                "items": [],
             }
 
-        # 2. 통계 계산 (제외 설정 반영)
+        # 2. 통계 계산
         total_count = len(audit_logs)
         passed_count = sum(1 for log in audit_logs
                            if log["passed"] == 1 and not log["is_excluded"])
@@ -301,57 +306,116 @@ def _calculate_audit_penalty_all_logs(user_id, year):
                             if log["passed"] is None and not log["is_excluded"])
         excluded_count = sum(1 for log in audit_logs if log["is_excluded"])
 
-        # 3. ✅ 수정된 감점 계산 - 정기점검 항목별 적용
-        # item_id별로 그룹핑하여 실패한 항목당 최대 1건만 반영
+        logging.info(f"[AUDIT_ITEMS_DEBUG] 통계 - 전체:{total_count}, 통과:{passed_count}, 대기:{pending_count}, 제외:{excluded_count}")
+
+        # 3. 감점 계산 - 항목별로 1건만
         total_penalty = 0.0
         failed_item_details = []
-        processed_items = set()  # 이미 처리된 item_id 추적
+        processed_items = set()
 
-        # 실패한 항목별로 처리 (중복 제거)
         for log in audit_logs:
-            if log["passed"] == 0 and not log["is_excluded"]:  # 실패했고 제외되지 않은 경우
+            if log["passed"] == 0 and not log["is_excluded"]:
                 item_id = log["item_id"]
-
-                # 해당 item_id가 아직 처리되지 않은 경우에만 감점 적용
                 if item_id not in processed_items:
-                    penalty = float(
-                        log["penalty_weight"]) if log["penalty_weight"] else 0.5
+                    penalty = float(log["penalty_weight"]) if log["penalty_weight"] else 0.5
                     total_penalty += penalty
                     processed_items.add(item_id)
-
                     failed_item_details.append({
                         "item_id": item_id,
                         "item_name": log["item_name"],
                         "checked_at": log["checked_at"],
                         "penalty": penalty,
                         "is_excluded": False,
-                        "calculation_method": "per_item"  # 항목별 적용 표시
+                        "calculation_method": "per_item"
                     })
 
-        # failed_count는 실패한 고유 항목 수
         failed_count = len(processed_items)
+        logging.info(f"[AUDIT_ITEMS_DEBUG] 실패 항목: {failed_count}개, 총 감점: {total_penalty}점")
 
+        # 4. ✅ items 배열 생성 - item_id별로 실패가 있으면 fail, 없으면 최신 상태
+        items_dict = {}
+        for log in audit_logs:
+            if log["is_excluded"]:
+                continue  # 제외된 로그는 처음부터 제외
+                
+            item_id = log["item_id"]
+            
+            if item_id not in items_dict:
+                # 첫 번째 로그 저장
+                items_dict[item_id] = log
+            else:
+                # 이미 저장된 로그가 있는 경우
+                existing_log = items_dict[item_id]
+                
+                # 실패한 로그가 있으면 실패를 우선 표시
+                if log["passed"] == 0:
+                    items_dict[item_id] = log
+                # 기존이 실패가 아니고, 새 로그가 더 최신이면 업데이트
+                elif existing_log["passed"] != 0 and log["checked_at"] > existing_log["checked_at"]:
+                    items_dict[item_id] = log
+
+        logging.info(f"[AUDIT_ITEMS_DEBUG] 고유 항목 수: {len(items_dict)}개")
+
+        # items 배열 생성
+        all_items = []
+        for item_id, log in items_dict.items():
+            # passed 값을 확인하여 result 결정
+            if log["passed"] == 1:
+                result_status = "pass"
+            elif log["passed"] == 0:
+                result_status = "fail"
+            else:
+                result_status = "pending"
+            
+            all_items.append({
+                "item_id": item_id,
+                "item_name": log["item_name"],
+                "result": result_status,
+                "checked_at": log["checked_at"],
+                "penalty_weight": float(log["penalty_weight"]) if log["penalty_weight"] else 0.5,
+                # 디버깅용 필드
+                "passed_raw": log["passed"],  # 실제 DB 값
+            })
+            
+            logging.debug(f"[AUDIT_ITEMS_DEBUG] 항목 추가: id={item_id}, name={log['item_name']}, passed={log['passed']}, result={result_status}")
+
+        # item_id 순서로 정렬
+        all_items.sort(key=lambda x: x["item_id"])
+
+        logging.info(f"[AUDIT_ITEMS_DEBUG] 최종 items 배열 크기: {len(all_items)}개")
+        logging.info(f"[AUDIT_ITEMS_DEBUG] items 배열 내용 샘플 (처음 3개): {all_items[:3] if len(all_items) >= 3 else all_items}")
+
+        # 5. audit_stats 구성
         audit_stats = {
-            "total_count": total_count,
+            "total_count": len(all_items),  # ✅ 수정: 고유 항목 수 (items 배열 길이)
             "passed_count": passed_count,
-            "failed_count": failed_count,  # 실패한 항목 수 (건수가 아닌 항목 수)
+            "failed_count": failed_count,
             "pending_count": pending_count,
             "excluded_count": excluded_count,
             "total_penalty": round(total_penalty, 2),
-            "failed_items": failed_item_details,
-            "calculation_method": "daily_per_item",  # 정기점검 항목별 계산 방식 표시
+            "failed_items": failed_item_details,  # 하위 호환성
+            "items": all_items,  # ✅ 모든 항목 배열
+            "calculation_method": "daily_per_item",
             "total_failure_logs": sum(
                 1 for log in audit_logs
-                if log["passed"] == 0 and not log["is_excluded"]),  # 실제 실패 로그 수
+                if log["passed"] == 0 and not log["is_excluded"]),
+            "total_logs": len(audit_logs),  # ✅ 추가: 전체 로그 수 (참고용)
         }
 
         logging.info(
-            f"정기점검 감점 계산 완료: 총 {audit_stats['total_failure_logs']}개 실패 로그 중 {failed_count}개 항목에서 감점 적용, 총 감점: {total_penalty}점"
+            f"[AUDIT_ITEMS_DEBUG] audit_stats 반환 완료 - "
+            f"고유 항목: {len(all_items)}개, "
+            f"전체 로그: {len(audit_logs)}개, "
+            f"items 배열: {len(all_items)}개, "
+            f"failed_items: {len(failed_item_details)}개"
         )
+        
         return total_penalty, audit_stats
 
     except Exception as e:
-        logging.error(f"Audit penalty calculation error: {str(e)}")
+        logging.error(f"[AUDIT_ITEMS_DEBUG] 오류 발생: {str(e)}")
+        import traceback
+        logging.error(f"[AUDIT_ITEMS_DEBUG] 스택 트레이스:\n{traceback.format_exc()}")
         return 0.0, {
             "total_count": 0,
             "passed_count": 0,
@@ -360,6 +424,7 @@ def _calculate_audit_penalty_all_logs(user_id, year):
             "excluded_count": 0,
             "total_penalty": 0.0,
             "failed_items": [],
+            "items": [],
         }
 
 
