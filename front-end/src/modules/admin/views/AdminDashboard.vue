@@ -28,6 +28,11 @@
           <button @click="exportItemDetails" :disabled="loading" class="export-btn item-detail">
             <span>📋 항목별 내보내기</span>
           </button>
+          <!-- ✅ 새로 추가: 정규화 내보내기 버튼 -->
+          <button @click="exportItemNormalized" :disabled="loading" class="export-btn normalized">
+            <span class="btn-icon">✓</span>
+            <span>정규화 내보내기</span>
+          </button>
           <button @click="exportSummary" class="export-btn" :disabled="loading">
             <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
               <path
@@ -1069,6 +1074,63 @@ async function exportItemDetails() {
     loading.value = false
   }
 }
+
+async function exportItemNormalized() {
+  try {
+    loading.value = true
+    
+    console.log('항목별 정규화 데이터 내보내기 시작...');
+    
+    // mode=normalized 파라미터 추가
+    const params = new URLSearchParams({
+      year: selectedYear.value,
+      format: 'csv',
+      mode: 'normalized'  // 정규화 모드
+    });
+
+    // 현재 적용된 필터가 있다면 추가
+    if (dashboardData.value?.filters) {
+      const filters = dashboardData.value.filters;
+      if (filters.department) params.append('department', filters.department);
+      if (filters.risk_level) params.append('risk_level', filters.risk_level);
+      if (filters.search) params.append('search', filters.search);
+    }
+
+    const response = await fetch(`/api/admin/dashboard/export?${params}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${authStore.token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    a.download = `사용자_보안현황_정규화_${selectedYear.value}년_${today}.csv`
+    
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    
+    console.log('항목별 정규화 데이터 내보내기 완료');
+    showSuccess('정규화 보고서가 성공적으로 내보내졌습니다. (결함 있으면 1건으로 표시)')
+  } catch (err) {
+    console.error('정규화 데이터 내보내기 실패:', err)
+    error.value = `정규화 데이터 내보내기에 실패했습니다: ${err.message}`
+  } finally {
+    loading.value = false
+  }
+}
+
 
 async function exportDetailed() {
   try {
