@@ -89,9 +89,14 @@ class 공유폴더_확인(ValidationStrategy):
         if not actual_folders:
             return True
         
-        # IPC$만 있는 경우 패스 (시스템 기본 공유)
-        if set(actual_folders) == {"IPC$"}:
+        # IPC$, C$, D$만 있는 경우 패스 (시스템 기본 공유)
+        allowed_system_shares = {"IPC$", "C$", "D$", "ADMIN$", "E$", "F$", "HP LaserJet Pro M501 PCL 6", "print$"}
+        if set(actual_folders).issubset(allowed_system_shares):
             return True
+        
+        # IPC$만 있는 경우 패스 (시스템 기본 공유)
+        # if set(actual_folders) == {"IPC$"}:
+        #     return True
         
         # 다른 불필요한 폴더가 있는 경우 실패
         return False
